@@ -1,0 +1,41 @@
+RATCHET & CLANK QUEST VR
+An unofficial, non-commercial fan port. It stands entirely on other people's open-source work.
+
+RATCHET & CLANK
+Created by Insomniac Games. Ratchet & Clank is a trademark of Sony Interactive Entertainment.
+This project is not affiliated with or endorsed by either. No game files are included:
+you supply your own disc.
+
+THE GAME ENGINE: OpenRAC (openrac.dev)
+The decompilation and native port this app runs: the game, its renderer, its Android support,
+the mod SDK with the VR view interface, and the tools that read your disc.
+Ratchet & Clank PAL (rac1-decomp): Krystof "Lynder063" Malinda, creator and maintainer; Flavius (Veradictus)
+Ratchet & Clank NTSC-U (Lombyte): Mateusz Klysz, creator and maintainer; Louis-Philippe Le Sieur, Pezza,
+Krystof "Lynder063" Malinda, Purab, mechaivan
+The port, launcher tools and level editor: the OpenRAC contributors
+OpenRAC credits ReRAC, Wrench, Replanetizer, OpenGOAL's jak-project, splat, spimdisasm, objdiff,
+asm-differ, decomp-permuter, m2c, wibo, Himuro, the GNU toolchain, newlib, and the PS2
+reverse-engineering and decompilation communities.
+
+THE VR DESIGN: Rerac-vr by npiriou
+The PC VR mod for ReRAC. The controller layout, eye height, comfort choices and the design of the VR
+gameplay in this app come from it. github.com/npiriou/Rerac-vr
+ReRAC, the Rust rewrite of Ratchet & Clank that Rerac-vr builds on: the ReRAC contributors.
+github.com/re-rac/rerac
+
+MODS BUILT ON: rac1-mods by the OpenRAC contributors
+lock-strafe's hooks and strafe logic make Ratchet face where you aim. keyboard-mouse documents the
+game's pad report. github.com/OpenRAC/rac1-mods
+
+QUEST KNOW-HOW: Halo CE Decomp Remix VR
+The OpenXR session, performance, launcher and updater patterns proven on the Quest 3.
+moistman42069, and astromaddie's HaloCE-VR before it.
+github.com/moistman42069/HaloCE-DecompRemix-VR-PC-Android
+
+LIBRARIES
+SDL 3, the Khronos OpenXR loader, CPython for Android (Chaquopy), Dear ImGui, cgltf, stb, Luau,
+glslang, Volk, Vulkan Memory Allocator and the others listed under Open-source licences below.
+
+LICENCE AND SOURCE
+This app is free software under the GNU General Public License v3 or later, with no warranty.
+You are entitled to its complete source code, including the changes made to OpenRAC.

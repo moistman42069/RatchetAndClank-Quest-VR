@@ -1,0 +1,6 @@
+android/build/
+android/app/build/
+android/.gradle/
+*.iso
+*.apk
+__pycache__/

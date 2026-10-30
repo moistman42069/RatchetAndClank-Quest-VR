@@ -1,0 +1,32 @@
+{
+  "format": 2,
+  "id": "quest-vr",
+  "name": "Quest VR",
+  "version": "0.1.0",
+  "author": "Ratchet & Clank Quest VR contributors",
+  "description": "Ratchet & Clank in a standalone headset through OpenXR: first person with head tracking, hand aiming and Touch controllers.",
+  "license": "GPL-3.0-or-later",
+  "api": "1.10",
+  "games": { "rac1": ["pal", "ntsc"] },
+  "hooks": [
+    "rac1.player.update_motion_input",
+    "rac1.player.turn_to_heading",
+    "rac1.player.set_planar_velocity"
+  ],
+  "settings": [
+    { "key": "view", "name": "View", "type": "choice", "default": "first",
+      "choices": [ { "value": "first", "name": "First person" }, { "value": "third", "name": "Third person" } ] },
+    { "key": "turn", "name": "Turning", "type": "choice", "default": "smooth",
+      "choices": [ { "value": "snap", "name": "Snap" }, { "value": "smooth", "name": "Smooth" } ] },
+    { "key": "snap_degrees", "name": "Snap angle", "type": "float", "default": 45, "min": 15, "max": 90, "step": 5 },
+    { "key": "smooth_degrees", "name": "Smooth turn speed", "type": "float", "default": 140, "min": 30, "max": 360, "step": 10 },
+    { "key": "world_scale", "name": "World scale", "type": "float", "default": 1, "min": 0.7, "max": 1.5, "step": 0.05 },
+    { "key": "hud_scale", "name": "HUD size", "type": "float", "default": 1, "min": 0.6, "max": 1.4, "step": 0.05 },
+    { "key": "haptics", "name": "Vibration", "type": "bool", "default": true },
+    { "key": "hand_aim", "name": "Aim with the right hand", "type": "bool", "default": true },
+    { "key": "hide_body", "name": "Hide Ratchet's body in first person", "type": "bool", "default": true },
+    { "key": "hand_weapon", "name": "Weapon in your right hand", "type": "bool", "default": true },
+    { "key": "refresh_hz", "name": "Refresh rate", "type": "int", "default": 72, "min": 60, "max": 120 },
+    { "key": "resolution", "name": "Resolution", "type": "float", "default": 1, "min": 0.5, "max": 1.5, "step": 0.05 }
+  ]
+}

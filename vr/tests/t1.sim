@@ -1,0 +1,20 @@
+# Boots straight to a level, skips the flight, looks round, walks, fires.
+300 shot a
+600 y 1
+606 y 0
+900 shot b
+1000 y 1
+1006 y 0
+1500 shot c
+1800 head_yaw 60
+1802 shot d
+2000 head_yaw -60
+2002 shot e
+2100 head_yaw 0
+2200 left_y 1
+2500 shot f
+2501 left_y 0
+2600 right_trigger 1
+2640 shot g
+2650 right_trigger 0
+2800 quit 0

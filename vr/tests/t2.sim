@@ -1,0 +1,32 @@
+# First person at length, once the arrival scene is over: look down where the body was, look round,
+# walk, turn, jump, fire, pause (the body is the game camera's again) and back.
+600 y 1
+606 y 0
+3200 shot fp-ahead
+3300 head_pitch -70
+3330 shot fp-down
+3400 head_pitch 0
+3400 head_yaw 80
+3430 shot fp-left
+3500 head_yaw -80
+3530 shot fp-right
+3600 head_yaw 0
+3600 left_y 1
+3900 shot fp-walked
+3900 left_y 0
+3950 right_x 1
+4010 right_x 0
+4030 shot fp-turned
+4100 a 1
+4106 a 0
+4120 shot fp-jump
+4200 right_trigger 1
+4260 shot fp-fire
+4300 right_trigger 0
+4400 y 1
+4406 y 0
+4500 shot pause
+4600 y 1
+4606 y 0
+4700 shot unpaused
+4800 quit 0

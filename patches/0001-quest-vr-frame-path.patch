@@ -1,0 +1,443 @@
+diff --git a/port/game/common/frontend.cpp b/port/game/common/frontend.cpp
+index a71a1a3e4b58b423bf378d2cde3ae509e6d9a4f2..c90409e497cab65478791c140ca6b73f027005f0 100644
+--- a/port/game/common/frontend.cpp
++++ b/port/game/common/frontend.cpp
+@@ -473,6 +473,10 @@ bool show_picture(const std::uint8_t* rgba, int width, int height, float black)
+     }
+     // The picture fills the frame the game's own frames fill; its first row is the top.
+     present(g->picture.id(), width, height, window_width, window_height, true);
++    // Quest VR: a headset needs its frames while a movie plays too.
++    if (views_wanted()) {
++        show_picture_in_views(*g, g->picture);
++    }
+     draw_touch_pad(window_width, window_height);
+     {
+         // [debug tools] The overlay over a picture too (no renderer or camera then).
+@@ -490,7 +494,13 @@ bool show_picture(const std::uint8_t* rgba, int width, int height, float black)
+         shown.vsync = g->swap != platform::SwapInterval::Immediate;
+         debug_overlay::draw(shown);
+     }
+-    g->window->swap();
++    // Quest VR: the headset's frame takes the swap's place. Nothing consumes the window's surface
++    // while the headset shows the game, and a swap of it can wait for ever.
++    if (views_wanted()) {
++        finish_views();
++    } else {
++        g->window->swap();
++    }
+     return true;
+ }
+ 
+diff --git a/port/game/common/frontend/interpolation.cpp b/port/game/common/frontend/interpolation.cpp
+index de1210f76337fe0b0fad41f4237d1c231310cf0e..98a88a30e0e7ad82dd80a57cbd6a498db784c411 100644
+--- a/port/game/common/frontend/interpolation.cpp
++++ b/port/game/common/frontend/interpolation.cpp
+@@ -156,7 +156,10 @@ void swapped(std::chrono::steady_clock::time_point started) {
+     const auto before = steady_clock::now();
+     platform::frame_work_done();
+     const auto swap_started = steady_clock::now();
+-    g->window->swap();
++    // Quest VR: the headset's frame takes the swap's place (frontend.cpp's show_picture says why).
++    if (!views_wanted()) {
++        g->window->swap();
++    }
+     profiling::frame();
+     const auto after = steady_clock::now();
+     const double cost = duration<double>(before - started).count();
+diff --git a/port/game/common/frontend/scene_frame.cpp b/port/game/common/frontend/scene_frame.cpp
+index ae97a1e1c4ccce5f836e60cf0834842e15d93306..b82cdf84614c8bdfa8513cca8f8ca474bf9433ca 100644
+--- a/port/game/common/frontend/scene_frame.cpp
++++ b/port/game/common/frontend/scene_frame.cpp
+@@ -401,10 +401,19 @@ void render_scene(
+     set_packets(frame);
+     set_target_mobys(frame);
+     retain_background(frame);
+-    const bool world = draw_world(frame);
+ 
+-    // A mod's views (a headset's eyes), from the same scene; nothing without a mod's.
+-    if (views_wanted()) {
++    // A mod's views (a headset's eyes), from the same scene; nothing without a mod's. With none of
++    // them showing the window's picture, it is not drawn: three worlds a frame are for no one.
++    const bool views = views_wanted();
++    if (views) {
++        begin_views(frame.output.alpha);
++    }
++    const bool world = views && !views_need_window()
++                           ? owner.renderer && !owner.repeat_frame
++                                 && !(owner.overdraw && !frame.output.first)
++                           : draw_world(frame);
++
++    if (views) {
+         draw_views(frame, world);
+     }
+ 
+diff --git a/port/game/common/frontend/scene_frame_internal.h b/port/game/common/frontend/scene_frame_internal.h
+index e1e76a91e686ecd5347cd47bd62664696c5e3ca8..0d5c39440aa4d931d48b35e6a113755bd813de08 100644
+--- a/port/game/common/frontend/scene_frame_internal.h
++++ b/port/game/common/frontend/scene_frame_internal.h
+@@ -44,11 +44,21 @@ void retain_background(SceneFrame& frame);
+ // True while a mod has views: then each frame draws them, on the window's thread.
+ bool views_wanted();
+ 
+-// Asks the mod for this frame's views and draws each after the window's picture, from the same
+-// scene (`world`: whether this frame drew its world anew, else the last pictures are given again),
+-// then copies them where the mod said.
++// Asks the mod for this frame's views (OpenXR's frame begins here, before anything is drawn).
++void begin_views(float alpha);
++
++// Whether this frame's views use the window's picture, or the mod gave none: otherwise the window's
++// world is not drawn (a headset's eyes alone, not a third picture no one sees).
++bool views_need_window();
++
++// Draws each view after the window's picture, from the same scene (`world`: whether this frame drew
++// its world anew, else the last pictures are given again), then copies them where the mod said.
+ void draw_views(SceneFrame& frame, bool world);
+ 
++// A frame that shows a picture (a movie, a boot still) and no scene: the mod is asked as for a
++// frame, told so (view_abi.h), and given the picture for the panels it asks for.
++void show_picture_in_views(State& owner, const renderer::FrameBuffer& picture);
++
+ // Tells the mod the frame that drew its views is submitted (after the window's swap).
+ void finish_views();
+ 
+diff --git a/port/game/common/frontend/views.cpp b/port/game/common/frontend/views.cpp
+index 876d1f93695e552c70a95678e932446f055a4e37..05f4ba7f0201ad6f7808aabb23c7ab5298206527 100644
+--- a/port/game/common/frontend/views.cpp
++++ b/port/game/common/frontend/views.cpp
+@@ -10,10 +10,13 @@
+ #include <algorithm>
+ #include <array>
+ #include <cmath>
++#include <cstdint>
++#include <cstring>
+ #include <optional>
+ #include <string>
+ #include <vector>
+ 
++#include "common/env.h"
+ #include "common/log.h"
+ #include "frontend.h"
+ #include "game/common/frontend/geometry.h"
+@@ -32,11 +35,18 @@ constexpr float kNear = 0.05f;
+ constexpr float kFar = 2000.0f;
+ constexpr int kLargest = 8192;
+ 
++// Quest VR: what openrac_view.reserved says (vr/src/view_abi.h is the mod's side of this).
++// reserved[0], set by the mod: view flags.
++// reserved[1], set by the port before begin: this frame shows a picture (a movie, a boot still).
++constexpr std::uint32_t kFlagWorldPose = 1;  // position and orientation are the eye's in the world
++constexpr std::uint32_t kKindWindow = 3;     // the window's picture as it stands, not drawn anew
++
+ std::optional<openrac_view_source> g_source;  // set_view_source's
+ std::array<openrac_view, OPENRAC_VIEW_MAX> g_views{};
+ int g_count = 0;
+ bool g_pending = false;  // begin was called and end not yet
+ bool g_warned = false;   // a view refused once, said once
++std::array<int, OPENRAC_VIEW_MAX> wanted_samples{};  // what each view's picture was asked for
+ 
+ // The GL proc for openrac_graphics.gl_proc, in its C shape.
+ void* gl_proc(const char* name) {
+@@ -63,8 +73,15 @@ renderer::Camera view_camera(const renderer::Camera& game, const openrac_view& v
+     }
+ 
+     renderer::Camera camera = game;
+-    camera.view =
+-        renderer::eye_view(game.view, {v.position[0], v.position[1], v.position[2]}, turn);
++
++    // World pose: the eye is given in a Y-up frame of the game's Z-up world (X stays, Y is the
++    // world's Z, Z is minus the world's Y), which has OpenXR's handedness. The game's camera is
++    // not used, so the game's own camera logic goes on as it is.
++    static constexpr renderer::Mat4 kYUp = {1, 0, 0, 0, 0, 0, -1, 0, 0, 1, 0, 0, 0, 0, 0, 1};
++    const bool world_pose = (v.reserved[0] & kFlagWorldPose) != 0;
++    camera.view = renderer::eye_view(
++        world_pose ? kYUp : game.view, {v.position[0], v.position[1], v.position[2]}, turn
++    );
+     camera.position = eye_position(camera.view);
+     const float aspect = static_cast<float>(v.width) / static_cast<float>(v.height);
+ 
+@@ -109,6 +126,8 @@ void render_view(SceneFrame& frame, const openrac_view& v, renderer::FrameBuffer
+         picture.id(), v.width, v.height, std::min(1.0f, kTvAspect / aspect)
+     };
+     target.depth_texture = picture.depth_texture();
++    target.resolve_framebuffer = picture.resolve_target();
++    target.resolves_itself = picture.resolves_itself();
+ 
+     // The buckets the kind leaves out, given back as the frame had them.
+     std::vector<std::pair<renderer::BucketRenderer*, bool>> kept;
+@@ -157,8 +176,11 @@ unsigned target_of(State& owner, unsigned texture) {
+     return framebuffer;
+ }
+ 
+-// Copies the view's picture where the mod said. False when it could not be.
+-bool copy_out(State& owner, const openrac_view& v, const renderer::FrameBuffer& picture) {
++// Copies the view's picture where the mod said. False when it could not be. `flip`: the picture's
++// first row is the top (an uploaded movie frame), which the GL target's bottom row takes.
++bool copy_out(
++    State& owner, const openrac_view& v, const renderer::FrameBuffer& picture, bool flip = false
++) {
+     if (gl::is_vulkan()) {
+         return v.image == nullptr
+                || platform::copy_to_vulkan_image(
+@@ -175,7 +197,30 @@ bool copy_out(State& owner, const openrac_view& v, const renderer::FrameBuffer&
+         return false;
+     }
+ 
+-    picture.blit_to(framebuffer, v.width, v.height);
++    if (picture.width() == v.width && picture.height() == v.height && !flip) {
++        picture.blit_to(framebuffer, v.width, v.height);
++        return true;
++    }
++
++    // Another size or the other way up: scaled, with the filter a panel needs. As blit_to: neither
++    // the scissor nor the colour mask applies to a copy.
++    gl::glDisable(gl::GL_SCISSOR_TEST);
++    gl::glColorMask(gl::GL_TRUE, gl::GL_TRUE, gl::GL_TRUE, gl::GL_TRUE);
++    gl::glBindFramebuffer(gl::GL_READ_FRAMEBUFFER, picture.resolved());
++    gl::glBindFramebuffer(gl::GL_DRAW_FRAMEBUFFER, framebuffer);
++    gl::glBlitFramebuffer(
++        0,
++        0,
++        picture.width(),
++        picture.height(),
++        0,
++        flip ? v.height : 0,
++        v.width,
++        flip ? 0 : v.height,
++        gl::GL_COLOR_BUFFER_BIT,
++        gl::GL_LINEAR
++    );
++    gl::glBindFramebuffer(gl::GL_FRAMEBUFFER, 0);
+     return true;
+ }
+ 
+@@ -188,7 +233,7 @@ void draw_view(SceneFrame& frame, int index, bool world) {
+ 
+     // Sizes and kinds the port does not draw: the view is left out, said once.
+     if (v.width < 1 || v.height < 1 || v.width > kLargest || v.height > kLargest
+-        || v.kind > OPENRAC_VIEW_2D) {
++        || (v.kind > OPENRAC_VIEW_2D && v.kind != kKindWindow)) {
+         if (!g_warned) {
+             log::warn(
+                 "mod views: view {} is {} by {} of kind {}, which is not drawn",
+@@ -202,14 +247,27 @@ void draw_view(SceneFrame& frame, int index, bool world) {
+         return;
+     }
+ 
++    // The window's picture, world and 2D together (menus, the title, loading on a panel).
++    if (v.kind == kKindWindow) {
++        v.drawn = 1;
++        v.picture = owner.frame.colour_texture();
++        copy_out(owner, v, owner.frame);
++        return;
++    }
++
+     renderer::FrameBuffer& picture = owner.views[index];
+     const bool sampleable = enhanced_graphics_available() && frame.graphics.enhanced_graphics;
+ 
+-    if (world && owner.renderer) {
++    // The 2D is drawn anew even in a frame with no world: a menu moves over a kept world.
++    if ((world || v.kind == OPENRAC_VIEW_2D) && owner.renderer) {
++        // Quest VR: an eye takes the player's samples a pixel; the 2D has none to smooth.
++        const int samples = v.kind == OPENRAC_VIEW_2D ? 1 : std::max(1, frame.graphics.msaa);
+         if (picture.width() != v.width || picture.height() != v.height
+-            || (picture.depth_texture() != 0) != sampleable) {
++            || (picture.depth_texture() != 0) != sampleable
++            || wanted_samples[index] != samples) {
+             std::string error;
+-            if (!picture.create(v.width, v.height, error, 1, sampleable)) {
++            wanted_samples[index] = samples;
++            if (!picture.create(v.width, v.height, error, samples, sampleable)) {
+                 log::warn("mod views: view {}: {}", index, error);
+                 return;
+             }
+@@ -278,20 +336,56 @@ bool views_wanted() {
+     return g_source.has_value() && g && g->window;
+ }
+ 
+-void draw_views(SceneFrame& frame, bool world) {
++void begin_views(float alpha) {
+     // A frame drawn twice before its swap (none should be) ends the first one's views first.
+     finish_views();
+     g_views = {};
++    // reserved[2]: the scene's blend between its ticks, so that a mod can follow what is drawn.
++    std::memcpy(&g_views[0].reserved[2], &alpha, sizeof alpha);
+     g_count = std::clamp(
+         g_source->begin(g_source->user, g_views.data(), OPENRAC_VIEW_MAX), 0, OPENRAC_VIEW_MAX
+     );
+     g_pending = true;
++}
++
++bool views_need_window() {
++    return g_count == 0
++           || std::any_of(g_views.begin(), g_views.begin() + g_count, [](const openrac_view& v) {
++                  return v.kind == kKindWindow;
++              });
++}
+ 
++void draw_views(SceneFrame& frame, bool world) {
+     for (int i = 0; i < g_count; ++i) {
+         draw_view(frame, i, world);
+     }
+ }
+ 
++void show_picture_in_views(State& owner, const renderer::FrameBuffer& picture) {
++    if (!g_source) {
++        return;
++    }
++
++    finish_views();
++    g_views = {};
++    g_views[0].reserved[1] = 1;
++    g_count = std::clamp(
++        g_source->begin(g_source->user, g_views.data(), OPENRAC_VIEW_MAX), 0, OPENRAC_VIEW_MAX
++    );
++    g_pending = true;
++
++    for (int i = 0; i < g_count; ++i) {
++        openrac_view& v = g_views[i];
++        v.drawn = 0;
++        v.picture = 0;
++
++        if (v.kind == kKindWindow && v.width >= 1 && v.height >= 1 && v.width <= kLargest
++            && v.height <= kLargest) {
++            v.drawn = copy_out(owner, v, picture, true) ? 1 : 0;
++        }
++    }
++}
++
+ void finish_views() {
+     if (g_pending && g_source) {
+         g_pending = false;
+diff --git a/port/game/common/frontend/world.cpp b/port/game/common/frontend/world.cpp
+index 3415a05c1418247b4924db0bd3d0d3faf6c390f4..bc65fb94b9964831a75b7f1c6fa71819ed5a8f9b 100644
+--- a/port/game/common/frontend/world.cpp
++++ b/port/game/common/frontend/world.cpp
+@@ -36,6 +36,7 @@
+ #include "game/common/frontend/draw_coverage.h"
+ #include "game/common/frontend/effects_dump.h"
+ #include "game/common/frontend/geometry.h"
++#include "game/common/frontend/scene_frame_internal.h"
+ #include "game/common/frontend/state.h"
+ #include "game/common/particle_texture_cache.h"
+ #include "openrac/game_host.h"
+@@ -464,6 +465,13 @@ float picture_wider() {
+     if (!g || !g->window) {
+         return 1.0f;
+     }
++    // Quest VR: a headset's eyes look round from the game's camera (or from Ratchet's head, in
++    // front of it) far past its 4:3 sides. The game's view tests (moby_view.h, wide_view.c) are
++    // opened to some 85 degrees each side of its 32: a moby beside the player stays "drawn", so
++    // active and making its effects, and the seas' blocks there are sent.
++    if (views_wanted()) {
++        return 18.0f;
++    }
+     int window_width = 0;
+     int window_height = 0;
+     g->window->drawable_size(window_width, window_height);
+diff --git a/port/game/common/mods.cpp b/port/game/common/mods.cpp
+index 3968d0ca4b1499c24d4eb60ef244a90c261a46bc..23c8c09d8a4fd230c722460007d799a3965837bd 100644
+--- a/port/game/common/mods.cpp
++++ b/port/game/common/mods.cpp
+@@ -142,6 +142,7 @@ const char* hook_id(const Host& host, const char* name) {
+ openrac_mod* g_loading = nullptr;  // the mod whose openrac_mod_load runs: hooks are taken then only
+ std::vector<std::unique_ptr<openrac_mod>> g_loaded;
+ std::vector<FrameCallback> g_frames;
++std::vector<FrameCallback> g_before_capture;
+ std::vector<PadCallback> g_pads;
+ std::vector<MenuCallback> g_menus;
+ std::vector<DeveloperMenu> g_developer_menus;
+@@ -445,6 +446,14 @@ int api_on_frame(openrac_mod* mod, openrac_frame_fn fn, void* user) {
+     return OPENRAC_HOOK_OK;
+ }
+ 
++int api_on_before_capture(openrac_mod* mod, openrac_frame_fn fn, void* user) {
++    if (mod == nullptr || mod != g_loading || fn == nullptr) {
++        return OPENRAC_HOOK_TOO_LATE;
++    }
++    g_before_capture.push_back({fn, user, mod});
++    return OPENRAC_HOOK_OK;
++}
++
+ int api_on_tick_boundary(openrac_mod* mod, openrac_tick_boundary_fn fn, void* user) {
+     if (mod == nullptr || mod != g_loading || fn == nullptr) {
+         return OPENRAC_HOOK_TOO_LATE;
+@@ -951,6 +960,7 @@ void fill_api(const Host& host) {
+     g_api.developer_menu = api_developer_menu;
+     g_api.take_developer_menu_action = api_take_developer_menu_action;
+     g_api.developer_menu_set_label = api_developer_menu_set_label;
++    g_api.on_before_capture = api_on_before_capture;
+     g_api.savestate_size = snapshot_size;
+     g_api.savestate_save = snapshot_save;
+     g_api.savestate_load = snapshot_load;
+@@ -1097,6 +1107,7 @@ void undo(openrac_mod* mod) {
+     mod->taken.clear();
+     mod->hooks.clear();
+     std::erase_if(g_frames, [&](const FrameCallback& c) { return c.mod == mod; });
++    std::erase_if(g_before_capture, [&](const FrameCallback& c) { return c.mod == mod; });
+     std::erase_if(g_pads, [&](const PadCallback& c) { return c.mod == mod; });
+     std::erase_if(g_menus, [&](const MenuCallback& c) { return c.mod == mod; });
+     std::erase_if(g_developer_menus, [&](const DeveloperMenu& menu) { return menu.mod == mod; });
+@@ -1363,6 +1374,12 @@ void unload() {
+     }
+ }
+ 
++void before_capture() {
++    for (const FrameCallback& c : g_before_capture) {
++        c.fn(c.user);
++    }
++}
++
+ void run_frame_callbacks() {
+     for (const FrameCallback& c : g_frames) {
+         c.fn(c.user);
+@@ -1540,6 +1557,7 @@ void reset() {
+     g_outcomes.clear();
+     g_loaded.clear();
+     g_frames.clear();
++    g_before_capture.clear();
+     g_pads.clear();
+     g_menus.clear();
+     g_developer_menus.clear();
+diff --git a/port/game/common/mods.h b/port/game/common/mods.h
+index 9d18d8270fa9d506afd3ce449ab16cfdbaeb2138..9ad5ddf284a199c20b280841cc5274ae01a4e5ef 100644
+--- a/port/game/common/mods.h
++++ b/port/game/common/mods.h
+@@ -128,6 +128,9 @@ inline void frame() {
+     }
+ }
+ 
++// Quest VR: the mods' callbacks before the frame is captured from game memory.
++void before_capture();
++
+ // Called after the game's vertical-blank handlers. Snapshot APIs are valid only while these
+ // callbacks run.
+ void tick_boundary(std::uint32_t tick);
+diff --git a/port/game/common/program/vsync.cpp b/port/game/common/program/vsync.cpp
+index a85baf599207847746d6ce6e227acb18961ed6a3..ca62a89ecda9d3f470e0e6ebc140af97a4cb975e 100644
+--- a/port/game/common/program/vsync.cpp
++++ b/port/game/common/program/vsync.cpp
+@@ -227,6 +227,8 @@ int vsync() {
+     // [debug tools] The game's own code stops here and goes on when this returns: its time is the
+     // tick's (common/stats.h). The tick's frame of measurements begins.
+     stats::game_yielded();
++    // Quest VR: a mod's last word on the tick, where the capture below still sees it.
++    mods::before_capture();
+     // Render snapshots own their values, so next-tick writes precede the overlapping CPU capture.
+     apply_writes();
+ #ifdef OPENRAC_FRONTEND
+diff --git a/sdk/include/openrac/openrac_mod.h b/sdk/include/openrac/openrac_mod.h
+index 1c39e2802298cb408295bfad2d777539cf40371e..157a5f66943ffb73bfa3800eebe6704bc2f6fe66 100644
+--- a/sdk/include/openrac/openrac_mod.h
++++ b/sdk/include/openrac/openrac_mod.h
+@@ -1349,6 +1349,11 @@ typedef struct openrac_api {
+     /* Changes a registered item's label, copying `label`. Only from this mod's tick-boundary
+      * callback. Since 1.10. */
+     int (*developer_menu_set_label)(openrac_mod* mod, uint32_t action, const char* label);
++
++    /* Quest VR's fork: calls `fn(user)` when the tick's work is done and before the port captures
++     * the frame from game memory, so that what the callback writes is what is drawn (on_frame runs
++     * after the capture). Returns 0, or non-zero when refused. Only during openrac_mod_load. */
++    int (*on_before_capture)(openrac_mod* mod, openrac_frame_fn fn, void* user);
+ } openrac_api;
+ 
+ /* ------------------------------------------------------------------------------------------ *

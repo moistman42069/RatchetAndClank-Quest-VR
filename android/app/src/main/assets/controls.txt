@@ -1,0 +1,17 @@
+LEFT STICK    Walk, towards where you look
+RIGHT STICK   Turn (smooth by default; snap in the VR tab). In third person, the game's camera
+A             Jump. Twice for a double jump
+B             Crouch, or Clank's packs in the air
+X             Map
+Y             Pause. Skips a cutscene
+RIGHT TRIGGER Fire
+RIGHT GRIP    Swing the wrench
+LEFT TRIGGER or GRIP   Crouch
+RIGHT STICK CLICK      Talk, and quick select: hold, move your right hand toward a weapon, let go
+LEFT STICK CLICK       Look through Ratchet's eyes (the game's first-person view)
+BOTH STICKS CLICKED    Recentre
+
+In menus: either stick moves, A or the trigger takes, B goes back.
+
+Long jump, high jump, flips: as in the game, Crouch + A while moving or standing.
+Layout after Rerac-vr, the PC VR mod.

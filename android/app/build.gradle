@@ -1,0 +1,116 @@
+plugins {
+    id "com.android.application"
+}
+
+// What tools/build_quest.py stages: the native libraries, the Java of SDL and of OpenRAC's game
+// activity, the tools' zip and the texts.
+def stage = new File(rootDir, "build/stage")
+
+// The level format this build's game reads (OpenRAC's editor/port.py FORMAT, which the game's
+// kManifestFormat matches): a set-up is ready only when the level check stamped exactly this one.
+def levelFormat = (new File(rootDir, "../third_party/OpenRAC/editor/port.py").getText("UTF-8")
+    =~ /(?m)^FORMAT = (\d+)$/)[0][1]
+
+// The release key (never in the repository): a published APK installs over the last one, and the
+// launcher's updater accepts it, only when every release is signed with the same key.
+// tools/build_quest.py --release checks the result against tools/release-cert.sha256.
+def signing = new File(System.getenv("RACQUEST_SIGNING") ?: "C:/RACQuest/keys/release.properties")
+def signingProps = new Properties()
+if (signing.isFile()) {
+    signing.withInputStream { signingProps.load(it) }
+}
+
+android {
+    namespace "dev.ratchetquest.vr"
+    compileSdk 34
+    buildToolsVersion "34.0.0"
+
+    defaultConfig {
+        applicationId "dev.ratchetquest.vr"
+        minSdk 29
+        targetSdk 34
+        versionCode 1
+        versionName "0.1.0"
+        buildConfigField "int", "LEVEL_FORMAT", levelFormat
+        ndk {
+            abiFilters "arm64-v8a"
+        }
+    }
+
+    sourceSets {
+        main {
+            java.srcDirs += [new File(stage, "java")]
+            jniLibs.srcDirs = [new File(stage, "jniLibs")]
+            assets.srcDirs = ["src/main/assets", new File(stage, "assets")]
+        }
+    }
+
+    // The tools are read as they are; the zip stays a zip.
+    androidResources {
+        noCompress += ["zip"]
+    }
+
+    // Programs are run from the native library folder, so the libraries must be there as files.
+    packaging {
+        jniLibs {
+            useLegacyPackaging true
+        }
+    }
+
+    buildFeatures {
+        buildConfig true
+    }
+
+    signingConfigs {
+        release {
+            if (signing.isFile()) {
+                storeFile file(signingProps["storeFile"])
+                storePassword signingProps["storePassword"]
+                keyAlias signingProps["keyAlias"]
+                keyPassword signingProps["keyPassword"]
+            }
+        }
+    }
+
+    buildTypes {
+        debug {
+            debuggable true
+            minifyEnabled false
+        }
+        release {
+            minifyEnabled false
+            signingConfig signing.isFile() ? signingConfigs.release : signingConfigs.debug
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    lint {
+        abortOnError false
+        checkReleaseBuilds false
+    }
+
+    testOptions {
+        unitTests {
+            includeAndroidResources = true
+            all {
+                systemProperty "robolectric.graphicsMode", "NATIVE"
+                systemProperty "robolectric.pixelCopyRenderMode", "hardware"
+                testLogging {
+                    events "passed", "failed", "skipped"
+                    exceptionFormat "full"
+                    showStandardStreams true
+                }
+            }
+        }
+    }
+}
+
+dependencies {
+    testImplementation "junit:junit:4.13.2"
+    testImplementation "org.robolectric:robolectric:4.14.1"
+    testImplementation "androidx.test:core:1.6.1"
+}
