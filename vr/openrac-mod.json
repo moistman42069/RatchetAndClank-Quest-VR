@@ -16,6 +16,8 @@
   "settings": [
     { "key": "view", "name": "View", "type": "choice", "default": "first",
       "choices": [ { "value": "first", "name": "First person" }, { "value": "third", "name": "Third person" } ] },
+    { "key": "cutscenes", "name": "Cutscenes", "type": "choice", "default": "vr",
+      "choices": [ { "value": "vr", "name": "In VR, around you" }, { "value": "screen", "name": "On a screen" } ] },
     { "key": "turn", "name": "Turning", "type": "choice", "default": "smooth",
       "choices": [ { "value": "snap", "name": "Snap" }, { "value": "smooth", "name": "Smooth" } ] },
     { "key": "snap_degrees", "name": "Snap angle", "type": "float", "default": 45, "min": 15, "max": 90, "step": 5 },

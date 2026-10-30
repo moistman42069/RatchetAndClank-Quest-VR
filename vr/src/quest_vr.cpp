@@ -9,7 +9,8 @@
 //
 // - in play: the world from Ratchet's eyes (first person) or from the game's camera (third person),
 //   with the HUD on a panel that follows the head;
-// - a scene (a cutscene, the ship landing): stereo from the game's camera, the head looking around;
+// - a scene (a cutscene, the ship landing): stereo from the game's camera, the head looking around,
+//   or, with the cutscenes setting "screen", the game's picture of it on the big panel;
 // - a menu, the title, loading, a movie: the game's picture on a big panel ahead.
 //
 // The walking and facing are lock-strafe's (OpenRAC/rac1-mods, GPL-3.0-or-later): strafe.h is its
@@ -102,6 +103,7 @@ struct Options {
     bool hand_aim = true;
     bool hide_body = true;
     bool hand_weapon = true;
+    bool scenes_in_vr = true;  // cutscenes around the player; false: on the panel, as the game frames them
 };
 
 // What the mod holds. All of it is on the game's thread.
@@ -672,7 +674,8 @@ int views_begin(void*, openrac_view* views, int max) {
 
     int count = 0;
     const bool world_phase = !picture
-                             && (phase == OPENRAC_PLAY_PLAYING || phase == OPENRAC_PLAY_SCENE);
+                             && (phase == OPENRAC_PLAY_PLAYING
+                                 || (phase == OPENRAC_PLAY_SCENE && s_options.scenes_in_vr));
     if (world_phase) {
         const bool first_person = first_person_now(phase);
         fill_eye(views[count++], 0, s_frame, first_person, alpha);
@@ -745,6 +748,7 @@ void load(openrac::Mod& mod) {
     }
 
     s_options.first_person = mod.setting<std::string>("view") != "third";
+    s_options.scenes_in_vr = mod.setting<std::string>("cutscenes") != "screen";
     s_options.turn.smooth = mod.setting<std::string>("turn") == "smooth";
     s_options.turn.snap_angle = static_cast<float>(mod.setting<double>("snap_degrees")) * kPi / 180.0f;
     s_options.turn.smooth_rate = static_cast<float>(mod.setting<double>("smooth_degrees")) * kPi / 180.0f;

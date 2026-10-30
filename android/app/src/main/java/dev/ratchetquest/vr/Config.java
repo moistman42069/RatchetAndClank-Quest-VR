@@ -71,6 +71,11 @@ final class Config {
     static final Choice VIEW = new Choice("view", "View",
         "First person is through Ratchet's eyes. Third person keeps the game's camera, with your head looking around.",
         new String[] {"First person", "Third person"}, new String[] {"first", "third"}, "first");
+    static final Choice CUTSCENES = new Choice("cutscenes", "Cutscenes",
+        "In VR: the game's scenes in 3D around you, seen from its camera, your head free to look round. "
+            + "On a screen: the game's own framing on a big screen ahead, kinder if camera moves bother you. "
+            + "Movies are always on the screen.",
+        new String[] {"In VR", "On a screen"}, new String[] {"vr", "screen"}, "vr");
     static final Choice TURN = new Choice("turn", "Turning", "Smooth is the default. If it makes you queasy, Snap is kinder to most stomachs.",
         new String[] {"Smooth", "Snap"}, new String[] {"smooth", "snap"}, "smooth");
     static final Choice SNAP = new Choice("snap_degrees", "Snap angle", "",
@@ -89,7 +94,7 @@ final class Config {
     static final Choice HAND_WEAPON = new Choice("hand_weapon", "Weapon in your right hand",
         "In first person. Off leaves it where the game draws it.", ON_OFF, TRUE_FALSE, "true");
     static final Choice HAPTICS = new Choice("haptics", "Vibration", "", ON_OFF, TRUE_FALSE, "true");
-    static final Choice[] VR = {VIEW, TURN, SNAP, SMOOTH, WORLD, HUD, HAND_AIM, HAND_WEAPON, HIDE_BODY, HAPTICS};
+    static final Choice[] VR = {VIEW, CUTSCENES, TURN, SNAP, SMOOTH, WORLD, HUD, HAND_AIM, HAND_WEAPON, HIDE_BODY, HAPTICS};
 
     private final Context context;
     private final SharedPreferences prefs;
@@ -160,6 +165,7 @@ final class Config {
         try {
             JSONObject settings = new JSONObject();
             settings.put("view", get(VIEW));
+            settings.put("cutscenes", get(CUTSCENES));
             settings.put("turn", get(TURN));
             settings.put("snap_degrees", Double.parseDouble(get(SNAP)));
             settings.put("smooth_degrees", Double.parseDouble(get(SMOOTH)));

@@ -42,7 +42,8 @@ Greatest Hits, Platinum, other regions and the sequels are not supported. The la
 - **Native, not emulated:** OpenRAC's recompiled game draws every object of a level whatever the game culled, so turning your head never pops the world in.
 - **First person** through Ratchet's eyes, his body, Clank and the pack hidden, the weapon in your right hand; or **third person** from the game's camera with your head looking around.
 - **Smooth turning by default**, snap turning (30–90°) as an option; walking towards where you look; Ratchet faces where your right hand points.
-- **HUD and menus on panels**, cutscenes in stereo from the game's camera, movies in the headset.
+- **Cutscenes in VR:** the game's in-engine scenes in 3D around you from its camera, your head free to look round; or, in the VR tab, **on a screen** in the game's own framing. Movies play on the screen.
+- **HUD and menus on panels.**
 - **Vibration** on shots and hits; quick select by reaching towards a weapon.
 - **Graphics:** presets, 72–120 Hz (back to 72 Hz when a higher rate is not held), eye resolution, MSAA, texture filtering, draw distances.
 - **Everything can be switched in the launcher**, and is on by default.

@@ -51,6 +51,7 @@ swap. `tools/build_quest.py` stops unless OpenRAC is at the pin with the patch a
 | Touch controllers to the game's pad | Built, unit tested |
 | Head-relative walking | Built, unit tested |
 | HUD panel, menu panel, movies on a panel | Built |
+| Cutscenes: in VR (3D from the game's camera, the default) or on a screen (the launcher's VR tab) | Built; PC run: Novalis's arrival scene both ways, play back in VR after it |
 | Vibration on shots and damage | Built |
 | Refresh rate falls back to 72 Hz when not held | Built |
 
