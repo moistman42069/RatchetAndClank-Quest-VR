@@ -6,6 +6,15 @@ Created by Insomniac Games. Ratchet & Clank is a trademark of Sony Interactive E
 This project is not affiliated with or endorsed by either. No game files are included:
 you supply your own disc.
 
+THE MAIN BASE: Rerac-vr by npiriou
+This app is a Quest port of Rerac-vr, npiriou's PC VR mod for Ratchet & Clank, and his work is its
+main base. From it come the VR design (first person, aiming and shooting with your hand, the weapon
+in your hand, quick select by reaching), the Touch controller layout, the comfort choices, the notes
+on the hero's items that let this app hide Ratchet and Clank in first person, and every VR feature
+still to come. On PC, play Rerac-vr itself. github.com/npiriou/Rerac-vr
+ReRAC, the Rust rewrite of Ratchet & Clank that Rerac-vr builds on: the ReRAC contributors.
+github.com/re-rac/rerac
+
 THE GAME ENGINE: OpenRAC (openrac.dev)
 The decompilation and native port this app runs: the game, its renderer, its Android support,
 the mod SDK with the VR view interface, and the tools that read your disc.
@@ -16,12 +25,6 @@ The port, launcher tools and level editor: the OpenRAC contributors
 OpenRAC credits ReRAC, Wrench, Replanetizer, OpenGOAL's jak-project, splat, spimdisasm, objdiff,
 asm-differ, decomp-permuter, m2c, wibo, Himuro, the GNU toolchain, newlib, and the PS2
 reverse-engineering and decompilation communities.
-
-THE VR DESIGN: Rerac-vr by npiriou
-The PC VR mod for ReRAC. The controller layout, eye height, comfort choices and the design of the VR
-gameplay in this app come from it. github.com/npiriou/Rerac-vr
-ReRAC, the Rust rewrite of Ratchet & Clank that Rerac-vr builds on: the ReRAC contributors.
-github.com/re-rac/rerac
 
 MODS BUILT ON: rac1-mods by the OpenRAC contributors
 lock-strafe's hooks and strafe logic make Ratchet face where you aim. keyboard-mouse documents the

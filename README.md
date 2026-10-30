@@ -2,7 +2,18 @@
 
 <h1 align="center">Ratchet & Clank — Quest VR</h1>
 
-<p align="center">An unofficial OpenRAC-based port of Ratchet & Clank (2002, PlayStation 2) to standalone VR on Meta Quest. You supply your own disc image; no game files are included.</p>
+<p align="center">An unofficial port of Ratchet & Clank (2002, PlayStation 2) to standalone VR on Meta Quest, bringing <a href="https://github.com/npiriou/Rerac-vr"><b>npiriou's Rerac-vr</b></a> to the headset on OpenRAC's native port. You supply your own disc image; no game files are included.</p>
+
+## Built on Rerac-vr
+
+**This project is a Quest port of [Rerac-vr](https://github.com/npiriou/Rerac-vr) by [npiriou](https://github.com/npiriou), the PC VR mod for Ratchet & Clank, and his work is its main base.** Rerac-vr worked out how Ratchet & Clank should play in VR; this port carries that design to a standalone headset. From Rerac-vr come:
+
+- **The VR design:** first person through Ratchet's eyes, Ratchet facing and shooting where your hand points, the weapon held in your hand, and quick select by reaching for a weapon.
+- **The controls:** the Touch controller layout, button for button, and the comfort choices (eye height, snap turning, recentring).
+- **The game knowledge:** his notes on the hero's attached items (which mobys are Clank, his pack and the item in the hand) are how this port hides Ratchet's body and Clank in first person and keeps the weapon.
+- **The roadmap:** every feature still to come here (real wrench swings, thrown bombs, two-handed weapons, ledge grabbing, swimming, bolt cranks, the hoverboard, a spatial pause menu and more) is one Rerac-vr already has on PC: [docs/STATUS.md](docs/STATUS.md) tracks them one by one.
+
+Rerac-vr runs on [ReRAC](https://github.com/re-rac/rerac), a Rust rewrite of the game that a headset's processor cannot yet carry at frame rate, so this port runs [OpenRAC](https://github.com/OpenRAC/OpenRAC)'s recompiled game instead and rebuilds Rerac-vr's features on it in its own VR mod (`vr/`). **If you play on PC, play [Rerac-vr](https://github.com/npiriou/Rerac-vr)**: it is the complete experience, and the one this port follows.
 
 **Latest:** no public release yet. Builds will be published on the [Releases page](https://github.com/moistman42069/RatchetAndClank-Quest-VR/releases) once they have been tested on a headset; the launcher then updates itself from there.
 

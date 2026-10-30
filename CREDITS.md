@@ -4,13 +4,18 @@ This port stands entirely on other people's open-source work. Credits name code 
 references and related projects; they do not imply endorsement. The launcher shows the same credits
 (`CREDITS.txt`) and every licence (`THIRD_PARTY_NOTICES.txt` with OpenRAC's own notices).
 
+**The main base is [Rerac-vr](https://github.com/npiriou/Rerac-vr) by [npiriou](https://github.com/npiriou).**
+This project is a Quest port of his PC VR mod: its VR design, controls, comfort choices, game
+knowledge and every VR feature still to come here are his work first. See the README's
+[Built on Rerac-vr](README.md#built-on-rerac-vr).
+
 | Project / people | Contribution or relationship |
 | --- | --- |
+| [npiriou / Rerac-vr](https://github.com/npiriou/Rerac-vr) — **the main base** | The PC VR mod for Ratchet & Clank this port brings to the Quest: first person through Ratchet's eyes, aiming and shooting with the hand, the weapon in the hand, quick select by reaching, the Touch controller layout, eye height and comfort choices, its notes on the hero's attached items (which of them are Clank and his pack), and the roadmap of features still to port (docs/STATUS.md). ISC License. |
 | Insomniac Games; Sony Interactive Entertainment | The original Ratchet & Clank (2002): its game, art, audio and story. Ratchet & Clank is a trademark of Sony Interactive Entertainment. The disc is supplied by the player; nothing of it is in this repository or its releases. |
 | [OpenRAC](https://github.com/OpenRAC/OpenRAC) ([openrac.dev](https://openrac.dev)) and its contributors | The decompilation and native port this app runs: the game, its renderer, its Android support, the mod SDK with the views interface VR is built on, and the tools that read the disc and prepare the levels. Used at a pinned commit with the changes in `patches/`. |
 | Ratchet & Clank PAL decompilation (rac1-decomp): Kryštof "Lynder063" Malinda, creator and maintainer; Flavius (Veradictus) | The PAL (SCES-50916) decompilation in OpenRAC. |
 | Ratchet & Clank NTSC-U decompilation (Lombyte): Mateusz Kłysz, creator and maintainer; Louis-Philippe Le Sieur, Pezza, Kryštof "Lynder063" Malinda, Purab, mechaivan | The NTSC-U (SCUS-97199) decompilation in OpenRAC. |
-| [npiriou / Rerac-vr](https://github.com/npiriou/Rerac-vr) | The PC VR mod for ReRAC: the controller layout, eye height, comfort choices and the design of the VR gameplay here, and its notes on the hero's attached items (which of them are Clank and his pack). ISC License. |
 | [ReRAC](https://github.com/re-rac/rerac) and its contributors | The Rust rewrite of Ratchet & Clank that Rerac-vr builds on. |
 | [OpenRAC / rac1-mods](https://github.com/OpenRAC/rac1-mods) | lock-strafe's hooks and strafe decision, which make Ratchet face where you aim (`vr/src/strafe.h`); keyboard-mouse's notes on the game's pad report. GPL-3.0-or-later. |
 | [moistman42069 / Halo CE Decomp Remix VR](https://github.com/moistman42069/HaloCE-DecompRemix-VR-PC-Android), and [astromaddie's HaloCE-VR](https://github.com/astromaddie/HaloCE-VR) before it | Quest know-how proven on the Quest 3: the OpenXR session's sequence, performance levels and refresh fallback, the launcher's patterns, its logs and its updater. |
