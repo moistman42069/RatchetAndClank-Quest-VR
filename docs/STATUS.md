@@ -36,6 +36,7 @@ swap. `tools/build_quest.py` stops unless OpenRAC is at the pin with the patch a
 | Feature | State |
 |---|---|
 | Launcher: themed, tabs, disc requirements, disc import and set-up | Built |
+| Disc set-up with the APK's own ARM tools (Python, disc check, level conversion) | ARM emulation on PC with Android's linker and libc: the PAL disc accepted, Novalis converted (168 min emulated) to the PC's result exactly, every texture pixel-identical |
 | Levels made again from the kept disc when an update changes their format | Built, unit tested |
 | Updates from this repository's releases in the launcher (checked SHA-256, size, package, version, signing key), automatic checks on by default | Built, unit tested; no release yet to update to, so not run against GitHub |
 | Releases signed with the project's own key (`tools/release-cert.sha256`, checked by the build) | Built |
