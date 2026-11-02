@@ -2,7 +2,7 @@
   "format": 2,
   "id": "quest-vr",
   "name": "Quest VR",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "author": "Ratchet & Clank Quest VR contributors",
   "description": "Ratchet & Clank in a standalone headset through OpenXR: first person with head tracking, hand aiming and Touch controllers.",
   "license": "GPL-3.0-or-later",

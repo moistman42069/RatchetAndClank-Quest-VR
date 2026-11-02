@@ -111,6 +111,13 @@ def build_port(python_target: Path) -> None:
     run(["cmake", "--build", PORT_BUILD, "--target", *targets, "openrac-python", "SDL3-shared"])
 
 
+def check_hooks() -> None:
+    """Every hook point the mod takes, with the SDK's signature, in each disc's table (tools/check_hooks.py):
+    a disc with another refuses the mod at load, and the headset shows black."""
+    run([sys.executable, ROOT / "tools/check_hooks.py",
+         *(PORT_BUILD / "games" / game / "gen/hooks.c" for game in GAMES)])
+
+
 def build_mod(openxr: Path) -> None:
     run(["cmake", "-S", ROOT / "vr", "-B", VR_BUILD, "-G", "Ninja",
          f"-DCMAKE_TOOLCHAIN_FILE={toolchain_file()}", "-DCMAKE_BUILD_TYPE=RelWithDebInfo",
@@ -260,6 +267,7 @@ def main() -> int:
     openxr = openxr_loader()
     if not args.no_port:
         build_port(python_target)
+    check_hooks()
     build_mod(openxr)
     stage_libraries(python_target, openxr)
     stage_java()

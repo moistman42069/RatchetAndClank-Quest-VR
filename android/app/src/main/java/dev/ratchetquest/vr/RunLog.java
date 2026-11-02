@@ -140,7 +140,8 @@ final class RunLog {
         return new File(tools.data(), "quest-last-report.txt");
     }
 
-    /** The report's lines that say most, for the headset's own Logs page. */
+    /** The report's lines that say most, for the headset's own Logs page. A mod the game refused ("mod quest-vr not
+     *  loaded: ...") is among them: without it the headset stays black and nothing else says why. */
     static String lastRunTail(Context context) {
         File report = lastReport(new Tools(context));
         if (!report.isFile()) {
@@ -150,7 +151,7 @@ final class RunLog {
         int kept = 0;
         for (String line : read(report).split("\n")) {
             if (line.contains("[openxr]") || line.contains("[vr-") || line.contains("======")
-                    || line.toLowerCase(Locale.US).contains("error")) {
+                    || line.contains("not loaded") || line.toLowerCase(Locale.US).contains("error")) {
                 out.append(line).append('\n');
                 if (++kept >= 400) {
                     break;

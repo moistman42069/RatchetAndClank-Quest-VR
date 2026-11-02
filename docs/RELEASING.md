@@ -23,7 +23,9 @@ one in `tools/release-cert.sha256`.
 
 ## Steps
 
-1. Raise `versionCode` by one and set `versionName` in `android/app/build.gradle`.
+1. Raise `versionCode` by one and set `versionName` in `android/app/build.gradle`; the same version in
+   `vr/openrac-mod.json`, `OPENRAC_MOD_CPP` at the end of `vr/src/quest_vr.cpp` and the headset report's
+   default (`.github/ISSUE_TEMPLATE/headset-report.yml`).
 2. Note the release in `docs/STATUS.md`, and in the README's **Latest** line.
 3. Build and check everything:
    ```sh
@@ -33,6 +35,10 @@ one in `tools/release-cert.sha256`.
    OPENRAC_DIRECT=1 bash vr/tests/pc_run.sh t2 --level 1   # the real game, a simulated headset
    ```
    Look at the shots in `C:\RACQuest\pc\out\t2` and the `[vr-…]` lines in its `stdout.txt`.
+   The PC test runs the PAL disc only. For NTSC-U, `build_quest.py` runs `tools/check_hooks.py` after
+   the port build: it stops if any hook point the mod takes is missing, or has another signature, on
+   either disc. Such a disc refuses the whole mod and the headset stays black, as on the US disc
+   from 0.1.2 to 0.1.5.
 4. Test the APK on a headset: a fresh install and set-up, an update over the last release (its
    set-up and saves kept), Play in VR, the 2D test.
 5. Commit, tag and push:

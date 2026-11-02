@@ -1,3 +1,19 @@
+diff --git a/games/rac1/ntsc/src/overlays/shared/ui/hud/hud_frame.c b/games/rac1/ntsc/src/overlays/shared/ui/hud/hud_frame.c
+index c57ffb9e9efd1c3e8e5a7cab058f9a0367d98162..0ede97fa33c0f47de4f302f51293a27bd580f83d 100644
+--- a/games/rac1/ntsc/src/overlays/shared/ui/hud/hud_frame.c
++++ b/games/rac1/ntsc/src/overlays/shared/ui/hud/hud_frame.c
+@@ -23,8 +23,9 @@ typedef struct {
+ } O0023b120;
+ extern G0023b120 D_L00_0017E4D8;
+ void draw_hud_sprite(s32, s32, s32, s32, s32, s32) __asm__("FUN_001ffc30");
+-void hud_frame(O0023b120 *o, s32 id, s32 x, s32 y, u32 flags, s32 extra) __asm__("FUN_L00_0023b120");
+-void hud_frame(O0023b120 *hud_element, s32 id, s32 x, s32 y, u32 flags, s32 extra) {
++/* flags is s32 as on PAL (only its low bits are read): the hook point Hud_Frame's signature is the same on both discs. */
++void hud_frame(O0023b120 *o, s32 id, s32 x, s32 y, s32 flags, s32 extra) __asm__("FUN_L00_0023b120");
++void hud_frame(O0023b120 *hud_element, s32 id, s32 x, s32 y, s32 flags, s32 extra) {
+     s32 base_width, base_height, draw_width, draw_height;
+     R0023b120 *image_page;
+     if (id < 0)
 diff --git a/games/rac1/src/game/sound.c b/games/rac1/src/game/sound.c
 index b7a48599ff4331e2af27d6456a9ca2083c07fa73..99dc120bab3796d8fa99083a469016c746cdd7ff 100644
 --- a/games/rac1/src/game/sound.c
@@ -1675,7 +1691,7 @@ index d47b464a57db390665797beb86e96b8ae559d1e3..0dafed51a7b1e7b5bfcfec42ae3d12c6
  #define RAC1_ADDR_0x0015F000u 0x0015EF00u
  #define RAC1_ADDR_0x0015F558u 0x0015F458u
 diff --git a/port/game/rac1-ntsc/libraries.tsv b/port/game/rac1-ntsc/libraries.tsv
-index e489f4ab9a4f6ba7937ac6121c8b094a28613938..4f54c37777f0d669a7c30dc4c7dec38c63cbe042 100644
+index e489f4ab9a4f6ba7937ac6121c8b094a28613938..c57f41038a61a1dbcc22b54d674d3a3556c74c4c 100644
 --- a/port/game/rac1-ntsc/libraries.tsv
 +++ b/port/game/rac1-ntsc/libraries.tsv
 @@ -332,6 +332,21 @@ FUN_00217328	pad	Pad_ProcessReport	hook	the pad's report into its state, each po
@@ -1692,7 +1708,7 @@ index e489f4ab9a4f6ba7937ac6121c8b094a28613938..4f54c37777f0d669a7c30dc4c7dec38c
 +FUN_L00_0029ab70	vendor	Vendor_Close	hook	closes the vendor's menu (close_vendor_menu): gives the hero back, in front of the vendor	void (int)
 +FUN_L00_002a0fc8	vendor	Menu_Backdrop	hook	puts a kept picture back in the frame under a page menu or the vendor (append_draw_buffer_upload_packets)	void (int, int, int)
 +FUN_L00_002382a0	items	Hud_QuickSelectDraw	hook	draws the quick select ring, each tick it is open (draw_hud_item_selector_panel): ring is its object, the update's	int (unsigned int)
-+FUN_L00_0023b120	items	Hud_Frame	hook	a HUD icon drawn (hud_frame, HudFrame): e the element, id its frame (get_icon_frame), x, y, flags, alpha; the quick select ring draws its items' icons through it	void (unsigned int, int, int, int, unsigned int, int)
++FUN_L00_0023b120	items	Hud_Frame	hook	a HUD icon drawn (hud_frame, HudFrame): e the element, id its frame (get_icon_frame), x, y, flags, alpha; the quick select ring draws its items' icons through it	void (unsigned int, int, int, int, int, int)
 +FUN_001f5f18	draw	Ui_Frame	hook	draws a bevelled frame, rows then columns (draw_ui_frame): a message box's is the last the game draws	void (int, int, int, int, int)
 +FUN_001f6af0	text	Font_PrintCenter	hook	centred text at (x, y) (font_print_center): among it the message boxes' key labels (the memory card's, the confirmations'), which a mod may find where the game draws them	int (int, int, int, int, int)
 +FUN_0022ca50	sound	Sound_Update	hook	the sound step of each tick (sound_update): mixes every voice from the camera's eye and rows
