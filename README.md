@@ -11,19 +11,19 @@
 - **The VR design:** first person through Ratchet's eyes, Ratchet facing and shooting where your hand points, the weapon held in your hand, and quick select by reaching for a weapon.
 - **The controls:** the Touch controller layout, button for button, and the comfort choices (eye height, snap turning, recentring).
 - **The game knowledge:** his notes on the hero's attached items (which mobys are Clank, his pack and the item in the hand) are how this port hides Ratchet's body and Clank in first person and keeps the weapon.
-- **The roadmap:** every feature still to come here (real wrench swings, thrown bombs, two-handed weapons, ledge grabbing, swimming, bolt cranks, the hoverboard, a spatial pause menu and more) is one Rerac-vr already has on PC: [docs/STATUS.md](docs/STATUS.md) tracks them one by one.
+- **The features:** real wrench swings and throws, thrown bombs, two-handed weapons and Akimbo, ledge grabbing, swimming strokes, bolt cranks, plugged-in gadgets, turrets, Clank's and Giant Clank's fists, the hoverboard, the menu and the vendors in the world, the haptics and more: each is Rerac-vr's, rebuilt here; [docs/STATUS.md](docs/STATUS.md) tracks them one by one.
 
 Rerac-vr runs on [ReRAC](https://github.com/re-rac/rerac), a Rust rewrite of the game that a headset's processor cannot yet carry at frame rate, so this port runs [OpenRAC](https://github.com/OpenRAC/OpenRAC)'s recompiled game instead and rebuilds Rerac-vr's features on it in its own VR mod (`vr/`). **If you play on PC, play [Rerac-vr](https://github.com/npiriou/Rerac-vr)**: it is the complete experience, and the one this port follows.
 
-**Latest:** no public release yet. Builds will be published on the [Releases page](https://github.com/moistman42069/RatchetAndClank-Quest-VR/releases) once they have been tested on a headset; the launcher then updates itself from there.
+**Latest:** [0.1.2](https://github.com/moistman42069/RatchetAndClank-Quest-VR/releases/latest), the first public test build of the whole Rerac-vr port. **We need your logs:** see [Support and project](#support-and-project). The launcher updates itself from the Releases page.
 
-> **Experimental / WIP:** the game is OpenRAC's native port, not an emulator, with a VR mod of its own. It has run on PC with your disc and a simulated headset; it needs Quest reports. Gloves and gadgets in the hand, physical wrench swings, thrown bombs, two-handed weapons, ledge grabbing, swimming strokes and a spatial pause menu are not in yet: [docs/STATUS.md](docs/STATUS.md) lists every feature and how far it has been tested.
+> **Experimental / WIP:** the game is OpenRAC's native port, not an emulator, with a VR mod of its own. Rerac-vr's features are in and have run on PC with the PAL disc and a simulated headset. Only the very first build has ever run on a real Quest, where walking did not work: walking on the headset is still unproven, and the NTSC-U disc has never been run at all. Expect bugs. [docs/STATUS.md](docs/STATUS.md) lists every feature and how far it has been tested; [docs/HEADSET_CHECKLIST.md](docs/HEADSET_CHECKLIST.md) what to try on the headset.
 
 ## Downloads
 
 | Platform | Download |
 | --- | --- |
-| Meta Quest 3 / 3S — standalone VR | `RatchetQuestVR-<version>.apk` on the [latest release](https://github.com/moistman42069/RatchetAndClank-Quest-VR/releases/latest) (none yet) |
+| Meta Quest 3 / 3S — standalone VR | `RatchetQuestVR-<version>.apk` on the [latest release](https://github.com/moistman42069/RatchetAndClank-Quest-VR/releases/latest) |
 
 Quest 2 and Quest Pro may run it, slower; they are untested. The APK holds no game data.
 
@@ -42,22 +42,22 @@ Greatest Hits, Platinum, other regions and the sequels are not supported. The la
 
 ## Installing and updating
 
-- **Install:** sideload the APK with SideQuest or `adb install -r`, then open **Ratchet & Clank Quest VR** from Unknown Sources.
+- **Install:** with Developer Mode on, get the APK onto the headset and install it: download it in the Quest's browser (or email it to yourself and download it there) and open it from the Files app, or sideload it with SideQuest or `adb install -r`. Then open **Ratchet & Clank Quest VR** from your Library's **Unknown Sources**.
 - **Set up:** put your `.iso` where the headset's file picker can see it (the Download folder), and choose it in the launcher. The first set-up copies the disc and prepares the levels: up to half an hour, once. Keep the headset on charge.
-- **Play:** press **PLAY IN VR**. **Run the 2D test** plays the game flat, with a gamepad, to tell a game problem from a VR problem.
+- **Play:** press **PLAY IN VR**. **Play in 2D** puts the game on a big flat screen in the headset, played with the Touch controllers as a PlayStation pad: no gamepad needed, and it tells a game problem from a VR problem.
 - **Updates:** the launcher's Play tab checks this repository's releases (automatically every six hours, or with **Check now**; switch it off there). An update is downloaded, checked against GitHub's SHA-256, its size, the app's package, a newer version and the app's signing key, then handed to Android's installer, which asks you. Your set-up, saves and settings are kept. Installing a new APK over the old one by hand keeps them too; **do not uninstall or clear the app's data**.
 - **Level updates:** when a new version reads its levels in a newer form, the Play tab offers **Update the levels**, made again from the disc already on the headset.
 
 ## Highlights
 
 - **Native, not emulated:** OpenRAC's recompiled game draws every object of a level whatever the game culled, so turning your head never pops the world in.
-- **First person** through Ratchet's eyes, his body, Clank and the pack hidden, the weapon in your right hand; or **third person** from the game's camera with your head looking around.
+- **First person** through Ratchet's eyes, his body, Clank and the pack hidden, the weapon in your right hand; or **third person** from the game's camera, the horizon level and the stick walking where you look. **VR Options** switches between them at any time, in the game or on the title.
 - **Smooth turning by default**, snap turning (30–90°) as an option; walking towards where you look; Ratchet faces where your right hand points.
 - **Cutscenes in VR:** the game's in-engine scenes in 3D around you from its camera, your head free to look round; or, in the VR tab, **on a screen** in the game's own framing. Movies play on the screen.
-- **HUD and menus on panels.**
+- **Menus in the world:** the title's own 3D scene around you and the pause menu standing in the level, with the menus' 3D models in stereo; point and pull the trigger. The vendors are on their own monitors, and you can walk while shopping.
 - **Vibration** on shots and hits; quick select by reaching towards a weapon.
 - **Graphics:** presets, 72–120 Hz (back to 72 Hz when a higher rate is not held), eye resolution, MSAA, texture filtering, draw distances.
-- **Everything can be switched in the launcher**, and is on by default.
+- **Everything can be switched** in the launcher and in **VR Options** (Options, then VR Options: helmet, boots, camera flip, direction, player body, Akimbo, play position, view).
 - **Launcher:** disc requirements and checks, set-up progress, settings, controls, logs, credits, updates.
 
 ## Controls
@@ -67,27 +67,27 @@ Greatest Hits, Platinum, other regions and the sequels are not supported. The la
 | Left stick | Walk, towards where you look |
 | Right stick | Turn (smooth by default; snap in the VR tab). In third person, the game's camera |
 | A | Jump; twice for a double jump |
-| B | Crouch, or Clank's packs in the air |
+| B | Hover and strafe with Clank's packs, Hydro-Pack boost |
 | X | Map |
 | Y | Pause; skips a cutscene |
-| Right trigger | Fire |
-| Right grip | Swing the wrench |
-| Left trigger or grip | Crouch |
+| Right trigger | Fire; with the wrench in hand, takes your last gun back out |
+| Right grip | Takes the wrench out; swing your hand for real to hit |
+| Left grip or trigger | Crouch, and the packs (with A: long and high jumps, flips) |
 | Right stick click | Talk; hold for quick select, move your right hand towards a weapon, let go |
-| Left stick click | The game's first-person look |
-| Both sticks clicked | Recentre |
+| Left stick click | With Akimbo on: the left hand's own quick select |
+| Left menu button | Recentre (the headset's own recentre too) |
 
-In menus either stick moves, A or the trigger takes, B goes back. Long jump, high jump and flips are as in the game: Crouch + A. The layout follows Rerac-vr, the PC VR mod.
+In menus point with your right hand and pull the trigger or press A; the sticks move a cursor only where there is nothing to point at, or with the right controller off. B goes back, and the left grip and trigger turn the pages. The layout is Rerac-vr's, from its source; the whole list is in the launcher's Controls tab. In **2D mode** the controllers are a PlayStation pad: A Cross, B Circle, X Square, Y Triangle, triggers L1 and R1, grips L2 and R2, the left menu button Start, the left stick click Select.
 
 ## Support and project
 
-Please report both failures and successful runs: headset and its OS version, the app's version, your disc (PAL or NTSC-U), the planet, any settings you changed, what you did, and the log of that run.
+**Logs are what this project needs most.** Please report both failures and successful runs: headset and its OS version, the app's version, your disc (PAL or NTSC-U), the planet, any settings you changed, what you did, and the log of that run. After playing, **open the launcher again**: that is what writes the run's log.
 
 | Where | Each run's log |
 | --- | --- |
 | Quest | **Download/RatchetQuestVR**: the newest file is the last run (or set-up), with the game's own log, why VR stopped if it did, and the app's Android log. The launcher's **Logs** tab shows a summary of the last run. |
 
-Report in [GitHub Issues](https://github.com/moistman42069/RatchetAndClank-Quest-VR/issues), or DM **@MeWhenINameMyself** on Discord.
+Report with the [headset report form](https://github.com/moistman42069/RatchetAndClank-Quest-VR/issues/new?template=headset-report.yml) in GitHub Issues, attaching the `.txt` file, or DM **@MeWhenINameMyself** on Discord. Please do not report this port's bugs to Rerac-vr, ReRAC or OpenRAC. [docs/HEADSET_CHECKLIST.md](docs/HEADSET_CHECKLIST.md) lists what most needs trying.
 
 This is an unofficial community project, not affiliated with or endorsed by Sony Interactive Entertainment or Insomniac Games. No game files are distributed. See [credits](CREDITS.md) and [third-party notices](THIRD_PARTY_NOTICES.txt).
 

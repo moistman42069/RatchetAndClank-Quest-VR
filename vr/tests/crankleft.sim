@@ -1,0 +1,16 @@
+# The bolt crank with an Akimbo gun in the left hand (Rerac-vr's off_hand.rs): seated as crankstick.sim,
+# the left trigger fires the left gun while the right hand turns the bolt; the crank goes on.
+600 y 1
+606 y 0
+3100 right_grip 1
+3200 shot wrench
+3300 hand_pitch -20
+3320 rh_z -0.5
+3400 shot seated
+3500 left_y 1
+3700 left_trigger 1
+3760 shot firing
+3900 left_trigger 0
+4300 shot walked
+4300 left_y 0
+4400 quit 0

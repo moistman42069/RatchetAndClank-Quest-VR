@@ -1,0 +1,27 @@
+# The Hologuise in first person (Rerac-vr's BODY_HANDS and game_input.rs): put on with the trigger, the
+# disguise's own hands at the controllers, closing with the grips without taking it off, a salute by the
+# right hand raised open by the head, walking; A takes it off. [vr-disguise] lines tell each.
+600 y 1
+606 y 0
+3200 shot holding
+3250 right_trigger 1
+3256 right_trigger 0
+3400 shot disguised
+3420 head_pitch -45
+3440 shot hands
+3450 left_grip 1
+3451 right_grip 1
+3480 shot fists
+3490 left_grip 0
+3491 right_grip 0
+3500 head_pitch 0
+3520 rh_y 0.4
+3550 shot saluting
+3600 rh_y 0
+3620 left_y 1
+3680 shot walking
+3690 left_y 0
+3800 a 1
+3806 a 0
+3900 shot off
+4000 quit 0

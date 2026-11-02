@@ -76,17 +76,6 @@
             </intent-filter>
         </activity>
 
-        <!-- The same game on a flat panel, with no VR: a test (the launcher's Test without VR). -->
-        <activity
-            android:name=".FlatGameActivity"
-            android:process=":game"
-            android:exported="false"
-            android:launchMode="singleTask"
-            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen"
-            android:configChanges="density|fontScale|keyboard|keyboardHidden|layoutDirection|locale|mcc|mnc|navigation|orientation|screenLayout|screenSize|smallestScreenSize|touchscreen|uiMode">
-            <layout android:defaultWidth="1024dp" android:defaultHeight="768dp" />
-        </activity>
-
         <service
             android:name=".SetupService"
             android:exported="false"

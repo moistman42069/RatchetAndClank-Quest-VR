@@ -1,0 +1,34 @@
+# The pointer on the option pages (Rerac-vr's pause/pointer.rs): from Options into Subtitles, Camera and Sound, the beam on
+# each page's rows in turn, B back out of it.
+600 y 1
+606 y 0
+3000 y 1
+3006 y 0
+3100 hand_pitch -5.4
+3140 right_trigger 1
+3146 right_trigger 0
+3260 shot options
+3280 hand_pitch 2.0
+3320 shot on-subtitles
+3330 right_trigger 1
+3336 right_trigger 0
+3450 shot subtitles
+3470 hand_pitch 11.4
+3500 hand_pitch 14.0
+3530 hand_pitch 8.5
+3560 shot subtitles-swept
+3570 b 1
+3576 b 0
+3710 hand_pitch 14.6
+3750 shot on-sound
+3760 right_trigger 1
+3766 right_trigger 0
+3880 shot sound
+3900 hand_pitch 17.0
+3930 hand_pitch 11.6
+3960 hand_pitch 6.2
+3990 hand_pitch 17.0
+4020 shot sound-swept
+4030 b 1
+4036 b 0
+4170 quit 0

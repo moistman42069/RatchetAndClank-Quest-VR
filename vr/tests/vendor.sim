@@ -1,0 +1,21 @@
+# The vendor (Rerac-vr's vendor.rs): Ratchet by it, the click opens it; what the headset shows, and what the
+# sticks, the trigger and the click do there.
+600 y 1
+606 y 0
+3000 shot before
+3100 right_click 1
+3106 right_click 0
+3300 shot open
+3320 left_x 1
+3332 left_x 0
+3400 shot left-stick
+3420 right_x 1
+3432 right_x 0
+3500 shot right-stick
+3520 left_y 1
+3580 left_y 0
+3600 shot walked
+3620 right_click 1
+3626 right_click 0
+3760 shot closed
+3800 quit 0

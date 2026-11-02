@@ -1,0 +1,36 @@
+# Akimbo with a glove in the left hand (Rerac-vr's akimbo.rs and bomb_glove.rs left-hand throw): the Blaster in
+# the right hand (QUEST_SIM_GIVE=15 QUEST_SIM_HOLD=15), the Bomb Glove in the left (QUEST_SIM_LEFT=10), on Novalis.
+# The left trigger holds the bomb, a fast left-hand throw flies it, a slow release keeps it; the right gun still
+# fires on its own. [vr-throw] lines name the hand and count the ammo; [vr-akimbo] counts the right's rounds.
+600 y 1
+606 y 0
+3200 shot ahead
+# Hold the left trigger, then throw: the left hand 30 cm forward and 15 cm up in about 70 ms.
+3300 left_trigger 1
+3360 lh_z -0.05
+3360 lh_y 0.02
+3361 lh_z -0.10
+3361 lh_y 0.05
+3362 lh_z -0.15
+3362 lh_y 0.08
+3363 lh_z -0.20
+3363 lh_y 0.11
+3364 lh_z -0.25
+3364 lh_y 0.13
+3364 left_trigger 0
+3365 lh_z -0.30
+3365 lh_y 0.15
+3380 shot far-1
+3420 shot far-2
+3500 lh_z 0
+3500 lh_y 0
+# Hold and let go without moving: kept.
+3600 left_trigger 1
+3640 shot held-left
+3660 left_trigger 0
+3680 shot kept
+# The right gun fires while the left holds its glove.
+3800 right_trigger 1
+3840 shot right-fired
+3860 right_trigger 0
+4000 quit 0

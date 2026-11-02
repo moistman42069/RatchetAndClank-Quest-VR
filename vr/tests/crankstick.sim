@@ -1,0 +1,13 @@
+# Forward on the stick orbits the bolt (Rerac-vr's game_input.rs), whichever way the player faces:
+# seated as crank.sim, the stick pushed forward, his distance from the bolt held.
+600 y 1
+606 y 0
+3100 right_grip 1
+3200 shot wrench
+3300 hand_pitch -20
+3320 rh_z -0.5
+3400 shot seated
+3500 left_y 1
+4300 shot walked
+4300 left_y 0
+4400 quit 0

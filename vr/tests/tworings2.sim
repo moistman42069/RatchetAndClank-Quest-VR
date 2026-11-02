@@ -1,0 +1,30 @@
+# Akimbo's two rings, the other orders (QUEST_SIM_GIVE=15,16,19,21 QUEST_SIM_HOLD=16 QUEST_SIM_LEFT=15, Novalis): the right
+# ring alone with the right hand straight up, let go: the right hand takes that slot's item ([vr-ring] names the slot
+# lit, [vr-hand] the item in hand). Then both open, the right lets go first and the left ring stays, then the left. Then
+# a quick tap of the right click, which is the game's own (talking).
+600 y 1
+606 y 0
+3000 shot before
+3100 right_click 1
+3160 rh_y 0.15
+3220 shot right-up
+3260 right_click 0
+3270 rh_y 0
+3360 shot right-picked
+3500 right_click 1
+3510 left_click 1
+3560 rh_y 0.15
+3560 lh_x 0.15
+3560 lh_y 0.15
+3620 shot both
+3640 right_click 0
+3650 rh_y 0
+3720 shot right-gone
+3760 left_click 0
+3770 lh_x 0
+3770 lh_y 0
+3860 shot both-gone
+3950 right_click 1
+3953 right_click 0
+4040 shot tapped
+4100 quit 0

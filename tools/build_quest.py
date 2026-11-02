@@ -225,7 +225,7 @@ def verify_apk(apk: Path) -> None:
                           capture_output=True, text=True).stdout
     for needle in ("com.oculus.intent.category.VR", "org.khronos.openxr.intent.category.IMMERSIVE_HMD",
                    "com.oculus.vr.focusaware", "android.hardware.vr.headtracking",
-                   "org.khronos.openxr.permission.OPENXR", ".QuestGameActivity", ".FlatGameActivity"):
+                   "org.khronos.openxr.permission.OPENXR", ".QuestGameActivity"):
         if needle not in tree and needle not in badging:
             sys.exit(f"{apk.name}: the manifest lacks {needle}")
     if "extractNativeLibs" not in tree:

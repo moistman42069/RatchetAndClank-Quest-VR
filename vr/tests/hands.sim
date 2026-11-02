@@ -1,0 +1,24 @@
+# Ratchet's hands (Rerac-vr's tracked_hands): cut at the elbows, at the controllers. The head looks a
+# little down at them. With nothing but the wrench in the game, or a gun given by QUEST_SIM_HOLD: open
+# hands, the left closed into a fist, the wrench on the grip, the gun held, the left on a heavy barrel.
+600 y 1
+606 y 0
+2900 head_pitch -25
+3000 shot open
+3010 left_grip 1
+3080 shot left-fist
+3090 left_grip 0
+3100 right_grip 1
+3170 shot grip
+3180 right_grip 0
+3300 shot let-go
+3310 right_trigger 1
+3316 right_trigger 0
+3400 shot held
+# The left hand to the barrel, squeezed, for a two-armed gun.
+3500 lh_x 0.4
+3501 lh_y -0.06
+3502 lh_z -0.35
+3510 left_grip 1
+3560 shot both
+3600 quit 0

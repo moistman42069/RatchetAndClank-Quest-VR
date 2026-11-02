@@ -1,0 +1,43 @@
+# The wrench swung for real (Rerac-vr's embodied.rs): the grip takes it out, fast strokes across the
+# body hit what the head sweeps; slow ones do not. [sim] hittable lines list what is near at the
+# start; [vr-wrench] lines give each hit with its speeds.
+600 y 1
+606 y 0
+3200 shot ahead
+3250 right_grip 1
+3250 rh_y -0.25
+3300 shot wrench
+# Slow strokes, side to side: no hits.
+3320 rh_x -0.10
+3340 rh_x 0.10
+3360 rh_x -0.10
+3380 rh_x 0
+# Fast strokes: 40 cm in about 50 ms, across and back, five times.
+3395 shot before
+3400 rh_x -0.20
+3401 rh_x -0.10
+3402 rh_x 0.00
+# Mid-stroke: the wrench drawn longer as its hits reach (up to 35%), the grip still in the hand.
+3402 shot stroke
+3403 rh_x 0.10
+3404 rh_x 0.20
+3415 shot after
+3430 rh_x 0.10
+3431 rh_x 0.00
+3432 rh_x -0.10
+3433 rh_x -0.20
+3460 rh_x -0.10
+3461 rh_x 0.00
+3462 rh_x 0.10
+3463 rh_x 0.20
+3490 rh_x 0.10
+3491 rh_x 0.00
+3492 rh_x -0.10
+3493 rh_x -0.20
+3520 rh_x -0.10
+3521 rh_x 0.00
+3522 rh_x 0.10
+3523 rh_x 0.20
+3530 shot swung
+3600 rh_x 0
+3700 quit 0

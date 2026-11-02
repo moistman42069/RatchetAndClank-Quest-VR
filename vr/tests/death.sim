@@ -1,0 +1,13 @@
+# Lost, the body no longer carries the eye (Rerac-vr's eye_parked): QUEST_SIM_KILL=150 takes his hit
+# points for 200 ticks; the view stays where he stood, the head still tracked, then is the body's again.
+600 y 1
+606 y 0
+3200 shot alive
+3330 shot dying
+3420 head_yaw 50
+3440 shot dead-look
+3460 head_yaw 0
+3600 shot dead
+4100 shot later
+4600 shot respawned
+4700 quit 0

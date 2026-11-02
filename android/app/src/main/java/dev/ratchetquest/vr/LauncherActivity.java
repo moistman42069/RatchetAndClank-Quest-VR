@@ -311,10 +311,11 @@ public final class LauncherActivity extends Activity {
         page.addView(card);
 
         LinearLayout test = card();
-        test.addView(text("Test without VR", 16, Artwork.INK, true));
-        test.addView(text("Runs the game in this flat window with no VR at all, to tell a problem with the game "
-            + "from a problem with VR. It is only a test: a gamepad is needed to play it.", 14, Artwork.MUTED, false));
-        test.addView(button("Run the 2D test", false, view -> play(disc, false)));
+        test.addView(text("2D mode", 16, Artwork.INK, true));
+        test.addView(text("The game on a big flat screen in the headset, played with your Touch controllers as a "
+            + "PlayStation pad: no gamepad needed. Also tells a problem with the game from a problem with VR.",
+            14, Artwork.MUTED, false));
+        test.addView(button("Play in 2D", false, view -> play(disc, false)));
         page.addView(test);
 
         LinearLayout other = card();
@@ -428,7 +429,7 @@ public final class LauncherActivity extends Activity {
         new Thread(() -> {
             try {
                 tools.prepare();
-                config.writeForGame();
+                config.writeForGame(!vr);
                 tools.statusFile().delete();
                 new File(tools.data(), "quest-run-pending").createNewFile();
                 runOnUiThread(() -> startGame(disc, vr));
@@ -446,19 +447,16 @@ public final class LauncherActivity extends Activity {
             "--data", tools.data().getPath(),
             "--window",
             "--levels", tools.levels(disc.version).getPath(),
-            "--settings", tools.settingsFile().getPath()));
-        if (vr) {
-            arguments.add("--plugins");
-            arguments.add(new File(tools.plugins(), "plugins.json").getPath());
-        } else {
-            arguments.add("--no-mods");
-        }
+            "--settings", tools.settingsFile().getPath(),
+            "--plugins", new File(tools.plugins(), "plugins.json").getPath()));
         List<String> environment = new ArrayList<>();
         for (Map.Entry<String, String> entry : tools.environment().entrySet()) {
             environment.add(entry.getKey() + "=" + entry.getValue());
         }
         environment.add("QUEST_VR_STATUS=" + tools.statusFile().getPath());
-        Intent game = new Intent(this, vr ? QuestGameActivity.class : FlatGameActivity.class)
+        // The 2D mode is the same headset session, the game on a big screen in it, so that the Touch
+        // controllers are read as ever and no gamepad is needed.
+        Intent game = new Intent(this, QuestGameActivity.class)
             .putExtra(QuestGameActivity.EXTRA_LIBRARY, disc.library)
             .putExtra(QuestGameActivity.EXTRA_ARGUMENTS, arguments.toArray(new String[0]))
             .putExtra(QuestGameActivity.EXTRA_ENVIRONMENT, environment.toArray(new String[0]));

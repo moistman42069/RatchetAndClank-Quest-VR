@@ -1,0 +1,15 @@
+# The 2D mode: the game on the big screen, the controllers a plain pad; no eyes at all.
+600 menu 1
+606 menu 0
+3200 shot play
+3210 left_y 1
+3400 left_y 0
+3410 shot walked
+3420 right_x 1
+3480 right_x 0
+3500 menu 1
+3506 menu 0
+3700 shot paused
+3710 menu 1
+3716 menu 0
+3900 quit 0

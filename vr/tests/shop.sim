@@ -1,0 +1,13 @@
+# The vendor on foot (Rerac-vr's vr/vendor.rs): QUEST_SIM_NEAR=11, bolts and a few weapons. The click opens it; the
+# eyes stay on and the world runs, the screens stand on the machine's monitors. The left stick walks back from it.
+600 y 1
+606 y 0
+3000 shot before
+3100 right_click 1
+3106 right_click 0
+3300 shot opening
+3500 shot open
+3560 left_y -1
+3588 left_y 0
+3640 shot stepped-back
+3700 quit 0

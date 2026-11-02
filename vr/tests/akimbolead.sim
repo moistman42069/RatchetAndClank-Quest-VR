@@ -1,0 +1,23 @@
+# Akimbo: the Walloper in the left hand leads (Rerac-vr's off_hand.rs lead), the Blaster in the right
+# (QUEST_SIM_GIVE=15,18 QUEST_SIM_HOLD=15 QUEST_SIM_LEFT=18), on Novalis. The left trigger lunges with the
+# left hand's Walloper ([vr-akimbo] the left hand leads ... its hero state ran, the right item back in the
+# hand); then a punch of the left hand lunges; then the right Blaster fires again, as before the lead.
+600 y 1
+606 y 0
+3200 shot ahead
+3300 left_trigger 1
+3310 shot lunging
+3330 left_trigger 0
+3360 shot after-trigger
+# A punch of the left hand: 30 cm forward in about 70 ms, from rest.
+3500 lh_z -0.06
+3501 lh_z -0.12
+3502 lh_z -0.18
+3503 lh_z -0.24
+3504 lh_z -0.30
+3510 shot punched
+3560 lh_z 0
+3700 right_trigger 1
+3740 shot right-fired
+3760 right_trigger 0
+3900 quit 0

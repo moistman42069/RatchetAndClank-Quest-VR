@@ -1,0 +1,13 @@
+# A message box's label (Rerac-vr's menu_pointer.rs): QUEST_SIM_FREEZE=2, the box with one label which only
+# Cross answers (update_mode_freeze). The hand on it, the trigger: the box goes.
+3000 shot box
+3020 hand_yaw 5
+3040 hand_pitch 22
+3060 hand_pitch 20
+3080 hand_pitch 19
+3100 hand_pitch 18
+3120 shot on-label
+3240 right_trigger 1
+3246 right_trigger 0
+3340 shot after
+3360 quit 0

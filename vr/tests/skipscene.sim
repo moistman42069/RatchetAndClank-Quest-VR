@@ -1,0 +1,13 @@
+# Y skips a scene (Rerac-vr's SkipInput): the Novalis arrival, which plays to about frame 2450 unskipped, plays from about
+# frame 1300. Y pressed in it and held on past its end: the scene ends early, and play comes back under the held Y with
+# no pause opening ([vr-state] phase stays 3). Let go and pressed again, Y pauses as ever.
+1500 y 1
+1760 y 0
+1860 shot after
+1900 y 1
+1906 y 0
+2000 shot paused
+2020 y 1
+2026 y 0
+2120 shot played
+2140 quit 0

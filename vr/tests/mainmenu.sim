@@ -1,0 +1,22 @@
+# The title's main menu has VR Options (Rerac-vr's, beside the pause menu's): past the logos to the main menu as
+# pointer17.sim goes (the hand off the panel until it is there), the hand on its fourth item, VR Options (canvas y 245
+# to 283; New Game, Load Game, Options, VR Options, Exit), the trigger into its page, whose rows the pointer then takes
+# ([vr-pointer] the port's page of rows, VR Options: row N).
+100 hand_pitch 45
+900 a 1
+906 a 0
+1500 a 1
+1506 a 0
+1900 shot menu
+1920 hand_pitch 1.1
+1980 shot on-vr-options
+2000 right_trigger 1
+2006 right_trigger 0
+2300 shot vr-page
+2320 hand_pitch 2
+2380 shot vr-row
+2400 right_trigger 1
+2406 right_trigger 0
+2460 shot vr-row-stepped
+2480 hand_pitch 45
+2600 quit 0

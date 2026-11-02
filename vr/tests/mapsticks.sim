@@ -1,0 +1,12 @@
+# The Select map has nothing to point at: its sticks still pan it, with the right hand tracked.
+600 y 1
+606 y 0
+3000 x 1
+3006 x 0
+3200 shot map
+3220 left_x 1
+3300 left_x 0
+3320 shot panned
+3340 y 1
+3346 y 0
+3500 quit 0

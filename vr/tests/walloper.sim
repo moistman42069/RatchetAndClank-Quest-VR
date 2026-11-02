@@ -1,0 +1,35 @@
+# The Walloper's punch (Rerac-vr's walloper.rs), by an ammo crate: a real punch forward lunges and
+# breaks it; a slow push and a sideways swipe do not punch. [vr-punch] lines tell each punch.
+600 y 1
+606 y 0
+3200 shot ahead
+# A slow push: no punch.
+3300 rh_z -0.01
+3305 rh_z -0.02
+3310 rh_z -0.03
+3315 rh_z -0.04
+3320 rh_z -0.05
+3330 rh_z -0.06
+3360 rh_z 0
+# A sideways swipe: no punch.
+3400 rh_x -0.06
+3401 rh_x -0.12
+3402 rh_x -0.18
+3403 rh_x -0.24
+3440 rh_x 0
+# A punch: 20 cm forward in four frames.
+3500 rh_z -0.05
+3501 rh_z -0.10
+3502 rh_z -0.15
+3503 rh_z -0.20
+3510 shot punch
+3530 shot punch-2
+3560 rh_z 0
+# Another.
+3650 rh_z -0.05
+3651 rh_z -0.10
+3652 rh_z -0.15
+3653 rh_z -0.20
+3670 shot punch-3
+3700 rh_z 0
+3800 quit 0

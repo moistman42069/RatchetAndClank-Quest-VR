@@ -1,0 +1,14 @@
+# The title standing in the world (Rerac-vr's title_world): the eyes in its space scene from the first screen on, the
+# logo and PRESS START, then the main menu's panels, the hand off them.
+100 hand_pitch 45
+700 shot t700
+850 shot t850
+900 a 1
+906 a 0
+1000 shot t1000
+1200 shot t1200
+1400 shot t1400
+1500 a 1
+1506 a 0
+1700 shot t1700
+1800 quit 0

@@ -1,0 +1,17 @@
+# The Visibomb's monitor with the right hand's pose lost (Rerac-vr's review fixes: any missing piece hides it, rather
+# than leaving it at its last pose): "[vr-missile] the picture off the weapon's screen" while the hand is gone, on
+# again when it is back, and no panel by the hand meanwhile.
+600 y 1
+606 y 0
+3000 shot aiming
+3050 right_trigger 1
+3070 right_trigger 0
+3200 shot flying
+3250 right_gone 1
+3270 shot gone
+3320 right_gone 0
+3350 shot back
+3400 left_x 0.7
+3500 left_x 0
+3800 shot after
+3900 quit 0

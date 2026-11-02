@@ -1,0 +1,12 @@
+# A ledge let go: Ratchet takes the crates' top with both grips, then one hand lets go (he stays), then
+# the other (he drops).
+600 y 1
+606 y 0
+1700 left_grip 1
+1700 right_grip 1
+2500 shot hanging
+2600 left_grip 0
+2800 shot one-hand
+3000 right_grip 0
+3200 shot dropped
+3300 quit 0

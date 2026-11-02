@@ -1,0 +1,16 @@
+# A message box with two labels: QUEST_SIM_FREEZE=0, the race's box, its lines Cross's and Circle's. The hand
+# down the box names each line's key.
+3000 shot box
+3020 hand_yaw 5
+3040 hand_pitch 22
+3060 hand_pitch 19
+3080 hand_pitch 16
+3100 hand_pitch 13
+3120 hand_pitch 10
+3140 hand_pitch 7
+3160 hand_pitch 4
+3180 hand_pitch 1
+3200 hand_pitch -2
+3220 hand_pitch -5
+3240 shot down
+3260 quit 0

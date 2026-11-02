@@ -1,0 +1,16 @@
+# Ledges held with the hands (Rerac-vr's tracked.rs): Ratchet dropped beside a stack of crates with the
+# left grip closed (QUEST_SIM_NEAR puts him there) takes its top; the right hand joins it; both shove down
+# and he climbs. A right grip closed earlier would take the wrench, which the crates are kept for.
+600 y 1
+606 y 0
+1700 left_grip 1
+2400 right_grip 1
+2500 shot hanging
+2500 rh_y 0.25
+2500 lh_y 0.25
+2700 shot hands-up
+3000 rh_y 0.0
+3000 lh_y 0.0
+3200 shot after-shove
+3500 shot climbed
+3600 quit 0

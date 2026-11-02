@@ -1,0 +1,19 @@
+# The pause menu in the world before a wall (Rerac-vr's spatial menu clearance): the head turned toward the rock beside
+# Novalis's start, then paused. Lines from the eye to the panel's centre, corners and bottom edge meet the rock, so the
+# menu comes nearer and smaller ([vr-menu] a wall before the menu: ...), the same size to the eye, and is not cut by
+# it. Unpaused, turned the other way and paused again: nothing in the way, at its whole distance.
+600 y 1
+606 y 0
+3000 head_yaw 70
+3060 y 1
+3066 y 0
+3160 shot wall-paused
+3200 y 1
+3206 y 0
+3300 head_yaw -70
+3360 y 1
+3366 y 0
+3460 shot open-paused
+3500 y 1
+3506 y 0
+3600 quit 0

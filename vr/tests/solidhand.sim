@@ -1,0 +1,13 @@
+# A free hand stops at the world (Rerac-vr's solid_contact.rs): looking down, the left hand pushed forward and down through
+# the ground, where with the option off it passes under it.
+600 y 1
+606 y 0
+3000 head_pitch -65
+3040 lh_z -0.45
+3060 shot before
+3100 lh_y -0.5
+3140 shot down-half
+3180 lh_y -1.4
+3220 shot through
+3260 lh_y 0
+3300 quit 0

@@ -1,0 +1,30 @@
+# The Thruster-Pack equipped by the hand and lit (Rerac-vr's pause/pointer.rs Grid; thruster_flame.rs): QUEST_SIM_GIVE=3
+# owns it. Paused, the trigger on Gadgets, the hand on the Back Packs grid's Thruster cell ([vr-pointer] names its item),
+# the trigger equips it; the menu closed, a jump and a double jump light the flame: the ignition kick and the jet's
+# beats are the sim's haptic lines, and the shots show the flame.
+600 y 1
+606 y 0
+3000 y 1
+3006 y 0
+3120 hand_pitch 23.4
+3180 right_trigger 1
+3186 right_trigger 0
+3300 shot gadgets
+3320 hand_pitch 8.2
+3320 hand_yaw 17.8
+3360 shot on-thruster
+3380 right_trigger 1
+3386 right_trigger 0
+3480 shot equipped
+3500 b 1
+3506 b 0
+3600 y 1
+3606 y 0
+3800 hand_pitch 0
+3800 hand_yaw 0
+3900 a 1
+3906 a 0
+3915 a 1
+3940 shot double-jump
+3990 a 0
+4200 quit 0

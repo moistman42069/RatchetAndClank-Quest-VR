@@ -1,0 +1,25 @@
+# The wrench thrown and put away (Rerac-vr's launch_wrench): the grip takes it out; a fast stroke
+# forward with the grip let go throws it, out and back to the hand; then a slow release puts it away
+# and the gun comes back. [vr-wrench] lines tell each.
+600 y 1
+606 y 0
+3200 shot ahead
+3250 right_grip 1
+3300 shot wrench
+# The throw: 35 cm forward in about 70 ms, the grip let go at the end.
+3360 rh_z -0.07
+3361 rh_z -0.14
+3362 rh_z -0.21
+3363 rh_z -0.28
+3364 rh_z -0.35
+3364 right_grip 0
+3370 shot out
+3390 shot far
+3420 rh_z 0
+3440 shot back
+3480 shot caught
+# Out again, then a slow release: put away.
+3550 right_grip 1
+3650 right_grip 0
+3700 shot put-away
+3800 quit 0

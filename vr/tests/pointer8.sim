@@ -1,0 +1,27 @@
+# The pointer on the memory card's slots (Rerac-vr's pause/pointer.rs, saves slots_draw): paused, Options, Save, then the
+# beam down the slot list; each slot it points at takes the list's cursor (+0x40, the slot the page lights). Nothing is
+# saved: the trigger is not pulled on a slot (save.sim wants the card empty).
+600 y 1
+606 y 0
+3000 y 1
+3006 y 0
+3120 hand_pitch -5.4
+3160 right_trigger 1
+3166 right_trigger 0
+3320 hand_pitch 20.7
+3360 right_trigger 1
+3366 right_trigger 0
+3600 shot save-page
+3620 hand_pitch 24
+3640 hand_pitch 20
+3660 hand_pitch 16
+3680 shot slot-pointed
+3700 hand_pitch 12
+3720 hand_pitch 8
+3740 hand_pitch 4
+3760 hand_pitch 0
+3780 hand_pitch -4
+3800 shot slot-lower
+3820 b 1
+3826 b 0
+3950 quit 0

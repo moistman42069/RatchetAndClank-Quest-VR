@@ -1,0 +1,20 @@
+# The title's Exit box (the port's Exit item: "Exit?", Yes above No) by the hand: pointed at as the game's own pages are,
+# not as a page of rows. The hand on Exit, the trigger, the hand on No, the trigger: the box goes and the game runs on
+# (the shot "after-no" is taken). Before 1 November the pointer took this box for VR Options and wrote a row cursor
+# of up to four into its two lines.
+100 hand_pitch 45
+900 a 1
+906 a 0
+1500 a 1
+1506 a 0
+1900 shot menu
+1920 hand_pitch -6.8
+1980 right_trigger 1
+1986 right_trigger 0
+2200 shot exit-box
+2220 hand_pitch 9.8
+2280 shot on-no
+2300 right_trigger 1
+2306 right_trigger 0
+2500 shot after-no
+2600 quit 0

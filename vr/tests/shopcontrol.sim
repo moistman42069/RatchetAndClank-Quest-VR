@@ -1,0 +1,8 @@
+# The control for shop.sim: the same place by the vendor and the same push of the stick, the shop not opened.
+600 y 1
+606 y 0
+3000 shot before
+3700 left_y 0.8
+3760 left_y 0
+3800 shot walked
+3900 quit 0

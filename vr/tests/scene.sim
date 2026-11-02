@@ -1,0 +1,12 @@
+# Cutscenes through Ratchet's eyes (Rerac-vr's ratchet_eye), the launcher's default: the Novalis arrival
+# scene seen from between his eyes, the head free, his forearms and hands as the scene moves them.
+600 y 1
+606 y 0
+1000 shot scene-1
+1400 shot scene-2
+1800 shot scene-3
+2200 head_yaw 60
+2240 shot scene-look
+2260 head_yaw 0
+2600 shot scene-4
+2800 quit 0

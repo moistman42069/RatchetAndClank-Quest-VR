@@ -42,6 +42,11 @@ def main() -> int:
          "-DCMAKE_C_COMPILER=clang-cl", "-DCMAKE_CXX_COMPILER=clang-cl",
          f"-DCMAKE_MAKE_PROGRAM={shutil.which('ninja')}", "-Wno-dev"], env=env)
     run(["cmake", "--build", out], env=env)
+    # The rig's, the pad's and the hands' math (vr/tests/rig_pad_test.cpp), each build.
+    test = out / "rig_pad_test.exe"
+    run([LLVM / "clang-cl.exe", "/nologo", "/std:c++20", "/EHsc", "/O1", f"/I{ROOT / 'vr/src'}",
+         ROOT / "vr/tests/rig_pad_test.cpp", f"/Fe{test}", f"/Fo{out / 'rig_pad_test.obj'}"], env=env)
+    run([test], env=env)
     print(f"{out / 'package/quest_vr'}: the mod for vr/tests/pc_run.sh", flush=True)
     return 0
 

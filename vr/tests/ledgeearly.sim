@@ -1,0 +1,13 @@
+# As ledge.sim for a level that loads sooner: the left grip closed before Ratchet is put by the crates.
+800 y 1
+806 y 0
+3300 right_grip 1
+3500 shot hanging
+3500 rh_y 0.25
+3500 lh_y 0.25
+3700 shot hands-up
+4000 rh_y 0.0
+4000 lh_y 0.0
+4200 shot after-shove
+4500 shot climbed
+4600 quit 0

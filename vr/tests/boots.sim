@@ -1,0 +1,29 @@
+# The boots kept drawn at his feet (the VR Options' Boots on; Rerac-vr's Slot::Feet): QUEST_SIM_GIVE=28 owns the
+# Magneboots, equipped by the hand on the Gadgets page's Foot Items grid; back in play, the hands out to the sides
+# and the head straight down, the shot shows the feet.
+600 y 1
+606 y 0
+3000 y 1
+3006 y 0
+3120 hand_pitch 23.4
+3180 right_trigger 1
+3186 right_trigger 0
+3320 hand_pitch -12.9
+3320 hand_yaw 17
+3360 right_trigger 1
+3366 right_trigger 0
+3460 shot boots-equipped
+3480 b 1
+3486 b 0
+3580 y 1
+3586 y 0
+3700 hand_pitch 0
+3700 hand_yaw 0
+3720 rh_x 0.45
+3720 lh_x -0.45
+3740 head_pitch -85
+3800 shot feet
+3820 head_pitch -60
+3860 shot feet-ahead
+3900 head_pitch 0
+3950 quit 0

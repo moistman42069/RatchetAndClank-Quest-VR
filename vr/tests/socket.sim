@@ -1,0 +1,41 @@
+# A tool pushed into its pad (Rerac-vr's gadget_socket.rs): Ratchet beside a Trespasser lock or a
+# Hydrodisplacer tap, the tool in hand. The tip brought to it and pushed starts the game's own use, from
+# where he stands, not standing on the pad. C:/RACQuest/logs/batch6.sh puts him there.
+600 y 1
+606 y 0
+3000 shot before
+3030 hand_yaw 46
+3050 hand_pitch -5
+3100 rh_x -0.05
+3101 rh_z -0.05
+3116 rh_x -0.10
+3117 rh_z -0.10
+3132 rh_x -0.15
+3133 rh_z -0.15
+3148 rh_x -0.20
+3149 rh_z -0.20
+3164 rh_x -0.25
+3165 rh_z -0.25
+3180 rh_x -0.30
+3181 rh_z -0.30
+3196 rh_x -0.35
+3197 rh_z -0.35
+3212 rh_x -0.40
+3213 rh_z -0.40
+3228 rh_x -0.45
+3229 rh_z -0.45
+3244 rh_x -0.50
+3245 rh_z -0.50
+3260 rh_x -0.55
+3261 rh_z -0.55
+3276 rh_x -0.60
+3277 rh_z -0.60
+3292 rh_x -0.65
+3293 rh_z -0.65
+3308 rh_x -0.70
+3309 rh_z -0.70
+3324 rh_x -0.75
+3325 rh_z -0.75
+3340 shot pushed
+3640 shot after
+3740 quit 0

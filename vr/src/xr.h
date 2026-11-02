@@ -30,6 +30,7 @@ struct XrSettings {
 
 struct FrameInfo {
     bool should_render = false;  // the headset will show this frame
+    bool recentred = false;      // the runtime moved the room (the headset's own recentre, its button held)
     bool focused = false;        // the app has input (the Quest's system menu takes it away)
     bool views_valid = false;
     std::int64_t display_time = 0;
@@ -40,6 +41,8 @@ struct FrameInfo {
     Pose hand_grip[2];
     Pose hand_aim[2];
     bool hand_valid[2]{};
+    bool hand_bound[2]{};        // a controller is bound to this hand, as OpenXR says
+    bool stick_active[2]{};      // its stick reports: the system has given it to the app
     Controls controls;
 };
 
@@ -50,6 +53,15 @@ struct PanelLayer {
     Pose pose;                   // in tracking space, or the head's when follows_head
     float width = 1, height = 1; // metres
     bool blend = false;          // uses the picture's alpha
+};
+
+// The menu pointer's beam from the hand and the dot where it lands, in tracking space.
+struct PointerLayers {
+    bool beam = false;
+    Pose beam_pose;
+    float beam_length = 0;
+    bool dot = false;
+    Pose dot_pose;
 };
 
 class Headset {
@@ -68,9 +80,17 @@ public:
     virtual unsigned acquire(Target target) = 0;
 
     // Ends the frame begin_frame began. `eyes`: the eyes were drawn (with the FrameInfo's poses).
-    virtual void finish_frame(bool eyes, const PanelLayer& panel) = 0;
+    // `eyes_kept`: the eyes' pictures are the last drawn, not this frame's: shown from the poses they were drawn
+    // from, so that the compositor holds the world still under the head.
+    virtual void finish_frame(bool eyes, bool eyes_kept, const PanelLayer& panel) = 0;
 
     virtual void haptic(Hand hand, float strength, float seconds, float hertz) = 0;
+
+    // A line of words ahead of the head until it is cleared with null or "" (notice.h).
+    virtual void show_notice(const char* text) = 0;
+
+    // Drawn over the panel in the next finish_frame.
+    virtual void show_pointer(const PointerLayers& pointer) = 0;
 
     // The system ended the app's session for good: leave.
     virtual bool wants_exit() const = 0;

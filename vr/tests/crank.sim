@@ -1,0 +1,16 @@
+# A bolt crank turned for real (Rerac-vr's crank_wrench): put beside a bolt with the grip closed, the
+# wrench out, the hand brings its head to the bolt; walking around it turns it. The wrist turning does
+# nothing. C:/RACQuest/logs/crank-all.sh puts Ratchet by the bolt (class 280).
+600 y 1
+606 y 0
+3100 right_grip 1
+3200 shot wrench
+3300 hand_pitch -20
+3320 rh_z -0.5
+3400 shot seated
+3420 hand_yaw 60
+3460 hand_yaw 0
+3500 left_x 1
+4300 shot walked
+4300 left_x 0
+4400 quit 0

@@ -1,0 +1,12 @@
+# Death lets go of a bolt crank (Rerac-vr's review fixes): the wrench seated on the bolt as crank.sim does (QUEST_SIM_NEAR=280
+# QUEST_SIM_NEAR_AT=1.2,0), then his hit points taken while he holds it (QUEST_SIM_KILL=680, about frame 3400):
+# "[vr-crank] let go: he is down" right after "[sim] his hit points taken", not after a walk off.
+600 y 1
+606 y 0
+3100 right_grip 1
+3300 hand_pitch -20
+3320 rh_z -0.5
+3380 shot seated
+3500 shot dying
+4200 shot later
+4300 quit 0

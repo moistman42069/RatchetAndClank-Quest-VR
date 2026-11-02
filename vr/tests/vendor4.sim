@@ -1,0 +1,25 @@
+# The vendor's carousel by the hand (eight or more items, QUEST_SIM_GIVE): the trigger on the cell to the right
+# of the selection, then two to the left. The trace names the game's own selection after each.
+600 y 1
+606 y 0
+3000 shot before
+3100 right_click 1
+3106 right_click 0
+3400 shot open
+3420 hand_pitch -8
+3420 hand_yaw -3.3
+3480 shot on-right
+3500 right_trigger 1
+3506 right_trigger 0
+3600 shot picked-right
+3620 hand_yaw 12.9
+3680 shot on-left-two
+3700 right_trigger 1
+3706 right_trigger 0
+3800 shot picked-left-two
+3820 hand_yaw -26
+3820 hand_pitch 1
+3880 right_trigger 1
+3886 right_trigger 0
+4100 shot closed
+4120 quit 0

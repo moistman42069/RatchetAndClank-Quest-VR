@@ -1,0 +1,24 @@
+# The vendor's popups (Rerac-vr's vendor.rs): with a few weapons owned and bolts; where each is on the panel.
+600 y 1
+606 y 0
+3000 shot before
+3100 right_click 1
+3106 right_click 0
+3400 shot open
+3420 a 1
+3426 a 0
+3560 shot ammo-popup
+3580 b 1
+3586 b 0
+3680 left_x 1
+3686 left_x 0
+3760 shot moved
+3780 a 1
+3786 a 0
+3920 shot weapon-popup
+3940 b 1
+3946 b 0
+4040 right_click 1
+4046 right_click 0
+4200 shot closed
+4220 quit 0

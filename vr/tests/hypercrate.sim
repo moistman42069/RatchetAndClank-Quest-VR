@@ -1,0 +1,16 @@
+# The Hyper Strike's blow is still its landing (Rerac-vr's jump_attack_shockwave), now it falls at once: by a
+# crate (QUEST_SIM_NEAR), the wrench out, a jump, the slam. The hand stays well above the crate, so only the
+# game's own shockwave can break it.
+600 y 1
+606 y 0
+3200 shot before
+3250 right_grip 1
+3400 a 1
+3406 a 0
+3418 rh_y -0.05
+3419 rh_y -0.10
+3420 rh_y -0.15
+3424 shot strike
+3500 rh_y 0
+3600 shot after
+3620 quit 0

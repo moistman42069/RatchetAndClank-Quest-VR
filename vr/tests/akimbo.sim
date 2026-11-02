@@ -1,0 +1,17 @@
+# Akimbo (Rerac-vr's akimbo.rs): the Pyrocitor in the right hand, the Blaster in the left (QUEST_SIM_LEFT), a class in
+# each decode buffer. Held down the left trigger fires the left gun, where the left hand points ([vr-akimbo] counts its
+# rounds); the right trigger fires the right.
+600 y 1
+606 y 0
+3000 shot held
+3100 left_trigger 1
+3120 shot left-firing-1
+3135 shot left-firing-2
+3150 shot left-firing-3
+3240 left_trigger 0
+3300 shot left-stopped
+3400 right_trigger 1
+3440 shot right-fired
+3460 right_trigger 0
+3560 shot after
+3600 quit 0

@@ -1,0 +1,11 @@
+# The same scene as akimbo.sim, the hands moved apart: what follows which hand.
+600 y 1
+606 y 0
+3000 shot held
+3050 lh_x -0.25
+3051 rh_x 0.15
+3120 shot apart
+3200 left_trigger 1
+3240 shot apart-firing
+3300 left_trigger 0
+3400 quit 0

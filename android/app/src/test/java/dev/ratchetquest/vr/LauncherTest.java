@@ -321,6 +321,7 @@ public class LauncherTest {
         Config config = new Config(app);
         assertEquals("smooth", config.get(Config.TURN));
         assertEquals("first", config.get(Config.VIEW));
+        assertEquals("true", config.get(Config.HAND_WEAPON));
     }
 
     @Test
@@ -331,7 +332,7 @@ public class LauncherTest {
         assertTrue(words.contains("Ready to play"));
         assertTrue(words.contains("SCES-50916"));
         button(activity, "PLAY IN VR");
-        button(activity, "Run the 2D test");
+        button(activity, "Play in 2D");
         shot(activity, "08-ready");
     }
 

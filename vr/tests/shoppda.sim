@@ -1,0 +1,28 @@
+# The PDA's vendor on foot (Rerac-vr's remote_vendor): QUEST_SIM_PDA=1, the bolts and a few weapons. The machine stands
+# 3.8 m ahead with its screens on, the eyes stay on the world. The trigger on Buy opens the popup and the popup's Buy buys
+# rounds of the selected weapon, at the remote list's price; walking away does not close it (too far is a machine's
+# alone), the right stick's click does, and nothing teleports.
+600 y 1
+606 y 0
+3000 shot opened
+3010 right_x 1
+3030 right_x 0
+3040 hand_yaw 27.4
+3040 hand_pitch 2.5
+3080 right_trigger 1
+3086 right_trigger 0
+3300 shot popup
+3320 hand_yaw 3.8
+3320 hand_pitch 11.8
+3360 right_trigger 1
+3366 right_trigger 0
+3560 shot bought
+3600 hand_yaw 0
+3600 hand_pitch 0
+3640 left_y -1
+3820 left_y 0
+3840 shot walked
+3900 right_click 1
+3906 right_click 0
+4200 shot closed
+4220 quit 0

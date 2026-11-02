@@ -1,0 +1,43 @@
+# Akimbo's two rings with many items (Rerac-vr's OffHandRing): QUEST_SIM_GIVE=10,15,16,11,13,9,18,19,20,17,21,23,14,24,25,12,22,26,27
+# QUEST_SIM_HOLD=16 QUEST_SIM_LEFT=15, Novalis. Each hand pages on its own trigger (the layout first, then all owned,
+# eight a page); the left ring greys what the left hand cannot take ([vr-ring] the left ring greys: ...), not the Drone
+# Device, which picked from the left ring launches its drones ([sim] item 24: one round fewer).
+600 y 1
+606 y 0
+3000 shot before
+3100 left_click 1
+3150 left_trigger 1
+3156 left_trigger 0
+3190 shot left-page2
+3200 left_trigger 1
+3206 left_trigger 0
+3240 shot left-page3
+3260 right_click 1
+3300 right_trigger 1
+3306 right_trigger 0
+3340 shot both-paged
+3360 lh_x -0.1
+3400 shot drone-pointed
+3420 lh_x 0.1
+3440 lh_y 0.1
+3460 lh_x -0.1
+3480 lh_y -0.1
+3500 lh_x 0
+3500 lh_y 0
+3520 lh_x -0.1
+3520 lh_y -0.1
+3560 left_click 0
+3570 lh_x 0
+3570 lh_y 0
+3600 right_click 0
+3700 shot after
+3720 left_click 1
+3760 left_trigger 1
+3766 left_trigger 0
+3780 left_trigger 1
+3786 left_trigger 0
+3800 left_trigger 1
+3806 left_trigger 0
+3840 shot left-page4
+3860 left_click 0
+3950 quit 0

@@ -1,0 +1,13 @@
+# One hand on a ledge, the other keeps its weapon (Rerac-vr's off_hand.rs): Ratchet dropped beside a stack of crates, the left
+# grip alone takes the top; the right trigger fires the hand's gun, where the right hand points, while he hangs by the left.
+600 y 1
+606 y 0
+1700 left_grip 1
+2400 shot hanging
+2500 right_trigger 1
+2560 shot firing
+2700 right_trigger 0
+2800 shot stopped
+2900 left_grip 0
+3100 shot dropped
+3200 quit 0

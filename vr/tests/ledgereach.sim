@@ -1,0 +1,11 @@
+# A ledge only the arm reaches (Rerac-vr's physical hand-height probes): stood beside the crates (QUEST_SIM_NEAR_AT up 0),
+# the left hand raised above his head; a jump takes the hand past the lip with his feet still far under it, and the grip
+# closed in the air (on the ground it crouches) takes it. "[vr-ledge] the arm reaches a ledge" is the hand's own probe.
+600 y 1
+606 y 0
+2900 lh_y 1.0
+3000 a 1
+3005 left_grip 1
+3006 a 0
+3100 shot held
+3300 quit 0

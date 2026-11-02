@@ -1,0 +1,19 @@
+# VR Options set before the run (vr-options.txt): Player body Always, Camera flip off. A double jump's
+# roll is not drawn (Rerac-vr's drawn_state): his body holds its pose and the view stays level.
+600 y 1
+606 y 0
+3200 head_pitch -60
+3260 shot body-down
+3270 left_y 1
+3300 shot body-walking
+3320 left_y 0
+3330 head_pitch 0
+3400 a 1
+3406 a 0
+3418 a 1
+3424 a 0
+3436 shot flip-1
+3446 shot flip-2
+3456 shot flip-3
+3600 shot landed
+3700 quit 0

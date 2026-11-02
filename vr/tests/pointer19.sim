@@ -1,0 +1,31 @@
+# The Gadgets page's Head and Foot Items grids by the hand: paused, Gadgets, the beam along each grid (QUEST_SIM_GIVE=6,28 owns
+# the O2 Mask and the Magneboots); each cell it takes is logged with its item. Nothing is picked.
+600 y 1
+606 y 0
+3000 y 1
+3006 y 0
+3120 hand_pitch 23.4
+3180 right_trigger 1
+3186 right_trigger 0
+3300 shot gadgets
+3320 hand_pitch -2.4
+3320 hand_yaw 30
+3332 hand_pitch -2.4
+3332 hand_yaw 24
+3344 hand_pitch -2.4
+3344 hand_yaw 18
+3356 hand_pitch -2.4
+3356 hand_yaw 12
+3368 hand_pitch -2.4
+3368 hand_yaw 6
+3380 hand_pitch -12.9
+3380 hand_yaw 30
+3392 hand_pitch -12.9
+3392 hand_yaw 24
+3404 hand_pitch -12.9
+3404 hand_yaw 18
+3416 hand_pitch -12.9
+3416 hand_yaw 12
+3428 hand_pitch -12.9
+3428 hand_yaw 6
+3440 quit 0

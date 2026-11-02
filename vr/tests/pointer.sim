@@ -1,0 +1,28 @@
+# The menu pointer (Rerac-vr's menu_pointer.rs): paused, the right hand swept up across the pause
+# menu's list; each row it points at takes the game's cursor ([vr-pointer] lines), then the trigger picks.
+600 y 1
+606 y 0
+3000 y 1
+3006 y 0
+3100 shot paused
+3120 hand_pitch 0
+3140 hand_pitch 2
+3160 hand_pitch 4
+3170 shot pitch-4
+3180 hand_pitch 6
+3200 hand_pitch 8
+3220 hand_pitch 10
+3230 shot pitch-10
+3240 hand_pitch 12
+3260 hand_pitch 14
+3280 hand_pitch 16
+3290 shot pitch-16
+3300 hand_pitch 18
+3320 hand_pitch 20
+3340 hand_pitch 22
+3350 shot pitch-22
+3360 hand_pitch 24
+3380 hand_pitch 26
+3400 hand_pitch 28
+3410 shot pitch-28
+3450 quit 0

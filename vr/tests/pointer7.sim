@@ -1,0 +1,27 @@
+# The pointer on the quit box (Rerac-vr's pause/pointer.rs Quit): paused, Options, its Quit Game row; the box's upper line
+# (No, Triangle's) and lower line (Yes, Circle's) each answered by the trigger as its key alone. The trigger on No goes back
+# to Options; Quit Game again, and the trigger on Yes quits to the title ([vr-state] phase).
+600 y 1
+606 y 0
+3000 y 1
+3006 y 0
+3120 hand_pitch -5.4
+3160 right_trigger 1
+3166 right_trigger 0
+3320 hand_pitch -0.6
+3360 right_trigger 1
+3366 right_trigger 0
+3500 shot quit-box
+3520 hand_pitch 5.1
+3560 right_trigger 1
+3566 right_trigger 0
+3700 shot after-no
+3720 hand_pitch -0.6
+3760 right_trigger 1
+3766 right_trigger 0
+3900 shot quit-box-again
+3920 hand_pitch 2
+3960 right_trigger 1
+3966 right_trigger 0
+4300 shot after-yes
+4400 quit 0

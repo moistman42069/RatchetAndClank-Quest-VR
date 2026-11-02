@@ -1,0 +1,7 @@
+# A Kerwan cable (QUEST_SIM_RAIL=index,up,0: Ratchet in the air under its middle; QUEST_SIM_ALIGN=2620): the game grabs it, state 0x74.
+600 y 1
+606 y 0
+2640 shot grab
+2680 shot slide
+2740 shot slide-2
+2900 quit 0

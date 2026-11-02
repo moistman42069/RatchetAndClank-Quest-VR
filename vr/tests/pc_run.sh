@@ -27,7 +27,21 @@ anisotropy = 4
 original_lod = true
 INI
 export QUEST_SIM_SCRIPT="C:/RACQuest/RatchetQuestVR/vr/tests/$NAME.sim" QUEST_SIM_OUT="$OUT" QUEST_VR_STATUS="$OUT/status.txt"
-timeout "${QUEST_TIMEOUT:-300}" "$GAME" --data "$DATA" --window --levels "$DATA/port/pal" \
+# VR Options start at their defaults each run: the file a run saves beside its status is not the next run's. A test
+# that needs others names them: QUEST_VR_OPTIONS="body 2;camera_flip 1" (vr-options.txt's lines, ; between them).
+rm -f "$OUT/vr-options.txt"
+if [ -n "${QUEST_VR_OPTIONS:-}" ]; then
+  printf '%s\n' "$QUEST_VR_OPTIONS" | tr ';' '\n' > "$OUT/vr-options.txt"
+fi
+# A fresh empty memory card each run, never the PC's own (%LOCALAPPDATA%/openrac/memcard, the game's default);
+# a test that needs a card of its own passes --cards after the script's name, which comes later and wins.
+CARDS=C:/RACQuest/pc/cards/run
+rm -rf "$CARDS"
+mkdir -p "$CARDS"
+timeout "${QUEST_TIMEOUT:-300}" "$GAME" --data "$DATA" --window --levels "$DATA/port/pal" --cards "$CARDS" \
   --plugins "$DATA/plugins/plugins.json" --settings "$DATA/quest-settings.ini" "$@" > "$OUT/stdout.txt" 2>&1
 echo "exit $?"
+if grep -a "not loaded" "$OUT/stdout.txt"; then
+  echo "THE MOD DID NOT LOAD: this run tested nothing"
+fi
 ls "$OUT" | head -30

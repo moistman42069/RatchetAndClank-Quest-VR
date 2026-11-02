@@ -1,0 +1,16 @@
+# Rerac-vr's pointing rule: on a page with things to point at the sticks leave the cursor alone, wherever the hand is;
+# with the right hand gone the sticks are the way left. The cursor must stay in "pointed-away" and move in "hand-gone".
+600 y 1
+606 y 0
+3000 y 1
+3006 y 0
+3010 hand_pitch -70
+3100 shot start
+3120 left_y -1
+3132 left_y 0
+3200 shot pointed-away
+3220 right_gone 1
+3260 left_y -1
+3272 left_y 0
+3340 shot hand-gone
+3400 quit 0

@@ -1,0 +1,16 @@
+# The Swingshot at a pull target (class 758; Rerac-vr's swingshot.rs: within 30, not within 4, +-30 degrees of the
+# facing), Ratchet put 8 units before the nearest (QUEST_SIM_NEAR=758 QUEST_SIM_NEAR_AT=8,0), on Kerwan (--level 3).
+# The right hand: the trigger fires it (QUEST_SIM_GIVE=12 QUEST_SIM_HOLD=12); with Akimbo it is the left hand's
+# (QUEST_SIM_GIVE=15,12 QUEST_SIM_HOLD=15 QUEST_SIM_LEFT=12) and leads on the left trigger. The hero states 0x24 to
+# 0x26 are the pull.
+600 y 1
+606 y 0
+3100 shot before
+3200 right_trigger 1
+3200 left_trigger 1
+3206 shot pulling-1
+3230 shot pulling-2
+3260 right_trigger 0
+3260 left_trigger 0
+3360 shot after
+3500 quit 0

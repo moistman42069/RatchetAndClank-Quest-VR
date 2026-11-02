@@ -1,0 +1,21 @@
+# The Hyper Strike (Rerac-vr's embodied.rs): the wrench out, a jump, and in the air the hand slammed
+# 15 cm down in about 50 ms; the game's jump attack follows. On the ground the same slam does nothing.
+600 y 1
+606 y 0
+3200 shot ahead
+3250 right_grip 1
+# On the ground: a slam, no strike.
+3300 rh_y -0.05
+3301 rh_y -0.10
+3302 rh_y -0.15
+3340 rh_y 0
+# A jump, then the slam at the top.
+3400 a 1
+3406 a 0
+3418 rh_y -0.05
+3419 rh_y -0.10
+3420 rh_y -0.15
+3424 shot strike
+3440 shot strike-2
+3480 rh_y 0
+3600 quit 0

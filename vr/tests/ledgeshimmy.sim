@@ -1,0 +1,14 @@
+# A ledge pulled along: both hands on the crates' top, then moved together to one side and back. The
+# hands stay where they took hold, so Ratchet goes the other way, by the game's own shimmy.
+600 y 1
+606 y 0
+1700 left_grip 1
+2400 right_grip 1
+2600 shot before
+2650 rh_x 0.25
+2650 lh_x 0.25
+3000 shot pulled
+3050 rh_x -0.25
+3050 lh_x -0.25
+3400 shot back
+3500 quit 0

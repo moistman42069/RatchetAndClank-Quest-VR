@@ -1,0 +1,25 @@
+# Two-handed weapons (Rerac-vr's blaster.rs), with the RYNO: heavy in one hand, it droops and lags a
+# fast turn of the hand; the left hand squeezed on its barrel holds it steady (no crouch: the squeeze
+# is not R1) and aims it from the right hand to the left. [vr-hand] lines tell each step.
+600 y 1
+606 y 0
+3200 shot rest
+# A fast turn of the hand, 60 degrees: the RYNO stays behind, then follows.
+3300 hand_yaw 60
+3302 shot turning
+3360 shot turned
+3400 hand_yaw 0
+# The left hand to the barrel (the RYNO's foregrip, 35 cm ahead of the right hand), squeezed.
+3500 lh_x 0.4
+3501 lh_y -0.06
+3502 lh_z -0.35
+3510 left_grip 1
+3540 shot both
+# The left hand raised: the barrel points up, from the right hand to the left.
+3560 lh_y 0.15
+3600 shot raised
+3620 right_trigger 1
+3650 right_trigger 0
+3700 left_grip 0
+3720 shot let-go
+3800 quit 0

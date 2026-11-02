@@ -1,17 +1,75 @@
-LEFT STICK    Walk, towards where you look
+IN PLAY, as in Rerac-vr on PC
+
+LEFT STICK    Walk, towards where you look (or your body's facing: Direction in VR Options)
 RIGHT STICK   Turn (smooth by default; snap in the VR tab). In third person, the game's camera
 A             Jump. Twice for a double jump
-B             Crouch, or Clank's packs in the air
+B             Hover and strafe with Clank's packs, Hydro-Pack boost
 X             Map
 Y             Pause. Skips a cutscene
-RIGHT TRIGGER Fire
-RIGHT GRIP    Swing the wrench
-LEFT TRIGGER or GRIP   Crouch
+RIGHT TRIGGER Fire where your hand points. With the wrench in hand, takes your last gun back out
+              Gloves: hold the trigger, throw with your hand and let go. Let go slowly to keep it
+              Walloper: punch for real
+RIGHT GRIP    Takes the wrench out. Swing your hand for real to hit, weak taps do not count
+              Let go mid-swing to throw it, it comes back. Let go slowly to put it away
+              In the air, slam it down for the Hyper Strike
+              Near a bolt: hold it on the bolt and walk around it
+LEFT GRIP or TRIGGER   Crouch, and the packs (hold with A for long and high jumps, flips)
+              Near the front of a big weapon, the left grip holds it with both hands
 RIGHT STICK CLICK      Talk, and quick select: hold, move your right hand toward a weapon, let go
-LEFT STICK CLICK       Look through Ratchet's eyes (the game's first-person view)
-BOTH STICKS CLICKED    Recentre
+                       Pull the right trigger while holding it for the next page
+LEFT STICK CLICK       With Akimbo on (VR Options): the same for your left hand, on a ring of
+                       its own. Both can be open at once. Left trigger fires it, or turns its
+                       page while the ring is open; what it cannot hold is greyed. Pick what it
+                       holds to empty it. A glove is thrown by the left hand, and the Walloper
+                       (or a left punch) and the Swingshot take over as your main hand while
+                       they are used. The Drone Device picked there launches its drones.
+                       On the hoverboard the left weapon is put away
+LEFT MENU BUTTON       Recentre (holding the headset's own button does it too)
 
-In menus: either stick moves, A or the trigger takes, B goes back.
+LEDGES        Squeeze a grip near the edge as you fall. Slide your hands along it. One hand holds,
+              and the other can shoot. Push both hands down, or A, to climb. Let go of both to drop
+SWIMMING      Breaststroke with your hands, palms pushing back. Push the water up to dive
+HYDRODISPLACER, TRESPASSER   Push the tool into its slot, or pull the trigger on it
+TRESPASSER RINGS   The sticks turn them. Y, the click or the trigger takes the tool out. They hang
+              over the tool you plugged in (a setting puts them before your face)
+VISIBOMB      Fire it, then the left stick flies the missile, A speeds it up and the trigger sets
+              it off. Its picture is on the gun's own screen, in your hand
 
-Long jump, high jump, flips: as in the game, Crouch + A while moving or standing.
-Layout after Rerac-vr, the PC VR mod.
+ON THE HOVERBOARD
+
+Left stick steers, A jumps, left trigger boosts, right trigger shoots.
+In the air: right stick for tricks (or the left grip, X, B), left stick to spin.
+
+AS CLANK AND GIANT CLANK
+
+Punch for real, with either hand. The right stick click gives the little robots their orders,
+and is Giant Clank's beam. The right trigger is Giant Clank's missiles. Both bodies face where
+you look, so the missiles and the beam go there.
+
+TURRETS AND SHIPS
+
+Aim a turret with your right hand, the trigger fires, the click leaves. Flying, the trigger is the
+lasers, X and the left trigger the missiles.
+
+IN MENUS
+
+Point with your right hand and pull the trigger or press A. On a page you can point at, the sticks
+do nothing (if the right controller is off, they move the cursor). The map pans with its sticks.
+B goes back, Y closes the pause menu. VR Options: View switches first and third person at any time.
+The left grip and trigger turn the pages.
+Sound page: hold the trigger on a bar and move along it to set the volume.
+A box with key labels (Yes, No, OK): point at a label and pull the trigger or press A.
+
+AT A VENDOR
+
+You stay on your feet: left stick and your room walk, A jumps. Walk away and it closes.
+The right stick browses, the right trigger works on what you point at (Buy, Exit, an item, the
+popup's lines and arrows), the right stick click leaves.
+With "Shop on foot" off, the game's own screen: A buys.
+The PDA's vendor stands before you the same way, and stays until you leave it.
+
+IN 2D MODE
+
+The controllers are a PlayStation pad: A Cross, B Circle, X Square, Y Triangle,
+triggers L1 and R1, grips L2 and R2, sticks as sticks, the left menu button Start,
+the left stick click Select.

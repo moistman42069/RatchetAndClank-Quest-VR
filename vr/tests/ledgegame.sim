@@ -1,0 +1,10 @@
+# The game's own ledge, for comparison ("grab_ledges" off): Ratchet catches the crates' top by himself and
+# A climbs.
+600 y 1
+606 y 0
+2500 shot hanging
+2600 a 1
+2640 shot climbing
+2640 a 0
+2900 shot climbed
+3000 quit 0

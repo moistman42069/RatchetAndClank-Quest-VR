@@ -1,0 +1,27 @@
+# The title's Load Game by the hand (Rerac-vr's pointer.rs, saves.rs): past the logos to the main menu, the hand
+# off the panel until it is there, with a card holding a save in its third slot only (pointer14's). The hand
+# on Load Game, then down the slots: the trigger on the empty first does nothing, on the third loads it.
+100 hand_pitch 45
+900 a 1
+906 a 0
+1500 a 1
+1506 a 0
+1900 hand_pitch 16.5
+1960 shot on-load
+1980 right_trigger 1
+1986 right_trigger 0
+2400 shot load-page
+2420 hand_yaw 29
+2420 hand_pitch 27.2
+2480 shot slot0
+2500 right_trigger 1
+2506 right_trigger 0
+2600 shot empty-pressed
+2620 hand_pitch 8.6
+2680 shot slot2
+2700 right_trigger 1
+2706 right_trigger 0
+2900 shot after-load
+3400 shot later
+4400 shot in-level
+4420 quit 0

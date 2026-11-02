@@ -94,6 +94,13 @@ struct Pose {
     Quat orientation;
 };
 
+// The rotation that takes tracking's -Z to the unit direction `forward`, Y staying up.
+inline Quat looking_along(Vec3 forward) {
+    const float pitch = std::asin(std::clamp(forward.y, -1.0f, 1.0f));
+    return yaw_quat(std::atan2(-forward.x, -forward.z))
+           * Quat{std::sin(pitch * 0.5f), 0, 0, std::cos(pitch * 0.5f)};
+}
+
 // The world yaw of tracking's rotation `q` carried by a rig turned by `rig_yaw`: tracking's -Z with
 // no turn is the world's +Y.
 inline float world_yaw(float rig_yaw, Quat q) {
@@ -115,6 +122,11 @@ struct Rig {
     Pose to_frame(const Pose& pose, Vec3 anchor) const {
         const Quat turn = yaw_quat(yaw);
         return {anchor + rotate(turn, (pose.position - origin) * scale), turn * pose.orientation};
+    }
+
+    // The tracking point of a frame position, `to_frame` backwards.
+    Vec3 from_frame(Vec3 position, Vec3 anchor) const {
+        return origin + rotate(yaw_quat(-yaw), (position - anchor) * (1.0f / scale));
     }
 
     // A tracking pose relative to a game camera, for a view given as relative to it: the head at

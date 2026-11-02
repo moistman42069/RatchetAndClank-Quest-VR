@@ -1,0 +1,32 @@
+# The O2 Mask and the Magneboots worn, equipped by the hand (QUEST_SIM_GIVE=6,28): paused, Gadgets, the trigger on the
+# Head Items grid's mask and on the Foot Items grid's boots; back in play the mask is seen from inside ([vr-helmet],
+# the VR Options' Helmet on) and, looking down, the boots stay drawn at his feet (Boots on).
+600 y 1
+606 y 0
+3000 y 1
+3006 y 0
+3120 hand_pitch 23.4
+3180 right_trigger 1
+3186 right_trigger 0
+3300 shot gadgets
+3320 hand_pitch -2.4
+3320 hand_yaw 23.6
+3360 right_trigger 1
+3366 right_trigger 0
+3460 shot mask-equipped
+3480 hand_pitch -12.9
+3480 hand_yaw 17
+3520 right_trigger 1
+3526 right_trigger 0
+3620 shot boots-equipped
+3640 b 1
+3646 b 0
+3740 y 1
+3746 y 0
+3900 hand_pitch 0
+3900 hand_yaw 0
+3950 shot ahead
+3960 head_pitch -70
+4020 shot feet
+4040 head_pitch 0
+4100 quit 0

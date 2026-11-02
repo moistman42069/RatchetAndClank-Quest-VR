@@ -1,0 +1,32 @@
+# The pointer on the Sound page's bars (Rerac-vr's pause/pointer.rs Volume): pointer5.sim's way into Sound, then the trigger
+# held on the effects bar sweeps it from right to left, and on the music bar sets it halfway. [vr-pointer] logs each
+# volume as it is given to the game's own word and the mixer; the shots show the page's bars drawn from those words.
+600 y 1
+606 y 0
+3000 y 1
+3006 y 0
+3100 hand_pitch -5.4
+3140 right_trigger 1
+3146 right_trigger 0
+3260 shot options
+3710 hand_pitch 14.6
+3750 shot on-sound
+3760 right_trigger 1
+3766 right_trigger 0
+3880 shot sound
+3900 hand_pitch 17.0
+3900 hand_yaw -14
+3930 right_trigger 1
+3960 hand_yaw -10
+3990 hand_yaw -6
+4020 hand_yaw -3
+4050 shot effects-low
+4060 right_trigger 0
+4100 hand_pitch 11.6
+4100 hand_yaw -8
+4130 right_trigger 1
+4170 right_trigger 0
+4200 shot music-set
+4230 b 1
+4236 b 0
+4370 quit 0

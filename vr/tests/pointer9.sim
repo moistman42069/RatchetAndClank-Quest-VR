@@ -1,0 +1,27 @@
+# The pointer on a message box's labels (Rerac-vr's menu_pointer.rs targets): paused, Options, Save; the empty card's box
+# asks to create a save file, "Yes" and "No" side by side at its foot. The beam across them names each label's key
+# ([vr-pointer] the message box's ... label); the trigger on No presses its key alone and the box goes, nothing saved.
+600 y 1
+606 y 0
+3000 y 1
+3006 y 0
+3120 hand_pitch -5.4
+3160 right_trigger 1
+3166 right_trigger 0
+3320 hand_pitch 20.7
+3360 right_trigger 1
+3366 right_trigger 0
+3600 shot dialog
+3620 hand_pitch 1.1
+3620 hand_yaw 12
+3640 hand_yaw 9
+3660 hand_yaw 6
+3680 hand_yaw 3
+3700 hand_yaw 0
+3720 hand_yaw -3
+3740 hand_yaw -6
+3760 shot on-no
+3780 right_trigger 1
+3786 right_trigger 0
+3900 shot after-no
+4000 quit 0

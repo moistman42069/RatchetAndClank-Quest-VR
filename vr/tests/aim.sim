@@ -1,0 +1,27 @@
+# Hand aim (Rerac-vr's tracked items): in play with the Blaster, fire with the hand level, pitched up,
+# pitched down and turned aside; the shots in each picture show where the bolts go. The [vr-aim] log
+# lines say the item's update went through the mod's hook with the hand's frame.
+600 y 1
+606 y 0
+3200 shot ahead
+3300 right_trigger 1
+3330 shot level-fire
+3360 right_trigger 0
+3400 hand_pitch 35
+3400 head_pitch 25
+3460 right_trigger 1
+3490 shot up-fire
+3520 right_trigger 0
+3600 hand_pitch -30
+3600 head_pitch -25
+3660 right_trigger 1
+3690 shot down-fire
+3720 right_trigger 0
+3800 hand_pitch 0
+3800 head_pitch 0
+3800 hand_yaw 50
+3860 right_trigger 1
+3890 shot side-fire
+3920 right_trigger 0
+4000 hand_yaw 0
+4100 quit 0

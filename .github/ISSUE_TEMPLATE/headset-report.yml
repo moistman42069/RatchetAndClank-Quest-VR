@@ -1,0 +1,81 @@
+name: Headset report (a bug, or a run that worked)
+description: Send a log from your Quest. Successful runs help as much as failures.
+title: "[0.1.2] "
+labels: ["headset report"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for testing. **After playing, open the launcher again:** that is what writes the run's log, to `Download/RatchetQuestVR` on the headset. The newest `run_<date>.txt` is your last run.
+  - type: input
+    id: version
+    attributes:
+      label: App version
+      description: Shown in the launcher.
+      value: "0.1.2"
+    validations:
+      required: true
+  - type: dropdown
+    id: headset
+    attributes:
+      label: Headset
+      options:
+        - Quest 3
+        - Quest 3S
+        - Quest Pro
+        - Quest 2
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Headset OS version
+      description: Settings, General, About.
+  - type: dropdown
+    id: disc
+    attributes:
+      label: Your disc
+      options:
+        - PAL (SCES-50916 v2.00)
+        - NTSC-U (SCUS-97199 v1.00)
+    validations:
+      required: true
+  - type: dropdown
+    id: walking
+    attributes:
+      label: Did walking with the left stick work?
+      description: The most important thing to know right now.
+      options:
+        - "Yes"
+        - "No"
+        - Did not get that far
+    validations:
+      required: true
+  - type: input
+    id: where
+    attributes:
+      label: Planet and what you were doing
+      placeholder: "Novalis, walking to the first vendor"
+    validations:
+      required: true
+  - type: textarea
+    id: happened
+    attributes:
+      label: What happened
+      description: What you did, what you expected, what you saw. If it worked, say so. A video helps.
+    validations:
+      required: true
+  - type: input
+    id: settings
+    attributes:
+      label: Settings you changed
+      description: Launcher and VR Options, or "none".
+  - type: textarea
+    id: log
+    attributes:
+      label: The log
+      description: Drag the newest `run_<date>.txt` from `Download/RatchetQuestVR` here.
+      placeholder: Attach the .txt file here.
+    validations:
+      required: true

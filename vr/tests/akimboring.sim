@@ -1,0 +1,29 @@
+# Akimbo's ring (Rerac-vr's akimbo.rs): the left stick's click holds the ring, the left hand reaches, its release gives
+# the pick to the left hand and leaves the right hand's gun. The left trigger lays out all that is owned (a page). Picking
+# it again empties the left hand.
+600 y 1
+606 y 0
+3000 shot before
+3100 left_click 1
+3130 left_trigger 1
+3136 left_trigger 0
+3160 lh_x 0.15
+3200 lh_y 0.15
+3260 shot ring
+3300 left_click 0
+3310 lh_y 0
+3311 lh_x 0
+3400 shot picked
+3500 left_trigger 1
+3560 shot left-firing
+3600 left_trigger 0
+3700 left_click 1
+3720 left_trigger 1
+3726 left_trigger 0
+3740 lh_x 0.15
+3760 lh_y 0.15
+3860 left_click 0
+3870 lh_y 0
+3871 lh_x 0
+3960 shot emptied
+4000 quit 0

@@ -7,7 +7,7 @@
 //   QUEST_SIM_SCRIPT=<file>  a line each: <frame> <name> <value>, values holding until changed.
 //       a b x y left_click right_click: 0 or 1; left_x left_y right_x right_y left_trigger
 //       right_trigger left_grip right_grip: -1..1; head_yaw hand_yaw (degrees, left positive);
-//       head_pitch (degrees); head_x head_y head_z (metres); shot <name>: the eyes and panel as
+//       head_pitch hand_pitch hand_roll (degrees, up positive); head_x head_y head_z (metres); shot <name>: the eyes and panel as
 //       PNGs; quit 0: ends the run.
 //   QUEST_SIM_OUT=<folder>   where the PNGs go.
 
@@ -24,12 +24,16 @@
 #include <type_traits>
 #include <vector>
 
+#include "notice.h"
 #include "xr.h"
 
 namespace quest {
 
 // Set by the mod before make_headset: the port's GL.
 void* (*sim_gl_proc)(const char*) = nullptr;
+bool sim_left_grip = false;
+// Set by the mod once the test's set-up is done (items given, Ratchet placed): QUEST_SIM_ALIGN's mark.
+bool sim_ready = false;
 
 namespace {
 
@@ -177,6 +181,12 @@ public:
         if (const char* out = std::getenv("QUEST_SIM_OUT")) {
             m_out = out;
         }
+        // QUEST_SIM_ALIGN=F: the script's frames from F on count from the frame the set-up was done, which is F where
+        // the script was written (Novalis: about 2620), so that it runs as well on a level whose arrival gives control
+        // at another, or a varying, frame (Eudora).
+        if (const char* align = std::getenv("QUEST_SIM_ALIGN")) {
+            m_align = std::atol(align);
+        }
         m_log(1, ("simulated headset: " + std::to_string(m_script.size()) + " script lines").c_str());
         return true;
     }
@@ -184,7 +194,14 @@ public:
     bool begin_frame(FrameInfo& out) override {
         out = FrameInfo{};
         ++m_frame;
-        while (m_next < m_script.size() && m_script[m_next].frame <= m_frame) {
+        if (m_ready_frame < 0 && sim_ready) {
+            m_ready_frame = m_frame;
+            if (m_align >= 0) {
+                m_log(1, ("[sim] the set-up done at frame " + std::to_string(m_frame) + ": frame "
+                          + std::to_string(m_align) + " of the script").c_str());
+            }
+        }
+        while (m_next < m_script.size() && due(m_script[m_next].frame)) {
             apply(m_script[m_next++]);
         }
         out.should_render = true;
@@ -206,11 +223,19 @@ public:
             out.fov[eye][2] = 0.85f;
             out.fov[eye][3] = -0.85f;
         }
-        const Quat hand = yaw_quat(number("hand_yaw") * kPi / 180.0f);
+        const float hand_pitch = number("hand_pitch") * kPi / 360.0f;
+        const float hand_roll = number("hand_roll") * kPi / 360.0f;
+        const Quat hand = yaw_quat(number("hand_yaw") * kPi / 180.0f)
+                          * Quat{std::sin(hand_pitch), 0, 0, std::cos(hand_pitch)}
+                          * Quat{0, 0, std::sin(hand_roll), std::cos(hand_roll)};
         for (int side = 0; side < 2; ++side) {
-            out.hand_valid[side] = true;
+            out.hand_valid[side] = number(side == 0 ? "left_gone" : "right_gone") == 0;
+            out.hand_bound[side] = out.hand_valid[side];
+            out.stick_active[side] = out.hand_valid[side];
             const Vec3 at = head + rotate(look, {side == 0 ? -0.2f : 0.2f, -0.35f, -0.3f});
-            out.hand_grip[side] = {at + Vec3{number(side == 0 ? "lh_x" : "rh_x"), number(side == 0 ? "lh_y" : "rh_y"), 0}, hand};
+            out.hand_grip[side] = {at + Vec3{number(side == 0 ? "lh_x" : "rh_x"), number(side == 0 ? "lh_y" : "rh_y"),
+                                             number(side == 0 ? "lh_z" : "rh_z")},
+                                   hand};
             out.hand_aim[side] = out.hand_grip[side];
         }
         Controls& c = out.controls;
@@ -218,6 +243,7 @@ public:
         c.b = number("b") != 0;
         c.x = number("x") != 0;
         c.y = number("y") != 0;
+        c.menu = number("menu") != 0;
         c.left_click = number("left_click") != 0;
         c.right_click = number("right_click") != 0;
         c.left_x = number("left_x");
@@ -226,7 +252,7 @@ public:
         c.right_y = number("right_y");
         c.left_trigger = number("left_trigger");
         c.right_trigger = number("right_trigger");
-        c.left_grip = number("left_grip");
+        c.left_grip = sim_left_grip ? 1.0f : number("left_grip");
         c.right_grip = number("right_grip");
         return true;
     }
@@ -238,7 +264,7 @@ public:
 
     unsigned acquire(Target target) override { return m_texture[target]; }
 
-    void finish_frame(bool eyes, const PanelLayer& panel) override {
+    void finish_frame(bool eyes, bool, const PanelLayer& panel) override {
         char line[160];
         if (m_frame % 300 == 0) {
             std::snprintf(line, sizeof line, "[sim] frame %ld eyes %d panel %d (hud %d)", m_frame, eyes ? 1 : 0,
@@ -267,10 +293,36 @@ public:
         m_log(1, line);
     }
 
+    void show_pointer(const PointerLayers& pointer) override {
+        if (pointer.dot != m_pointer_dot || pointer.beam != m_pointer_beam) {
+            m_pointer_dot = pointer.dot;
+            m_pointer_beam = pointer.beam;
+            char line[120];
+            std::snprintf(line, sizeof line, "[sim] pointer: beam %d (%.2f m) dot %d at (%.2f %.2f %.2f)", pointer.beam ? 1 : 0,
+                          pointer.beam_length, pointer.dot ? 1 : 0, pointer.dot_pose.position.x, pointer.dot_pose.position.y,
+                          pointer.dot_pose.position.z);
+            m_log(1, line);
+        }
+    }
+
+    void show_notice(const char* text) override {
+        if (text != nullptr && text[0] != 0) {
+            write_png(m_out + "/notice.png", render_notice(text), kNoticeWidth, kNoticeHeight, false);
+        }
+    }
+
     bool wants_exit() const override { return m_quit; }
     void stop() override {}
 
 private:
+    // Whether the script's line for `frame` is due (QUEST_SIM_ALIGN above).
+    bool due(long frame) const {
+        if (m_align < 0 || frame < m_align) {
+            return frame <= m_frame;
+        }
+        return m_ready_frame >= 0 && m_ready_frame + (frame - m_align) <= m_frame;
+    }
+
     float number(const std::string& name) const {
         const auto found = m_values.find(name);
         return found == m_values.end() ? 0.0f : found->second;
@@ -321,6 +373,9 @@ private:
     std::string m_out = ".";
     std::string m_shot;
     long m_frame = 0;
+    long m_align = -1;        // QUEST_SIM_ALIGN, -1 without
+    long m_ready_frame = -1;  // the frame the set-up was done
+    bool m_pointer_dot = false, m_pointer_beam = false;
     bool m_quit = false;
 };
 

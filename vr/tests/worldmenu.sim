@@ -1,0 +1,19 @@
+# The pause menu in the world (Rerac-vr's spatial_menu.rs): paused, the eyes stay on the level as it stopped and the
+# page's parts stand before them. The head turned sees round them; Options, Sound and back by the hand as ever.
+600 y 1
+606 y 0
+3000 y 1
+3006 y 0
+3100 shot paused
+3140 head_yaw 30
+3180 shot head-turned
+3200 head_yaw 0
+3220 hand_pitch -5.4
+3260 shot on-options
+3280 right_trigger 1
+3286 right_trigger 0
+3460 shot options
+3500 y 1
+3506 y 0
+3700 shot played
+3720 quit 0

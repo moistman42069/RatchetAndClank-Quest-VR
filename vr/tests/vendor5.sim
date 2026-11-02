@@ -1,0 +1,32 @@
+# A weapon at the vendor by the hand (Rerac-vr's vendor.rs POPUP, not ammo: upper half Cross, lower Triangle):
+# Novalis's Pyrocitor, 2,500 bolts of 9000, none given. Buy, the popup's lower line says no and nothing is paid;
+# Buy, its upper line buys it. The trace's bolts are the game's.
+600 y 1
+606 y 0
+3000 shot before
+3100 right_click 1
+3106 right_click 0
+3400 shot open
+3420 hand_yaw 26
+3420 hand_pitch 1
+3480 right_trigger 1
+3486 right_trigger 0
+3640 shot popup
+3660 hand_yaw 5
+3660 hand_pitch 1.7
+3700 shot on-no
+3720 right_trigger 1
+3726 right_trigger 0
+3860 shot said-no
+3880 hand_yaw 26
+3880 hand_pitch 1
+3920 right_trigger 1
+3926 right_trigger 0
+4080 shot popup-again
+4100 hand_yaw 5
+4100 hand_pitch 12.2
+4140 shot on-yes
+4160 right_trigger 1
+4166 right_trigger 0
+4400 shot bought
+4500 quit 0

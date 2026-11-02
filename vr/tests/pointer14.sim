@@ -1,0 +1,36 @@
+# The save slots (Rerac-vr's pointer.rs, saves.rs): paused, Options, Save, with a fresh card (--cards, a new
+# folder); Yes on the memory card's question, then the slots down the page's left. The hand down them names
+# each, and the trigger on the third, empty, saves there: the card's save2.bin is the proof.
+600 y 1
+606 y 0
+3000 y 1
+3006 y 0
+3120 hand_pitch -5.4
+3160 right_trigger 1
+3166 right_trigger 0
+3320 hand_pitch 20.7
+3360 right_trigger 1
+3366 right_trigger 0
+3600 shot dialog
+3620 hand_pitch 1.1
+3620 hand_yaw 12
+3660 shot on-yes
+3680 right_trigger 1
+3686 right_trigger 0
+4300 shot slots
+4320 hand_yaw 29
+4320 hand_pitch 27.2
+4350 shot slot0
+4360 hand_pitch 18
+4390 shot slot1
+4400 hand_pitch -0.7
+4430 shot slot3
+4440 hand_pitch -10
+4470 shot slot4
+4480 hand_pitch 8.6
+4510 shot slot2
+4520 right_trigger 1
+4526 right_trigger 0
+4800 shot saving
+5100 shot saved
+5120 quit 0

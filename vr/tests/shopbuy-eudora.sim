@@ -1,0 +1,36 @@
+# Buying at Eudora's vendor on foot, stood before its screens: shopbuy.sim with the popup's line where this approach sees it.
+# given. The trigger off the screens does nothing; the right stick pages the selection; the trigger on Buy opens the
+# popup and on Buy again buys; the click leaves. The trace's selection and bolts and [sim] item's rounds are the game's.
+600 y 1
+606 y 0
+3000 shot before
+3100 right_click 1
+3106 right_click 0
+3400 hand_yaw 0
+3400 hand_pitch 20
+3460 right_trigger 1
+3466 right_trigger 0
+3540 shot off-screens
+3560 right_x 1
+3566 right_x 0
+3640 shot paged
+3660 hand_yaw 76
+3660 hand_pitch 5.6
+3720 shot on-buy
+3740 right_trigger 1
+3746 right_trigger 0
+3860 head_pitch 40
+3880 shot popup
+3890 head_pitch 0
+3892 hand_yaw 62
+3892 hand_pitch 18.6
+3900 right_trigger 1
+3906 right_trigger 0
+4100 shot bought
+4120 right_click 1
+4126 right_click 0
+4300 shot leaving
+4400 left_y -1
+4430 left_y 0
+4500 shot after
+4520 quit 0

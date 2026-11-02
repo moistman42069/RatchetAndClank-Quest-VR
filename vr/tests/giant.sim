@@ -1,0 +1,39 @@
+# Giant Clank in first person (Rerac-vr's bodies/giant.rs): QUEST_SIM_NEAR=1451 --level 15, Ratchet on the pad on Quartu,
+# the click takes him into Giant Clank as the game does (its scene 8, short, seen through Clank's eyes). His own hands,
+# his size, a real punch with each hand, his body facing where the head looks ([vr-body] ... faces the heading), the
+# trigger's missiles from the drawn hands going that way, and the pad's way out not taken.
+# Put on the pad (about frame 2320), Ratchet starts the pad's own scene (hero state 100): Y skips it first, else the
+# click lands in the scene and does nothing. Scene 8 ends on its own before 3200: a Y then would pause the game.
+600 y 1
+606 y 0
+2600 y 1
+2606 y 0
+2850 shot pad
+2900 right_click 1
+2906 right_click 0
+3400 shot giant
+3500 head_yaw 40
+3760 shot turned
+3800 head_yaw 0
+3850 right_grip 1
+3890 shot fist
+3910 right_grip 0
+3950 rh_z -0.05
+3952 rh_z -0.10
+3954 rh_z -0.20
+3956 rh_z -0.30
+3958 rh_z -0.40
+3970 rh_z 0
+4050 lh_z -0.05
+4052 lh_z -0.10
+4054 lh_z -0.20
+4056 lh_z -0.30
+4058 lh_z -0.40
+4070 lh_z 0
+4150 head_yaw 60
+4250 right_trigger 1
+4350 shot missiles
+4420 right_trigger 0
+4500 head_yaw 0
+4600 shot after
+4620 quit 0

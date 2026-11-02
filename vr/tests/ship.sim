@@ -1,0 +1,11 @@
+# A flown ship (Rerac-vr's ship_view): on a level that starts in one, the eye in the canopy, the stick
+# flying it, the trigger its lasers. [vr-ship] says when he is in it. No skip: Start at the wrong moment
+# leaves for the title. QUEST_SIM_NEAR puts Ratchet by a ship where one has to be boarded.
+3000 shot canopy
+3050 left_x 0.8
+3300 shot turned
+3320 left_x 0
+3340 right_trigger 1
+3500 shot lasers
+3520 right_trigger 0
+3700 quit 0

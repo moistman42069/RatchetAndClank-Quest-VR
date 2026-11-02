@@ -1,0 +1,21 @@
+# Another body in first person (Rerac-vr's bodies): his own hands, his eye height, a real punch with
+# either hand. C:/RACQuest/logs/batch6.sh starts a level where the hero is Clank.
+600 y 1
+606 y 0
+3000 shot hands
+3050 head_pitch -20
+3100 shot look
+3200 right_grip 1
+3260 shot fist
+3280 right_grip 0
+3300 rh_z -0.05
+3302 rh_z -0.10
+3304 rh_z -0.15
+3306 rh_z -0.20
+3308 rh_z -0.25
+3310 rh_z -0.30
+3400 rh_z 0.0
+3500 left_y 1
+3700 left_y 0
+3700 shot walked
+3800 quit 0

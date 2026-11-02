@@ -1,0 +1,23 @@
+# A manned turret (Rerac-vr's vr/turret.rs), on Gaspar, Hoven or Batalia: C:/RACQuest/logs/turret-all.sh
+# puts Ratchet on it. The barrels follow the hand left and up, then the stick while it is pushed; the
+# trigger fires; the right stick's click leaves. [vr-turret] lines give barrels and aim each half second.
+600 y 1
+606 y 0
+3000 shot seat
+3100 hand_yaw 40
+3300 shot left
+3300 hand_pitch 20
+3500 shot up
+3520 right_trigger 1
+3640 shot firing
+3660 right_trigger 0
+3700 hand_yaw -30
+3700 hand_pitch 0
+3900 shot right
+3920 left_x 1
+4020 left_x 0
+4020 shot stick
+4100 right_click 1
+4106 right_click 0
+4300 shot off
+4400 quit 0

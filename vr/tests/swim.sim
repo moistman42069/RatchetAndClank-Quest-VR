@@ -1,0 +1,48 @@
+# Swimming with the arms (Rerac-vr's traversal.rs, tracked_swim): Ratchet put in water treads it; palms
+# turned broad to the push stroke backward and he swims where the head looks; edge-on they do nothing;
+# both hands pushing the water up dive.
+600 y 1
+606 y 0
+3300 shot treading
+# Broad palms, pushing back: the hand's right is along the stroke.
+3340 hand_yaw 90
+3400 rh_z 0.1
+3401 lh_z 0.1
+3404 rh_z 0.2
+3405 lh_z 0.2
+3408 rh_z 0.3
+3409 lh_z 0.3
+3412 rh_z 0.4
+3413 lh_z 0.4
+3500 rh_z 0.0
+3501 lh_z 0.0
+3540 rh_z 0.1
+3541 lh_z 0.1
+3544 rh_z 0.2
+3545 lh_z 0.2
+3548 rh_z 0.3
+3549 lh_z 0.3
+3552 rh_z 0.4
+3553 lh_z 0.4
+3640 shot stroked
+# Edge-on: the same push carries nothing.
+3660 hand_yaw 0
+3700 rh_z 0.0
+3701 lh_z 0.0
+3704 rh_z 0.2
+3705 lh_z 0.2
+3708 rh_z 0.4
+3709 lh_z 0.4
+3800 shot edge-on
+# Both palms flat, pushed up: the dive.
+3820 hand_roll 90
+3830 rh_y -0.4
+3831 lh_y -0.4
+3860 rh_y -0.3
+3861 lh_y -0.3
+3864 rh_y -0.2
+3865 lh_y -0.2
+3868 rh_y -0.1
+3869 lh_y -0.1
+4000 shot dived
+4100 quit 0

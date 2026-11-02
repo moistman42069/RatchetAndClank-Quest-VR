@@ -1,0 +1,22 @@
+# Sprites and glows face the eyes (Rerac-vr's: glow billboards face the headset), with the Pyrocitor (QUEST_SIM_GIVE=16
+# QUEST_SIM_HOLD=16): its flame fired at the ground with the head bowed, where the game's camera, behind and level, sees
+# the flame's quads from the side; then with the head and hand turned 80 degrees at once, before that camera has come
+# round. Run twice and compare the shots: as is, and with QUEST_SPRITES_OFF=1 (the sprites left to the game's camera).
+# The ground's flat quads must not turn.
+600 y 1
+606 y 0
+3000 head_pitch -60
+3000 hand_pitch -50
+3060 right_trigger 1
+3100 shot down
+3130 shot down2
+3160 right_trigger 0
+3300 head_pitch 0
+3300 hand_pitch 0
+3400 right_trigger 1
+3402 head_yaw 80
+3402 hand_yaw 80
+3420 shot side
+3450 shot side2
+3480 right_trigger 0
+3600 quit 0

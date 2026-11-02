@@ -1,0 +1,18 @@
+# Boarding a flown ship by the game's own way (QUEST_SIM_NEAR at the ship, the pilot's helmet given, item 7): the right
+# stick's click within its radius. The take-off, the cockpit view, the stick, the lasers on the trigger, the missiles.
+600 y 1
+606 y 0
+2900 shot before
+2950 right_click 1
+2958 right_click 0
+3080 shot launch
+3180 shot flying
+3300 shot boarding
+3700 shot seated
+3900 left_x 0.7
+4100 shot turned
+4120 left_x 0
+4140 right_trigger 1
+4300 shot lasers
+4320 right_trigger 0
+4500 quit 0

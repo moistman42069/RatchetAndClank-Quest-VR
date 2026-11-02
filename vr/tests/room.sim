@@ -1,0 +1,26 @@
+# Walking in the room (Rerac-vr's roomscale_move): steps of the head walk Ratchet, through the game's
+# collision. Ten forward steps of 10 cm toward the crates he is put before (he stops at them), then to the
+# side, then a turn of the head on the spot, which must not walk him.
+600 y 1
+606 y 0
+2300 shot start
+2400 head_z -0.1
+2430 head_z -0.2
+2460 head_z -0.3
+2490 head_z -0.4
+2520 head_z -0.5
+2550 head_z -0.6
+2580 head_z -0.7
+2610 head_z -0.8
+2640 head_z -0.9
+2670 head_z -1.0
+2800 shot forward
+2830 head_x 0.1
+2860 head_x 0.2
+2890 head_x 0.3
+2920 head_x 0.4
+3000 shot side
+3050 head_yaw 60
+3150 head_yaw 0
+3250 shot turned
+3300 quit 0

@@ -1,0 +1,29 @@
+# Akimbo's two rings at once (Rerac-vr's OffHandRing): both sticks clicked, the left hand's ring on the left, the right
+# hand's at the right edge, each hand reaching for its own slot, each trigger turning its own page. The left lets go
+# first: its pick goes to the left hand and the right ring stays. The right lets go after: the right hand takes its pick.
+# A second go opens the right ring alone, then the left, and the menu button recentres on the way.
+600 y 1
+606 y 0
+3000 shot before
+3100 right_click 1
+3130 left_click 1
+3160 lh_x 0.15
+3160 rh_x -0.15
+3200 lh_y 0.15
+3200 rh_y 0.15
+3260 shot both
+3280 left_trigger 1
+3286 left_trigger 0
+3340 shot left-paged
+3400 left_click 0
+3410 lh_y 0
+3411 lh_x 0
+3480 shot left-gone
+3560 right_click 0
+3570 rh_y 0
+3571 rh_x 0
+3700 shot picked
+3760 menu 1
+3766 menu 0
+3840 shot recentred
+3900 quit 0

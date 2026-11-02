@@ -1,0 +1,20 @@
+# VR Options set before the run (vr-options.txt): Player body Always and Camera flip on. Looking
+# down shows his body without its head, walking too; a double jump turns the view with his roll,
+# and it comes back level when he lands. [vr-flip] lines tell the turn.
+600 y 1
+606 y 0
+3200 head_pitch -60
+3260 shot body-down
+3270 left_y 1
+3300 shot body-walking
+3320 left_y 0
+3330 head_pitch 0
+3400 a 1
+3406 a 0
+3418 a 1
+3424 a 0
+3436 shot flip-1
+3446 shot flip-2
+3456 shot flip-3
+3600 shot landed
+3700 quit 0

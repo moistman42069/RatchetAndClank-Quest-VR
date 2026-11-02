@@ -17,6 +17,10 @@ inline constexpr std::uint32_t kViewKindWindow = 3;
 // openrac_view.reserved[0], set by the mod: position and orientation are the eye's in the world, in
 // the Y-up frame of rig.h, and not relative to the game's camera.
 inline constexpr std::uint32_t kViewFlagWorldPose = 1;
+// openrac_view.reserved[0] bit 2, on an eye: the game's camera is far from it (the Visibomb's missile), so the port
+// draws what is near the eye too, and the game's last sky when it draws none.
+inline constexpr std::uint32_t kViewFlagNearEye = 2;
+inline constexpr std::uint32_t kViewFlagNoOwnCameras = 4;
 
 // views[0].reserved[1], set by the port before begin: this frame shows a picture, not the scene.
 inline constexpr int kViewHintPicture = 1;

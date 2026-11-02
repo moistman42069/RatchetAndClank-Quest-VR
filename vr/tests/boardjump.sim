@@ -1,0 +1,23 @@
+# Crooked landings on a real ride (QUEST_BOARD_TWIST turns each jump's way down 2 radians off the board): jumps all the way.
+# With the fix "[vr-board] a crooked landing straightened" and he rides on; with QUEST_BOARD_OLD=1 the game throws him off.
+600 y 1
+606 y 0
+2800 a 1
+2812 a 0
+2900 a 1
+2912 a 0
+3000 a 1
+3012 a 0
+3100 a 1
+3112 a 0
+3200 a 1
+3212 a 0
+3300 a 1
+3312 a 0
+3400 a 1
+3412 a 0
+3500 a 1
+3512 a 0
+3600 a 1
+3612 a 0
+3700 quit 0

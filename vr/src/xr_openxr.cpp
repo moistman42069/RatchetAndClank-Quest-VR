@@ -29,6 +29,7 @@
 #include <string>
 #include <vector>
 
+#include "notice.h"
 #include "xr.h"
 
 #ifndef GL_FRAMEBUFFER_SRGB_EXT
@@ -42,6 +43,8 @@ constexpr const char* kRefreshExtension = "XR_FB_display_refresh_rate";
 constexpr int kInfo = 1;
 constexpr int kWarn = 2;
 constexpr int kError = 3;
+constexpr int kPointerSize = 32;
+constexpr float kBeamWidth = 0.006f, kDotSize = 0.05f;  // metres
 
 double now_seconds() {
     timespec t{};
@@ -148,7 +151,7 @@ public:
         return chain.images[chain.index].image;
     }
 
-    void finish_frame(bool eyes, const PanelLayer& panel) override {
+    void finish_frame(bool eyes, bool eyes_kept, const PanelLayer& panel) override {
         if (!m_frame_begun) {
             return;
         }
@@ -160,7 +163,10 @@ public:
         XrCompositionLayerProjectionView views[2]{};
         XrCompositionLayerProjection projection{XR_TYPE_COMPOSITION_LAYER_PROJECTION};
         XrCompositionLayerQuad quad{XR_TYPE_COMPOSITION_LAYER_QUAD};
-        const XrCompositionLayerBaseHeader* layers[2];
+        XrCompositionLayerQuad notice{XR_TYPE_COMPOSITION_LAYER_QUAD};
+        XrCompositionLayerQuad beam{XR_TYPE_COMPOSITION_LAYER_QUAD};
+        XrCompositionLayerQuad dot{XR_TYPE_COMPOSITION_LAYER_QUAD};
+        const XrCompositionLayerBaseHeader* layers[5];
         uint32_t count = 0;
 
         const bool have_eyes = eyes && m_views_valid && m_targets[kTargetLeftEye].acquired
@@ -168,9 +174,13 @@ public:
         if (have_eyes) {
             for (int eye = 0; eye < 2; ++eye) {
                 const Swapchain& chain = m_targets[kTargetLeftEye + eye];
+                if (!eyes_kept) {
+                    m_drawn_pose[eye] = m_views[eye].pose;
+                    m_drawn_fov[eye] = m_views[eye].fov;
+                }
                 views[eye].type = XR_TYPE_COMPOSITION_LAYER_PROJECTION_VIEW;
-                views[eye].pose = m_views[eye].pose;
-                views[eye].fov = m_views[eye].fov;
+                views[eye].pose = m_drawn_pose[eye];
+                views[eye].fov = m_drawn_fov[eye];
                 views[eye].subImage.swapchain = chain.handle;
                 views[eye].subImage.imageRect.extent = {chain.width, chain.height};
             }
@@ -190,6 +200,36 @@ public:
             quad.pose = xr_pose(panel.pose);
             quad.size = {panel.width, panel.height};
             layers[count++] = reinterpret_cast<const XrCompositionLayerBaseHeader*>(&quad);
+        }
+
+        if (!m_notice.empty() && draw_notice()) {
+            notice.layerFlags = XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT;
+            notice.space = m_view;
+            notice.eyeVisibility = XR_EYE_VISIBILITY_BOTH;
+            notice.subImage.swapchain = m_notice_chain.handle;
+            notice.subImage.imageRect.extent = {m_notice_chain.width, m_notice_chain.height};
+            notice.pose = xr_pose({{0, 0.28f, -1.5f}, {}});
+            notice.size = {1.3f, 1.3f * static_cast<float>(kNoticeHeight) / static_cast<float>(kNoticeWidth)};
+            layers[count++] = reinterpret_cast<const XrCompositionLayerBaseHeader*>(&notice);
+        }
+
+        if ((m_pointer.beam || m_pointer.dot) && draw_pointer()) {
+            const auto fill = [&](XrCompositionLayerQuad& layer, const Pose& pose, float width, float height) {
+                layer.layerFlags = XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT;
+                layer.space = m_local;
+                layer.eyeVisibility = XR_EYE_VISIBILITY_BOTH;
+                layer.subImage.swapchain = m_pointer_chain.handle;
+                layer.subImage.imageRect.extent = {m_pointer_chain.width, m_pointer_chain.height};
+                layer.pose = xr_pose(pose);
+                layer.size = {width, height};
+                layers[count++] = reinterpret_cast<const XrCompositionLayerBaseHeader*>(&layer);
+            };
+            if (m_pointer.beam) {
+                fill(beam, m_pointer.beam_pose, m_pointer.beam_length, kBeamWidth);
+            }
+            if (m_pointer.dot) {
+                fill(dot, m_pointer.dot_pose, kDotSize, kDotSize);
+            }
         }
 
         release_targets();
@@ -217,6 +257,13 @@ public:
                               reinterpret_cast<const XrHapticBaseHeader*>(&vibration));
     }
 
+    void show_pointer(const PointerLayers& pointer) override { m_pointer = pointer; }
+
+    void show_notice(const char* text) override {
+        m_notice = text != nullptr ? text : "";
+        m_notice_pixels.clear();
+    }
+
     bool wants_exit() const override { return m_exiting; }
 
     void stop() override {
@@ -231,6 +278,14 @@ public:
                     xrDestroySwapchain(chain.handle);
                     chain.handle = XR_NULL_HANDLE;
                 }
+            }
+            if (m_notice_chain.handle != XR_NULL_HANDLE) {
+                xrDestroySwapchain(m_notice_chain.handle);
+                m_notice_chain.handle = XR_NULL_HANDLE;
+            }
+            if (m_pointer_chain.handle != XR_NULL_HANDLE) {
+                xrDestroySwapchain(m_pointer_chain.handle);
+                m_pointer_chain.handle = XR_NULL_HANDLE;
             }
             xrDestroySession(m_session);
             m_session = XR_NULL_HANDLE;
@@ -562,10 +617,15 @@ private:
         }
         m_grip = make_action(XR_ACTION_TYPE_POSE_INPUT, "grip", "Hand", true);
         m_aim = make_action(XR_ACTION_TYPE_POSE_INPUT, "aim", "Aim", true);
-        m_stick = make_action(XR_ACTION_TYPE_VECTOR2F_INPUT, "stick", "Stick", true);
-        m_trigger = make_action(XR_ACTION_TYPE_FLOAT_INPUT, "trigger", "Trigger", true);
-        m_squeeze = make_action(XR_ACTION_TYPE_FLOAT_INPUT, "squeeze", "Grip", true);
-        m_click = make_action(XR_ACTION_TYPE_BOOLEAN_INPUT, "stick_click", "Stick click", true);
+        m_move = make_action(XR_ACTION_TYPE_VECTOR2F_INPUT, "move", "Walk", false);
+        m_look = make_action(XR_ACTION_TYPE_VECTOR2F_INPUT, "look", "Turn", false);
+        m_trigger_left = make_action(XR_ACTION_TYPE_FLOAT_INPUT, "trigger_left", "Left trigger", false);
+        m_trigger_right = make_action(XR_ACTION_TYPE_FLOAT_INPUT, "trigger_right", "Right trigger", false);
+        m_squeeze_left = make_action(XR_ACTION_TYPE_FLOAT_INPUT, "squeeze_left", "Left grip", false);
+        m_squeeze_right = make_action(XR_ACTION_TYPE_FLOAT_INPUT, "squeeze_right", "Right grip", false);
+        m_click_left = make_action(XR_ACTION_TYPE_BOOLEAN_INPUT, "click_left", "Left stick click", false);
+        m_click_right = make_action(XR_ACTION_TYPE_BOOLEAN_INPUT, "click_right", "Right stick click", false);
+        m_menu = make_action(XR_ACTION_TYPE_BOOLEAN_INPUT, "button_menu", "Menu", false);
         m_a = make_action(XR_ACTION_TYPE_BOOLEAN_INPUT, "button_a", "A", false);
         m_b = make_action(XR_ACTION_TYPE_BOOLEAN_INPUT, "button_b", "B", false);
         m_x = make_action(XR_ACTION_TYPE_BOOLEAN_INPUT, "button_x", "X", false);
@@ -577,14 +637,15 @@ private:
             {m_grip, path("/user/hand/right/input/grip/pose")},
             {m_aim, path("/user/hand/left/input/aim/pose")},
             {m_aim, path("/user/hand/right/input/aim/pose")},
-            {m_stick, path("/user/hand/left/input/thumbstick")},
-            {m_stick, path("/user/hand/right/input/thumbstick")},
-            {m_click, path("/user/hand/left/input/thumbstick/click")},
-            {m_click, path("/user/hand/right/input/thumbstick/click")},
-            {m_trigger, path("/user/hand/left/input/trigger/value")},
-            {m_trigger, path("/user/hand/right/input/trigger/value")},
-            {m_squeeze, path("/user/hand/left/input/squeeze/value")},
-            {m_squeeze, path("/user/hand/right/input/squeeze/value")},
+            {m_move, path("/user/hand/left/input/thumbstick")},
+            {m_look, path("/user/hand/right/input/thumbstick")},
+            {m_click_left, path("/user/hand/left/input/thumbstick/click")},
+            {m_click_right, path("/user/hand/right/input/thumbstick/click")},
+            {m_trigger_left, path("/user/hand/left/input/trigger/value")},
+            {m_trigger_right, path("/user/hand/right/input/trigger/value")},
+            {m_squeeze_left, path("/user/hand/left/input/squeeze/value")},
+            {m_squeeze_right, path("/user/hand/right/input/squeeze/value")},
+            {m_menu, path("/user/hand/left/input/menu/click")},
             {m_a, path("/user/hand/right/input/a/click")},
             {m_b, path("/user/hand/right/input/b/click")},
             {m_x, path("/user/hand/left/input/x/click")},
@@ -602,16 +663,6 @@ private:
             return false;
         }
 
-        for (int hand = 0; hand < 2; ++hand) {
-            XrActionSpaceCreateInfo space{XR_TYPE_ACTION_SPACE_CREATE_INFO};
-            space.poseInActionSpace.orientation.w = 1.0f;
-            space.subactionPath = m_hand_path[hand];
-            space.action = m_grip;
-            xrCreateActionSpace(m_session, &space, &m_grip_space[hand]);
-            space.action = m_aim;
-            xrCreateActionSpace(m_session, &space, &m_aim_space[hand]);
-        }
-
         XrSessionActionSetsAttachInfo attach{XR_TYPE_SESSION_ACTION_SETS_ATTACH_INFO};
         attach.countActionSets = 1;
         attach.actionSets = &m_set;
@@ -619,7 +670,43 @@ private:
             why = m_last_error;
             return false;
         }
+
+        // After the attach, as Halo's host does it on the Quest.
+        for (int hand = 0; hand < 2; ++hand) {
+            XrActionSpaceCreateInfo space{XR_TYPE_ACTION_SPACE_CREATE_INFO};
+            space.poseInActionSpace.orientation.w = 1.0f;
+            space.subactionPath = m_hand_path[hand];
+            space.action = m_grip;
+            if (!check(xrCreateActionSpace(m_session, &space, &m_grip_space[hand]), "xrCreateActionSpace(grip)")) {
+                why = m_last_error;
+                return false;
+            }
+            space.action = m_aim;
+            if (!check(xrCreateActionSpace(m_session, &space, &m_aim_space[hand]), "xrCreateActionSpace(aim)")) {
+                why = m_last_error;
+                return false;
+            }
+        }
         return true;
+    }
+
+    // Which controller each hand is bound as, when that changes: the log's first word on input.
+    void log_profiles() {
+        for (int hand = 0; hand < 2; ++hand) {
+            XrInteractionProfileState state{XR_TYPE_INTERACTION_PROFILE_STATE};
+            std::string name = "(none)";
+            m_bound[hand] = false;
+            if (XR_SUCCEEDED(xrGetCurrentInteractionProfile(m_session, m_hand_path[hand], &state))
+                && state.interactionProfile != XR_NULL_PATH) {
+                char text[XR_MAX_PATH_LENGTH] = "";
+                uint32_t length = 0;
+                if (XR_SUCCEEDED(xrPathToString(m_instance, state.interactionProfile, sizeof text, &length, text))) {
+                    name = text;
+                }
+                m_bound[hand] = true;
+            }
+            info(std::string("[openxr] ") + (hand == kLeft ? "left" : "right") + " hand: " + name);
+        }
     }
 
     void session_began() {
@@ -682,6 +769,10 @@ private:
     void state_changed(XrSessionState state) {
         m_state = state;
         m_focused = state == XR_SESSION_STATE_FOCUSED;
+        // The runtime need not send a profile event for controllers already bound: asked here too.
+        if (m_focused) {
+            log_profiles();
+        }
         switch (state) {
             case XR_SESSION_STATE_READY: {
                 XrSessionBeginInfo begin{XR_TYPE_SESSION_BEGIN_INFO};
@@ -720,6 +811,12 @@ private:
                     warn("[openxr] the instance is to be lost");
                     m_exiting = true;
                     break;
+                case XR_TYPE_EVENT_DATA_INTERACTION_PROFILE_CHANGED:
+                    log_profiles();
+                    break;
+                case XR_TYPE_EVENT_DATA_REFERENCE_SPACE_CHANGE_PENDING:
+                    m_recentred = true;
+                    break;
                 case XR_TYPE_EVENT_DATA_PERF_SETTINGS_EXT: {
                     const auto* perf = reinterpret_cast<const XrEventDataPerfSettingsEXT*>(&event);
                     warn("[openxr] performance notice: domain " + std::to_string(perf->domain)
@@ -735,6 +832,8 @@ private:
     }
 
     void locate_views(FrameInfo& out) {
+        out.recentred = m_recentred;
+        m_recentred = false;
         XrViewLocateInfo locate{XR_TYPE_VIEW_LOCATE_INFO};
         locate.viewConfigurationType = XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO;
         locate.displayTime = m_frame_time;
@@ -767,20 +866,30 @@ private:
         }
     }
 
-    float read_float(XrAction action, int hand) {
+    float read_float(XrAction action) {
         XrActionStateGetInfo get{XR_TYPE_ACTION_STATE_GET_INFO};
         get.action = action;
-        get.subactionPath = m_hand_path[hand];
         XrActionStateFloat state{XR_TYPE_ACTION_STATE_FLOAT};
         return XR_SUCCEEDED(xrGetActionStateFloat(m_session, &get, &state)) && state.isActive
                    ? state.currentState
                    : 0.0f;
     }
 
-    bool read_bool(XrAction action, XrPath subaction) {
+    bool read_stick(XrAction action, float& x, float& y) {
         XrActionStateGetInfo get{XR_TYPE_ACTION_STATE_GET_INFO};
         get.action = action;
-        get.subactionPath = subaction;
+        XrActionStateVector2f state{XR_TYPE_ACTION_STATE_VECTOR2F};
+        if (!XR_SUCCEEDED(xrGetActionStateVector2f(m_session, &get, &state)) || !state.isActive) {
+            return false;
+        }
+        x = state.currentState.x;
+        y = state.currentState.y;
+        return true;
+    }
+
+    bool read_bool(XrAction action) {
+        XrActionStateGetInfo get{XR_TYPE_ACTION_STATE_GET_INFO};
+        get.action = action;
         XrActionStateBoolean state{XR_TYPE_ACTION_STATE_BOOLEAN};
         return XR_SUCCEEDED(xrGetActionStateBoolean(m_session, &get, &state)) && state.isActive
                && state.currentState == XR_TRUE;
@@ -792,13 +901,16 @@ private:
             XrSpaceLocation aim{XR_TYPE_SPACE_LOCATION};
             const XrSpaceLocationFlags valid =
                 XR_SPACE_LOCATION_POSITION_VALID_BIT | XR_SPACE_LOCATION_ORIENTATION_VALID_BIT;
+            out.hand_bound[hand] = m_bound[hand];
             if (XR_SUCCEEDED(xrLocateSpace(m_grip_space[hand], m_local, m_frame_time, &grip))
-                && (grip.locationFlags & valid) == valid
-                && XR_SUCCEEDED(xrLocateSpace(m_aim_space[hand], m_local, m_frame_time, &aim))
-                && (aim.locationFlags & valid) == valid) {
+                && (grip.locationFlags & valid) == valid) {
                 out.hand_valid[hand] = true;
                 out.hand_grip[hand] = pose_of(grip.pose);
-                out.hand_aim[hand] = pose_of(aim.pose);
+                out.hand_aim[hand] = out.hand_grip[hand];
+                if (XR_SUCCEEDED(xrLocateSpace(m_aim_space[hand], m_local, m_frame_time, &aim))
+                    && (aim.locationFlags & valid) == valid) {
+                    out.hand_aim[hand] = pose_of(aim.pose);
+                }
             }
         }
 
@@ -814,25 +926,110 @@ private:
             return;
         }
         Controls& c = out.controls;
-        for (int hand = 0; hand < 2; ++hand) {
-            XrActionStateGetInfo get{XR_TYPE_ACTION_STATE_GET_INFO};
-            get.action = m_stick;
-            get.subactionPath = m_hand_path[hand];
-            XrActionStateVector2f stick{XR_TYPE_ACTION_STATE_VECTOR2F};
-            const bool active_stick =
-                XR_SUCCEEDED(xrGetActionStateVector2f(m_session, &get, &stick)) && stick.isActive;
-            const float x = active_stick ? stick.currentState.x : 0.0f;
-            const float y = active_stick ? stick.currentState.y : 0.0f;
-            (hand == kLeft ? c.left_x : c.right_x) = x;
-            (hand == kLeft ? c.left_y : c.right_y) = y;
-            (hand == kLeft ? c.left_trigger : c.right_trigger) = read_float(m_trigger, hand);
-            (hand == kLeft ? c.left_grip : c.right_grip) = read_float(m_squeeze, hand);
-            (hand == kLeft ? c.left_click : c.right_click) = read_bool(m_click, m_hand_path[hand]);
+        out.stick_active[kLeft] = read_stick(m_move, c.left_x, c.left_y);
+        out.stick_active[kRight] = read_stick(m_look, c.right_x, c.right_y);
+        c.left_trigger = read_float(m_trigger_left);
+        c.right_trigger = read_float(m_trigger_right);
+        c.left_grip = read_float(m_squeeze_left);
+        c.right_grip = read_float(m_squeeze_right);
+        c.left_click = read_bool(m_click_left);
+        c.right_click = read_bool(m_click_right);
+        c.a = read_bool(m_a);
+        c.b = read_bool(m_b);
+        c.x = read_bool(m_x);
+        c.y = read_bool(m_y);
+        c.menu = read_bool(m_menu);
+    }
+
+    // The pointer's picture, a soft white spot both quads use: filled once, the first time a menu
+    // has it, and never touched again. The GL state it touches is put back.
+    bool draw_pointer() {
+        if (m_pointer_ready) {
+            return true;
         }
-        c.a = read_bool(m_a, XR_NULL_PATH);
-        c.b = read_bool(m_b, XR_NULL_PATH);
-        c.x = read_bool(m_x, XR_NULL_PATH);
-        c.y = read_bool(m_y, XR_NULL_PATH);
+        std::string why;
+        if (m_pointer_chain.handle == XR_NULL_HANDLE
+            && !create_target(m_pointer_chain, kPointerSize, kPointerSize, why)) {
+            m_pointer = {};
+            return false;
+        }
+        std::vector<std::uint8_t> pixels(static_cast<std::size_t>(kPointerSize) * kPointerSize * 4);
+        for (int y = 0; y < kPointerSize; ++y) {
+            for (int x = 0; x < kPointerSize; ++x) {
+                const float dx = (static_cast<float>(x) + 0.5f) / kPointerSize * 2.0f - 1.0f;
+                const float dy = (static_cast<float>(y) + 0.5f) / kPointerSize * 2.0f - 1.0f;
+                const float edge = std::clamp((1.0f - std::sqrt(dx * dx + dy * dy)) * 4.0f, 0.0f, 1.0f);
+                std::uint8_t* p = pixels.data() + (static_cast<std::size_t>(y) * kPointerSize + x) * 4;
+                p[0] = p[1] = p[2] = static_cast<std::uint8_t>(255.0f * edge);  // premultiplied
+                p[3] = static_cast<std::uint8_t>(255.0f * edge);
+            }
+        }
+        // Every image of the chain, as the quads take whichever comes next.
+        for (std::size_t i = 0; i < m_pointer_chain.images.size(); ++i) {
+            XrSwapchainImageAcquireInfo acquire{XR_TYPE_SWAPCHAIN_IMAGE_ACQUIRE_INFO};
+            if (!check(xrAcquireSwapchainImage(m_pointer_chain.handle, &acquire, &m_pointer_chain.index),
+                       "xrAcquireSwapchainImage(pointer)")) {
+                return false;
+            }
+            XrSwapchainImageWaitInfo wait{XR_TYPE_SWAPCHAIN_IMAGE_WAIT_INFO};
+            wait.timeout = XR_INFINITE_DURATION;
+            check(xrWaitSwapchainImage(m_pointer_chain.handle, &wait), "xrWaitSwapchainImage(pointer)");
+            GLint texture = 0, unpack_buffer = 0, alignment = 0;
+            glGetIntegerv(GL_TEXTURE_BINDING_2D, &texture);
+            glGetIntegerv(GL_PIXEL_UNPACK_BUFFER_BINDING, &unpack_buffer);
+            glGetIntegerv(GL_UNPACK_ALIGNMENT, &alignment);
+            glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+            glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+            glBindTexture(GL_TEXTURE_2D, m_pointer_chain.images[m_pointer_chain.index].image);
+            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, kPointerSize, kPointerSize, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
+            glBindTexture(GL_TEXTURE_2D, static_cast<GLuint>(texture));
+            glPixelStorei(GL_UNPACK_ALIGNMENT, alignment);
+            glBindBuffer(GL_PIXEL_UNPACK_BUFFER, static_cast<GLuint>(unpack_buffer));
+            XrSwapchainImageReleaseInfo release{XR_TYPE_SWAPCHAIN_IMAGE_RELEASE_INFO};
+            check(xrReleaseSwapchainImage(m_pointer_chain.handle, &release), "xrReleaseSwapchainImage(pointer)");
+        }
+        m_pointer_ready = true;
+        return true;
+    }
+
+    // The warning's own small picture, made the first time one is shown: nothing of this runs in a
+    // session with both controllers in hand. The GL state it touches is put back.
+    bool draw_notice() {
+        if (m_notice_chain.handle == XR_NULL_HANDLE) {
+            std::string why;
+            if (!create_target(m_notice_chain, kNoticeWidth, kNoticeHeight, why)) {
+                m_notice.clear();
+                return false;
+            }
+        }
+        if (m_notice_pixels.empty()) {
+            m_notice_pixels = render_notice(m_notice.c_str());
+        }
+        XrSwapchainImageAcquireInfo acquire{XR_TYPE_SWAPCHAIN_IMAGE_ACQUIRE_INFO};
+        if (!check(xrAcquireSwapchainImage(m_notice_chain.handle, &acquire, &m_notice_chain.index),
+                   "xrAcquireSwapchainImage(notice)")) {
+            return false;
+        }
+        XrSwapchainImageWaitInfo wait{XR_TYPE_SWAPCHAIN_IMAGE_WAIT_INFO};
+        wait.timeout = XR_INFINITE_DURATION;
+        check(xrWaitSwapchainImage(m_notice_chain.handle, &wait), "xrWaitSwapchainImage(notice)");
+
+        GLint texture = 0, unpack_buffer = 0, alignment = 0;
+        glGetIntegerv(GL_TEXTURE_BINDING_2D, &texture);
+        glGetIntegerv(GL_PIXEL_UNPACK_BUFFER_BINDING, &unpack_buffer);
+        glGetIntegerv(GL_UNPACK_ALIGNMENT, &alignment);
+        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+        glBindTexture(GL_TEXTURE_2D, m_notice_chain.images[m_notice_chain.index].image);
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, kNoticeWidth, kNoticeHeight, GL_RGBA, GL_UNSIGNED_BYTE,
+                        m_notice_pixels.data());
+        glBindTexture(GL_TEXTURE_2D, static_cast<GLuint>(texture));
+        glPixelStorei(GL_UNPACK_ALIGNMENT, alignment);
+        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, static_cast<GLuint>(unpack_buffer));
+
+        XrSwapchainImageReleaseInfo release{XR_TYPE_SWAPCHAIN_IMAGE_RELEASE_INFO};
+        check(xrReleaseSwapchainImage(m_notice_chain.handle, &release), "xrReleaseSwapchainImage(notice)");
+        return true;
     }
 
     void release_targets() {
@@ -897,10 +1094,19 @@ private:
     bool m_views_valid = false;
     XrTime m_frame_time = 0;
     XrView m_views[2] = {{XR_TYPE_VIEW}, {XR_TYPE_VIEW}};
+    bool m_recentred = false;
+    XrPosef m_drawn_pose[2]{};  // where the eyes' pictures were taken, kept with them when they are shown again
+    XrFovf m_drawn_fov[2]{};
 
     int64_t m_format = 0;
     bool m_srgb_control = false;
     Swapchain m_targets[kTargetCount];
+    Swapchain m_notice_chain;
+    Swapchain m_pointer_chain;
+    PointerLayers m_pointer;
+    bool m_pointer_ready = false;
+    std::string m_notice;
+    std::vector<std::uint8_t> m_notice_pixels;
 
     bool m_refresh_extension = false;
     bool m_performance_extension = false;
@@ -910,9 +1116,14 @@ private:
 
     XrActionSet m_set = XR_NULL_HANDLE;
     XrPath m_hand_path[2] = {XR_NULL_PATH, XR_NULL_PATH};
-    XrAction m_grip = XR_NULL_HANDLE, m_aim = XR_NULL_HANDLE, m_stick = XR_NULL_HANDLE;
-    XrAction m_trigger = XR_NULL_HANDLE, m_squeeze = XR_NULL_HANDLE, m_click = XR_NULL_HANDLE;
+    XrAction m_grip = XR_NULL_HANDLE, m_aim = XR_NULL_HANDLE;
+    XrAction m_move = XR_NULL_HANDLE, m_look = XR_NULL_HANDLE;
+    XrAction m_trigger_left = XR_NULL_HANDLE, m_trigger_right = XR_NULL_HANDLE;
+    XrAction m_squeeze_left = XR_NULL_HANDLE, m_squeeze_right = XR_NULL_HANDLE;
+    XrAction m_click_left = XR_NULL_HANDLE, m_click_right = XR_NULL_HANDLE;
     XrAction m_a = XR_NULL_HANDLE, m_b = XR_NULL_HANDLE, m_x = XR_NULL_HANDLE, m_y = XR_NULL_HANDLE;
+    XrAction m_menu = XR_NULL_HANDLE;
+    bool m_bound[2] = {false, false};
     XrAction m_haptic = XR_NULL_HANDLE;
     XrSpace m_grip_space[2] = {XR_NULL_HANDLE, XR_NULL_HANDLE};
     XrSpace m_aim_space[2] = {XR_NULL_HANDLE, XR_NULL_HANDLE};

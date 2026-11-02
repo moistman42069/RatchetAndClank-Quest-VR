@@ -1,0 +1,13 @@
+# The right hand alone on a ledge, the left keeps its Akimbo gun (Rerac-vr's off_hand.rs): the left trigger
+# fires the left gun while he hangs by the right; letting go drops him.
+600 y 1
+606 y 0
+1700 right_grip 1
+2400 shot hanging
+2500 left_trigger 1
+2560 shot firing
+2700 left_trigger 0
+2800 shot stopped
+2900 right_grip 0
+3100 shot dropped
+3200 quit 0

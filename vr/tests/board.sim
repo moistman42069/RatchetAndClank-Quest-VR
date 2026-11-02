@@ -1,0 +1,25 @@
+# A real ride on the hoverboard (Rilgar, QUEST_SIM_NEAR=439: the board mounts him within 5.5 units of it): the start along
+# the course, the stick's x turning the board about its own heading both ways, forward not steering, a jump, the left
+# trigger's boost. QUEST_BOARD_TRACE logs the heading; QUEST_BOARD_TWIST turns each jump's way down askew.
+600 y 1
+606 y 0
+2900 shot mounted
+3100 shot riding
+3200 left_x 1
+3260 shot turned-right
+3320 left_x 0
+3400 left_x -1
+3520 left_x 0
+3540 left_y 1
+3640 left_y 0
+3660 shot straight
+3700 a 1
+3712 a 0
+3760 shot jump
+3900 shot landed
+3920 a 1
+3932 a 0
+4100 shot landed-2
+4120 left_trigger 1
+4200 left_trigger 0
+4300 quit 0

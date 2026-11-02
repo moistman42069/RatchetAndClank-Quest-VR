@@ -1,0 +1,34 @@
+# The quick select's pages (Rerac-vr's hand_select_menu): the ring holds every item owned, eight a
+# page, in Rerac-vr's order; the trigger turns the page and fires nothing; the right hand picks; the
+# left stick keeps walking the whole time. [vr-ring] lines tell each page.
+# Run with QUEST_SIM_GIVE=10,15,16,11,13,9,18,19,20,17,21,23 (13 owned with the wrench: two pages).
+600 y 1
+606 y 0
+3200 shot before
+# Open the ring and walk.
+3300 right_click 1
+3302 left_y 1
+3340 shot page1
+# The trigger: page two.
+3360 right_trigger 1
+3366 right_trigger 0
+3400 shot page2
+# The hand pushed right picks the slot there; letting go of the ring takes it.
+3420 rh_x 0.17
+3460 shot picked
+3470 right_click 0
+3480 rh_x 0
+3490 left_y 0
+3560 shot after
+# Again, pressed a few times (Novalis's help messages hold the ring back while one shows): it opens on
+# page one.
+3600 right_click 1
+3620 right_click 0
+3650 right_click 1
+3670 right_click 0
+3700 right_click 1
+3720 right_click 0
+3750 right_click 1
+3790 shot reopened
+3800 right_click 0
+3900 quit 0

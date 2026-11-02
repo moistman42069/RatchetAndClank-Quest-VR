@@ -1,0 +1,9 @@
+# A grind rail on Oltanis (QUEST_SIM_RAIL=2,0.3,3, Grindboots item 29): the catch, then the view along it. [vr-feel] a rail taken, state 0x28.
+600 y 1
+606 y 0
+2680 shot r1
+2740 shot r2
+2800 shot r3
+2860 shot r4
+2920 shot r5
+3000 quit 0

@@ -1,0 +1,42 @@
+# Bombs thrown by hand (Rerac-vr's bomb_glove.rs), with the Bomb Glove Ratchet starts Novalis with:
+# a fast throw forward and up flies far, a slow release keeps the bomb in the glove, a short lob
+# lands near. [vr-throw] lines give each release's speed and the bomb's velocity.
+600 y 1
+606 y 0
+3200 shot ahead
+# Hold the trigger, then throw: the hand 30 cm forward and 15 cm up in about 70 ms.
+3300 right_trigger 1
+3360 rh_z -0.05
+3360 rh_y 0.02
+3361 rh_z -0.10
+3361 rh_y 0.05
+3362 rh_z -0.15
+3362 rh_y 0.08
+3363 rh_z -0.20
+3363 rh_y 0.11
+3364 rh_z -0.25
+3364 rh_y 0.13
+3364 right_trigger 0
+3365 rh_z -0.30
+3365 rh_y 0.15
+3380 shot far-1
+3420 shot far-2
+3470 shot far-3
+3500 rh_z 0
+3500 rh_y 0
+# Hold and let go without moving: kept.
+3600 right_trigger 1
+3660 right_trigger 0
+3680 shot kept
+# A gentle lob, about 1.5 m/s.
+3800 right_trigger 1
+3860 rh_z -0.02
+3861 rh_z -0.04
+3862 rh_z -0.06
+3863 rh_z -0.08
+3863 right_trigger 0
+3864 rh_z -0.10
+3900 shot lob
+3960 shot lob-2
+4000 rh_z 0
+4100 quit 0

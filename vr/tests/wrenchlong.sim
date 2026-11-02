@@ -1,0 +1,19 @@
+# The wrench drawn longer in a fast swing (Rerac-vr's, up to 35%), side-on to the eyes: the hand turned 80 degrees so the
+# wrench lies across the view, and the same hand position held still ("still") and passed at speed ("stroke").
+600 y 1
+606 y 0
+3200 hand_yaw 80
+3250 right_grip 1
+3250 rh_y 0.05
+3340 shot still
+3380 rh_y 0.25
+3400 rh_y 0.20
+3401 rh_y 0.15
+3402 rh_y 0.10
+3403 rh_y 0.05
+3403 shot stroke
+3404 rh_y 0.00
+3405 rh_y -0.05
+3406 rh_y -0.10
+3440 rh_y 0.05
+3500 quit 0

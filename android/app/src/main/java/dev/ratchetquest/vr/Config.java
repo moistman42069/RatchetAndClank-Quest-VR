@@ -69,13 +69,13 @@ final class Config {
     static final Choice[] GRAPHICS = {PRESET, REFRESH, RESOLUTION, MSAA, FILTER, ANISOTROPY, ORIGINAL_LOD};
 
     static final Choice VIEW = new Choice("view", "View",
-        "First person is through Ratchet's eyes. Third person keeps the game's camera, with your head looking around.",
+        "First person is through Ratchet's eyes. Third person keeps the game's camera, with your head looking around. VR Options in the game switches it at any time.",
         new String[] {"First person", "Third person"}, new String[] {"first", "third"}, "first");
     static final Choice CUTSCENES = new Choice("cutscenes", "Cutscenes",
-        "In VR: the game's scenes in 3D around you, seen from its camera, your head free to look round. "
-            + "On a screen: the game's own framing on a big screen ahead, kinder if camera moves bother you. "
-            + "Movies are always on the screen.",
-        new String[] {"In VR", "On a screen"}, new String[] {"vr", "screen"}, "vr");
+        "Through Ratchet's eyes: you see the scene from his head, your own head free, his hands as the scene moves them; " + 
+            "a scene without him is seen from its camera. In VR: from the game's camera, in 3D around you. On a screen: the game's " + 
+            "own framing on a big screen ahead, kinder if camera moves bother you. Movies are always on the screen.",
+        new String[] {"Through his eyes", "In VR", "On a screen"}, new String[] {"eyes", "vr", "screen"}, "eyes");
     static final Choice TURN = new Choice("turn", "Turning", "Smooth is the default. If it makes you queasy, Snap is kinder to most stomachs.",
         new String[] {"Smooth", "Snap"}, new String[] {"smooth", "snap"}, "smooth");
     static final Choice SNAP = new Choice("snap_degrees", "Snap angle", "",
@@ -93,8 +93,52 @@ final class Config {
         ON_OFF, TRUE_FALSE, "true");
     static final Choice HAND_WEAPON = new Choice("hand_weapon", "Weapon in your right hand",
         "In first person. Off leaves it where the game draws it.", ON_OFF, TRUE_FALSE, "true");
+    static final Choice THROW_BY_HAND = new Choice("throw_by_hand", "Throw bombs, mines and Decoys by hand",
+        "Hold the trigger, make a throwing motion, let go. Let go slowly to keep it. Off: the trigger throws as the game does.",
+        ON_OFF, TRUE_FALSE, "true");
+    static final Choice SWING_WRENCH = new Choice("swing_wrench", "Swing the wrench for real",
+        "Hold the grip and hit things with the wrench itself; slam it down in the air for a Hyper Strike; let go mid-swing "
+            + "to throw it, slowly to put it away. With the Walloper, punch to punch. Off: the buttons do it as in the game.",
+        ON_OFF, TRUE_FALSE, "true");
+    static final Choice TWO_HANDED = new Choice("two_handed", "Two-handed weapons",
+        "The big guns Ratchet holds with both arms are heavy in one hand: they lag and droop. Squeeze the left grip "
+            + "on the barrel to hold them steady. Off: every weapon follows the hand exactly.",
+        ON_OFF, TRUE_FALSE, "true");
+    static final Choice SHOW_HANDS = new Choice("show_hands", "Ratchet's hands",
+        "See Ratchet's forearms and hands at your controllers; they close with the grips and hold what you hold. "
+            + "Needs Ratchet's body hidden. Off: only what you hold is seen.",
+        ON_OFF, TRUE_FALSE, "true");
+    static final Choice GRAB_LEDGES = new Choice("grab_ledges", "Grab ledges with your hands",
+        "Squeeze the grips near a ledge to hold it. Let go with both to drop; shove down with both, or press A, to climb; "
+            + "pull along the ledge to move. Off: Ratchet catches ledges by himself, as in the game.",
+        ON_OFF, TRUE_FALSE, "true");
+    static final Choice ROOM_SCALE = new Choice("room_scale", "Walk around your room",
+        "Your steps move Ratchet, and walls stop you as they stop him. Off: only the stick moves him.",
+        ON_OFF, TRUE_FALSE, "true");
+    static final Choice SWIM_STROKES = new Choice("swim_strokes", "Swim with your arms",
+        "In water, stroke with your palms to swim where you look; push the water up with both hands to dive. "
+            + "Off: as in the game.",
+        ON_OFF, TRUE_FALSE, "true");
+    static final Choice SOLID_HANDS = new Choice("solid_hands", "Solid walls for what you hold",
+        "Your wrench and guns stop at walls, and cannot fire through them. Off: they pass through.",
+        ON_OFF, TRUE_FALSE, "true");
+    static final Choice GLYPHS = new Choice("glyphs", "Controller buttons in hints",
+        "The game's hints and menus show your controller's buttons (A, the trigger, the grips, the sticks) in place of "
+            + "the PlayStation's. Off: the PlayStation's.",
+        ON_OFF, TRUE_FALSE, "true");
+    static final Choice PUZZLE_OVER_TOOL = new Choice("puzzle_over_tool", "The Trespasser's rings over the tool",
+        "On: the puzzle hangs over the tool you plugged in. Off: it stays in front of your face.",
+        ON_OFF, TRUE_FALSE, "true");
+    static final Choice SHOP_ON_FOOT = new Choice("shop_on_foot", "Shop on foot",
+        "On: the vendor's screens are on the machine and you can walk while you shop. Off: the vendor is a flat screen.",
+        ON_OFF, TRUE_FALSE, "true");
+    static final Choice MENU_IN_WORLD = new Choice("menu_in_world", "Menus in the world",
+        "On: the pause menu stands in the level around you, each part at its own depth. Off: one flat panel on black.",
+        ON_OFF, TRUE_FALSE, "true");
     static final Choice HAPTICS = new Choice("haptics", "Vibration", "", ON_OFF, TRUE_FALSE, "true");
-    static final Choice[] VR = {VIEW, CUTSCENES, TURN, SNAP, SMOOTH, WORLD, HUD, HAND_AIM, HAND_WEAPON, HIDE_BODY, HAPTICS};
+    static final Choice[] VR = {VIEW, CUTSCENES, TURN, SNAP, SMOOTH, WORLD, HUD, HAND_AIM, HAND_WEAPON, THROW_BY_HAND,
+        SWING_WRENCH, TWO_HANDED, SHOW_HANDS, GRAB_LEDGES, PUZZLE_OVER_TOOL, SHOP_ON_FOOT, MENU_IN_WORLD, ROOM_SCALE,
+        SWIM_STROKES, SOLID_HANDS, HIDE_BODY, GLYPHS, HAPTICS};
 
     private final Context context;
     private final SharedPreferences prefs;
@@ -147,7 +191,7 @@ final class Config {
     }
 
     /** The mod in the game's plugins folder, and the list that turns it on with its settings. */
-    void writeForGame() throws IOException {
+    void writeForGame(boolean bigScreen) throws IOException {
         File folder = new File(tools.plugins(), MOD_ID);
         File library = new File(folder, "lib/android-arm64/quest_vr.so");
         library.getParentFile().mkdirs();
@@ -164,7 +208,7 @@ final class Config {
         }
         try {
             JSONObject settings = new JSONObject();
-            settings.put("view", get(VIEW));
+            settings.put("view", bigScreen ? "screen" : get(VIEW));
             settings.put("cutscenes", get(CUTSCENES));
             settings.put("turn", get(TURN));
             settings.put("snap_degrees", Double.parseDouble(get(SNAP)));
@@ -175,6 +219,18 @@ final class Config {
             settings.put("hand_aim", Boolean.parseBoolean(get(HAND_AIM)));
             settings.put("hide_body", Boolean.parseBoolean(get(HIDE_BODY)));
             settings.put("hand_weapon", Boolean.parseBoolean(get(HAND_WEAPON)));
+            settings.put("throw_by_hand", Boolean.parseBoolean(get(THROW_BY_HAND)));
+            settings.put("swing_wrench", Boolean.parseBoolean(get(SWING_WRENCH)));
+            settings.put("two_handed", Boolean.parseBoolean(get(TWO_HANDED)));
+            settings.put("show_hands", Boolean.parseBoolean(get(SHOW_HANDS)));
+            settings.put("grab_ledges", Boolean.parseBoolean(get(GRAB_LEDGES)));
+            settings.put("puzzle_over_tool", Boolean.parseBoolean(get(PUZZLE_OVER_TOOL)));
+            settings.put("shop_on_foot", Boolean.parseBoolean(get(SHOP_ON_FOOT)));
+            settings.put("menu_in_world", Boolean.parseBoolean(get(MENU_IN_WORLD)));
+            settings.put("room_scale", Boolean.parseBoolean(get(ROOM_SCALE)));
+            settings.put("swim_strokes", Boolean.parseBoolean(get(SWIM_STROKES)));
+            settings.put("solid_hands", Boolean.parseBoolean(get(SOLID_HANDS)));
+            settings.put("glyphs", Boolean.parseBoolean(get(GLYPHS)));
             settings.put("refresh_hz", Integer.parseInt(get(REFRESH)));
             settings.put("resolution", Double.parseDouble(get(RESOLUTION)));
             JSONObject mod = new JSONObject();

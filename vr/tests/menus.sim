@@ -1,0 +1,19 @@
+# The pause menu with A and the sticks, and a left controller that goes away and comes back. The right hand is gone, or
+# the pointer would be the selection and the sticks would leave the cursor alone.
+600 y 1
+606 y 0
+3100 right_gone 1
+3200 y 1
+3206 y 0
+3400 shot pause
+3410 left_y -1
+3420 left_y 0
+3500 shot pause-down
+3600 b 1
+3606 b 0
+3800 shot closed
+3900 left_gone 1
+4200 shot gone
+4300 left_gone 0
+4500 shot back
+4600 quit 0

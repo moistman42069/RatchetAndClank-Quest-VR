@@ -1,0 +1,22 @@
+# The Quest report's three failures, on the real game: walking with the left stick, the wrench on
+# the grip and a real swing, the gun back on the trigger, and each item shown in the hand.
+600 y 1
+606 y 0
+3200 shot start
+3210 left_y 1
+3400 shot walked
+3400 left_y 0
+3500 right_grip 1
+3560 shot wrench
+3580 rh_x 0.05
+3581 rh_x 0.0
+3640 right_grip 0
+3700 right_trigger 1
+3760 shot gun-back
+3780 right_trigger 0
+3900 x 1
+3906 x 0
+4100 shot map
+4120 y 1
+4126 y 0
+4200 quit 0

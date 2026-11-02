@@ -1,0 +1,13 @@
+# The Visibomb (Rerac-vr's weapon_screen.rs): its missile flown from a monitor on the weapon, the eyes
+# staying where they are, the stick steering it.
+600 y 1
+606 y 0
+3000 shot aiming
+3050 right_trigger 1
+3070 right_trigger 0
+3200 shot flying
+3220 left_x 0.7
+3400 shot steering
+3420 left_x 0
+3800 shot after
+3900 quit 0

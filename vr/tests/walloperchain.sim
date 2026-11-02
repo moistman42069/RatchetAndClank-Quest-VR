@@ -1,0 +1,26 @@
+# The Walloper's punches chain (Rerac-vr's walloper.rs: a punch stays offered 0.45 s, and a lunge takes the next
+# once it is 22 ticks old, 10 more for one begun past its windup): a punch, the arm back, a second punch while the
+# first lunge still runs (QUEST_SIM_GIVE=18 QUEST_SIM_HOLD=18, Novalis). [vr-punch] logs the second lunge chained;
+# QUEST_STATE_TRACE shows the lunges.
+600 y 1
+606 y 0
+3200 shot ahead
+3300 rh_z -0.06
+3301 rh_z -0.12
+3302 rh_z -0.18
+3303 rh_z -0.24
+3304 rh_z -0.30
+3310 rh_z -0.25
+3312 rh_z -0.20
+3314 rh_z -0.15
+3316 rh_z -0.10
+3318 rh_z -0.05
+3320 rh_z 0
+3322 rh_z -0.06
+3323 rh_z -0.12
+3324 rh_z -0.18
+3325 rh_z -0.24
+3326 rh_z -0.30
+3340 shot second
+3400 rh_z 0
+3600 quit 0
