@@ -106,6 +106,8 @@ run bodyroll bodyroll 1 'QUEST_VR_OPTIONS=body 2'
 run death death 1 QUEST_SIM_KILL=150
 run room room 1 $N=500 $A=1.6,0
 run scene scene 1
+# 0.1.9: looking down in a cutscene through his eyes, no thin line from one elbow to the other
+run scenearms scenearms 1 KEEP=1
 run screen screen 1
 run t1 t1 1
 run t2 t2 1

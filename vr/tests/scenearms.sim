@@ -1,0 +1,13 @@
+# Ratchet's arms in a cutscene through his eyes (the Novalis arrival scene), looked down at: both forearms in view, the
+# space between his elbows too. The port draws him as his two arms, the rest closed onto his elbows; skin blended
+# across them once drew a thin line from one elbow to the other (a tester's video, 0.1.8). Nothing between the arms.
+600 y 1
+606 y 0
+1000 head_pitch -40
+1100 shot down-1
+1300 head_pitch -60
+1400 shot down-2
+1600 head_pitch -30
+1700 shot down-3
+1800 head_pitch 0
+2000 quit 0

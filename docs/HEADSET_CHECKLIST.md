@@ -27,6 +27,10 @@ it worked (the log is in Download/RatchetQuestVR). PC-proven features are in STA
   percent: Ratchet's hands and a glove smaller and bigger, still on the controllers. The wrench, the gloves, the
   Swingshot and the PDA should otherwise look as in 0.1.7. The log's start says `[vr-hand] guns point where the
   controller points: gun angle 0, gun size 100 percent, hand size 100 percent`.
+- **No line between the hands (0.1.9).** In 0.1.8 a thin orange line ran from one of Ratchet's arms to the other in
+  cutscenes seen through his eyes. Watch the opening scene on Novalis and look down at his arms as the scene moves
+  them: there should be nothing between them. In play, hold both hands out in front of you: nothing between them
+  either. With Player body on Cutscenes or Always, his body should look as in 0.1.8.
 - **The US disc (NTSC-U).** 0.1.2 to 0.1.5 never loaded the VR mod on it: a black headset, and
   `mod quest-vr not loaded: Hud_Frame: the hook point's signature is another` in the log. On 0.1.6 or later with that
   disc the log must say `mod quest-vr 0.1.7 loaded` (or the version run), and the headset show the game. Fixed and

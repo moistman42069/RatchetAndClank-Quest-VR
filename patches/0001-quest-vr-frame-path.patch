@@ -229,7 +229,7 @@ index 0cade011c6e07f2902c83e298ba8ef0a8a99edc8..21ebcb89c4dd9fc4f493cd8e253303c5
  void sky_sprite(const std::uint8_t* record, std::uint64_t tex0);
  
 diff --git a/port/game/common/frontend/frame.cpp b/port/game/common/frontend/frame.cpp
-index 092aec37b6049b0a3854c21612c4918f7629caf4..b8879082d5c65b3f8d129f1ffc50cec14b2b948e 100644
+index 092aec37b6049b0a3854c21612c4918f7629caf4..8060e6ac08c1b4dd4f627f328cc2c1ab780fd976 100644
 --- a/port/game/common/frontend/frame.cpp
 +++ b/port/game/common/frontend/frame.cpp
 @@ -64,6 +64,9 @@
@@ -279,20 +279,21 @@ index 092aec37b6049b0a3854c21612c4918f7629caf4..b8879082d5c65b3f8d129f1ffc50cec1
              continue;
          }
          if (only_own_camera
-@@ -1374,8 +1387,11 @@ TickMobys pose_mobys(
+@@ -1374,8 +1387,12 @@ TickMobys pose_mobys(
      // part of reading the scene, about 1.5 ms a tick for 180 mobys on a phone's fast core), then
      // given palette slots in the loop's order, as one thread gave them.
      std::vector<std::vector<assets::rac1::JointMatrix>> poses(pose_jobs.size());
 +    const scene::MobyArms& arms = scene::moby_arms();
++    std::vector<std::uint8_t> arms_rest;  // its joints whose skin is left out (one job writes it)
      parallel::for_each(pose_jobs.size(), [&](std::size_t i) {
 -        poses[i] = scene::moby_palette(ram, pose_jobs[i].address);
 +        poses[i] = pose_jobs[i].address == arms.moby && !pose_jobs[i].target
-+                       ? scene::moby_arms_palette(ram, arms)
++                       ? scene::moby_arms_palette(ram, arms, &arms_rest)
 +                       : scene::moby_palette(ram, pose_jobs[i].address);
      });
      for (std::size_t k = 0; k < pose_jobs.size(); ++k) {
          const PoseJob& job = pose_jobs[k];
-@@ -1385,6 +1401,11 @@ TickMobys pose_mobys(
+@@ -1385,9 +1402,15 @@ TickMobys pose_mobys(
          }
          scene::Instance& instance = job.target ? target_mobys[job.index].instance : live[job.index];
          instance.palette = static_cast<int>(palette.size());
@@ -303,6 +304,23 @@ index 092aec37b6049b0a3854c21612c4918f7629caf4..b8879082d5c65b3f8d129f1ffc50cec1
 +        }
          if (!job.target) {
              live_joints[job.index] = job.joints;
+         }
++        const bool arms_job = job.address == arms.moby && !job.target;
+         for (int j = 0; j < job.joints; ++j) {
+             // Columns: the images of the axes, then the translation, which the palette has in
+             // packed units (the mesh is in packed units / 1024).
+@@ -1403,7 +1426,11 @@ TickMobys pose_mobys(
+                 c[12] = f[3][0] / 1024.0f;
+                 c[13] = f[3][1] / 1024.0f;
+                 c[14] = f[3][2] / 1024.0f;
+-                c[15] = 1.0f;
++                // 0 on the arms' rest (moby_arms_palette): mesh.vert and mesh_depth.vert, which
++                // otherwise skin with w = 1, take a vertex skinned to it as left out.
++                const bool rest = arms_job && static_cast<std::size_t>(j) < arms_rest.size()
++                                  && arms_rest[static_cast<std::size_t>(j)] != 0;
++                c[15] = rest ? 0.0f : 1.0f;
+             }
+             palette.push_back(c);
          }
 diff --git a/port/game/common/frontend/interpolation.cpp b/port/game/common/frontend/interpolation.cpp
 index de1210f76337fe0b0fad41f4237d1c231310cf0e..98a88a30e0e7ad82dd80a57cbd6a498db784c411 100644
@@ -5840,10 +5858,10 @@ index f9a406bfb960e28c5fcfaac097062acffad0dd75..e5d29e86e9486a9b2479688de99c5b5f
      // it); until set, the level's exported sets.
      // Shared lighting for optional world materials outside the mesh renderer.
 diff --git a/port/scene/moby_pose.cpp b/port/scene/moby_pose.cpp
-index ba890d2d518ca0d1af252fcbd69f4ea76d974421..719c26d3621cf22199143c35eeee027806a0fcbc 100644
+index ba890d2d518ca0d1af252fcbd69f4ea76d974421..81b84a30e90f7d7cf8ebe3bce6d1d69fbd4e061e 100644
 --- a/port/scene/moby_pose.cpp
 +++ b/port/scene/moby_pose.cpp
-@@ -54,21 +54,178 @@ std::optional<rac1::MobyFrame> key_at(
+@@ -54,21 +54,189 @@ std::optional<rac1::MobyFrame> key_at(
  
  namespace {
  
@@ -5870,7 +5888,12 @@ index ba890d2d518ca0d1af252fcbd69f4ea76d974421..719c26d3621cf22199143c35eeee0278
 +    return arms;
 +}
 +
-+std::vector<rac1::JointMatrix> moby_arms_palette(std::span<const std::uint8_t> ram, const MobyArms& arms) {
++std::vector<rac1::JointMatrix> moby_arms_palette(
++    std::span<const std::uint8_t> ram, const MobyArms& arms, std::vector<std::uint8_t>* rest
++) {
++    if (rest != nullptr) {
++        rest->clear();
++    }
 +    using V = std::array<float, 3>;
 +    const auto dot = [](const V& a, const V& b) { return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]; };
 +    const std::uint32_t moby = arms.moby;
@@ -6002,6 +6025,12 @@ index ba890d2d518ca0d1af252fcbd69f4ea76d974421..719c26d3621cf22199143c35eeee0278
 +            for (std::size_t c = 0; c < 3; ++c) {
 +                f[3][c] = elbow[static_cast<std::size_t>(near)][c];
 +            }
++            // An upper arm's skin closes onto its own elbow; the rest's, blended with either shoulder's, would
++            // run from one elbow to the other: a thin line between the hands. The draw leaves it out.
++            if (rest != nullptr && !under(j, arms.arms[0].shoulder) && !under(j, arms.arms[1].shoulder)) {
++                rest->resize(static_cast<std::size_t>(joints), 0);
++                (*rest)[static_cast<std::size_t>(j)] = 1;
++            }
 +            continue;
 +        }
 +        const auto& a = axes[static_cast<std::size_t>(side)];
@@ -6026,7 +6055,7 @@ index ba890d2d518ca0d1af252fcbd69f4ea76d974421..719c26d3621cf22199143c35eeee0278
      const auto cls = at<std::uint32_t>(ram, moby + 0x24);
      if (!inside(ram, cls, 0x48)) {
          return {};
-@@ -146,6 +303,7 @@ std::vector<rac1::JointMatrix> evaluate_moby(std::span<const std::uint8_t> ram,
+@@ -146,6 +314,7 @@ std::vector<rac1::JointMatrix> evaluate_moby(std::span<const std::uint8_t> ram,
          }
          mods.push_back(m);
      }
@@ -6035,7 +6064,7 @@ index ba890d2d518ca0d1af252fcbd69f4ea76d974421..719c26d3621cf22199143c35eeee0278
      // front): Ratchet's weapon arm, its keys at +0x38 / +0x3C ready in his joint layout. Without them
      // his arms kept the unarmed idle and a gun hung from his lowered hand.
 diff --git a/port/scene/moby_pose.h b/port/scene/moby_pose.h
-index 2cdefac6deb65032099cd8f32034428becfd3dc7..9723868c7d3fd734112bba8dae941c195fccd85e 100644
+index 2cdefac6deb65032099cd8f32034428becfd3dc7..f52edb6a5e0d5c7a56218a4634daafb1c88c04f7 100644
 --- a/port/scene/moby_pose.h
 +++ b/port/scene/moby_pose.h
 @@ -24,6 +24,7 @@
@@ -6046,7 +6075,7 @@ index 2cdefac6deb65032099cd8f32034428becfd3dc7..9723868c7d3fd734112bba8dae941c19
  #include <cstdint>
  #include <span>
  #include <vector>
-@@ -50,4 +51,34 @@ std::vector<assets::rac1::JointMatrix> moby_pose_matrices(
+@@ -50,4 +51,38 @@ std::vector<assets::rac1::JointMatrix> moby_pose_matrices(
      std::span<const std::uint8_t> ram, std::uint32_t moby
  );
  
@@ -6075,9 +6104,13 @@ index 2cdefac6deb65032099cd8f32034428becfd3dc7..9723868c7d3fd734112bba8dae941c19
 +/** The set in force: written before the capture, read by it, on the game's thread. */
 +MobyArms& moby_arms();
 +
-+/** The palette of `arms.moby` as those arms; as moby_palette when it cannot be made. */
++/**
++ * The palette of `arms.moby` as those arms; as moby_palette when it cannot be made. `rest`, when given, is
++ * set per joint: 1 where the joint is the rest of the moby closed onto an elbow (not an arm, its shoulder or
++ * below), whose skin the draw leaves out: blended with an arm's it would run from one elbow to the other.
++ */
 +std::vector<assets::rac1::JointMatrix> moby_arms_palette(
-+    std::span<const std::uint8_t> ram, const MobyArms& arms
++    std::span<const std::uint8_t> ram, const MobyArms& arms, std::vector<std::uint8_t>* rest = nullptr
 +);
 +
  }  // namespace openrac::scene
@@ -6149,6 +6182,178 @@ index 4741deba858e68bc3f76f01f63ac542960d2fa03..729fd0ef20cacd52d3bb7ffc73bb7d3e
  }
  
  // The frame's clear colour is the game's: the level settings' background the gameplay loader put in
+diff --git a/port/viewer/shaders/hero_shadow.frag b/port/viewer/shaders/hero_shadow.frag
+index 0840dcabd7072edc9195dd471ccb0cac6fca313a..66ba6cb4022ed25e859a29d019edd811224ed109 100644
+--- a/port/viewer/shaders/hero_shadow.frag
++++ b/port/viewer/shaders/hero_shadow.frag
+@@ -4,12 +4,17 @@
+ in vec2 v_uv;
+ in vec4 v_colour;
+ flat in int v_glow;
++in float v_kept;  // shadow_depth.vert: the part of the skin on joints the moby draws
+ uniform sampler2D tex_T0;
+ uniform vec4 material_colour;
+ uniform int cutout;
+ #endif
+ void main() {
+ #ifndef OPENRAC_SHADOW_SOLID
++    // A triangle not wholly on joints the moby draws (a moby drawn as its arms): no shadow, as mesh.frag.
++    if (v_kept < 0.999) {
++        discard;
++    }
+     float alpha = v_colour.a * material_colour.a;
+     if (v_glow != 0 || alpha < 0.5 || (cutout != 0 && texture(tex_T0, v_uv).a * alpha < 0.5)) {
+         discard;
+diff --git a/port/viewer/shaders/mesh.frag b/port/viewer/shaders/mesh.frag
+index cd89799f992639309022cb8fc35a30fa778543a8..389f606598eff64484eefed302f7b8fc2f005fe8 100644
+--- a/port/viewer/shaders/mesh.frag
++++ b/port/viewer/shaders/mesh.frag
+@@ -22,6 +22,8 @@ in vec3 v_emission_colour;
+ // screen space, as the GS does.
+ in vec2 v_fog_w;
+ float v_fog;
++// The part of the skin on joints the moby draws (mesh.vert): 1 but where it is drawn as its arms.
++in float v_kept;
+ 
+ uniform sampler2D tex_T0;
+ uniform vec4 material_colour;
+@@ -271,6 +273,12 @@ vec3 probe_surface(vec4 texel, vec3 original) {
+ // OPENRAC_UPSCALED_TEXTURE_COLOURS_SOURCE
+ 
+ void main() {
++#ifndef OPENRAC_SOLID
++    // A triangle not wholly on joints the moby draws: left out, as mesh_depth.frag leaves it.
++    if (v_kept < 0.999) {
++        discard;
++    }
++#endif
+     v_fog = v_fog_w.x / v_fog_w.y;
+ #ifdef OPENRAC_OPAQUE_COLOUR
+     if (opaque_solid != 0) {
+diff --git a/port/viewer/shaders/mesh.vert b/port/viewer/shaders/mesh.vert
+index ac2bd6328837605a598385f8803644b3465250db..c07e9fcdf8e5cdb170016617df89b65cb8851fd3 100644
+--- a/port/viewer/shaders/mesh.vert
++++ b/port/viewer/shaders/mesh.vert
+@@ -70,6 +70,10 @@ out vec3 v_emission_colour;
+ // where a triangle crossed the near plane (Mesa, lavapipe): black wedges at the screen's edges
+ // when the camera stood by a wall.
+ out vec2 v_fog_w;
++// The part of the vertex's skin on joints the moby draws: a joint whose matrix has w 0 is left out
++// (a moby drawn as its arms, the rest of him: openrac_api.moby_arms), and mesh.frag leaves out every
++// triangle not wholly drawn.
++out float v_kept;
+ 
+ const int kPaletteWidth = 1024;
+ const int kLightWidth = 1024;
+@@ -89,13 +93,16 @@ void main() {
+     vec4 p = vec4(position, 1.0);
+     vec3 n = normal;
+     float total = weights.x + weights.y + weights.z + weights.w;
++    v_kept = 1.0;
+     if (skinning != 0 && palette >= 0.0 && total > 0.0) {
+         int base = int(palette + 0.5);
+         mat4 skin = weights.x * joint_matrix(base + int(joints.x))
+                   + weights.y * joint_matrix(base + int(joints.y))
+                   + weights.z * joint_matrix(base + int(joints.z))
+                   + weights.w * joint_matrix(base + int(joints.w));
+-        p = vec4((skin * p).xyz, 1.0);
++        vec4 skinned = skin * p;
++        p = vec4(skinned.xyz, 1.0);
++        v_kept = skinned.w / total;
+         n = mat3(skin) * n;
+     }
+     vec4 world = model * p;
+diff --git a/port/viewer/shaders/mesh_depth.frag b/port/viewer/shaders/mesh_depth.frag
+index 92cb6b63a8ce954e4a3084170c4ea199a86aebec..3acb0c020ccd134f321a78eb7f30b6d7f99ea764 100644
+--- a/port/viewer/shaders/mesh_depth.frag
++++ b/port/viewer/shaders/mesh_depth.frag
+@@ -6,6 +6,7 @@
+ in vec2 v_uv;
+ in float v_alpha;
+ flat in int v_glow;
++in float v_kept;  // mesh_depth.vert: the part of the skin on joints the moby draws
+ uniform sampler2D tex_T0;
+ uniform vec4 material_colour;
+ uniform int cutout;
+@@ -21,6 +22,10 @@ void main() {
+     vec3 geometric = cross(dFdx(v_surface_position), dFdy(v_surface_position));
+ #endif
+ #ifndef OPENRAC_DEPTH_SOLID
++    // A triangle not wholly on joints the moby draws (a moby drawn as its arms): left out, as mesh.frag.
++    if (v_kept < 0.999) {
++        discard;
++    }
+     if (v_glow != 0) {
+         discard;
+     }
+diff --git a/port/viewer/shaders/mesh_depth.vert b/port/viewer/shaders/mesh_depth.vert
+index fb45f8f73cd7b8c66be6b8ab309b426826354370..9f562ff8c473282f8f2419cba97099aec85d1a71 100644
+--- a/port/viewer/shaders/mesh_depth.vert
++++ b/port/viewer/shaders/mesh_depth.vert
+@@ -29,6 +29,7 @@ uniform sampler2D light_texture;
+ out vec2 v_uv;
+ out float v_alpha;
+ flat out int v_glow;
++out float v_kept;  // as mesh.vert's: the part of the skin on joints the moby draws
+ #endif
+ const int kPaletteWidth = 1024;
+ 
+@@ -49,13 +50,16 @@ void main() {
+     vec3 n = normal;
+ #endif
+     float total = weights.x + weights.y + weights.z + weights.w;
++    float kept = 1.0;
+     if (skinning != 0 && palette >= 0.0 && total > 0.0) {
+         int base = int(palette + 0.5);
+         mat4 skin = weights.x * joint_matrix(base + int(joints.x))
+                     + weights.y * joint_matrix(base + int(joints.y))
+                     + weights.z * joint_matrix(base + int(joints.z))
+                     + weights.w * joint_matrix(base + int(joints.w));
+-        p = vec4((skin * p).xyz, 1.0);
++        vec4 skinned = skin * p;
++        p = vec4(skinned.xyz, 1.0);
++        kept = skinned.w / total;
+ #ifdef OPENRAC_DEPTH_NORMALS
+         n = mat3(skin) * n;
+ #endif
+@@ -79,6 +83,7 @@ void main() {
+     gl_ClipDistance[0] = in_picture ? picture_scale * gl_Position.w - gl_Position.x : 1.0;
+     gl_ClipDistance[1] = in_picture ? picture_scale * gl_Position.w + gl_Position.x : 1.0;
+ #ifndef OPENRAC_DEPTH_SOLID
++    v_kept = kept;
+     v_uv = uv;
+     v_alpha = colour.a * tint.a;
+     if (lights >= 0.0 && light_slot >= 0.0) {
+diff --git a/port/viewer/shaders/shadow_depth.vert b/port/viewer/shaders/shadow_depth.vert
+index de06197a82e89592b700d753f56bd5abf536f9b7..9a4ff188ff2fc1b753d44f164aecddf4630d70e4 100644
+--- a/port/viewer/shaders/shadow_depth.vert
++++ b/port/viewer/shaders/shadow_depth.vert
+@@ -28,6 +28,7 @@ uniform sampler2D palette_texture;
+ out vec2 v_uv;
+ out vec4 v_colour;
+ flat out int v_glow;
++out float v_kept;  // as mesh.vert's: the part of the skin on joints the moby draws
+ 
+ mat4 joint_matrix(int index) {
+     int texel = 4 * index;
+@@ -44,13 +45,16 @@ void main() {
+     vec4 p = vec4(position, 1.0);
+ #ifndef OPENRAC_SHADOW_SOLID
+     float total = weights.x + weights.y + weights.z + weights.w;
++    v_kept = 1.0;
+     if (skinning != 0 && palette >= 0.0 && total > 0.0) {
+         int base = int(palette + 0.5);
+         mat4 skin = weights.x * joint_matrix(base + int(joints.x))
+                     + weights.y * joint_matrix(base + int(joints.y))
+                     + weights.z * joint_matrix(base + int(joints.z))
+                     + weights.w * joint_matrix(base + int(joints.w));
+-        p = vec4((skin * p).xyz, 1.0);
++        vec4 skinned = skin * p;
++        p = vec4(skinned.xyz, 1.0);
++        v_kept = skinned.w / total;
+     }
+ #endif
+     vec4 world=model*p;
 diff --git a/sdk/bindings/rac1.ids.lock b/sdk/bindings/rac1.ids.lock
 index 071e81c7dcf3fa58c97c3fd075fbdd1dc6eca75a..6c1af61f259aff466e2e79d8f9dc1cad7887b6b7 100644
 --- a/sdk/bindings/rac1.ids.lock
