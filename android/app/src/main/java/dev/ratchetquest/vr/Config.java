@@ -66,7 +66,12 @@ final class Config {
     static final Choice ORIGINAL_LOD = new Choice("original_lod", "Original draw distances",
         "On leaves out far scenery, as the PlayStation 2 did, for a little more frame rate. Off draws all of it.",
         ON_OFF, TRUE_FALSE, "false");
-    static final Choice[] GRAPHICS = {PRESET, REFRESH, RESOLUTION, MSAA, FILTER, ANISOTROPY, ORIGINAL_LOD};
+    static final Choice MAX_DRAW = new Choice("max_draw_distance", "Max draw distance",
+        "On draws everything as far as you can see: enemies, crates, plants, effects, so nothing pops in. "
+            + "Off draws each of those only as near as the game did. Costs some frame rate. Original draw distances "
+            + "On overrides it.",
+        ON_OFF, TRUE_FALSE, "true");
+    static final Choice[] GRAPHICS = {PRESET, REFRESH, RESOLUTION, MSAA, FILTER, ANISOTROPY, ORIGINAL_LOD, MAX_DRAW};
 
     static final Choice VIEW = new Choice("view", "View",
         "First person is through Ratchet's eyes. Third person keeps the game's camera, with your head looking around. VR Options in the game switches it at any time.",
@@ -172,6 +177,7 @@ final class Config {
                 set(ANISOTROPY, "1");
                 set(FILTER, "normal");
                 set(ORIGINAL_LOD, "true");
+                set(MAX_DRAW, "false");
                 set(REFRESH, "72");
                 break;
             case "quality":
@@ -180,6 +186,7 @@ final class Config {
                 set(ANISOTROPY, "8");
                 set(FILTER, "edge-aware");
                 set(ORIGINAL_LOD, "false");
+                set(MAX_DRAW, "true");
                 set(REFRESH, "72");
                 break;
             default:
@@ -188,6 +195,7 @@ final class Config {
                 set(ANISOTROPY, "4");
                 set(FILTER, "normal");
                 set(ORIGINAL_LOD, "false");
+                set(MAX_DRAW, "true");
                 set(REFRESH, "72");
                 break;
         }
@@ -281,6 +289,7 @@ final class Config {
             + "msaa = " + get(MSAA) + "\n"
             + "texture_filter = " + get(FILTER) + "\n"
             + "anisotropy = " + get(ANISOTROPY) + "\n"
-            + "original_lod = " + get(ORIGINAL_LOD) + "\n";
+            + "original_lod = " + get(ORIGINAL_LOD) + "\n"
+            + "max_draw_distance = " + get(MAX_DRAW) + "\n";
     }
 }

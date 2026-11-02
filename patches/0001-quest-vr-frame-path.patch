@@ -229,7 +229,7 @@ index 0cade011c6e07f2902c83e298ba8ef0a8a99edc8..21ebcb89c4dd9fc4f493cd8e253303c5
  void sky_sprite(const std::uint8_t* record, std::uint64_t tex0);
  
 diff --git a/port/game/common/frontend/frame.cpp b/port/game/common/frontend/frame.cpp
-index 092aec37b6049b0a3854c21612c4918f7629caf4..40de3a9aa9ff1ed049c3758e410aba86d44ba3a6 100644
+index 092aec37b6049b0a3854c21612c4918f7629caf4..b8879082d5c65b3f8d129f1ffc50cec14b2b948e 100644
 --- a/port/game/common/frontend/frame.cpp
 +++ b/port/game/common/frontend/frame.cpp
 @@ -64,6 +64,9 @@
@@ -251,7 +251,7 @@ index 092aec37b6049b0a3854c21612c4918f7629caf4..40de3a9aa9ff1ed049c3758e410aba86
              ) {
                  case OwnCameraLayer::Texture:
                      into_texture.emplace(address, &camera);
-@@ -1125,6 +1128,10 @@ TickMobys pose_mobys(
+@@ -1125,6 +1128,12 @@ TickMobys pose_mobys(
          );
      }
  
@@ -259,20 +259,27 @@ index 092aec37b6049b0a3854c21612c4918f7629caf4..40de3a9aa9ff1ed049c3758e410aba86
 +    // turned from it (view flag 8), keeps what is within draw distance of it as well.
 +    renderer::Vec3 near_position{}, near_forward{};
 +    const bool near = near_eye(state.view(), near_position, near_forward);
++    // Max draw distance (settings.h): a moby's own draw distance leaves nothing out, only what no eye could show.
++    const bool any_distance = settings::get().draws_any_distance();
      for (std::size_t index = 0; index < state.mobys.size(); ++index) {
          const host::LiveMoby& m = state.mobys[index];
          const bool extra = index >= listed;
-@@ -1154,7 +1161,8 @@ TickMobys pose_mobys(
+@@ -1153,8 +1162,12 @@ TickMobys pose_mobys(
+                 [&](const auto& c) { return c.first == m.address; }
              )
              && g->profile->beyond_draw_distance(
-                 ram.data() + m.address, state.camera_position, state.forward
+-                ram.data() + m.address, state.camera_position, state.forward
 -            )) {
++                ram.data() + m.address, state.camera_position, state.forward, any_distance
 +            )
-+            && !(near && !g->profile->beyond_draw_distance(ram.data() + m.address, near_position, near_forward))) {
++            && !(near
++                 && !g->profile->beyond_draw_distance(
++                     ram.data() + m.address, near_position, near_forward, any_distance
++                 ))) {
              continue;
          }
          if (only_own_camera
-@@ -1374,8 +1382,11 @@ TickMobys pose_mobys(
+@@ -1374,8 +1387,11 @@ TickMobys pose_mobys(
      // part of reading the scene, about 1.5 ms a tick for 180 mobys on a phone's fast core), then
      // given palette slots in the loop's order, as one thread gave them.
      std::vector<std::vector<assets::rac1::JointMatrix>> poses(pose_jobs.size());
@@ -285,7 +292,7 @@ index 092aec37b6049b0a3854c21612c4918f7629caf4..40de3a9aa9ff1ed049c3758e410aba86
      });
      for (std::size_t k = 0; k < pose_jobs.size(); ++k) {
          const PoseJob& job = pose_jobs[k];
-@@ -1385,6 +1396,11 @@ TickMobys pose_mobys(
+@@ -1385,6 +1401,11 @@ TickMobys pose_mobys(
          }
          scene::Instance& instance = job.target ? target_mobys[job.index].instance : live[job.index];
          instance.palette = static_cast<int>(palette.size());
@@ -1018,7 +1025,7 @@ index 876d1f93695e552c70a95678e932446f055a4e37..fe649f3d19b3d85dc8e1b32deed7a1b5
      // Told once: the views end with the context.
      if (g_source && g_source->closing != nullptr) {
 diff --git a/port/game/common/frontend/world.cpp b/port/game/common/frontend/world.cpp
-index 3415a05c1418247b4924db0bd3d0d3faf6c390f4..4dd183aeeda6ceca8253558cac54ea5df44d5872 100644
+index 3415a05c1418247b4924db0bd3d0d3faf6c390f4..d7471728962072cff3dfd127a0d04f7ca6fb65a4 100644
 --- a/port/game/common/frontend/world.cpp
 +++ b/port/game/common/frontend/world.cpp
 @@ -36,6 +36,7 @@
@@ -1149,7 +1156,7 @@ index 3415a05c1418247b4924db0bd3d0d3faf6c390f4..4dd183aeeda6ceca8253558cac54ea5d
  };
  
  ParticleDepth particle_depth(const std::uint8_t* r, const host::GameState& state) {
-@@ -663,17 +728,30 @@ ParticleDepth particle_depth(const std::uint8_t* r, const host::GameState& state
+@@ -663,17 +728,35 @@ ParticleDepth particle_depth(const std::uint8_t* r, const host::GameState& state
              centre[i] = (p1[i] + p2[i]) * 0.5f;
          }
      }
@@ -1163,6 +1170,11 @@ index 3415a05c1418247b4924db0bd3d0d3faf6c390f4..4dd183aeeda6ceca8253558cac54ea5d
 -        static_cast<int>(z * 4096.0f),
 -        (r[9] & 0xF) << 10,
 -        std::min((r[9] >> 4) << 17, 0x1F4000)
++    // Max draw distance (settings.h): the record's far is as far as the eyes see, so none fades out
++    // and pops back in at its own (500 units at most, often far less).
++    const int far12 = settings::get().draws_any_distance()
++                          ? static_cast<int>(host::kMaxDrawDistance * 4096.0f)
++                          : std::min((r[9] >> 4) << 17, 0x1F4000);
 +    const auto along = [&](const float* cam, const float* fwd) -> ParticleDepth {
 +        const float z = (centre[0] - cam[0]) * fwd[0] + (centre[1] - cam[1]) * fwd[1]
 +                        + (centre[2] - cam[2]) * fwd[2];
@@ -1171,7 +1183,7 @@ index 3415a05c1418247b4924db0bd3d0d3faf6c390f4..4dd183aeeda6ceca8253558cac54ea5d
 +            z,
 +            static_cast<int>(z * 4096.0f),
 +            (r[9] & 0xF) << 10,
-+            std::min((r[9] >> 4) << 17, 0x1F4000),
++            far12,
 +            z
 +        };
      };
@@ -1190,7 +1202,7 @@ index 3415a05c1418247b4924db0bd3d0d3faf6c390f4..4dd183aeeda6ceca8253558cac54ea5d
  }
  
  // Developer tools, for a diagnostics recording: the frame's particles by type, each type with the
-@@ -773,9 +851,12 @@ void particle_quads(std::span<const std::uint8_t> ram, const host::GameState& st
+@@ -773,9 +856,12 @@ void particle_quads(std::span<const std::uint8_t> ram, const host::GameState& st
          std::memcpy(&v, b, 4);
          return v;
      };
@@ -1206,7 +1218,7 @@ index 3415a05c1418247b4924db0bd3d0d3faf6c390f4..4dd183aeeda6ceca8253558cac54ea5d
  
      struct Item {
          float depth;
-@@ -826,8 +907,7 @@ void particle_quads(std::span<const std::uint8_t> ram, const host::GameState& st
+@@ -826,8 +912,7 @@ void particle_quads(std::span<const std::uint8_t> ram, const host::GameState& st
          }
          cover(r, "");
          const float z = depth.z;
@@ -1216,7 +1228,7 @@ index 3415a05c1418247b4924db0bd3d0d3faf6c390f4..4dd183aeeda6ceca8253558cac54ea5d
          const auto faded = [fade](std::uint32_t c) {
              return (c & 0x00FFFFFFu) | (((c >> 24) * static_cast<std::uint32_t>(fade) >> 12) << 24);
          };
-@@ -900,7 +980,7 @@ void particle_quads(std::span<const std::uint8_t> ram, const host::GameState& st
+@@ -900,7 +985,7 @@ void particle_quads(std::span<const std::uint8_t> ram, const host::GameState& st
          q.clamp = 5;
          q.tex1 = 0xFF9000000120ull;
          q.alpha = r[3];
@@ -1226,7 +1238,7 @@ index 3415a05c1418247b4924db0bd3d0d3faf6c390f4..4dd183aeeda6ceca8253558cac54ea5d
      stats::gauge("particle texture resolves", double(texture_resolves));
      stats::gauge("particle texture reuse", reuse_textures ? 1 : 0);
 diff --git a/port/game/common/include/openrac/game_host.h b/port/game/common/include/openrac/game_host.h
-index 9151cf76eb69f2c21ac97ca2c4bd7b4f2e5edd0e..c71f168714611219124ea87a6c4b5a530a62feee 100644
+index 9151cf76eb69f2c21ac97ca2c4bd7b4f2e5edd0e..5cc7142002a20d93dd8c38d84d11734a8b731963 100644
 --- a/port/game/common/include/openrac/game_host.h
 +++ b/port/game/common/include/openrac/game_host.h
 @@ -442,6 +442,10 @@ typedef struct openrac_game_play {
@@ -1240,7 +1252,7 @@ index 9151cf76eb69f2c21ac97ca2c4bd7b4f2e5edd0e..c71f168714611219124ea87a6c4b5a53
  } openrac_game_play;
  
  extern const openrac_game_play* openrac_game_play_host;
-@@ -604,6 +608,11 @@ int openrac_game_hud_side(void);
+@@ -604,6 +608,16 @@ int openrac_game_hud_side(void);
   * horizontal tangent is the game's times this. 1 for a 4:3 picture, and without a window. */
  float openrac_game_picture_wider(void);
  
@@ -1249,10 +1261,15 @@ index 9151cf76eb69f2c21ac97ca2c4bd7b4f2e5edd0e..c71f168714611219124ea87a6c4b5a53
 + * tangents of its field of view, x then y. 0, and nothing written, when no view is such an eye. */
 +int openrac_game_eye_view(float* position, float* rows, float* tangents);
 +
++/* Quest VR: how deep a moby is drawn whatever its own draw distance, while the player's Max draw
++ * distance is on (settings.h, draws_any_distance; profile.h, kMaxDrawDistance); 0 while it is off,
++ * and without a window. */
++float openrac_game_any_distance(void);
++
  /* A game fix's flag, by its setting key (port/game/<game>/differences.json, kind "fix";
   * game/common/fixes.h): nonzero while the port's fix is on, 0 for the console's behaviour. The
   * pointer stays good for the program's life and follows the player's setting, so the code a fix
-@@ -657,6 +666,8 @@ void openrac_game_mc_state(gaddr command, gaddr result);
+@@ -657,6 +671,8 @@ void openrac_game_mc_state(gaddr command, gaddr result);
  /* --level N: the level a new game starts in (the game's own number), or -1 for the game's own
   * first level. For getting to a level directly, as the behaviour checker's level write does. */
  extern int openrac_game_start_level;
@@ -1608,10 +1625,37 @@ index 9d18d8270fa9d506afd3ce449ab16cfdbaeb2138..9ad5ddf284a199c20b280841cc5274ae
  // callbacks run.
  void tick_boundary(std::uint32_t tick);
 diff --git a/port/game/common/options_menu.cpp b/port/game/common/options_menu.cpp
-index 7d45901f33e2f19df8566d527ec8c8654c8352ce..c21896bfabef1038a75e71114e864010a5a82207 100644
+index 7d45901f33e2f19df8566d527ec8c8654c8352ce..d5f9c15f3e7c3d83147c02d2e87330528dade774 100644
 --- a/port/game/common/options_menu.cpp
 +++ b/port/game/common/options_menu.cpp
-@@ -650,7 +650,7 @@ constexpr int kTextVideo = kTextFirst + 2 * kShown;
+@@ -329,7 +329,8 @@ std::string value_of(int row) {
+             return samples > 1 ? std::format("Anisotropic {}x", samples) : std::string("Trilinear");
+         }
+         case kSceneryDetail:
+-            return s.original_lod ? "Original" : "Full";
++            // Max: mobys and particles too, however far (settings.h, max_draw_distance).
++            return s.original_lod ? "Original" : s.max_draw_distance ? "Max" : "Full";
+         case kVSync:
+             return settings::name(s.vsync);
+         case kFrameRate:
+@@ -411,9 +412,14 @@ void step_value(int row, int by) {
+                 )
+             );
+             break;
+-        case kSceneryDetail:
+-            s.original_lod = !s.original_lod;
++        case kSceneryDetail: {
++            // Original, Full, Max, round.
++            const int at = s.original_lod ? 0 : s.max_draw_distance ? 2 : 1;
++            const int next = (at + by % 3 + 3) % 3;
++            s.original_lod = next == 0;
++            s.max_draw_distance = next == 2;
+             break;
++        }
+         case kVSync:
+             s.vsync = stepped_enum(s.vsync, by);
+             break;
+@@ -650,7 +656,7 @@ constexpr int kTextVideo = kTextFirst + 2 * kShown;
  constexpr int kPauseTexts = 3;
  gaddr pause_texts = 0;
  // The pause menu's Video page's rows: kPauseRows labels, then as many values.
@@ -1620,7 +1664,7 @@ index 7d45901f33e2f19df8566d527ec8c8654c8352ce..c21896bfabef1038a75e71114e864010
  constexpr int kPauseRowText = kTextVideo + kPauseTexts;
  gaddr pause_rows_text = 0;
  
-@@ -768,7 +768,7 @@ Rows make_rows(gaddr camera, gaddr sound, int title_text, int row_text) {
+@@ -768,7 +774,7 @@ Rows make_rows(gaddr camera, gaddr sound, int title_text, int row_text) {
      std::memcpy(G(r.page), G(camera_page), kPageBytes);
      std::memcpy(G(r.list), G(camera_list), kScreenBytes);
      if (sound != 0) {
@@ -1642,11 +1686,51 @@ index 14c859d6200f9c33a7816d2fbef72dce258c40e1..302dc09ef85beb97d980fd61bd22b0dd
  PauseRows pause_rows(int index);
  // Drops guest-memory addresses cached by the port's Video pages. A restored snapshot can replace
  // the guest allocations and level program those addresses referred to.
+diff --git a/port/game/common/profile.h b/port/game/common/profile.h
+index b0e3db661ee44e126486fe313fbb78ba0e3de02f..e4afff5b7529e9455de0f70abde678cd4af57e10 100644
+--- a/port/game/common/profile.h
++++ b/port/game/common/profile.h
+@@ -27,6 +27,11 @@
+ 
+ namespace openrac::host {
+ 
++// Max draw distance's reach (settings.h, max_draw_distance), game units of depth: the headset's eyes'
++// far plane (frontend/views.cpp, kFar). A moby or particle deeper than it is none an eye could show:
++// Pokitaru's two class 1161 mobys turned by -5 pi, thousands of units off the level, stay out with it.
++inline constexpr float kMaxDrawDistance = 2000.0f;
++
+ // A moby as the renderers place it.
+ struct LiveMoby {
+     std::uint32_t address = 0;         // The moby in game memory (its animation fields, its class).
+@@ -122,11 +127,13 @@ public:
+     }
+ 
+     // Whether the game's moby update leaves the moby whose record starts at `moby` undrawn by its
+-    // distance from the camera at `eye`, looking along the unit axis `forward` (game units).
++    // distance from the camera at `eye`, looking along the unit axis `forward` (game units). With
++    // `any_distance` (Max draw distance, settings.h) only what no eye could show is left out.
+     virtual bool beyond_draw_distance(
+         const std::uint8_t* /*moby*/,
+         const renderer::Vec3& /*eye*/,
+-        const renderer::Vec3& /*forward*/
++        const renderer::Vec3& /*forward*/,
++        bool /*any_distance*/
+     ) const {
+         return false;
+     }
 diff --git a/port/game/common/program/game_host.cpp b/port/game/common/program/game_host.cpp
-index 83f7de5281e4e9a080a85a7766ac18097423c4e6..f3b4cc52c180467414e7983da8a0edc9f3168aad 100644
+index 83f7de5281e4e9a080a85a7766ac18097423c4e6..40e4073d3b3b7ec56d2809b6ca21f9b05d54debd 100644
 --- a/port/game/common/program/game_host.cpp
 +++ b/port/game/common/program/game_host.cpp
-@@ -411,6 +411,17 @@ float openrac_game_picture_wider(void) {
+@@ -41,6 +41,7 @@
+ 
+ #ifdef OPENRAC_FRONTEND
+ #include "frontend.h"
++#include "game/common/profile.h"
+ #include "renderer/direct.h"
+ #include "renderer/texture.h"
+ #include "scene/moby_pose.h"
+@@ -411,6 +412,28 @@ float openrac_game_picture_wider(void) {
      });
  }
  
@@ -1658,6 +1742,17 @@ index 83f7de5281e4e9a080a85a7766ac18097423c4e6..f3b4cc52c180467414e7983da8a0edc9
 +        }
 +#endif
 +        return 0;
++    });
++}
++
++float openrac_game_any_distance(void) {
++    return c_boundary::call("openrac_game_any_distance", 0.0f, [&]() -> float {
++#ifdef OPENRAC_FRONTEND
++        if (g_window && settings::get().draws_any_distance()) {
++            return host::kMaxDrawDistance;
++        }
++#endif
++        return 0.0f;
 +    });
 +}
 +
@@ -1677,6 +1772,47 @@ index a85baf599207847746d6ce6e227acb18961ed6a3..ca62a89ecda9d3f470e0e6ebc140af97
      // Render snapshots own their values, so next-tick writes precede the overlapping CPU capture.
      apply_writes();
  #ifdef OPENRAC_FRONTEND
+diff --git a/port/game/common/settings.cpp b/port/game/common/settings.cpp
+index e343a37cb0e75522f1a74cb3efe0f51a22b016d7..863609a3cb79a4e0822ea3a75fce4438c8af4e52 100644
+--- a/port/game/common/settings.cpp
++++ b/port/game/common/settings.cpp
+@@ -391,6 +391,8 @@ void load(const std::filesystem::path& file) {
+             known = parse_bool(value, s.mute_unfocused);
+         } else if (key == "original_lod") {
+             known = parse_bool(value, s.original_lod);
++        } else if (key == "max_draw_distance") {
++            known = parse_bool(value, s.max_draw_distance);
+         } else if (key == "fresh_input") {
+             known = parse_bool(value, s.fresh_input);
+         } else if (key == "low_latency_frames") {
+@@ -559,6 +561,7 @@ void save() {
+         << "menu_bar = " << (s.menu_bar ? 1 : 0) << "\n"
+         << "mute_unfocused = " << (s.mute_unfocused ? 1 : 0) << "\n"
+         << "original_lod = " << (s.original_lod ? 1 : 0) << "\n"
++        << "max_draw_distance = " << (s.max_draw_distance ? 1 : 0) << "\n"
+         << "fresh_input = " << (s.fresh_input ? 1 : 0) << "\n"
+         << "low_latency_frames = " << (s.low_latency_frames ? 1 : 0) << "\n"
+         << "skip_cutscenes = " << (s.skip_cutscenes ? 1 : 0) << "\n"
+diff --git a/port/game/common/settings.h b/port/game/common/settings.h
+index 4135f28caf51e5d0a0b3df37b100b343fb778522..d33bf3016155e4363aded73ebc1b95eaab9340f6 100644
+--- a/port/game/common/settings.h
++++ b/port/game/common/settings.h
+@@ -136,6 +136,15 @@ struct Settings {
+     // scene::LevelScene::choose_scenery; levels exported before it have no shrub limits). Both draw
+     // each one at its most detailed LOD.
+     bool original_lod = false;
++    // Max draw distance (the Quest fork's; on by default): every moby and particle is drawn however
++    // far the eyes see (profile.h kMaxDrawDistance), as Full draws the ties and shrubs, instead of
++    // up to its own draw distance (a moby's +0x32, a particle record's far): nothing pops in. The game
++    // counts a moby so drawn as drawn and runs it (render_native.c), so it does not stand frozen. A
++    // moby the game never draws (a draw distance of 0, hidden) still is not. Original overrides it.
++    bool max_draw_distance = true;
++
++    // Whether mobys and particles are drawn however far (max_draw_distance, unless Original).
++    bool draws_any_distance() const { return max_draw_distance && !original_lod; }
+ 
+     int anisotropy_samples(bool enhanced) const {
+         return anisotropy ? anisotropy : enhanced ? 4 : 1;
 diff --git a/port/game/rac1-ntsc/host/rac1_version.h b/port/game/rac1-ntsc/host/rac1_version.h
 index d47b464a57db390665797beb86e96b8ae559d1e3..0dafed51a7b1e7b5bfcfec42ae3d12c6f5108ac8 100644
 --- a/port/game/rac1-ntsc/host/rac1_version.h
@@ -1790,6 +1926,50 @@ index 95c37ea746def94fd2341f0a4c5e7d47ac8da59e..41c698c9963440455030bf1e05ac0c0e
  func_L00_002C83D0	moby	Moby_SwingshotHook_Update	hook	The update of class swingshot_hook (209), each tick: a hook point for mods, rac1.moby.moby209.update (docs/port/MODS.md); retail with none
  func_L00_002C8DB8	moby	Moby_GloveOfDoom_Update	hook	The update of class glove_of_doom (229), each tick: a hook point for mods, rac1.moby.carrier.update (docs/port/MODS.md); retail with none
  func_L00_002C9DC8	moby	Moby_Bomb_Update	hook	The update of class bomb (230), each tick: a hook point for mods, rac1.moby.bomb_230.update (docs/port/MODS.md); retail with none
+diff --git a/port/game/rac1/game_state.cpp b/port/game/rac1/game_state.cpp
+index 30bd7fed2b3595bce585f67d42f256abc70c87d6..db409c497f9efbdd76f3d8e9cb956c75d97404f6 100644
+--- a/port/game/rac1/game_state.cpp
++++ b/port/game/rac1/game_state.cpp
+@@ -146,7 +146,9 @@ std::optional<host::LiveMoby> read_live_moby(std::span<const std::uint8_t> ram,
+     return live;
+ }
+ 
+-bool moby_beyond_draw_distance(const std::uint8_t* moby, const renderer::Vec3& eye, const renderer::Vec3& forward) {
++bool moby_beyond_draw_distance(
++    const std::uint8_t* moby, const renderer::Vec3& eye, const renderer::Vec3& forward, bool any_distance
++) {
+     float sphere[4];
+     std::memcpy(sphere, moby, sizeof(sphere));
+     std::int16_t distance;
+@@ -163,7 +165,9 @@ bool moby_beyond_draw_distance(const std::uint8_t* moby, const renderer::Vec3& e
+         {sphere[0] / 1024.0f - eye[0], sphere[1] / 1024.0f - eye[1], sphere[2] / 1024.0f - eye[2]};
+     const float depth = to[0] * forward[0] + to[1] * forward[1] + to[2] * forward[2];
+     const float radius = std::fabs(sphere[3]) / 1024.0f;
+-    if (depth > static_cast<float>(distance) || depth + radius <= 32.0f / 1024.0f) {
++    const float limit = any_distance ? std::max(static_cast<float>(distance), host::kMaxDrawDistance)
++                                     : static_cast<float>(distance);
++    if (depth > limit || depth + radius <= 32.0f / 1024.0f) {
+         return true;
+     }
+     // Wholly outside the view's sides, by far: the game's sphere test culls it (the view block's
+diff --git a/port/game/rac1/game_state.h b/port/game/rac1/game_state.h
+index 4216bd6ea9e62291950cbc3d3fe47e98074ab3f3..b49fe569837bb36d8c7e4ad925a4875aee2146ac 100644
+--- a/port/game/rac1/game_state.h
++++ b/port/game/rac1/game_state.h
+@@ -75,8 +75,12 @@ std::optional<host::LiveMoby> read_live_moby(std::span<const std::uint8_t> ram,
+  * @param moby The moby's 0x100 bytes.
+  * @param eye The camera's position, game units.
+  * @param forward The camera's view direction (unit).
++ * @param any_distance Max draw distance (settings.h): the moby's own distance is raised to
++ *     host::kMaxDrawDistance.
+  */
+-bool moby_beyond_draw_distance(const std::uint8_t* moby, const renderer::Vec3& eye, const renderer::Vec3& forward);
++bool moby_beyond_draw_distance(
++    const std::uint8_t* moby, const renderer::Vec3& eye, const renderer::Vec3& forward, bool any_distance = false
++);
+ 
+ /** The display list of the frame being shown (the buffer VU1_swapChain retired last). */
+ std::uint32_t shown_chain(std::span<const std::uint8_t> ram, const GameAddresses& a);
 diff --git a/port/game/rac1/host/boot.c b/port/game/rac1/host/boot.c
 index 4c663be4009515ef044457ebdd39f6299d6e8483..20b0130f9ebf9495664d95ddebcb9abd5ee90be4 100644
 --- a/port/game/rac1/host/boot.c
@@ -1902,6 +2082,22 @@ index 48ee096666170a97fcd8bcd622033b2722e2097b..c6bf761bc92bae78d284eddaca08b33e
  static int same_piece(const openrac_game_held_piece* a, const openrac_game_held_piece* b) {
      return a->slot == b->slot && a->part == b->part && a->oclass == b->oclass;
  }
+diff --git a/port/game/rac1/host/moby_pool.c b/port/game/rac1/host/moby_pool.c
+index c12acede2483ee75560988183841cfefe4fc8983..dcf1d67b465aa4e79d327920631fe151f5074df2 100644
+--- a/port/game/rac1/host/moby_pool.c
++++ b/port/game/rac1/host/moby_pool.c
+@@ -321,8 +321,9 @@ gaddr func_0020E6B8(void) {
+             t = t - dy * dy;
+             t = t - dz * dz;
+             /* Farther than its update distance from the camera, and from every eye a mod set
+-             * (world.c: other players, in the game that runs the world). */
+-            if (t < 0.0f && !near_an_eye(m, d * d)) {
++             * (world.c: other players, in the game that runs the world), and not a hidden moby
++             * seen with Max draw distance (render_native.c). */
++            if (t < 0.0f && !near_an_eye(m, d * d) && !rac1_moby_seen_hidden(m)) {
+                 run_note(idx, 0); /* OPENRAC_MOBY_RUN_FAR */
+                 continue;
+             }
 diff --git a/port/game/rac1/host/play.c b/port/game/rac1/host/play.c
 index 41c2cccf4ea17db9d19a9084258a50e526382b8a..31f2242d3a6634468c0330dc0637e5343df443d1 100644
 --- a/port/game/rac1/host/play.c
@@ -1916,10 +2112,22 @@ index 41c2cccf4ea17db9d19a9084258a50e526382b8a..31f2242d3a6634468c0330dc0637e534
      .hero_slot = rac1_world_hero_slot,
      .stand_in = rac1_world_stand_in,
 diff --git a/port/game/rac1/host/rac1.h b/port/game/rac1/host/rac1.h
-index 22cb7bf3b61cd2497070f1816ae78c9099c42222..53fdaeca4007fa8941b6b5dc795a84d8173205ae 100644
+index 22cb7bf3b61cd2497070f1816ae78c9099c42222..536a63bf775de8c8eac91ab275290d471a169034 100644
 --- a/port/game/rac1/host/rac1.h
 +++ b/port/game/rac1/host/rac1.h
-@@ -115,6 +115,8 @@ int rac1_hero_held(openrac_game_held* out);
+@@ -91,6 +91,11 @@ int rac1_world_moby_run(int32_t slot, openrac_game_moby_run* out);
+  * whether the level's mobys are the current context (not the pause menu's). */
+ int rac1_moby_run(int32_t slot, uint32_t* runs, float camera[3]);
+ int rac1_level_mobys_current(void);
++/* render_native.c's MobyProc with Max draw distance on (openrac_game_any_distance): whether `moby`,
++ * hidden (mode 0x81), was in view within that reach the last time it looked. moby_pool.c's run list
++ * runs it, as a drawn one: a moby hidden for a scene, and run only near the camera, shows itself
++ * again when its update runs, which otherwise is when the camera comes near it, not when it is seen. */
++int rac1_moby_seen_hidden(gaddr moby);
+ int32_t rac1_world_moby_spawn(int32_t oclass);
+ int32_t rac1_world_hero_slot(void);
+ void rac1_world_stand_in(const float position[3], gaddr moby);
+@@ -115,6 +120,8 @@ int rac1_hero_held(openrac_game_held* out);
  void rac1_figure_held(gaddr figure, const openrac_game_held* held);
  int rac1_hero_shots(openrac_game_shot* out, int max);
  int rac1_figure_shot(gaddr figure, const openrac_game_shot* shot);
@@ -1929,43 +2137,100 @@ index 22cb7bf3b61cd2497070f1816ae78c9099c42222..53fdaeca4007fa8941b6b5dc795a84d8
  void rac1_figure_items_remove(gaddr figure);
  int rac1_figure_owned(gaddr moby);
 diff --git a/port/game/rac1/host/render_native.c b/port/game/rac1/host/render_native.c
-index 4f69ab7acb825e9d034813dbb7489b88351ba89f..9b674d937b637030d2b6c72c4b16f8cd7b935fa4 100644
+index 4f69ab7acb825e9d034813dbb7489b88351ba89f..eb6f5151d6b973e44dd3796cab9bcd2f026e5607 100644
 --- a/port/game/rac1/host/render_native.c
 +++ b/port/game/rac1/host/render_native.c
-@@ -110,6 +110,10 @@ void func_00212578(int a0, int a1) {
+@@ -110,7 +110,41 @@ void func_00212578(int a0, int a1) {
   * (+0x32, s16 units, at most the global one at D_00160030), wholly in front of the near plane, or
   * wholly outside a side plane of the view. The side planes are the port's picture's, wider than
   * 4:3 when it is (moby_view.h).
 + *
 + * Quest VR: what a headset's eye sees is drawn too, wherever the game's camera looks
 + * (openrac_game_eye_view): the head turns away from it, and as Rerac-vr found, an enemy behind that
-+ * camera stood frozen in plain sight, its hits never read.
++ * camera stood frozen in plain sight, its hits never read. With Max draw distance a moby in view is
++ * drawn however far (openrac_game_any_distance), and a hidden one in view is noted for the run list
++ * (rac1_moby_seen_hidden).
   */
++#define SEEN_SLOTS 4096
++
++/* Which slots of the level's moby array hold a hidden moby last seen in view, and of which load. */
++static struct {
++    uint32_t load;
++    uint8_t slot[SEEN_SLOTS];
++} seen_hidden = {0xFFFFFFFFu, {0}};
++
++static uint8_t* seen_slot(gaddr moby) {
++    if (!rac1_level_mobys_current()) {
++        return NULL;  // the pause menu's own mobys
++    }
++    if (seen_hidden.load != rac1_program_loads()) {
++        seen_hidden.load = rac1_program_loads();
++        memset(seen_hidden.slot, 0, sizeof seen_hidden.slot);
++    }
++    const gaddr base = (gaddr)GREF(int, OPENRAC_DATA(RAC1_ADDR(0x00160018u)));
++    if (moby < base || (moby - base) / 0x100u >= SEEN_SLOTS) {
++        return NULL;
++    }
++    return &seen_hidden.slot[(moby - base) / 0x100u];
++}
++
++int rac1_moby_seen_hidden(gaddr moby) {
++    const uint8_t* seen = seen_slot(moby);
++    return seen != NULL && *seen != 0;
++}
++
  static void mark_drawn_mobys(gaddr first, int count) {
      float cam[3], rows[12], view[12];
-@@ -141,6 +145,8 @@ static void mark_drawn_mobys(gaddr first, int count) {
+     memcpy(cam, G(OPENRAC_DATA(RAC1_ADDR(0x00187180u))), sizeof(cam));
+@@ -141,6 +175,11 @@ static void mark_drawn_mobys(gaddr first, int count) {
          fix = openrac_game_fix("fix_wide_moby_effects");
      }
      const float wider = *fix ? openrac_game_picture_wider() : 1.0f;
 +    float eye[3], eye_rows[12], eye_tangents[2];
 +    const int has_eye = openrac_game_eye_view(eye, eye_rows, eye_tangents);
++    /* Max draw distance: the window draws a moby however deep (frame.cpp), so it is drawn as far for
++     * the game too and runs, as what is seen does: no far enemy standing frozen until it comes near. */
++    const float any_distance = openrac_game_any_distance();
      const gaddr end = first + (gaddr)count * 0x100u;
      const int max_distance = GREF(int, OPENRAC_DATA(RAC1_ADDR(0x00160030u)));
      const uint8_t* groups = G(OPENRAC_DATA(RAC1_ADDR(0x001940C0u)));
-@@ -171,6 +177,13 @@ static void mark_drawn_mobys(gaddr first, int count) {
+@@ -157,8 +196,9 @@ static void mark_drawn_mobys(gaddr first, int count) {
+             continue;
+         }
+         const uint16_t mode = *(uint16_t*)(b + 0x34);
+-        int drawn = (b[0x36] & groups[b[0x37]]) != 0 && (mode & 0x81) == 0;
+-        if (drawn) {
++        const int hidden = (mode & 0x81) != 0;
++        int in_view = (b[0x36] & groups[b[0x37]]) != 0 && (!hidden || any_distance > 0.0f);
++        if (in_view) {
+             float sphere[4];
+             memcpy(sphere, b, sizeof(sphere));
+             const float r = sphere[3] / 1024.0f;
+@@ -170,9 +210,22 @@ static void mark_drawn_mobys(gaddr first, int count) {
+             if (distance > max_distance) {
                  distance = max_distance;  // pminw with the global draw distance
              }
-             drawn = moby_in_view(d, rows, r, (float)distance, tx, ty, wider);
-+            if (!drawn && has_eye) {
+-            drawn = moby_in_view(d, rows, r, (float)distance, tx, ty, wider);
++            /* A draw distance of 0 stays undrawn: the volumes and blockers the window leaves out too. */
++            const float reach = distance > 0 && any_distance > (float)distance ? any_distance : (float)distance;
++            in_view = moby_in_view(d, rows, r, reach, tx, ty, wider);
++            if (!in_view && has_eye) {
 +                const float e[3] =
 +                    {sphere[0] / 1024.0f - eye[0],
 +                     sphere[1] / 1024.0f - eye[1],
 +                     sphere[2] / 1024.0f - eye[2]};
-+                drawn = moby_in_view(e, eye_rows, r, (float)distance, eye_tangents[0], eye_tangents[1], 1.0f);
++                in_view = moby_in_view(e, eye_rows, r, reach, eye_tangents[0], eye_tangents[1], 1.0f);
 +            }
++        }
++        uint8_t* seen = seen_slot(m);
++        if (seen != NULL) {
++            *seen = (uint8_t)(in_view && hidden);
          }
-         b[0x31] = (uint8_t)(drawn ? 1 : 0);
+-        b[0x31] = (uint8_t)(drawn ? 1 : 0);
++        b[0x31] = (uint8_t)(in_view && !hidden ? 1 : 0);
      }
+ }
+ 
 diff --git a/port/game/rac1/host/wide_view.c b/port/game/rac1/host/wide_view.c
 index b6a6d178740fbb8cab2af283c523191fa6e41388..82ef9c4a38022364feb01c481f718e81253f7c82 100644
 --- a/port/game/rac1/host/wide_view.c
@@ -2052,6 +2317,22 @@ index 7e0c2f9dd2e8d1d503f202b7f8d997ef17d567cf..0270df5137e0041317dddbec2e81a74c
      func_001FD3E8__game();
  }
  
+diff --git a/port/game/rac1/profile.cpp b/port/game/rac1/profile.cpp
+index 2c18369a935b03c57c74adcba51b00e968493a10..5fa35f9af08a65dc7c5e8e7360da588a041f3c77 100644
+--- a/port/game/rac1/profile.cpp
++++ b/port/game/rac1/profile.cpp
+@@ -194,9 +194,9 @@ public:
+     }
+ 
+     bool beyond_draw_distance(
+-        const std::uint8_t* moby, const renderer::Vec3& eye, const renderer::Vec3& forward
++        const std::uint8_t* moby, const renderer::Vec3& eye, const renderer::Vec3& forward, bool any_distance
+     ) const override {
+-        return moby_beyond_draw_distance(moby, eye, forward);
++        return moby_beyond_draw_distance(moby, eye, forward, any_distance);
+     }
+ 
+     std::uint32_t shown_chain(std::span<const std::uint8_t> ram, int level) const override {
 diff --git a/port/game/rac1/script_binding.c b/port/game/rac1/script_binding.c
 index 414d1251cf2575cd83be2af79135b8014f39c974..13ce9ad53801e83ae09fbfbdb12ea368310a3dc0 100644
 --- a/port/game/rac1/script_binding.c
@@ -5800,6 +6081,74 @@ index 2cdefac6deb65032099cd8f32034428becfd3dc7..9723868c7d3fd734112bba8dae941c19
 +);
 +
  }  // namespace openrac::scene
+diff --git a/port/tests/settings_test.cpp b/port/tests/settings_test.cpp
+index e21fb18d5864f81ab9bf56a131dd8090d7350d04..87bf2d17c27bfaf2ba89fb05024828f80543c9c7 100644
+--- a/port/tests/settings_test.cpp
++++ b/port/tests/settings_test.cpp
+@@ -240,6 +240,25 @@ void test_game_options_are_saved_when_they_change(const std::filesystem::path& f
+     CHECK(read_file(file).find("game_language = 4\n") != std::string::npos);
+ }
+ 
++// Max draw distance: on by default, the launcher's true and false, kept through a save, and Original over it.
++void test_max_draw_distance(const std::filesystem::path& file) {
++    namespace settings = openrac::settings;
++    std::ofstream(file) << "";
++    settings::load(file);
++    CHECK(settings::get().max_draw_distance);
++    CHECK(settings::get().draws_any_distance());
++    std::ofstream(file) << "max_draw_distance = false\n";
++    settings::load(file);
++    CHECK(!settings::get().max_draw_distance);
++    settings::save();
++    settings::load(file);
++    CHECK(!settings::get().max_draw_distance);
++    std::ofstream(file) << "max_draw_distance = true\noriginal_lod = true\n";
++    settings::load(file);
++    CHECK(settings::get().max_draw_distance);
++    CHECK(!settings::get().draws_any_distance());
++}
++
+ }  // namespace
+ 
+ int main() {
+@@ -272,6 +291,9 @@ int main() {
+     test_frame_counter_modes(file);
+     test_game_options_load_from_the_file(file);
+     test_game_options_are_saved_when_they_change(file);
++    test_max_draw_distance(file);
++    std::ofstream(file) << "";
++    settings::load(file);
+     CHECK(settings::get().texture_filter == renderer::TextureFilter::EdgeAware);
+     CHECK(settings::get().anisotropy == 0);
+     CHECK(settings::get().anisotropy_samples(true) == 4);
+diff --git a/port/tests/viewer_test.cpp b/port/tests/viewer_test.cpp
+index 4741deba858e68bc3f76f01f63ac542960d2fa03..729fd0ef20cacd52d3bb7ffc73bb7d3e1d4e03ab 100644
+--- a/port/tests/viewer_test.cpp
++++ b/port/tests/viewer_test.cpp
+@@ -1113,8 +1113,23 @@ void moby_draw_distance() {
+     CHECK(
+         game::rac1::moby_beyond_draw_distance(moby, {550.0f, 530.0f, 230.0f}, {0.7f, 0.7f, 0.0f})
+     );
++    // Max draw distance: the same Pokitaru moby still out, even looked at straight on, from the level.
++    CHECK(game::rac1::moby_beyond_draw_distance(
++        moby, {550.0f, 530.0f, 230.0f}, {0.8812f, 0.4728f, 0.0f}, true
++    ));
+     place(0.0f, 0.0f, 0.0f, 0.0f, 64);  // no sphere yet
+     CHECK(!game::rac1::moby_beyond_draw_distance(moby, eye, forward));
++    // Max draw distance: past its own 64 to the eyes' far plane, but not behind the eye or past that plane.
++    place(170.0f, 0.0f, 0.0f, 1.0f, 64);
++    CHECK(!game::rac1::moby_beyond_draw_distance(moby, eye, forward, true));
++    place(1900.0f, 0.0f, 0.0f, 1.0f, 64);
++    CHECK(!game::rac1::moby_beyond_draw_distance(moby, eye, forward, true));
++    place(2600.0f, 0.0f, 0.0f, 1.0f, 64);
++    CHECK(game::rac1::moby_beyond_draw_distance(moby, eye, forward, true));
++    place(90.0f, 0.0f, 0.0f, 1.0f, 64);
++    CHECK(game::rac1::moby_beyond_draw_distance(moby, eye, forward, true));
++    place(170.0f, 0.0f, 0.0f, 1.0f, 3000);  // its own reach beyond the plane is kept
++    CHECK(!game::rac1::moby_beyond_draw_distance(moby, eye, forward, true));
+ }
+ 
+ // The frame's clear colour is the game's: the level settings' background the gameplay loader put in
 diff --git a/sdk/bindings/rac1.ids.lock b/sdk/bindings/rac1.ids.lock
 index 071e81c7dcf3fa58c97c3fd075fbdd1dc6eca75a..6c1af61f259aff466e2e79d8f9dc1cad7887b6b7 100644
 --- a/sdk/bindings/rac1.ids.lock

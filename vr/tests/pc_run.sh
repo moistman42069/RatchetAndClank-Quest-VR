@@ -25,6 +25,7 @@ msaa = ${QUEST_MSAA:-2}
 texture_filter = normal
 anisotropy = 4
 original_lod = ${QUEST_LOD:-false}
+max_draw_distance = ${QUEST_MAX_DRAW:-true}
 INI
 export QUEST_SIM_SCRIPT="C:/RACQuest/RatchetQuestVR/vr/tests/$NAME.sim" QUEST_SIM_OUT="$OUT" QUEST_VR_STATUS="$OUT/status.txt"
 # VR Options start at their defaults each run: the file a run saves beside its status is not the next run's. A test

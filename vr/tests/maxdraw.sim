@@ -1,0 +1,20 @@
+# Max draw distance: the first level walked for about 20 s, the head swept left and right while walking (Direction
+# Gaze, so the walk curves with it), shots ahead at the start, midway and the end. QUEST_MAX_DRAW=false compares.
+600 y 1
+606 y 0
+3000 shot start
+3050 left_y 1
+3150 head_yaw 35
+3300 head_yaw -35
+3450 head_yaw 0
+3500 shot middle
+3600 head_yaw 50
+3750 head_yaw -20
+3900 head_yaw 0
+4050 head_yaw -50
+4200 head_yaw 0
+4300 left_y 0
+4320 shot end
+4350 head_yaw 180
+4400 shot back
+4440 quit 0

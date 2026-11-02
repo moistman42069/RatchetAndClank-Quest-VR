@@ -14,12 +14,16 @@ it worked (the log is in Download/RatchetQuestVR). PC-proven features are in STA
   popped in close; its particles and stars went too. On 0.1.5 turn round on the first level, look across it, walk:
   nothing should pop in near you, smoke and sparks should stay, Rilgar's stars should fill the sky, and an enemy seen
   with your back to the game's camera should move and take hits.
+- **Max draw distance (0.1.7, on by default).** Walk the first level and look far across it: no crate, bolt, plant or
+  enemy should appear as you approach, far toads should hop about rather than stand still, and after the opening scene
+  the toads and bolts should be there at once. Then switch it off in the launcher's Graphics tab and compare: things
+  should pop in again at 0.1.6's distances. Note the `[vr-perf]` lines with it on and off.
 - **The US disc (NTSC-U).** 0.1.2 to 0.1.5 never loaded the VR mod on it: a black headset, and
-  `mod quest-vr not loaded: Hud_Frame: the hook point's signature is another` in the log. On 0.1.6 with that disc the
-  log must say `mod quest-vr 0.1.6 loaded`, and the headset show the game. Fixed and checked by the disc's hook table;
-  no NTSC run was possible here.
+  `mod quest-vr not loaded: Hud_Frame: the hook point's signature is another` in the log. On 0.1.6 or later with that
+  disc the log must say `mod quest-vr 0.1.7 loaded` (or the version run), and the headset show the game. Fixed and
+  checked by the disc's hook table; no NTSC run was possible here.
 - **Frame rate.** The `[vr-perf]` lines. The first level ran at 60 to 70 frames a second against 72 Hz on 0.1.2 and
-  0.1.4; 0.1.5 draws more, so compare.
+  0.1.4, and about 57 on 0.1.6; 0.1.7's Max draw distance draws and runs more, so compare it on and off.
 - **Recentring.** Press the left controller's menu button: `[vr-rig] recentred: the left menu button`. Hold the
   headset's own button (the Meta button) to recentre: `[vr-rig] recentred: the headset's own recentre`. Either
   puts the view back where Ratchet stands, facing where you look.

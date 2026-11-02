@@ -228,6 +228,8 @@ public class LauncherTest {
         anisotropy.add("auto");
         allowed.put("anisotropy", anisotropy);
         allowed.put("original_lod", bools);
+        allowed.put("max_draw_distance", bools);
+        assertTrue("the port parses max_draw_distance", cpp.contains("key == \"max_draw_distance\""));
 
         Config config = new Config(app);
         readByThePort(config.gameSettings(), allowed);
@@ -271,6 +273,26 @@ public class LauncherTest {
         config = new Config(app);
         config.applyPreset("performance");
         assertEquals("true", config.get(Config.ORIGINAL_LOD));
+    }
+
+    @Test
+    public void maxDrawDistanceIsOnByDefaultAndOffOnPerformance() {
+        android.content.SharedPreferences options = app.getSharedPreferences("options", Context.MODE_PRIVATE);
+        // A new install, and an update from a version without it: on.
+        options.edit().clear().commit();
+        Config config = new Config(app);
+        assertTrue(config.gameSettings().contains("max_draw_distance = true\n"));
+        options.edit().clear().putString("preset", "balanced").putString("original_lod", "false").commit();
+        assertEquals("true", new Config(app).get(Config.MAX_DRAW));
+        // Performance turns it off, Balanced and Quality on; the player's own choice stays.
+        config.applyPreset("performance");
+        assertTrue(config.gameSettings().contains("max_draw_distance = false\n"));
+        config.applyPreset("balanced");
+        assertEquals("true", config.get(Config.MAX_DRAW));
+        config.applyPreset("quality");
+        assertEquals("true", config.get(Config.MAX_DRAW));
+        config.set(Config.MAX_DRAW, "false");
+        assertEquals("false", new Config(app).get(Config.MAX_DRAW));
     }
 
     @Test
