@@ -64,8 +64,8 @@ final class Config {
         "Keeps floors sharp at a low angle.", new String[] {"Off", "2×", "4×", "8×"},
         new String[] {"1", "2", "4", "8"}, "4");
     static final Choice ORIGINAL_LOD = new Choice("original_lod", "Original draw distances",
-        "As the PlayStation 2 switched detail. Off keeps far detail, and costs a little more.",
-        ON_OFF, TRUE_FALSE, "true");
+        "On leaves out far scenery, as the PlayStation 2 did, for a little more frame rate. Off draws all of it.",
+        ON_OFF, TRUE_FALSE, "false");
     static final Choice[] GRAPHICS = {PRESET, REFRESH, RESOLUTION, MSAA, FILTER, ANISOTROPY, ORIGINAL_LOD};
 
     static final Choice VIEW = new Choice("view", "View",
@@ -140,6 +140,8 @@ final class Config {
         SWING_WRENCH, TWO_HANDED, SHOW_HANDS, GRAB_LEDGES, PUZZLE_OVER_TOOL, SHOP_ON_FOOT, MENU_IN_WORLD, ROOM_SCALE,
         SWIM_STROKES, SOLID_HANDS, HIDE_BODY, GLYPHS, HAPTICS};
 
+    private static final String KEY_FAR_SCENERY = "far_scenery_moved";
+
     private final Context context;
     private final SharedPreferences prefs;
     private final Tools tools;
@@ -148,6 +150,7 @@ final class Config {
         this.context = context.getApplicationContext();
         prefs = context.getSharedPreferences("options", Context.MODE_PRIVATE);
         tools = new Tools(context);
+        drawFarSceneryOnce();
     }
 
     String get(Choice choice) {
@@ -184,10 +187,25 @@ final class Config {
                 set(MSAA, "2");
                 set(ANISOTROPY, "4");
                 set(FILTER, "normal");
-                set(ORIGINAL_LOD, "true");
+                set(ORIGINAL_LOD, "false");
                 set(REFRESH, "72");
                 break;
         }
+    }
+
+    /**
+     * Before 0.1.5 On was the default and Balanced set it, which left far scenery out. Once, on the first start after
+     * that update, it goes back to Off, unless the player chose the Performance preset, which still asks for it.
+     */
+    private void drawFarSceneryOnce() {
+        if (prefs.getBoolean(KEY_FAR_SCENERY, false)) {
+            return;
+        }
+        SharedPreferences.Editor edit = prefs.edit().putBoolean(KEY_FAR_SCENERY, true);
+        if (!"performance".equals(get(PRESET))) {
+            edit.putString(ORIGINAL_LOD.key, "false");
+        }
+        edit.apply();
     }
 
     /** The mod in the game's plugins folder, and the list that turns it on with its settings. */

@@ -912,9 +912,33 @@ void hang_trace() {
 }
 #endif
 
+#if !defined(__ANDROID__)
+// QUEST_DRAWN_TRACE=1, a PC test aid: how many mobys the game holds drawn (+0x31, what keeps one active), each second.
+void drawn_trace() {
+    static const bool on = std::getenv("QUEST_DRAWN_TRACE") != nullptr;
+    const gaddr any = on && s_tick % 60 == 0 && s_disc != nullptr ? ref<gaddr>(s_disc->hero + kHeroBody) : 0;
+    const int slot = any != 0 ? s_mod->moby_slot_of(any) : -1;
+    if (slot < 0) {
+        return;
+    }
+    const gaddr base = any - static_cast<gaddr>(slot) * 0x100u;
+    int drawn = 0, live = 0;
+    for (const openrac_moby& m : s_mod->moby_list()) {
+        if (m.state < 0x80) {
+            ++live;
+            drawn += ref<uint8_t>(base + static_cast<gaddr>(m.slot) * 0x100u + 0x31u) != 0 ? 1 : 0;
+        }
+    }
+    char line[80];
+    std::snprintf(line, sizeof line, "[vr-drawn] %d of %d mobys, head %.2f, camera %.2f", drawn, live, s_head_yaw, camera_yaw());
+    log_line(1, line);
+}
+#endif
+
 void on_tick() {
 #if !defined(__ANDROID__)
     hang_trace();
+    drawn_trace();
 #endif
     // The level drawn under a menu, run or not ("The menu in the world"): the port forgets it with each load.
     if (s_options.menu_in_world && !s_options.screen) {
@@ -7071,7 +7095,10 @@ void fill_eye(openrac_view& view, int eye, const FrameInfo& frame, bool first_pe
     view.angle_right = frame.fov[eye][1];
     view.angle_up = frame.fov[eye][2];
     view.angle_down = frame.fov[eye][3];
-    view.reserved[0] = first_person || actor ? kViewFlagWorldPose : 0;
+    // The game draws no moby behind its camera, and the head looks where it likes. A PC test aid, QUEST_HEAD_TURNS_OFF=1,
+    // leaves them to the game's camera, to compare.
+    static const bool head_turns = std::getenv("QUEST_HEAD_TURNS_OFF") == nullptr;
+    view.reserved[0] = (first_person || actor ? kViewFlagWorldPose : 0) | (head_turns && !s_title_world ? kViewFlagHeadTurns : 0);
     // A Visibomb in flight takes the game's camera far off: the port keeps what is near the eyes, the weapon and
     // the hands among it, and the sky the game stops drawing (Rerac-vr keeps both).
     if ((view.reserved[0] & kViewFlagWorldPose) != 0 && (missile_flying() || s_shopping)) {
@@ -9295,4 +9322,4 @@ void load(openrac::Mod& mod) {
 
 }  // namespace
 
-OPENRAC_MOD_CPP("quest-vr", "0.1.4", load)
+OPENRAC_MOD_CPP("quest-vr", "0.1.5", load)

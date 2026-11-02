@@ -10,7 +10,12 @@ it worked (the log is in Download/RatchetQuestVR). PC-proven features are in STA
 - **The launcher's update.** Worked on a Quest from 0.1.2 to 0.1.3, then the game would not start ("cannot move
   .../openrac aside": what earlier updates left behind), fixed in 0.1.4. Each update: **Check now** on the Play tab,
   and the game must start after it, set-up and saves kept.
-- **Frame rate.** The `[vr-perf]` lines. The first level ran at 60 to 70 frames a second against 72 Hz on 0.1.2.
+- **How far you see.** 0.1.4 lost every moby behind the game's camera (crates, plants, the ship, enemies), and they
+  popped in close; its particles and stars went too. On 0.1.5 turn round on the first level, look across it, walk:
+  nothing should pop in near you, smoke and sparks should stay, Rilgar's stars should fill the sky, and an enemy seen
+  with your back to the game's camera should move and take hits.
+- **Frame rate.** The `[vr-perf]` lines. The first level ran at 60 to 70 frames a second against 72 Hz on 0.1.2 and
+  0.1.4; 0.1.5 draws more, so compare.
 - **Recentring.** Press the left controller's menu button: `[vr-rig] recentred: the left menu button`. Hold the
   headset's own button (the Meta button) to recentre: `[vr-rig] recentred: the headset's own recentre`. Either
   puts the view back where Ratchet stands, facing where you look.

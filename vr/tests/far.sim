@@ -1,0 +1,21 @@
+# How far the eyes see, the first level from its start: ahead and round, for QUEST_LOD=true (the game's draw distances)
+# against false (all of it). Then walked on and turned from the game's camera (turned, turned2), where the ship and the
+# crates behind it must show: QUEST_HEAD_TURNS_OFF=1 leaves them to the game's camera, which lost them.
+600 y 1
+606 y 0
+3000 shot ahead
+3050 head_yaw 90
+3100 shot left
+3150 head_yaw 180
+3200 shot back
+3250 head_yaw 270
+3300 shot right
+3350 head_yaw 0
+3400 left_y 1
+3640 left_y 0
+3700 shot walked
+3720 head_yaw 180
+3760 shot turned
+3780 head_yaw 130
+3820 shot turned2
+3860 quit 0

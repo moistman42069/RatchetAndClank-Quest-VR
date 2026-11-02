@@ -21,6 +21,9 @@ inline constexpr std::uint32_t kViewFlagWorldPose = 1;
 // draws what is near the eye too, and the game's last sky when it draws none.
 inline constexpr std::uint32_t kViewFlagNearEye = 2;
 inline constexpr std::uint32_t kViewFlagNoOwnCameras = 4;
+// openrac_view.reserved[0] bit 8, on an eye: a head turns it away from the game's camera, and the game draws no moby
+// behind its camera, so the port keeps what is within draw distance of the eye too.
+inline constexpr std::uint32_t kViewFlagHeadTurns = 8;
 
 // views[0].reserved[1], set by the port before begin: this frame shows a picture, not the scene.
 inline constexpr int kViewHintPicture = 1;

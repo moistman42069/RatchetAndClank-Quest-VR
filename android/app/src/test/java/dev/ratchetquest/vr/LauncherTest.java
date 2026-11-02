@@ -249,6 +249,31 @@ public class LauncherTest {
     }
 
     @Test
+    public void farSceneryIsDrawnByDefaultAndAfterTheUpdate() {
+        android.content.SharedPreferences options = app.getSharedPreferences("options", Context.MODE_PRIVATE);
+        // A new install, and Balanced chosen.
+        Config config = new Config(app);
+        assertTrue(config.gameSettings().contains("original_lod = false"));
+        config.applyPreset("balanced");
+        assertTrue(config.gameSettings().contains("original_lod = false"));
+
+        // An update from 0.1.4 with On stored, by Balanced: once, whatever preset that was.
+        options.edit().clear().putString("preset", "balanced").putString("original_lod", "true").commit();
+        config = new Config(app);
+        assertEquals("false", config.get(Config.ORIGINAL_LOD));
+        config.set(Config.ORIGINAL_LOD, "true");
+        assertEquals("the player's own choice afterwards stays", "true", new Config(app).get(Config.ORIGINAL_LOD));
+
+        // Performance still asks for the limit, stored or chosen.
+        options.edit().clear().putString("preset", "performance").putString("original_lod", "true").commit();
+        assertEquals("true", new Config(app).get(Config.ORIGINAL_LOD));
+        options.edit().clear().commit();
+        config = new Config(app);
+        config.applyPreset("performance");
+        assertEquals("true", config.get(Config.ORIGINAL_LOD));
+    }
+
+    @Test
     public void theLevelFormatIsOpenRACs() throws Exception {
         String port = new String(Files.readAllBytes(new File("../../third_party/OpenRAC/editor/port.py").toPath()),
             StandardCharsets.UTF_8);

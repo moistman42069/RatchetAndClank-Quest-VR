@@ -189,7 +189,7 @@ index a71a1a3e4b58b423bf378d2cde3ae509e6d9a4f2..6f2c37ed7eb1e4b39fec363ef115e629
  }
  
 diff --git a/port/game/common/frontend.h b/port/game/common/frontend.h
-index 0cade011c6e07f2902c83e298ba8ef0a8a99edc8..0bf5ce9bd77fd499839ad1fb33149ebf10c4d48e 100644
+index 0cade011c6e07f2902c83e298ba8ef0a8a99edc8..21ebcb89c4dd9fc4f493cd8e253303c5810cc964 100644
 --- a/port/game/common/frontend.h
 +++ b/port/game/common/frontend.h
 @@ -33,6 +33,9 @@ void world_drawn(std::span<const std::uint8_t> ram);
@@ -202,15 +202,25 @@ index 0cade011c6e07f2902c83e298ba8ef0a8a99edc8..0bf5ce9bd77fd499839ad1fb33149ebf
  void moby_colour(std::uint32_t object, unsigned colour, int level);
  
  // The game drew `count` mobys from `first` with the camera it holds now (the page menu's frame
+@@ -56,6 +59,9 @@ int hud_side();
+ // frame's horizontal tangent is the game's times (render's projection, picture_scale).
+ float picture_wider();
+ 
++// The eye of a mod's views that looks where the game's camera may not (openrac_game_eye_view).
++bool eye_view(float* position, float* rows, float* tangents);
++
+ // A sky sprite the game drew this frame (openrac_game_sky_sprite).
+ void sky_sprite(const std::uint8_t* record, std::uint64_t tex0);
+ 
 diff --git a/port/game/common/frontend/frame.cpp b/port/game/common/frontend/frame.cpp
-index 092aec37b6049b0a3854c21612c4918f7629caf4..46b501b2107ec963c59762530cb8aca750096f21 100644
+index 092aec37b6049b0a3854c21612c4918f7629caf4..40de3a9aa9ff1ed049c3758e410aba86d44ba3a6 100644
 --- a/port/game/common/frontend/frame.cpp
 +++ b/port/game/common/frontend/frame.cpp
 @@ -64,6 +64,9 @@
  
  namespace openrac::frontend {
  
-+bool near_eye(renderer::Vec3& position, renderer::Vec3& forward);  // views.cpp
++bool near_eye(const renderer::Mat4& game_view, renderer::Vec3& position, renderer::Vec3& forward);  // views.cpp
 +bool own_cameras_off_eyes();  // views.cpp
 +
  namespace {
@@ -229,10 +239,10 @@ index 092aec37b6049b0a3854c21612c4918f7629caf4..46b501b2107ec963c59762530cb8aca7
          );
      }
  
-+    // An eye far from the game's camera (a mod's, view flag 2: the Visibomb's missile flies the camera away) keeps
-+    // what is within draw distance of it as well.
++    // An eye far from the game's camera (a mod's, view flag 2: the Visibomb's missile flies the camera away), or a head
++    // turned from it (view flag 8), keeps what is within draw distance of it as well.
 +    renderer::Vec3 near_position{}, near_forward{};
-+    const bool near = near_eye(near_position, near_forward);
++    const bool near = near_eye(state.view(), near_position, near_forward);
      for (std::size_t index = 0; index < state.mobys.size(); ++index) {
          const host::LiveMoby& m = state.mobys[index];
          const bool extra = index >= listed;
@@ -315,7 +325,7 @@ index ae97a1e1c4ccce5f836e60cf0834842e15d93306..b82cdf84614c8bdfa8513cca8f8ca474
      }
  
 diff --git a/port/game/common/frontend/scene_frame_internal.h b/port/game/common/frontend/scene_frame_internal.h
-index e1e76a91e686ecd5347cd47bd62664696c5e3ca8..cc55b6070a4c88e544dfd953027eee607dbefeee 100644
+index e1e76a91e686ecd5347cd47bd62664696c5e3ca8..50621d7fe22360f9eff4f7f4bbf0e0973add010e 100644
 --- a/port/game/common/frontend/scene_frame_internal.h
 +++ b/port/game/common/frontend/scene_frame_internal.h
 @@ -35,6 +35,9 @@ void set_packets(SceneFrame& frame);
@@ -328,7 +338,7 @@ index e1e76a91e686ecd5347cd47bd62664696c5e3ca8..cc55b6070a4c88e544dfd953027eee60
  
  // Retains the last world where the original menu reads its background.
  void retain_background(SceneFrame& frame);
-@@ -44,11 +47,25 @@ void retain_background(SceneFrame& frame);
+@@ -44,11 +47,26 @@ void retain_background(SceneFrame& frame);
  // True while a mod has views: then each frame draws them, on the window's thread.
  bool views_wanted();
  
@@ -336,8 +346,9 @@ index e1e76a91e686ecd5347cd47bd62664696c5e3ca8..cc55b6070a4c88e544dfd953027eee60
 -// scene (`world`: whether this frame drew its world anew, else the last pictures are given again),
 -// then copies them where the mod said.
 +// An eye of the mod's views (the last frame's) that asked for what is near it (view flag 2: the game's camera is far,
-+// the Visibomb's missile): its place and the way it looks, in the game's world. False when none asks.
-+bool near_eye(renderer::Vec3& position, renderer::Vec3& forward);
++// the Visibomb's missile; view flag 8: a head turns it from the game's camera): its place and the way it looks, in the
++// game's world. False when none asks. `game_view` is the game's camera, which an eye about it moves from.
++bool near_eye(const renderer::Mat4& game_view, renderer::Vec3& position, renderer::Vec3& forward);
 +
 +// Asks the mod for this frame's views (OpenXR's frame begins here, before anything is drawn).
 +void begin_views(float alpha);
@@ -406,7 +417,7 @@ index d05400a2695f831fcd05fd56376962c6bb57d253..434ccb3c9cf7c6e6a9f1cc0213921afd
      std::vector<std::pair<std::uint32_t, host::GameState>> moby_cameras;
      // The world effect quads the game drew since the last frame (effect_quad).
 diff --git a/port/game/common/frontend/views.cpp b/port/game/common/frontend/views.cpp
-index 876d1f93695e552c70a95678e932446f055a4e37..7d859189c39707ecba496056e910b664f622b8d5 100644
+index 876d1f93695e552c70a95678e932446f055a4e37..fe649f3d19b3d85dc8e1b32deed7a1b51dd73b35 100644
 --- a/port/game/common/frontend/views.cpp
 +++ b/port/game/common/frontend/views.cpp
 @@ -10,17 +10,22 @@
@@ -432,7 +443,7 @@ index 876d1f93695e552c70a95678e932446f055a4e37..7d859189c39707ecba496056e910b664
  
  namespace openrac::frontend {
  namespace {
-@@ -32,11 +37,63 @@ constexpr float kNear = 0.05f;
+@@ -32,11 +37,76 @@ constexpr float kNear = 0.05f;
  constexpr float kFar = 2000.0f;
  constexpr int kLargest = 8192;
  
@@ -446,6 +457,10 @@ index 876d1f93695e552c70a95678e932446f055a4e37..7d859189c39707ecba496056e910b664
 +// eye is given the last it drew. The window's picture stays the game camera's own.
 +constexpr std::uint32_t kFlagNearEye = 2;
 +constexpr std::uint32_t kFlagNoOwnCameras = 4;  // the menus' mobys with a camera of their own are not in this eye
++// reserved[0] bit 8, set by the mod on an eye a head turns: it can look where the game's camera does not, and the game
++// draws no moby or particle behind its camera. What is within draw distance of the eye is kept too (near_eye), and the
++// particles and sky sprites it sees (world.cpp, particle_depth, sky_sprite_quads); nothing else changes.
++constexpr std::uint32_t kFlagHeadTurns = 8;
 +
  std::optional<openrac_view_source> g_source;  // set_view_source's
  std::array<openrac_view, OPENRAC_VIEW_MAX> g_views{};
@@ -457,6 +472,15 @@ index 876d1f93695e552c70a95678e932446f055a4e37..7d859189c39707ecba496056e910b664
 +scene::LevelScene::Fog g_held_fog{};         // and its fog
 +bool g_have_fog = false;
 +std::array<int, OPENRAC_VIEW_MAX> wanted_samples{};  // what each view's picture was asked for
++
++// The last tick's near_eye, for the game's own view tests (eye_view).
++struct SeenEye {
++    bool valid = false;
++    renderer::Vec3 position{};
++    std::array<float, 12> rows{};  // forward, side, up, as moby_view.h takes them
++    std::array<float, 2> tangents{};
++};
++SeenEye g_seen_eye;
 +
 +// Quest VR: rectangles of the 2D view standing in the eyes' world (openrac_view_source.world_quads), what lets a
 +// vendor's screens be on its monitors and a menu stand in the room. Drawn in the eye's own pass, so the world hides
@@ -496,7 +520,7 @@ index 876d1f93695e552c70a95678e932446f055a4e37..7d859189c39707ecba496056e910b664
  
  // The GL proc for openrac_graphics.gl_proc, in its C shape.
  void* gl_proc(const char* name) {
-@@ -63,8 +120,15 @@ renderer::Camera view_camera(const renderer::Camera& game, const openrac_view& v
+@@ -63,8 +133,15 @@ renderer::Camera view_camera(const renderer::Camera& game, const openrac_view& v
      }
  
      renderer::Camera camera = game;
@@ -514,7 +538,7 @@ index 876d1f93695e552c70a95678e932446f055a4e37..7d859189c39707ecba496056e910b664
      camera.position = eye_position(camera.view);
      const float aspect = static_cast<float>(v.width) / static_cast<float>(v.height);
  
-@@ -83,6 +147,145 @@ renderer::Camera view_camera(const renderer::Camera& game, const openrac_view& v
+@@ -83,6 +160,145 @@ renderer::Camera view_camera(const renderer::Camera& game, const openrac_view& v
      return camera;
  }
  
@@ -660,7 +684,7 @@ index 876d1f93695e552c70a95678e932446f055a4e37..7d859189c39707ecba496056e910b664
  // Draws view `v` of the frame's scene into `picture`.
  void render_view(SceneFrame& frame, const openrac_view& v, renderer::FrameBuffer& picture) {
      State& owner = frame.owner;
-@@ -97,18 +300,52 @@ void render_view(SceneFrame& frame, const openrac_view& v, renderer::FrameBuffer
+@@ -97,18 +313,52 @@ void render_view(SceneFrame& frame, const openrac_view& v, renderer::FrameBuffer
      // Ambient occlusion keeps targets of the window's size: a view of another would make them anew.
      input.gtao = false;
  
@@ -718,7 +742,7 @@ index 876d1f93695e552c70a95678e932446f055a4e37..7d859189c39707ecba496056e910b664
  
      // The buckets the kind leaves out, given back as the frame had them.
      std::vector<std::pair<renderer::BucketRenderer*, bool>> kept;
-@@ -121,8 +358,33 @@ void render_view(SceneFrame& frame, const openrac_view& v, renderer::FrameBuffer
+@@ -121,8 +371,33 @@ void render_view(SceneFrame& frame, const openrac_view& v, renderer::FrameBuffer
              bucket->enabled = false;
          }
      }
@@ -752,7 +776,7 @@ index 876d1f93695e552c70a95678e932446f055a4e37..7d859189c39707ecba496056e910b664
  
      for (const auto& [bucket, enabled] : kept) {
          bucket->enabled = enabled;
-@@ -157,8 +419,11 @@ unsigned target_of(State& owner, unsigned texture) {
+@@ -157,8 +432,11 @@ unsigned target_of(State& owner, unsigned texture) {
      return framebuffer;
  }
  
@@ -766,7 +790,7 @@ index 876d1f93695e552c70a95678e932446f055a4e37..7d859189c39707ecba496056e910b664
      if (gl::is_vulkan()) {
          return v.image == nullptr
                 || platform::copy_to_vulkan_image(
-@@ -175,7 +440,30 @@ bool copy_out(State& owner, const openrac_view& v, const renderer::FrameBuffer&
+@@ -175,7 +453,30 @@ bool copy_out(State& owner, const openrac_view& v, const renderer::FrameBuffer&
          return false;
      }
  
@@ -798,7 +822,7 @@ index 876d1f93695e552c70a95678e932446f055a4e37..7d859189c39707ecba496056e910b664
      return true;
  }
  
-@@ -188,7 +476,7 @@ void draw_view(SceneFrame& frame, int index, bool world) {
+@@ -188,7 +489,7 @@ void draw_view(SceneFrame& frame, int index, bool world) {
  
      // Sizes and kinds the port does not draw: the view is left out, said once.
      if (v.width < 1 || v.height < 1 || v.width > kLargest || v.height > kLargest
@@ -807,7 +831,7 @@ index 876d1f93695e552c70a95678e932446f055a4e37..7d859189c39707ecba496056e910b664
          if (!g_warned) {
              log::warn(
                  "mod views: view {} is {} by {} of kind {}, which is not drawn",
-@@ -202,14 +490,27 @@ void draw_view(SceneFrame& frame, int index, bool world) {
+@@ -202,14 +503,27 @@ void draw_view(SceneFrame& frame, int index, bool world) {
          return;
      }
  
@@ -838,21 +862,43 @@ index 876d1f93695e552c70a95678e932446f055a4e37..7d859189c39707ecba496056e910b664
                  log::warn("mod views: view {}: {}", index, error);
                  return;
              }
-@@ -274,21 +575,102 @@ void set_view_source(const openrac_view_source* source) {
+@@ -274,21 +588,124 @@ void set_view_source(const openrac_view_source* source) {
      g_count = 0;
  }
  
-+bool near_eye(renderer::Vec3& position, renderer::Vec3& forward) {
++bool near_eye(const renderer::Mat4& game_view, renderer::Vec3& position, renderer::Vec3& forward) {
++    g_seen_eye.valid = false;
 +    for (int i = 0; i < g_count; ++i) {
 +        const openrac_view& v = g_views[static_cast<std::size_t>(i)];
-+        if (v.kind == OPENRAC_VIEW_WORLD && (v.reserved[0] & kFlagNearEye) != 0 && (v.reserved[0] & kFlagWorldPose) != 0) {
-+            const renderer::Camera camera = view_camera(renderer::Camera{}, v);
++        const bool far_camera = (v.reserved[0] & kFlagNearEye) != 0 && (v.reserved[0] & kFlagWorldPose) != 0;
++        if (v.kind == OPENRAC_VIEW_WORLD && (far_camera || (v.reserved[0] & kFlagHeadTurns) != 0)) {
++            renderer::Camera game;
++            game.view = game_view;  // an eye about the game's camera (third person) is moved from it
++            const renderer::Camera camera = view_camera(game, v);
 +            position = camera.position;
 +            forward = {-camera.view[2], -camera.view[6], -camera.view[10]};
++            const auto& m = camera.view;
++            g_seen_eye.position = position;
++            g_seen_eye.rows = {forward[0], forward[1], forward[2], 0, m[0], m[4], m[8], 0, m[1], m[5], m[9], 0};
++            // The widest side of the eye, for either eye, and some for the head turning before the next tick.
++            constexpr float kMargin = 1.15f;
++            g_seen_eye.tangents[0] = kMargin * std::tan(std::max(std::fabs(v.angle_left), std::fabs(v.angle_right)));
++            g_seen_eye.tangents[1] = kMargin * std::tan(std::max(std::fabs(v.angle_up), std::fabs(v.angle_down)));
++            g_seen_eye.valid = true;
 +            return true;
 +        }
 +    }
 +    return false;
++}
++
++bool eye_view(float* position, float* rows, float* tangents) {
++    if (!g_seen_eye.valid) {
++        return false;
++    }
++    std::copy(g_seen_eye.position.begin(), g_seen_eye.position.end(), position);
++    std::copy(g_seen_eye.rows.begin(), g_seen_eye.rows.end(), rows);
++    std::copy(g_seen_eye.tangents.begin(), g_seen_eye.tangents.end(), tangents);
++    return true;
 +}
 +
  bool views_wanted() {
@@ -943,7 +989,7 @@ index 876d1f93695e552c70a95678e932446f055a4e37..7d859189c39707ecba496056e910b664
      }
  }
  
-@@ -301,6 +683,11 @@ void finish_views() {
+@@ -301,6 +718,11 @@ void finish_views() {
  
  void release_views(State& owner) {
      finish_views();
@@ -956,7 +1002,7 @@ index 876d1f93695e552c70a95678e932446f055a4e37..7d859189c39707ecba496056e910b664
      // Told once: the views end with the context.
      if (g_source && g_source->closing != nullptr) {
 diff --git a/port/game/common/frontend/world.cpp b/port/game/common/frontend/world.cpp
-index 3415a05c1418247b4924db0bd3d0d3faf6c390f4..3ee8b0c3e1ff7470158be9e57974e48fd7a07415 100644
+index 3415a05c1418247b4924db0bd3d0d3faf6c390f4..4dd183aeeda6ceca8253558cac54ea5df44d5872 100644
 --- a/port/game/common/frontend/world.cpp
 +++ b/port/game/common/frontend/world.cpp
 @@ -36,6 +36,7 @@
@@ -1041,10 +1087,10 @@ index 3415a05c1418247b4924db0bd3d0d3faf6c390f4..3ee8b0c3e1ff7470158be9e57974e48f
      int window_width = 0;
      int window_height = 0;
      g->window->drawable_size(window_width, window_height);
-@@ -774,8 +829,11 @@ void particle_quads(std::span<const std::uint8_t> ram, const host::GameState& st
-         return v;
-     };
+@@ -493,9 +548,15 @@ void sky_sprite_quads(const host::GameState& state) {
+     constexpr float kSkyDistance = 1900.0f;
      const std::array<float, 3> cam = state.camera_position;
+     const std::array<float, 3> fwd = state.forward;
 -    const std::array<float, 3> right{-state.left[0], -state.left[1], -state.left[2]};
 -    const std::array<float, 3> down{-state.up[0], -state.up[1], -state.up[2]};
 +    const bool faced = g->sprites_faced;  // a viewer who is not the game's camera (sprites_face)
@@ -1052,11 +1098,119 @@ index 3415a05c1418247b4924db0bd3d0d3faf6c390f4..3ee8b0c3e1ff7470158be9e57974e48f
 +                                     -(faced ? g->sprite_left[2] : state.left[2])};
 +    const std::array<float, 3> down{-(faced ? g->sprite_up[0] : state.up[0]), -(faced ? g->sprite_up[1] : state.up[1]),
 +                                    -(faced ? g->sprite_up[2] : state.up[2])};
+     const float tan_y = state.tan_half_fov_y > 0.0f ? state.tan_half_fov_y : 0.476f;
++    // An eye a head turned from the game's camera (views.cpp, near_eye) sees the sky behind that camera.
++    float eye[3], rows[12], tangents[2];
++    const bool has_eye = eye_view(eye, rows, tangents);
+     std::vector<renderer::EffectQuad> quads;
+     quads.reserve(g->sky_sprites.size());
+     for (const auto& [r, tex0] : g->sky_sprites) {
+@@ -509,7 +570,8 @@ void sky_sprite_quads(const host::GameState& state) {
+         std::memcpy(&rgba, r.data() + 4, 4);
+         const float len = std::sqrt(pos[0] * pos[0] + pos[1] * pos[1] + pos[2] * pos[2]);
+         const float z = pos[0] * fwd[0] + pos[1] * fwd[1] + pos[2] * fwd[2];
+-        if (!(len > 0.0f) || !(z > 0.0f) || !std::isfinite(size)) {
++        const bool seen = has_eye && pos[0] * rows[0] + pos[1] * rows[1] + pos[2] * rows[2] > 0.0f;
++        if (!(len > 0.0f) || !(z > 0.0f || seen) || !std::isfinite(size)) {
+             continue;
+         }
+         const float k = kSkyDistance / len;
+@@ -644,13 +706,16 @@ std::string particle_update(std::span<const std::uint8_t> ram, unsigned type) {
+ 
+ // A particle record's depth along the view, as particle_quads culls and fades it by: z from the
+ // camera to its position (`centre`; a ribbon's, kind 3, the middle of its two ends), and z and the
+-// record's near and far in 1/4096 units. Outside near to far it is not drawn.
++// record's near and far in 1/4096 units. Outside near to far it is not drawn. `order` is the z it
++// is sorted by.
+ struct ParticleDepth {
+     std::array<float, 3> centre;
+     float z;
+     int z12, near12, far12;
++    float order;
+ 
+     bool beyond() const { return z12 <= near12 || z12 >= far12; }
++    int fade() const { return std::min({(far12 - z12) >> 4, z12 - near12, 0x1000}); }
+ };
+ 
+ ParticleDepth particle_depth(const std::uint8_t* r, const host::GameState& state) {
+@@ -663,17 +728,30 @@ ParticleDepth particle_depth(const std::uint8_t* r, const host::GameState& state
+             centre[i] = (p1[i] + p2[i]) * 0.5f;
+         }
+     }
+-    const std::array<float, 3>& cam = state.camera_position;
+-    const std::array<float, 3>& fwd = state.forward;
+-    const float z = (centre[0] - cam[0]) * fwd[0] + (centre[1] - cam[1]) * fwd[1]
+-                    + (centre[2] - cam[2]) * fwd[2];
+-    return {
+-        centre,
+-        z,
+-        static_cast<int>(z * 4096.0f),
+-        (r[9] & 0xF) << 10,
+-        std::min((r[9] >> 4) << 17, 0x1F4000)
++    const auto along = [&](const float* cam, const float* fwd) -> ParticleDepth {
++        const float z = (centre[0] - cam[0]) * fwd[0] + (centre[1] - cam[1]) * fwd[1]
++                        + (centre[2] - cam[2]) * fwd[2];
++        return {
++            centre,
++            z,
++            static_cast<int>(z * 4096.0f),
++            (r[9] & 0xF) << 10,
++            std::min((r[9] >> 4) << 17, 0x1F4000),
++            z
++        };
+     };
++    ParticleDepth depth = along(state.camera_position.data(), state.forward.data());
++    // An eye a head turned from the game's camera (views.cpp, near_eye) sees what is behind that
++    // camera: what either keeps is drawn, as the one that shows it most, back to front for the eye.
++    float eye[3], rows[12], tangents[2];
++    if (eye_view(eye, rows, tangents)) {
++        const ParticleDepth seen = along(eye, rows);
++        if (seen.fade() > depth.fade()) {
++            depth = seen;
++        }
++        depth.order = seen.z;
++    }
++    return depth;
+ }
+ 
+ // Developer tools, for a diagnostics recording: the frame's particles by type, each type with the
+@@ -773,9 +851,12 @@ void particle_quads(std::span<const std::uint8_t> ram, const host::GameState& st
+         std::memcpy(&v, b, 4);
+         return v;
+     };
+-    const std::array<float, 3> cam = state.camera_position;
+-    const std::array<float, 3> right{-state.left[0], -state.left[1], -state.left[2]};
+-    const std::array<float, 3> down{-state.up[0], -state.up[1], -state.up[2]};
++    const bool faced = g->sprites_faced;  // a viewer who is not the game's camera (sprites_face)
++    const std::array<float, 3> cam = faced ? g->sprite_eye : state.camera_position;
++    const std::array<float, 3> right{-(faced ? g->sprite_left[0] : state.left[0]), -(faced ? g->sprite_left[1] : state.left[1]),
++                                     -(faced ? g->sprite_left[2] : state.left[2])};
++    const std::array<float, 3> down{-(faced ? g->sprite_up[0] : state.up[0]), -(faced ? g->sprite_up[1] : state.up[1]),
++                                    -(faced ? g->sprite_up[2] : state.up[2])};
  
      struct Item {
          float depth;
+@@ -826,8 +907,7 @@ void particle_quads(std::span<const std::uint8_t> ram, const host::GameState& st
+         }
+         cover(r, "");
+         const float z = depth.z;
+-        const int fade =
+-            std::min({(depth.far12 - depth.z12) >> 4, depth.z12 - depth.near12, 0x1000});
++        const int fade = depth.fade();
+         const auto faded = [fade](std::uint32_t c) {
+             return (c & 0x00FFFFFFu) | (((c >> 24) * static_cast<std::uint32_t>(fade) >> 12) << 24);
+         };
+@@ -900,7 +980,7 @@ void particle_quads(std::span<const std::uint8_t> ram, const host::GameState& st
+         q.clamp = 5;
+         q.tex1 = 0xFF9000000120ull;
+         q.alpha = r[3];
+-        items.push_back({z, q});
++        items.push_back({depth.order, q});
+     }
+     stats::gauge("particle texture resolves", double(texture_resolves));
+     stats::gauge("particle texture reuse", reuse_textures ? 1 : 0);
 diff --git a/port/game/common/include/openrac/game_host.h b/port/game/common/include/openrac/game_host.h
-index 9151cf76eb69f2c21ac97ca2c4bd7b4f2e5edd0e..bfcfeb485c4aa7957f86d8cf0d756dee2d888adf 100644
+index 9151cf76eb69f2c21ac97ca2c4bd7b4f2e5edd0e..c71f168714611219124ea87a6c4b5a530a62feee 100644
 --- a/port/game/common/include/openrac/game_host.h
 +++ b/port/game/common/include/openrac/game_host.h
 @@ -442,6 +442,10 @@ typedef struct openrac_game_play {
@@ -1070,7 +1224,19 @@ index 9151cf76eb69f2c21ac97ca2c4bd7b4f2e5edd0e..bfcfeb485c4aa7957f86d8cf0d756dee
  } openrac_game_play;
  
  extern const openrac_game_play* openrac_game_play_host;
-@@ -657,6 +661,8 @@ void openrac_game_mc_state(gaddr command, gaddr result);
+@@ -604,6 +608,11 @@ int openrac_game_hud_side(void);
+  * horizontal tangent is the game's times this. 1 for a 4:3 picture, and without a window. */
+ float openrac_game_picture_wider(void);
+ 
++/* Quest VR: the eye of a mod's views that looks where the game's camera may not (frontend/views.cpp):
++ * its place in the world, its forward, side and up rows (3 x 4, as moby_view.h takes them) and the
++ * tangents of its field of view, x then y. 0, and nothing written, when no view is such an eye. */
++int openrac_game_eye_view(float* position, float* rows, float* tangents);
++
+ /* A game fix's flag, by its setting key (port/game/<game>/differences.json, kind "fix";
+  * game/common/fixes.h): nonzero while the port's fix is on, 0 for the console's behaviour. The
+  * pointer stays good for the program's life and follows the player's setting, so the code a fix
+@@ -657,6 +666,8 @@ void openrac_game_mc_state(gaddr command, gaddr result);
  /* --level N: the level a new game starts in (the game's own number), or -1 for the game's own
   * first level. For getting to a level directly, as the behaviour checker's level write does. */
  extern int openrac_game_start_level;
@@ -1460,6 +1626,28 @@ index 14c859d6200f9c33a7816d2fbef72dce258c40e1..302dc09ef85beb97d980fd61bd22b0dd
  PauseRows pause_rows(int index);
  // Drops guest-memory addresses cached by the port's Video pages. A restored snapshot can replace
  // the guest allocations and level program those addresses referred to.
+diff --git a/port/game/common/program/game_host.cpp b/port/game/common/program/game_host.cpp
+index 83f7de5281e4e9a080a85a7766ac18097423c4e6..f3b4cc52c180467414e7983da8a0edc9f3168aad 100644
+--- a/port/game/common/program/game_host.cpp
++++ b/port/game/common/program/game_host.cpp
+@@ -411,6 +411,17 @@ float openrac_game_picture_wider(void) {
+     });
+ }
+ 
++int openrac_game_eye_view(float* position, float* rows, float* tangents) {
++    return c_boundary::call("openrac_game_eye_view", 0, [&]() -> int {
++#ifdef OPENRAC_FRONTEND
++        if (g_window) {
++            return frontend::eye_view(position, rows, tangents) ? 1 : 0;
++        }
++#endif
++        return 0;
++    });
++}
++
+ int openrac_game_ui_quad(const openrac_game_ui_rect* quad) {
+     return c_boundary::call("openrac_game_ui_quad", -1, [&]() -> int {
+ #ifdef OPENRAC_FRONTEND
 diff --git a/port/game/common/program/vsync.cpp b/port/game/common/program/vsync.cpp
 index a85baf599207847746d6ce6e227acb18961ed6a3..ca62a89ecda9d3f470e0e6ebc140af97a4cb975e 100644
 --- a/port/game/common/program/vsync.cpp
@@ -1724,6 +1912,95 @@ index 22cb7bf3b61cd2497070f1816ae78c9099c42222..53fdaeca4007fa8941b6b5dc795a84d8
  void rac1_figure_items_tick(void);
  void rac1_figure_items_remove(gaddr figure);
  int rac1_figure_owned(gaddr moby);
+diff --git a/port/game/rac1/host/render_native.c b/port/game/rac1/host/render_native.c
+index 4f69ab7acb825e9d034813dbb7489b88351ba89f..9b674d937b637030d2b6c72c4b16f8cd7b935fa4 100644
+--- a/port/game/rac1/host/render_native.c
++++ b/port/game/rac1/host/render_native.c
+@@ -110,6 +110,10 @@ void func_00212578(int a0, int a1) {
+  * (+0x32, s16 units, at most the global one at D_00160030), wholly in front of the near plane, or
+  * wholly outside a side plane of the view. The side planes are the port's picture's, wider than
+  * 4:3 when it is (moby_view.h).
++ *
++ * Quest VR: what a headset's eye sees is drawn too, wherever the game's camera looks
++ * (openrac_game_eye_view): the head turns away from it, and as Rerac-vr found, an enemy behind that
++ * camera stood frozen in plain sight, its hits never read.
+  */
+ static void mark_drawn_mobys(gaddr first, int count) {
+     float cam[3], rows[12], view[12];
+@@ -141,6 +145,8 @@ static void mark_drawn_mobys(gaddr first, int count) {
+         fix = openrac_game_fix("fix_wide_moby_effects");
+     }
+     const float wider = *fix ? openrac_game_picture_wider() : 1.0f;
++    float eye[3], eye_rows[12], eye_tangents[2];
++    const int has_eye = openrac_game_eye_view(eye, eye_rows, eye_tangents);
+     const gaddr end = first + (gaddr)count * 0x100u;
+     const int max_distance = GREF(int, OPENRAC_DATA(RAC1_ADDR(0x00160030u)));
+     const uint8_t* groups = G(OPENRAC_DATA(RAC1_ADDR(0x001940C0u)));
+@@ -171,6 +177,13 @@ static void mark_drawn_mobys(gaddr first, int count) {
+                 distance = max_distance;  // pminw with the global draw distance
+             }
+             drawn = moby_in_view(d, rows, r, (float)distance, tx, ty, wider);
++            if (!drawn && has_eye) {
++                const float e[3] =
++                    {sphere[0] / 1024.0f - eye[0],
++                     sphere[1] / 1024.0f - eye[1],
++                     sphere[2] / 1024.0f - eye[2]};
++                drawn = moby_in_view(e, eye_rows, r, (float)distance, eye_tangents[0], eye_tangents[1], 1.0f);
++            }
+         }
+         b[0x31] = (uint8_t)(drawn ? 1 : 0);
+     }
+diff --git a/port/game/rac1/host/wide_view.c b/port/game/rac1/host/wide_view.c
+index b6a6d178740fbb8cab2af283c523191fa6e41388..82ef9c4a38022364feb01c481f718e81253f7c82 100644
+--- a/port/game/rac1/host/wide_view.c
++++ b/port/game/rac1/host/wide_view.c
+@@ -66,6 +66,7 @@
+  * shrub and every live moby from the extracted level, whatever the game culled.
+  */
+ #include "rac1.h"
++#include "moby_view.h"
+ #include "wide_view.h"
+ 
+ #include <stdint.h>
+@@ -228,17 +229,32 @@ void func_L02_00250720(gaddr grid) {
+     close_view(&o);
+ }
+ 
++/* Quest VR: whether a headset's eye sees the sphere (world units, the radius last), wherever the
++ * game's camera looks (openrac_game_eye_view). */
++static int eye_sees(gaddr sphere, float far) {
++    float eye[3], rows[12], tangents[2], s[4];
++    if (!openrac_game_eye_view(eye, rows, tangents)) {
++        return 0;
++    }
++    memcpy(s, G(sphere), sizeof(s));
++    const float d[3] = {s[0] - eye[0], s[1] - eye[1], s[2] - eye[2]};
++    return moby_in_view(d, rows, s[3], far, tangents[0], tangents[1], 1.0f);
++}
++
+ /* FastBSphereCheck: 1 in view, 0 in view but across the guard band's edge, -1 culled. */
+ int func_L00_00200290(gaddr sphere, float far) {
+     const float wider = wide_sphere_wider(g_lists, g_wider, g_effects, g_effect_wider);
++    int result;
+     if (!(wider > 1.0f) || (g_lists > 0 && still_open(&g_list_clip))) {
+-        return func_L00_00200290__game(sphere, far);
++        result = func_L00_00200290__game(sphere, far);
++    } else {
++        opened o;
++        open_clip(&o, wider);
++        result = func_L00_00200290__game(sphere, far);
++        close_view(&o);
+     }
+-    opened o;
+-    open_clip(&o, wider);
+-    const int result = func_L00_00200290__game(sphere, far);
+-    close_view(&o);
+-    return result;
++    /* Where the test stands for "can the player see it", what the eye sees is in view. */
++    return result < 0 && wider > 1.0f && eye_sees(sphere, far) ? 1 : result;
+ }
+ 
+ /* NanotechBallUpdate: the nanotech cluster (the orb on a nanotech crate) draws only while its
 diff --git a/port/game/rac1/host/world.c b/port/game/rac1/host/world.c
 index 7e0c2f9dd2e8d1d503f202b7f8d997ef17d567cf..0270df5137e0041317dddbec2e81a74c2356764a 100644
 --- a/port/game/rac1/host/world.c

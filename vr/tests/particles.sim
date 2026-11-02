@@ -1,0 +1,13 @@
+# Particles behind the game's camera, with the Pyrocitor (QUEST_SIM_GIVE=16 QUEST_SIM_HOLD=16): head and hand turned
+# round at once, before that camera has come round, and the flame fired where the head looks. QUEST_HEAD_TURNS_OFF=1
+# leaves them to the game's camera, which lost them. OPENRAC_DRAW_COVERAGE=<file> counts them, by type, drawn and beyond.
+600 y 1
+606 y 0
+3000 right_trigger 1
+3002 head_yaw 170
+3002 hand_yaw 170
+3020 shot back
+3050 shot back2
+3080 shot back3
+3120 right_trigger 0
+3300 quit 0

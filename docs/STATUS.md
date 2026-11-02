@@ -5,7 +5,7 @@ What this port does and does not do yet. "Proven" names the strongest test each 
 **Builds.** 0.1.0 (version code 1) was tried on a Quest 3 on 30 October: it ran at 72 Hz, no save could be made, the
 tools sat at wrong angles and Ratchet could not walk (the left controller's pose was never valid). 0.1.1 fixed the
 first two on PC and logs each controller's binding, the walking still to be seen on a headset. 0.1.2 (version code 3, 1 November) is the first build with Rerac-vr's features below and the first public release,
-a test build to gather headset logs; 0.1.3 (version code 4) lets the hand be empty, as Rerac-vr's; 0.1.4 (version code 5) fixes the game not starting after an update (tools/test_update_folders.sh). Everything below "PC run" is the PAL disc on a PC with a simulated
+a test build to gather headset logs; 0.1.3 (version code 4) lets the hand be empty, as Rerac-vr's; 0.1.4 (version code 5) fixes the game not starting after an update (tools/test_update_folders.sh); 0.1.5 (version code 6) draws and keeps active what the eyes see, not only what the game's camera does, and draws all the scenery by default. Everything below "PC run" is the PAL disc on a PC with a simulated
 headset; when 0.1.2 was released none of it had been on a Quest. Walking is now confirmed on a Quest on 0.1.2 (the owner, on the first level); the rest of the headset checklist is open, and the NTSC-U disc has never been run.
 
 ## Why OpenRAC is the engine
@@ -34,8 +34,9 @@ the 2D or of the window's picture standing in the world, sprites turned to the e
 the hooks the mod adds to the game's tables), and the game's view tests opened
 while a headset draws (`picture_wider` 18, some 85 degrees a side): the mobys beside the player stay
 "drawn" for the game, so active and making their effects, and the seas send their side blocks.
-Sideways only, as upstream's widening is: what lies well above or below the game camera's view is
-still out of it for the game (needs a headset test). Checked against 0.10.1: the new
+Sideways only, as upstream's widening is, and nothing behind the game's camera: so each eye also counts
+for itself (view flag 8, `openrac_game_eye_view`): a moby it sees is drawn and "drawn" for the game, the sphere
+test that stands for what the player sees passes it, and the particles and sky sprites it sees are drawn. Checked against 0.10.1: the new
 "keep the last picture" frames go through the same patched path; the camera latch reads only a real
 gamepad, which the headset does not have; low-latency frames do nothing on OpenGL ES with no window
 swap. `tools/build_quest.py` stops unless OpenRAC is at the pin with the patch applied.
@@ -49,7 +50,8 @@ swap. `tools/build_quest.py` stops unless OpenRAC is at the pin with the patch a
 | Levels made again from the kept disc when an update changes their format | Built, unit tested |
 | Updates from this repository's releases in the launcher (checked SHA-256, size, package, version, signing key), automatic checks on by default | Built, unit tested; no release yet to update to, so not run against GitHub |
 | Releases signed with the project's own key (`tools/release-cert.sha256`, checked by the build) | Built |
-| Graphics options: preset, refresh, resolution, MSAA, filtering, draw distance | Built; every value checked against the port's parser (unit test) |
+| Graphics options: preset, refresh, resolution, MSAA, filtering, draw distance (all the scenery by default; only Performance keeps the original limit; an install from before 0.1.5 is moved once) | Built; every value checked against the port's parser, the default and the move unit tested |
+| What the eyes see is drawn and active wherever the head turns, not only what the game's camera faces (Rerac-vr's) | Built; PC run (vr/tests/far.sim, Veldin): with the head turned from the game's camera the ship, crates and plants missing before are drawn, in first and third person; the mobys the game holds drawn so turned, with it and without: 168 against 122 (Novalis, first person), 140 against 105 (Veldin, third person); the particles (vr/tests/particles.sim, with OPENRAC_DRAW_COVERAGE): one type 26,490 drawn against 4,167 on Novalis, and none left out against 25,303; Rilgar's stars fill the sky where they stopped at an edge, and its flying traffic shows; the updates' sphere test (traffic, nanotech orbs, fires), counted in one run: the eye passed 9,174 the game's camera failed on Kerwan (0 without the fix), 20,485 on Oltanis; that an enemy so seen fights needs a headset test |
 | VR options: view, turning, world scale, HUD size, aiming, body, vibration | Built |
 | Credits and licences in the launcher | Built |
 | Logs in `Download/RatchetQuestVR`, summary on the Logs tab | Built |
