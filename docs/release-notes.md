@@ -1,6 +1,6 @@
 **The first public test build of Ratchet & Clank in standalone VR on Meta Quest.** It is a Quest port of [npiriou's Rerac-vr](https://github.com/npiriou/Rerac-vr), running on [OpenRAC](https://github.com/OpenRAC/OpenRAC)'s native port of the PS2 game. You need your own disc image. No game files are included.
 
-> **This is a test build, and we need your logs.** Only the very first build ever ran on a real Quest, and walking did not work on it. Everything since has been tested on a PC with a simulated headset. **Expect bugs, and walking on the headset is still unproven.** Every log helps, including from runs that worked: [how to send one](#send-your-log).
+> **This is a test build, and we need your logs.** Only the very first build ever ran on a real Quest, and walking did not work on it. Everything since has been tested on a PC with a simulated headset. **Expect bugs, and walking on the headset is still unproven.** Every log helps, including from runs that worked: **Send your log** below says how.
 
 ## What you need
 
