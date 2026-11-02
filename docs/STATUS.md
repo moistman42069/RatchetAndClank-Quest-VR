@@ -5,7 +5,7 @@ What this port does and does not do yet. "Proven" names the strongest test each 
 **Builds.** 0.1.0 (version code 1) was tried on a Quest 3 on 30 October: it ran at 72 Hz, no save could be made, the
 tools sat at wrong angles and Ratchet could not walk (the left controller's pose was never valid). 0.1.1 fixed the
 first two on PC and logs each controller's binding, the walking still to be seen on a headset. 0.1.2 (version code 3, 1 November) is the first build with Rerac-vr's features below and the first public release,
-a test build to gather headset logs; 0.1.3 (version code 4) lets the hand be empty, as Rerac-vr's. Everything below "PC run" is the PAL disc on a PC with a simulated
+a test build to gather headset logs; 0.1.3 (version code 4) lets the hand be empty, as Rerac-vr's; 0.1.4 (version code 5) fixes the game not starting after an update (tools/test_update_folders.sh). Everything below "PC run" is the PAL disc on a PC with a simulated
 headset; when 0.1.2 was released none of it had been on a Quest. Walking is now confirmed on a Quest on 0.1.2 (the owner, on the first level); the rest of the headset checklist is open, and the NTSC-U disc has never been run.
 
 ## Why OpenRAC is the engine

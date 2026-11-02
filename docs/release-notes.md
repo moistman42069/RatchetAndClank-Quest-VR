@@ -2,12 +2,16 @@
 
 > **This is a test build, and we need your logs.** **Expect bugs.** Every log helps, including from runs that worked: **Send your log** below says how.
 
+## New in 0.1.4
+
+- **Fixed: "The game could not be started: cannot move .../openrac aside".** Updating the app, by the launcher or by installing over it, could leave old files behind that stopped the next update from starting the game. **If you have that message, you do not need to reinstall:** open the launcher's Play tab, press **Check now**, and install 0.1.4. Your set-up and saves are not touched.
+
 ## New in 0.1.3
 
 - **You can put a gun or a glove down.** Squeeze the right grip for the wrench and let go slowly: your hand is now empty, as in Rerac-vr. In 0.1.2 the last item came straight back, so a Bomb Glove could not be put away. The right trigger brings it back when you want it; that pull fires nothing, the next one does.
 - **Left grip:** it can no longer send a stray crouch in the moment the left hand takes a ledge. Crouching on the left grip itself is by design, as in Rerac-vr; it stays off while that hand holds a ledge or a big weapon's barrel.
 
-**Already on 0.1.2?** Open the launcher's Play tab: it offers this update by itself, or press **Check now**. Your set-up and saves are kept.
+**Already installed?** Open the launcher's Play tab: it offers this update by itself, or press **Check now**. Your set-up and saves are kept.
 
 ## What you need
 
@@ -25,9 +29,9 @@
 ## Install
 
 1. Put your Quest in **Developer Mode** (in the Meta Horizon app on your phone).
-2. Get `RatchetQuestVR-0.1.3.apk` onto the headset and install it. Either:
+2. Get `RatchetQuestVR-0.1.4.apk` onto the headset and install it. Either:
    - download it in the Quest's browser (or email it to yourself and download it there) and open it from the **Files** app, or
-   - sideload it with SideQuest or `adb install -r RatchetQuestVR-0.1.3.apk`.
+   - sideload it with SideQuest or `adb install -r RatchetQuestVR-0.1.4.apk`.
 3. Open **Ratchet & Clank Quest VR** from your Library's **Unknown Sources**.
 4. Copy your `.iso` to the headset's **Download** folder and choose it in the launcher. The first set-up copies the disc and prepares the levels: **up to half an hour, once. Keep the headset on charge.**
 5. Press **PLAY IN VR**. **Play in 2D** puts the game on a big flat screen, played with the Touch controllers as a PlayStation pad: if VR fails, try it and tell us, as it separates a game problem from a VR problem.
@@ -44,12 +48,12 @@ The log holds your headset's model and Android version, the game's own log, why 
 
 **Most useful right now:**
 
-- **Did the launcher's update work,** from 0.1.2 to this one?
+- **Did the launcher's update work?** It has worked on a Quest from 0.1.2 to 0.1.3.
+- **Frame rate:** which planets stay smooth, which do not, and at which settings.
 - If a bar in the headset says a controller is missing, tell us.
-- Does it hold its frame rate, on which planets, at which settings?
 - Anything that crashes, freezes or leaves you stuck: the log says why far more often than not.
 
-The full list of what to try is in [docs/HEADSET_CHECKLIST.md](https://github.com/moistman42069/RatchetAndClank-Quest-VR/blob/v0.1.3/docs/HEADSET_CHECKLIST.md).
+The full list of what to try is in [docs/HEADSET_CHECKLIST.md](https://github.com/moistman42069/RatchetAndClank-Quest-VR/blob/v0.1.4/docs/HEADSET_CHECKLIST.md).
 
 ## What is in it
 
@@ -91,14 +95,15 @@ In the game: pause, **Options**, **VR Options** (or **VR Options** on the title'
 
 ## Tested, and not tested
 
-**On a real Quest:** walking works on 0.1.2, confirmed on the headset, on the first level. Most of the game has yet to be played on one, and performance on a headset is not yet known level by level.
+**On a real Quest (a Quest 3):** on 0.1.2 both controllers bind, walking works, and the first level plays, at about 60 to 70 frames a second against the headset's 72 Hz. The launcher's update has worked from 0.1.2 to 0.1.3. Most of the game has yet to be played on one.
 
-**On PC, with the PAL disc and a simulated headset:** menus, saving and loading, vendors, weapons, wrench, ledges, swimming, cranks, turrets, Clank and Giant Clank, scenes, the hoverboard on Rilgar and Kalebo III, grind rails, Kerwan's cable, and flying the ships of Pokitaru and the fleet. The full table is in [docs/STATUS.md](https://github.com/moistman42069/RatchetAndClank-Quest-VR/blob/v0.1.3/docs/STATUS.md). A simulated headset proves that a feature runs, not how it feels: aim angles, comfort and haptics need real hands.
+**On PC, with the PAL disc and a simulated headset:** menus, saving and loading, vendors, weapons, wrench, ledges, swimming, cranks, turrets, Clank and Giant Clank, scenes, the hoverboard on Rilgar and Kalebo III, grind rails, Kerwan's cable, and flying the ships of Pokitaru and the fleet. The full table is in [docs/STATUS.md](https://github.com/moistman42069/RatchetAndClank-Quest-VR/blob/v0.1.4/docs/STATUS.md). A simulated headset proves that a feature runs, not how it feels: aim angles, comfort and haptics need real hands.
 
 **Never run anywhere:** the NTSC-U disc, Magneboots floors, the orders ring for Clank's little robots, Gemlik's ship, Clank's ledges, catching a higher rung from a hang, and the hoverboard's weapon on Kalebo III.
 
 ## Known issues
 
+- **Frame rate:** the first level runs at about 60 to 70 frames a second, under the headset's 72 Hz, so it may not look perfectly smooth. 120 Hz is tried at the start and falls back to 72 Hz. Improving this is next.
 - VR Options' rows sit close together (about 10 cm on the menu), closer than in Rerac-vr. Tell us if the pointer picks the wrong row.
 - A crooked hoverboard landing is straightened instead of throwing you off, as in Rerac-vr, but how much that helps is unproven.
 - In third person the pause menu is a flat panel, not in the world.
@@ -111,7 +116,7 @@ In the game: pause, **Options**, **VR Options** (or **VR Options** on the title'
 
 ## Credits and licence
 
-Built on **[Rerac-vr](https://github.com/npiriou/Rerac-vr)** by npiriou, the main base of this project and its VR design (ISC), and on **[OpenRAC](https://github.com/OpenRAC/OpenRAC)** and [rac1-mods](https://github.com/OpenRAC/rac1-mods) (GPL-3.0-or-later). Thanks also to the [ReRAC](https://github.com/re-rac/rerac) team. Full [credits](https://github.com/moistman42069/RatchetAndClank-Quest-VR/blob/v0.1.3/CREDITS.md) and [third-party notices](https://github.com/moistman42069/RatchetAndClank-Quest-VR/blob/v0.1.3/THIRD_PARTY_NOTICES.txt).
+Built on **[Rerac-vr](https://github.com/npiriou/Rerac-vr)** by npiriou, the main base of this project and its VR design (ISC), and on **[OpenRAC](https://github.com/OpenRAC/OpenRAC)** and [rac1-mods](https://github.com/OpenRAC/rac1-mods) (GPL-3.0-or-later). Thanks also to the [ReRAC](https://github.com/re-rac/rerac) team. Full [credits](https://github.com/moistman42069/RatchetAndClank-Quest-VR/blob/v0.1.4/CREDITS.md) and [third-party notices](https://github.com/moistman42069/RatchetAndClank-Quest-VR/blob/v0.1.4/THIRD_PARTY_NOTICES.txt).
 
 Please **report bugs in this port here**, not to Rerac-vr, ReRAC or OpenRAC.
 
@@ -121,4 +126,4 @@ This is free software under GPL-3.0-or-later, without any warranty. The source o
 
 | File | SHA-256 |
 | --- | --- |
-| `RatchetQuestVR-0.1.3.apk` (version code 4, 47 MB) | `8eb938ff35575c7ad0885c8022ee652358e72a928cc1df82c946ff34d006de95` |
+| `RatchetQuestVR-0.1.4.apk` (version code 5, 47 MB) | `c7c02c0a14dc4ffe554af4f1f8e972b2d287da12c8c8a67fdb06f51d285d7050` |

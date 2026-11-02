@@ -7,7 +7,10 @@ it worked (the log is in Download/RatchetQuestVR). PC-proven features are in STA
 
 - **Walking with the left stick.** Confirmed working on 0.1.2 on the Quest. If it ever stops, the log's
   `[openxr] left hand:` line should name a controller, not `(none)`, with `hands 11` and `sticks 11`.
-- **The launcher's update.** From 0.1.2, the Play tab offers 0.1.3 (or **Check now**); set-up and saves stay.
+- **The launcher's update.** Worked on a Quest from 0.1.2 to 0.1.3, then the game would not start ("cannot move
+  .../openrac aside": what earlier updates left behind), fixed in 0.1.4. Each update: **Check now** on the Play tab,
+  and the game must start after it, set-up and saves kept.
+- **Frame rate.** The `[vr-perf]` lines. The first level ran at 60 to 70 frames a second against 72 Hz on 0.1.2.
 - **Recentring.** Press the left controller's menu button: `[vr-rig] recentred: the left menu button`. Hold the
   headset's own button (the Meta button) to recentre: `[vr-rig] recentred: the headset's own recentre`. Either
   puts the view back where Ratchet stands, facing where you look.

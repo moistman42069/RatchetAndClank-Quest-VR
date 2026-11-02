@@ -148,6 +148,26 @@ public class LauncherTest {
         throw new AssertionError("no button " + label);
     }
 
+    /**
+     * An update moves Android's library folder, so the links in the last tools dangle, and File.exists() is false for
+     * those: left behind, they kept openrac.old from going, and the next update "cannot move openrac aside".
+     */
+    @org.junit.Test
+    public void anUpdateClearsToolsWhoseLinksDangle() throws Exception {
+        File filesDir = app.getFilesDir();
+        java.nio.file.Path gone = new File(filesDir, "a-library-folder-of-the-last-install/libopenrac-python.so").toPath();
+        File old = new File(filesDir, "openrac.old");
+        File bin = new File(old, "python/bin");
+        bin.mkdirs();
+        try {
+            Files.createSymbolicLink(new File(bin, "python3").toPath(), gone);
+        } catch (java.io.IOException | UnsupportedOperationException e) {
+            org.junit.Assume.assumeNoException("this PC makes no links", e);
+        }
+        Tools.deleteRecursively(old);
+        assertTrue("a folder with a dangling link in it is cleared", !old.exists());
+    }
+
     private void installed(String version) throws Exception {
         Tools tools = new Tools(app);
         File levels = tools.levels(version);

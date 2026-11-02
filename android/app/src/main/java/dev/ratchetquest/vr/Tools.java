@@ -60,8 +60,17 @@ final class Tools {
         return env;
     }
 
-    /** Makes the tools ready: unpacked once per install or update, linked every time. */
+    /**
+     * Makes the tools ready: unpacked once per install or update, linked every time. One at a time: Play and the set-up
+     * can both ask, and each moves the same folders.
+     */
     void prepare() throws IOException {
+        synchronized (Tools.class) {
+            prepareNow();
+        }
+    }
+
+    private void prepareNow() throws IOException {
         String stamp = stamp();
         File marker = new File(root(), ".unpacked");
         boolean unpacked = marker.isFile()
@@ -125,8 +134,14 @@ final class Tools {
         }
         Files.write(new File(fresh, ".unpacked").toPath(), stamp.getBytes(StandardCharsets.UTF_8));
         File root = root();
+        // The tools hold nothing of the player's and were just unpacked anew: what will not move goes, so that what an
+        // earlier update left behind can never stop the game.
         if (root.exists() && !root.renameTo(old)) {
-            throw new IOException("cannot move " + root + " aside");
+            Log.w(TAG, "cannot move " + root + " aside: cleared in its place");
+            deleteRecursively(root);
+        }
+        if (root.exists()) {
+            throw new IOException("cannot clear " + root);
         }
         if (!fresh.renameTo(root)) {
             throw new IOException("cannot move " + fresh + " to " + root);
@@ -149,11 +164,19 @@ final class Tools {
     }
 
     static void deleteRecursively(File file) {
-        if (file == null || !file.exists()) {
+        if (file == null) {
             return;
         }
-        // A link is deleted itself, not followed.
-        if (file.isDirectory() && !Files.isSymbolicLink(file.toPath())) {
+        // A link is deleted itself, not followed, and first: an update moves the library folder the tools' links
+        // point into, and exists() is false for a link whose target went. Left, they keep the folders from going.
+        if (Files.isSymbolicLink(file.toPath())) {
+            file.delete();
+            return;
+        }
+        if (!file.exists()) {
+            return;
+        }
+        if (file.isDirectory()) {
             File[] children = file.listFiles();
             if (children != null) {
                 for (File child : children) {
