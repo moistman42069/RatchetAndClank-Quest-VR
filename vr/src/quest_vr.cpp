@@ -1118,6 +1118,7 @@ uint16_t pointed_key();
 bool vendor_open();
 uint16_t vendor_pulse();
 bool left_supports();
+bool left_on_ledge();
 void ledge_context(PadContext& context);
 bool dive_wanted();
 bool socket_pressed();
@@ -1150,7 +1151,7 @@ void on_pad(int port, std::uint8_t* report, int size) {
     context.swing = s_swinging;
     context.throw_by_hand = throws_by_hand();
     context.punch = hand_punching();
-    context.left_support = left_supports();
+    context.left_support = left_supports() || left_on_ledge();  // the left grip is the crouch but for these (Rerac-vr's)
     context.trigger_held_back = s_trigger_back || s_disguise_trigger_spent;
     context.disguised = s_disguised;
     context.salute = s_salute.active;
@@ -2457,7 +2458,7 @@ bool s_trigger_was = false;
 // the wrench flies the game's own throw (the Comet flight of its update: out along its direction
 // until it stops, then back, hitting what it meets), from its middle, at four times the hand's speed
 // (10 to 23 m/s), spinning flat; on the way back it comes to the player's hand, not to the body's.
-// Let go slowly, or catch it with the grip open, and it is put away: the gun before it comes back.
+// Let go slowly, or catch it with the grip open, and it is put away: the hand is empty, and the trigger brings the gun back.
 
 constexpr uint8_t kWrenchOut = 10;
 constexpr uint8_t kWrenchBack = 11;
@@ -2725,30 +2726,16 @@ void change_items() {
             s_trigger_was = trigger;
             return;
         }
-        // As the grip opens slowly, or the wrench is caught with it open: asked once, when the swap
-        // lock is off (the flight keeps it on to the catch). The game's swap keeps the item it was
-        // asked for as its target even when the lock refused it, then drops any later request for
-        // that item as already done (Rerac-vr fixes the same): the target is set back to the wrench
-        // before the request, so it is one.
+        // The grip opened slowly, or the wrench caught with it open: it is put away and the hand is empty
+        // (Rerac-vr's: the wrench is held only while the grip is squeezed), the way to put a gun or a glove
+        // down. The trigger brings the last one back, below.
         static uint8_t state_was = 0;
-        static bool wanted = false;
         const uint8_t state = wrench != 0 ? ref<uint8_t>(wrench + kMobyState) : 0;
         const bool let_go = !grip && s_grip_was;
         const bool caught = !grip && state_was == kWrenchBack && state == 0;
         state_was = state;
         if (let_go || caught) {
-            wanted = true;
             log_line(1, caught ? "[vr-wrench] caught with the grip open: put away" : "[vr-wrench] let go slowly: put away");
-        }
-        if (grip || s_last_gun <= 0) {
-            wanted = false;
-        }
-        if (wanted && wrench != 0 && !wrench_flying(wrench) && ref<uint8_t>(hero + kHeroSlot0 + kSlotSwapLock) == 0
-            && ref<int32_t>(hero + kHeroSlot0 + kSlotState) == 2) {
-            ref<int32_t>(hero + kHeroSelectedItem) = kWrenchItem;
-            ref<int32_t>(hero + kHeroPendingItem) = s_last_gun;
-            wanted = false;
-            log_line(1, "[vr-wrench] the gun asked back");
         }
     }
     // A fresh grip takes the wrench, a tick later: the ledge it may have closed on is found first.
@@ -2764,9 +2751,15 @@ void change_items() {
             ref<int32_t>(hero + kHeroPendingItem) = kWrenchItem;
         }
     }
-    if (trigger && !s_trigger_was && item == kWrenchItem && s_last_gun > 0) {
+    // Not while it flies: a press then does nothing, and one once it is back brings the gun (Rerac-vr's). The game's swap
+    // keeps the item it was asked for as its target even when the lock refused it, then drops any later request for that
+    // item as already done: the target is set back to the wrench before the request, so it is one.
+    if (trigger && !s_trigger_was && item == kWrenchItem && s_last_gun > 0 && !wrench_flying(hand_moby())
+        && ref<uint8_t>(hero + kHeroSlot0 + kSlotSwapLock) == 0) {
+        ref<int32_t>(hero + kHeroSelectedItem) = kWrenchItem;
         ref<int32_t>(hero + kHeroPendingItem) = s_last_gun;
         s_trigger_back = true;
+        log_line(1, "[vr-wrench] the trigger asks the last gun back");
     }
     if (!trigger) {
         s_trigger_back = false;
@@ -2900,6 +2893,8 @@ bool right_on_ledge() {
     }
     return s_ledge.grabbed[kRight] || (ledge_state(hero_state()) && !right_hand_free());
 }
+
+bool left_on_ledge() { return s_ledge.grabbed[kLeft]; }
 
 void ledge_context(PadContext& context) {
     if (!s_have_frame || context.in_menu || !hands_hold_ledges() || !ledge_state(hero_state())) {
@@ -9300,4 +9295,4 @@ void load(openrac::Mod& mod) {
 
 }  // namespace
 
-OPENRAC_MOD_CPP("quest-vr", "0.1.2", load)
+OPENRAC_MOD_CPP("quest-vr", "0.1.3", load)

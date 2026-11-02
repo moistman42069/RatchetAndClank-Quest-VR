@@ -1,0 +1,16 @@
+# Putting an item down (Rerac-vr's): with the Bomb Glove in hand, the grip takes the wrench, a slow release leaves the hand
+# empty and the glove stays away; the trigger brings it back without throwing, and the next pull holds a bomb.
+600 y 1
+606 y 0
+3000 shot glove
+3050 right_grip 1
+3150 shot wrench
+3160 right_grip 0
+3300 shot empty
+3320 right_trigger 1
+3326 right_trigger 0
+3440 shot glove-back
+3500 right_trigger 1
+3560 shot bomb-held
+3570 right_trigger 0
+3700 quit 0

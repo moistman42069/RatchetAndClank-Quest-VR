@@ -67,6 +67,7 @@ run walloper walloper 1 $G=18 $H=18 $N=500
 run walloperchain walloperchain 1 $G=18 $H=18 QUEST_STATE_TRACE=1
 run wrench wrench 1 $G=10 $N=511 KEEP=1
 run wrenchthrow wrenchthrow 1 $G=15 $H=15
+run unequip unequip 1 $G=10 $H=10 KEEP=1
 run wrenchwall wrenchwall 1
 run hyper hyper 1
 run hypercrate hypercrate 1 $N=500 $A=1.2,0 QUEST_POINTER_TRACE=1

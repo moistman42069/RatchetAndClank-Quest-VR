@@ -15,9 +15,9 @@
 
 Rerac-vr runs on [ReRAC](https://github.com/re-rac/rerac), a Rust rewrite of the game that a headset's processor cannot yet carry at frame rate, so this port runs [OpenRAC](https://github.com/OpenRAC/OpenRAC)'s recompiled game instead and rebuilds Rerac-vr's features on it in its own VR mod (`vr/`). **If you play on PC, play [Rerac-vr](https://github.com/npiriou/Rerac-vr)**: it is the complete experience, and the one this port follows.
 
-**Latest:** [0.1.2](https://github.com/moistman42069/RatchetAndClank-Quest-VR/releases/latest), the first public test build of the whole Rerac-vr port. **We need your logs:** see [Support and project](#support-and-project). The launcher updates itself from the Releases page.
+**Latest:** [0.1.3](https://github.com/moistman42069/RatchetAndClank-Quest-VR/releases/latest), a public test build of the whole Rerac-vr port. **We need your logs:** see [Support and project](#support-and-project). The launcher updates itself from the Releases page.
 
-> **Experimental / WIP:** the game is OpenRAC's native port, not an emulator, with a VR mod of its own. Rerac-vr's features are in and have run on PC with the PAL disc and a simulated headset. Only the very first build has ever run on a real Quest, where walking did not work: walking on the headset is still unproven, and the NTSC-U disc has never been run at all. Expect bugs. [docs/STATUS.md](docs/STATUS.md) lists every feature and how far it has been tested; [docs/HEADSET_CHECKLIST.md](docs/HEADSET_CHECKLIST.md) what to try on the headset.
+> **Experimental / WIP:** the game is OpenRAC's native port, not an emulator, with a VR mod of its own. Rerac-vr's features are in and have run on PC with the PAL disc and a simulated headset. Walking is confirmed on a real Quest, but most of the game has yet to be played on one, and the NTSC-U disc has never been run at all. Expect bugs. [docs/STATUS.md](docs/STATUS.md) lists every feature and how far it has been tested; [docs/HEADSET_CHECKLIST.md](docs/HEADSET_CHECKLIST.md) what to try on the headset.
 
 ## Downloads
 
@@ -70,9 +70,9 @@ Greatest Hits, Platinum, other regions and the sequels are not supported. The la
 | B | Hover and strafe with Clank's packs, Hydro-Pack boost |
 | X | Map |
 | Y | Pause; skips a cutscene |
-| Right trigger | Fire; with the wrench in hand, takes your last gun back out |
-| Right grip | Takes the wrench out; swing your hand for real to hit |
-| Left grip or trigger | Crouch, and the packs (with A: long and high jumps, flips) |
+| Right trigger | Fire; with an empty hand, takes your last gun or glove back out |
+| Right grip | Takes the wrench out; swing your hand for real to hit. Let go slowly to put it away and leave your hand empty, which is how to put a gun or a glove down |
+| Left grip or trigger | Crouch, and the packs (with A: long and high jumps, flips). Not while the left hand holds a ledge or a big weapon's barrel |
 | Right stick click | Talk; hold for quick select, move your right hand towards a weapon, let go |
 | Left stick click | With Akimbo on: the left hand's own quick select |
 | Left menu button | Recentre (the headset's own recentre too) |

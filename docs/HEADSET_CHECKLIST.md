@@ -5,9 +5,9 @@ it worked (the log is in Download/RatchetQuestVR). PC-proven features are in STA
 
 ## First, every session
 
-- **Walking with the left stick.** The log must show `[openxr] left hand: <a controller profile>` (not
-  `(none)`), the `[vr-state]` lines `hands 11` and the `[vr-input]` lines `sticks 11`, and walking must move you.
-  The first headset test showed `hands 01`: the left controller's pose was never valid. Not yet seen working.
+- **Walking with the left stick.** Confirmed working on 0.1.2 on the Quest. If it ever stops, the log's
+  `[openxr] left hand:` line should name a controller, not `(none)`, with `hands 11` and `sticks 11`.
+- **The launcher's update.** From 0.1.2, the Play tab offers 0.1.3 (or **Check now**); set-up and saves stay.
 - **Recentring.** Press the left controller's menu button: `[vr-rig] recentred: the left menu button`. Hold the
   headset's own button (the Meta button) to recentre: `[vr-rig] recentred: the headset's own recentre`. Either
   puts the view back where Ratchet stands, facing where you look.

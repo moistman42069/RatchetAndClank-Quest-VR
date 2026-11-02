@@ -6,11 +6,12 @@ A             Jump. Twice for a double jump
 B             Hover and strafe with Clank's packs, Hydro-Pack boost
 X             Map
 Y             Pause. Skips a cutscene
-RIGHT TRIGGER Fire where your hand points. With the wrench in hand, takes your last gun back out
+RIGHT TRIGGER Fire where your hand points. With an empty hand, takes your last gun or glove back out
               Gloves: hold the trigger, throw with your hand and let go. Let go slowly to keep it
               Walloper: punch for real
 RIGHT GRIP    Takes the wrench out. Swing your hand for real to hit, weak taps do not count
-              Let go mid-swing to throw it, it comes back. Let go slowly to put it away
+              Let go mid-swing to throw it, it comes back. Let go slowly to put it away: your hand
+              is empty, which is how to put a gun or a glove down
               In the air, slam it down for the Hyper Strike
               Near a bolt: hold it on the bolt and walk around it
 LEFT GRIP or TRIGGER   Crouch, and the packs (hold with A for long and high jumps, flips)
