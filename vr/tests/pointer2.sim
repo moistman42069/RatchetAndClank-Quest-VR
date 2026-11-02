@@ -32,7 +32,7 @@
 3456 right_trigger 0
 3520 shot options-page
 # On the Options page, up to VR Options and the trigger: its page opens.
-3540 hand_pitch 8.7
+3540 hand_pitch 10.4
 3560 shot on-vr-options
 3570 right_trigger 1
 3576 right_trigger 0

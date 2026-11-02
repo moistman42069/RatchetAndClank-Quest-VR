@@ -18,6 +18,15 @@ it worked (the log is in Download/RatchetQuestVR). PC-proven features are in STA
   enemy should appear as you approach, far toads should hop about rather than stand still, and after the opening scene
   the toads and bolts should be there at once. Then switch it off in the launcher's Graphics tab and compare: things
   should pop in again at 0.1.6's distances. Note the `[vr-perf]` lines with it on and off.
+- **Guns line up with the controller (0.1.8).** Up to 0.1.7 the guns followed the controller's handle, and a tester had
+  to point at the floor to shoot ahead. With the Blaster and the Pyrocitor, point the controller at something and fire:
+  the shot should go along the controller, the line the menu pointer takes. Point it level and the log's
+  `[vr-aim] class 168 aimed by the hand: forward (x y z)` should have z near 0. If shots still go a little high or low,
+  try VR Hands' Gun angle (pause, Options, VR Hands; "down" lowers the barrel) and say which value suits you. Then
+  Gun size 70 percent: the gun smaller in the hand, its shots still leaving its muzzle; and Hand size 70 and 130
+  percent: Ratchet's hands and a glove smaller and bigger, still on the controllers. The wrench, the gloves, the
+  Swingshot and the PDA should otherwise look as in 0.1.7. The log's start says `[vr-hand] guns point where the
+  controller points: gun angle 0, gun size 100 percent, hand size 100 percent`.
 - **The US disc (NTSC-U).** 0.1.2 to 0.1.5 never loaded the VR mod on it: a black headset, and
   `mod quest-vr not loaded: Hud_Frame: the hook point's signature is another` in the log. On 0.1.6 or later with that
   disc the log must say `mod quest-vr 0.1.7 loaded` (or the version run), and the headset show the game. Fixed and
@@ -52,6 +61,7 @@ it worked (the log is in Download/RatchetQuestVR). PC-proven features are in STA
 | Ladders and rungs (Aridia) | Hang by one hand, grip a higher rung with the other | `[vr-ledge] a higher ledge in reach` |
 | Eudora's vendor | Buy on foot | Bolts paid, the item received |
 | VR Options | Point at each row and pull the trigger | All eight rows show at once with no scrolling. Rows are about 10 cm apart on the menu, tighter than Rerac-vr's stretched box: say if the pointer picks the wrong one |
+| VR Hands (pause, Options, after VR Options) | Point at Gun angle, Gun size and Hand size, pull the trigger, push the stick left and right | Each row takes the pointer; the value steps both ways (`[vr-hand] VR Hands: gun angle ..., gun size ... percent, hand size ... percent`), the gun and hands change at once back in play, and the values are kept after a restart |
 | VR Options | Set View to Third person, play, set it back | His whole body from the game's camera, the horizon level, the left stick walking where you look; say if the camera moves too much for comfort |
 | Any menu page with rows | Push the sticks, hand on or off the menu | The cursor stays put (the pointer is the selection). With the right controller off, the sticks move it. The Select map still pans |
 

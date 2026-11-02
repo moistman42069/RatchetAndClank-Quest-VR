@@ -156,7 +156,16 @@ struct VrOptions {
     int body = 0;                // his body seen from his head: 0 never, 1 in cutscenes, 2 always
     bool akimbo = false;         // a gun in each hand
     bool seated = false;         // the view lifted by a sitting player's drop
+    // VR Hands: the guns' barrels turned this many degrees up from where the controller points (its aim
+    // pose, the menus' ray; below 0 down), and drawn this percent of the game's size; Ratchet's hands and
+    // forearms (and a glove, which is the hand) this percent of theirs.
+    int gun_angle = 0;
+    int gun_size = 100;
+    int hand_size = 100;
 };
+constexpr int kGunAngleMax = 45, kGunAngleStep = 5;
+constexpr int kGunSizeMin = 50, kGunSizeStep = 10;
+constexpr int kHandSizeMin = 50, kHandSizeMax = 150, kHandSizeStep = 10;
 
 // What the mod holds. All of it is on the game's thread.
 openrac::Mod* s_mod = nullptr;
@@ -836,6 +845,7 @@ void ring_trace();
 
 void paint_glyphs();
 void release_roll();
+void give_sizes_back();
 
 #if !defined(__ANDROID__)
 // PC test aid (QUEST_HANG_TRACE=1): each tick he hangs and the few after, what of the hero block and
@@ -945,6 +955,7 @@ void on_tick() {
         s_mod->api().play_overlay_pause(s_mod->handle(), s_options.first_person ? 2 : 0);
     }
     release_roll();
+    give_sizes_back();
     paint_glyphs();
     // Without the port's call before each capture (patches/), it is all done here, after it: the
     // game's next update may show the body again before the next frame.
@@ -1415,6 +1426,55 @@ void shrink_back() {
     }
 }
 
+// The guns drawn at the Gun size and the gloves at the Hand size (VR Hands): their scale is changed only for the frame's capture and their
+// own aimed update (its muzzle), and given back right after each (give_sizes_back), so a sized gun is never
+// sized again from its sized scale, the left hand's included, and what the game keeps is its own.
+struct Sized {
+    gaddr moby;
+    float own, drawn;
+};
+Sized s_sized[4];
+int s_sized_count = 0;
+
+void size_for_now(gaddr moby, float size) {
+    for (int i = 0; i < s_sized_count; ++i) {
+        if (s_sized[i].moby == moby) {
+            put_float(moby + kMobyScale, s_sized[i].drawn);
+            return;
+        }
+    }
+    if (s_sized_count == 4) {
+        return;
+    }
+    const float own = get_float(moby + kMobyScale);
+    s_sized[s_sized_count++] = {moby, own, own * size};
+    put_float(moby + kMobyScale, own * size);
+}
+
+void give_sizes_back() {
+    for (int i = 0; i < s_sized_count; ++i) {
+        const Sized& s = s_sized[i];
+        // Changed since by the game itself: its own then.
+        if (s_mod->moby_slot_of(s.moby) >= 0 && get_float(s.moby + kMobyScale) == s.drawn) {
+            put_float(s.moby + kMobyScale, s.own);
+        }
+    }
+    s_sized_count = 0;
+}
+
+// The moby's own scale: before the wrench grew or the Gun size drew it.
+float own_scale(gaddr moby) {
+    if (moby == s_grown) {
+        return s_grown_scale;
+    }
+    for (int i = 0; i < s_sized_count; ++i) {
+        if (s_sized[i].moby == moby) {
+            return s_sized[i].own;
+        }
+    }
+    return get_float(moby + kMobyScale);
+}
+
 // What is in Ratchet's hand is a moby of its own, which the hero's update puts at his hand's joint
 // each tick (update_hero_item_mobys). Before the frame is captured, it is put in the player's right
 // hand instead, as Rerac-vr mounts each kind of item (hand.h).
@@ -1449,10 +1509,18 @@ const Pose* left_grip_pose() { return s_frame.hand_valid[kLeft] ? &s_frame.hand_
 // The left grip holds the foregrip (or took it when squeezed): it is not R1.
 bool left_supports() { return s_left_support || s_support.held; }
 
+// Where hand `side` holds a gun: at its grip, pointing where the controller points (OpenXR's aim pose, the menus'
+// ray: the runtime's own for each controller), turned up by the Gun angle. The grip's forward runs up the handle,
+// on the Quest's controllers far above that ray: guns along it shot high unless the controller pointed at the floor.
+Pose pointing_pose(int side) {
+    const float half = static_cast<float>(s_vr.gun_angle) * kPi / 360.0f;
+    return {s_frame.hand_grip[side].position,
+            s_frame.hand_aim[side].orientation * Quat{std::sin(half), 0, 0, std::cos(half)}};
+}
+
 // Where the weapon's grip is: the right hand, or behind it for a heavy weapon, or turned to the left.
 Pose weapon_grip() {
-    return s_support_on ? weapon_hand(s_frame.hand_grip[kRight], left_grip_pose(), s_support)
-                        : s_frame.hand_grip[kRight];
+    return s_support_on ? weapon_hand(pointing_pose(kRight), left_grip_pose(), s_support) : pointing_pose(kRight);
 }
 
 bool left_hand_holds();
@@ -1484,7 +1552,7 @@ void support_step() {
     }
     const bool two = ref<uint8_t>(s_disc->hero + kHeroArms) == 2;
     const bool held = s_support.held;
-    const Pose& right = s_frame.hand_grip[kRight];
+    const Pose right = pointing_pose(kRight);
     step(s_support, item, two, right, left_grip_pose(), grip, dt);
     if (began && left_grip_pose() != nullptr) {
         s_left_support = s_support.reaches(right, *left_grip_pose());
@@ -1578,13 +1646,20 @@ Vec3 contact_shift(const HandFrame& hand, Vec3 muzzle, int32_t item) {
 }
 
 // Where the item `moby` goes in hand `side` now, as item `item`, and the hand itself. `main`: the hand
-// slot's own, which meets walls (contact_shift) and the right's the left foregrip (weapon_grip).
+// slot's own, which meets walls (contact_shift) and the right's the left foregrip (weapon_grip). What
+// points (hand.h held_pointing) is held by pointing_pose, at the Gun size; the rest by the grip, a glove
+// at the Hand size. The
+// hand given back aims where the controller points, but the wrench's, which is its grip.
 Mount mount_in(gaddr moby, HandFrame& hand, int side, int32_t item, bool main) {
     const int oclass = ref<int16_t>(moby + kMobyOclass);
-    const float scale = moby == s_grown ? s_grown_scale : get_float(moby + kMobyScale);
-    const Pose grip = in_frame(s_rig, main && side == kRight ? weapon_grip() : s_frame.hand_grip[side], anchor_now(1.0f));
-    hand = hand_in_world(grip);
-    Mount mount = mount_item(hand, oclass, item, scale, class_joint(oclass, moby), side == kLeft);
+    const float scale = own_scale(moby);
+    const HandFrame grip = hand_in_world(in_frame(s_rig, s_frame.hand_grip[side], anchor_now(1.0f)));
+    const HandFrame aim = hand_in_world(
+        in_frame(s_rig, main && side == kRight ? weapon_grip() : pointing_pose(side), anchor_now(1.0f)));
+    const bool pointing = held_pointing(oclass, item);
+    hand = oclass == kWrenchClass ? grip : aim;
+    Mount mount = mount_item(pointing ? aim : grip, oclass, item, scale, class_joint(oclass, moby), side == kLeft,
+                             static_cast<float>(s_vr.gun_size) / 100.0f, static_cast<float>(s_vr.hand_size) / 100.0f);
     const Vec3 shift = main ? contact_shift(hand, mount.muzzle, item) + wrench_rebound() : Vec3{};
     mount.position = mount.position + shift;
     mount.muzzle = mount.muzzle + shift;
@@ -1628,7 +1703,7 @@ void place_weapon() {
     if (seat_wrench(moby)) {
         return;
     }
-    const float scale = moby == s_grown ? s_grown_scale : get_float(moby + kMobyScale);
+    const float scale = own_scale(moby);
     HandFrame hand;
     Mount mount = hand_mount(moby, hand);
     if (s_wrench_stretch > 1.0f && ref<int32_t>(s_disc->hero + kHeroSlot0 + kSlotItem) == kWrenchItem) {
@@ -1658,6 +1733,9 @@ void put_mount(gaddr moby, const Mount& mount, float scale) {
         s_grown = moby;
         s_grown_scale = scale;
         put_float(moby + kMobyScale, scale * mount.scale);
+    }
+    if (mount.size != 1.0f) {
+        size_for_now(moby, mount.size);
     }
 }
 
@@ -1730,8 +1808,8 @@ void aimed_update(Original original, uint32_t moby) {
     }
     HandFrame hand;
     const Mount mount = hand_mount(moby, hand);
-    // In the hand before its update: its joints (the muzzle the game asks for) are the hand's.
-    put_mount(moby, mount, get_float(moby + kMobyScale));
+    // In the hand before its update: its joints (the muzzle the game asks for) are the hand's, at the Gun size.
+    put_mount(moby, mount, own_scale(moby));
 
     openrac::Memory memory = s_mod->memory();
     const gaddr hero = s_disc->hero;
@@ -1775,6 +1853,7 @@ void aimed_update(Original original, uint32_t moby) {
     s_aim_class = ref<int16_t>(moby + kMobyOclass);
     original(moby);
     s_aiming = false;
+    give_sizes_back();
 
     std::memcpy(memory.pointer(hero + kHeroAimRows), rows, sizeof rows);
     std::memcpy(memory.pointer(hero + kHeroRot + 4u), rot, sizeof rot);
@@ -4932,7 +5011,7 @@ bool turret_aim(float& yaw, float& pitch) {
         return false;
     }
     const bool hand = s_options.hand_aim && s_frame.hand_valid[kRight];
-    const Quat pointing = hand ? s_frame.hand_grip[kRight].orientation : s_frame.head.orientation;
+    const Quat pointing = hand ? pointing_pose(kRight).orientation : s_frame.head.orientation;
     const Vec3 d = frame_to_world(rotate(yaw_quat(s_rig.yaw) * pointing, {0, 0, -1}));
     const float flat = std::sqrt(d.x * d.x + d.y * d.y);
     if (flat <= 0.05f) {
@@ -5346,6 +5425,18 @@ void place_arms() {
             on_item(arms[kLeft]);
         } else {
             free_arm(arms[kLeft], shape, kLeft, s_left_moby != 0 && s_off_side == kLeft ? 1.0f : s_frame.controls.left_grip);
+        }
+    }
+    // The Hand size (VR Hands): the port moves each arm by its palm's axes, so axes that long draw the hand and its
+    // forearm that much of their size about the palm. A ledge's hand slides along it, as it is.
+    const float hand_size = static_cast<float>(s_vr.hand_size) / 100.0f;
+    for (openrac_moby_arm& arm : arms) {
+        if (hand_size != 1.0f && arm.shown != 0 && arm.slide == 0) {
+            for (auto& row : arm.rows) {
+                for (float& v : row) {
+                    v *= hand_size;
+                }
+            }
         }
     }
     const int slot = s_mod->moby_slot_of(body);
@@ -7561,7 +7652,8 @@ void views_end(void*, const openrac_view* views, int count) {
         layer.visible = layer.visible && !s_shopping;
 #endif
     } else if (s_panel_is_monitor) {
-        const Pose& grip = s_frame.hand_grip[kRight];
+        // Over the gun, as the gun is held.
+        const Pose grip = pointing_pose(kRight);
         layer.pose.position = grip.position + rotate(grip.orientation, kMonitorAt);
         layer.pose.orientation = grip.orientation * Quat{std::sin(kMonitorTilt * 0.5f), 0, 0, std::cos(kMonitorTilt * 0.5f)};
         layer.width = kMonitorWidth;
@@ -8999,11 +9091,16 @@ const openrac_world_quad* views_quads(void*, int* count) {
 
 std::string s_vr_file;
 openrac::UiPage s_vr_page;
+// VR Hands, the pause menu's item after VR Options: how the guns sit in the hands and how big the hands are, beside
+// the full page.
+openrac::UiPage s_hands_page;
+const openrac::UiPage* s_rows_page = &s_vr_page;  // the one of the two last shown
 
 enum VrRow { kRowHelmet, kRowBoots, kRowFlip, kRowDirection, kRowBody, kRowAkimbo, kRowPosition, kRowView };
+enum HandsRow { kRowGunAngle, kRowGunSize, kRowHandSize };
 
-// The pause menu's page of the mod: the port's window of eight rows, in the list's box, all of VR Options
-// at once. ui_cursor only reads there, so the hand writes the row the game's cursor is on, as the d-pad's
+// The pause menu's pages of the mod: the port's window of up to eight rows, in the list's box, all of VR Options
+// at once, VR Hands' three. ui_cursor only reads there, so the hand writes the row the game's cursor is on, as the d-pad's
 // bits end up doing; the port's input then clamps it, and on a page longer than the window moves it. The
 // game's own list on the title's page is pointed at as any other list.
 void point_at_vr_rows(gaddr page, float cx, float cy) {
@@ -9017,7 +9114,7 @@ void point_at_vr_rows(gaddr page, float cx, float cy) {
         --settling;
         return;
     }
-    const int item = s_vr_page.cursor();
+    const int item = s_rows_page->cursor();
     if (item < 0 || !readable(list, 0x58u)) {
         return;
     }
@@ -9047,12 +9144,33 @@ void point_at_vr_rows(gaddr page, float cx, float cy) {
         }
         return;
     }
+    // The rows the window shows: a 0 label ends them (VR Hands has three), and the box is as tall as they are.
+    constexpr uint32_t kRowLabels = 0x34u, kRowBytes = 0x18u;
+    const gaddr labels = ref<gaddr>(list + kRowLabels);
+    int shown = kRowsShown;
+    if (readable(labels, kRowBytes * kRowsShown)) {
+        shown = 0;
+        while (shown < kRowsShown && ref<int32_t>(labels + kRowBytes * static_cast<uint32_t>(shown)) != 0) {
+            ++shown;
+        }
+        shown = std::max(shown, 1);
+    }
+    static int told_shown = -1, told_height = -1;
+    if (shown != told_shown || height != told_height) {
+        told_shown = shown;
+        told_height = height;
+        char line[120];
+        std::snprintf(line, sizeof line, "[vr-pointer] %s: %d rows in a box %dx%d at (%d %d)",
+                      s_rows_page == &s_hands_page ? "VR Hands" : "VR Options", shown, width, height, x, y);
+        log_line(1, line);
+    }
     const int cursor = ref<int32_t>(list + kRowCursor);
-    const int row = std::clamp(window_row_at(kRowsShown, static_cast<float>(height), cy - static_cast<float>(y)), 0, kRowsShown - 1);
+    const int row = std::clamp(window_row_at(shown, static_cast<float>(height), cy - static_cast<float>(y)), 0, shown - 1);
     if (row != cursor) {
         ref<int32_t>(list + kRowCursor) = row;
         settling = kSettleFrames;
-        log_line(1, ("[vr-pointer] VR Options: row " + std::to_string(row) + " of the window at item " + std::to_string(item - cursor)).c_str());
+        log_line(1, (std::string("[vr-pointer] ") + (s_rows_page == &s_hands_page ? "VR Hands" : "VR Options") + ": row "
+                     + std::to_string(row) + " of the window at item " + std::to_string(item - cursor)).c_str());
     }
 }
 
@@ -9072,6 +9190,40 @@ void show_vr_page() {
     s_vr_page.set(content);
 }
 
+// VR Hands' rows: Gun angle from 45 down to 45 up by fives (Default: where the controller points), Gun size from
+// half to all of the game's by tens, Hand size from half to one and a half of theirs by tens.
+void show_hands_page() {
+    std::vector<std::string> angles, guns, hands;
+    for (int a = -kGunAngleMax; a <= kGunAngleMax; a += kGunAngleStep) {
+        angles.push_back(a == 0 ? "Default" : std::to_string(a < 0 ? -a : a) + (a < 0 ? " down" : " up"));
+    }
+    for (int s = kGunSizeMin; s <= 100; s += kGunSizeStep) {
+        guns.push_back(std::to_string(s) + " percent");
+    }
+    for (int s = kHandSizeMin; s <= kHandSizeMax; s += kHandSizeStep) {
+        hands.push_back(std::to_string(s) + " percent");
+    }
+    openrac::UiContent content;
+    content.title = "VR Hands";
+    content.items = {
+        openrac::UiItem::choice_of("Gun angle", angles, static_cast<std::uint32_t>((s_vr.gun_angle + kGunAngleMax) / kGunAngleStep)),
+        openrac::UiItem::choice_of("Gun size", guns, static_cast<std::uint32_t>((s_vr.gun_size - kGunSizeMin) / kGunSizeStep)),
+        openrac::UiItem::choice_of("Hand size", hands, static_cast<std::uint32_t>((s_vr.hand_size - kHandSizeMin) / kHandSizeStep)),
+    };
+    s_hands_page.set(content);
+}
+
+// A saved Gun angle and sizes on their steps, within their ranges.
+int gun_angle_of(int value) {
+    return std::clamp(value / kGunAngleStep * kGunAngleStep, -kGunAngleMax, kGunAngleMax);
+}
+int gun_size_of(int value) {
+    return std::clamp((value - kGunSizeMin) / kGunSizeStep * kGunSizeStep + kGunSizeMin, kGunSizeMin, 100);
+}
+int hand_size_of(int value) {
+    return std::clamp((value - kHandSizeMin) / kHandSizeStep * kHandSizeStep + kHandSizeMin, kHandSizeMin, kHandSizeMax);
+}
+
 // The launcher's View as it was when the row last saved: changed there since, the launcher's wins.
 bool s_launcher_first = true;
 
@@ -9083,7 +9235,8 @@ void save_vr_options() {
     file << "helmet " << (s_vr.helmet ? 1 : 0) << "\nboots " << (s_vr.boots ? 1 : 0) << "\ncamera_flip "
          << (s_vr.camera_flip ? 1 : 0) << "\ndirection_body " << (s_vr.direction_body ? 1 : 0) << "\nbody " << s_vr.body
          << "\nakimbo " << (s_vr.akimbo ? 1 : 0) << "\nseated " << (s_vr.seated ? 1 : 0) << "\nfirst_person "
-         << (s_options.first_person ? 1 : 0) << "\nlauncher_first " << (s_launcher_first ? 1 : 0) << "\n";
+         << (s_options.first_person ? 1 : 0) << "\nlauncher_first " << (s_launcher_first ? 1 : 0) << "\ngun_angle "
+         << s_vr.gun_angle << "\ngun_size " << s_vr.gun_size << "\nhand_size " << s_vr.hand_size << "\n";
 }
 
 void load_vr_options() {
@@ -9110,6 +9263,12 @@ void load_vr_options() {
             s_vr.direction_body = value != 0;
         } else if (key == "seated") {
             s_vr.seated = value != 0;
+        } else if (key == "gun_angle") {
+            s_vr.gun_angle = gun_angle_of(value);
+        } else if (key == "gun_size") {
+            s_vr.gun_size = gun_size_of(value);
+        } else if (key == "hand_size") {
+            s_vr.hand_size = hand_size_of(value);
         }
     }
     if (first_person >= 0 && launcher_first == (s_launcher_first ? 1 : 0)) {
@@ -9117,8 +9276,30 @@ void load_vr_options() {
     }
 }
 
+void hands_page_event(const openrac::UiEvent& event) {
+    if (event.kind() == OPENRAC_UI_SHOW) {
+        s_rows_page = &s_hands_page;
+        show_hands_page();
+    } else if (event.kind() == OPENRAC_UI_CHANGE) {
+        if (event.item() == kRowGunAngle) {
+            s_vr.gun_angle = gun_angle_of(event.value() * kGunAngleStep - kGunAngleMax);
+        } else if (event.item() == kRowGunSize) {
+            s_vr.gun_size = gun_size_of(event.value() * kGunSizeStep + kGunSizeMin);
+        } else if (event.item() == kRowHandSize) {
+            s_vr.hand_size = hand_size_of(event.value() * kHandSizeStep + kHandSizeMin);
+        }
+        char line[100];
+        std::snprintf(line, sizeof line, "[vr-hand] VR Hands: gun angle %d, gun size %d percent, hand size %d percent",
+                      s_vr.gun_angle, s_vr.gun_size, s_vr.hand_size);
+        log_line(1, line);
+        save_vr_options();
+        show_hands_page();
+    }
+}
+
 void vr_page_event(const openrac::UiEvent& event) {
     if (event.kind() == OPENRAC_UI_SHOW) {
+        s_rows_page = &s_vr_page;
         show_vr_page();
     } else if (event.kind() == OPENRAC_UI_CHANGE) {
         if (event.item() == kRowHelmet) {
@@ -9204,6 +9385,16 @@ void load(openrac::Mod& mod) {
         s_vr_page = mod.ui_page([](const openrac::UiPage&, const openrac::UiEvent& event) { vr_page_event(event); });
         mod.ui_pause_item("VR Options", s_vr_page);
         mod.ui_main_item(OPENRAC_UI_OPTIONS, "VR Options", s_vr_page);
+        // In play only, where the hands and the gun are seen.
+        s_hands_page = mod.ui_page([](const openrac::UiPage&, const openrac::UiEvent& event) { hands_page_event(event); });
+        mod.ui_pause_item("VR Hands", s_hands_page);
+    }
+    {
+        char line[140];
+        std::snprintf(line, sizeof line,
+                      "[vr-hand] guns point where the controller points: gun angle %d, gun size %d percent, hand size %d percent",
+                      s_vr.gun_angle, s_vr.gun_size, s_vr.hand_size);
+        log_line(1, line);
     }
 
     mod.on_frame([] { on_tick(); });
@@ -9322,4 +9513,4 @@ void load(openrac::Mod& mod) {
 
 }  // namespace
 
-OPENRAC_MOD_CPP("quest-vr", "0.1.7", load)
+OPENRAC_MOD_CPP("quest-vr", "0.1.8", load)

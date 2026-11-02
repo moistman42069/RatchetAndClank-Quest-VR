@@ -187,6 +187,11 @@ public:
         if (const char* align = std::getenv("QUEST_SIM_ALIGN")) {
             m_align = std::atol(align);
         }
+        // QUEST_SIM_GRIP_TILT=D: the hands' grip pose turned D degrees up from their aim pose, as the Quest's controllers
+        // have it (the grip's forward up the handle); the script's hand angles stay the aim's, where the hand points.
+        if (const char* tilt = std::getenv("QUEST_SIM_GRIP_TILT")) {
+            m_grip_tilt = static_cast<float>(std::atof(tilt)) * kPi / 180.0f;
+        }
         m_log(1, ("simulated headset: " + std::to_string(m_script.size()) + " script lines").c_str());
         return true;
     }
@@ -233,10 +238,11 @@ public:
             out.hand_bound[side] = out.hand_valid[side];
             out.stick_active[side] = out.hand_valid[side];
             const Vec3 at = head + rotate(look, {side == 0 ? -0.2f : 0.2f, -0.35f, -0.3f});
-            out.hand_grip[side] = {at + Vec3{number(side == 0 ? "lh_x" : "rh_x"), number(side == 0 ? "lh_y" : "rh_y"),
-                                             number(side == 0 ? "lh_z" : "rh_z")},
-                                   hand};
-            out.hand_aim[side] = out.hand_grip[side];
+            out.hand_aim[side] = {at + Vec3{number(side == 0 ? "lh_x" : "rh_x"), number(side == 0 ? "lh_y" : "rh_y"),
+                                            number(side == 0 ? "lh_z" : "rh_z")},
+                                  hand};
+            out.hand_grip[side] = {out.hand_aim[side].position,
+                                   hand * Quat{std::sin(m_grip_tilt * 0.5f), 0, 0, std::cos(m_grip_tilt * 0.5f)}};
         }
         Controls& c = out.controls;
         c.a = number("a") != 0;
@@ -374,6 +380,7 @@ private:
     std::string m_shot;
     long m_frame = 0;
     long m_align = -1;        // QUEST_SIM_ALIGN, -1 without
+    float m_grip_tilt = 0;    // QUEST_SIM_GRIP_TILT, radians
     long m_ready_frame = -1;  // the frame the set-up was done
     bool m_pointer_dot = false, m_pointer_beam = false;
     bool m_quit = false;

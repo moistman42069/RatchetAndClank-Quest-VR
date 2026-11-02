@@ -10,7 +10,7 @@
 3200 hand_pitch -5.4
 3240 right_trigger 1
 3246 right_trigger 0
-3320 hand_pitch 8.7
+3320 hand_pitch 10.4
 3360 right_trigger 1
 3366 right_trigger 0
 3440 shot vr-page
@@ -41,7 +41,7 @@
 4520 hand_pitch -5.4
 4560 right_trigger 1
 4566 right_trigger 0
-4640 hand_pitch 8.7
+4640 hand_pitch 10.4
 4680 right_trigger 1
 4686 right_trigger 0
 4760 shot flat-page

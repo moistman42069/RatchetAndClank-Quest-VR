@@ -5,8 +5,10 @@
 // place, blaster.rs place and grip, bomb_glove.rs mount), the same game models on another engine.
 // Plain math, apart from the game and OpenXR (tests/rig_pad_test.cpp).
 //
-// A hand is OpenXR's grip pose: `forward` along the fist, `up` out of the thumb. An item's moby has
-// a matrix whose rows are where its model's X, Y and Z point, and a position:
+// A hand is OpenXR's grip pose: `forward` along the fist, `up` out of the thumb; or, for what points
+// (held_pointing), its aim pose turned by the player's Gun angle, at the grip's place: on the Quest's
+// controllers the grip's forward runs up the handle, well above where the controller points. An
+// item's moby has a matrix whose rows are where its model's X, Y and Z point, and a position:
 //
 // - guns and gadgets: their model has X out of the top, -Y out of the barrel, and is put with the
 //   point Rerac-vr measured on each model's handle (kGrips) in the palm;
@@ -104,11 +106,19 @@ inline const GunGrip* gun_grip(int oclass) {
 // The items a throwing glove holds (the hero's items 10, 17, 20 and 25).
 inline bool glove_item(int item) { return item == 10 || item == 17 || item == 20 || item == 25; }
 
+// What is held as a gun, its barrel where the controller points, and drawn at the Gun size: not the
+// wrench (swung as the fist holds it), the gloves (on the palm, at the Hand size), the Swingshot's
+// housing on the wrist, or the upright remotes.
+inline bool held_pointing(int oclass, int item) {
+    return oclass != kWrenchClass && oclass != kSwingshotClass && oclass != 483 && oclass != 619 && !glove_item(item);
+}
+
 // Where a moby goes.
 struct Mount {
     Mat3 axes;       // columns: the rows of its matrix
     Vec3 position;
     float scale = 1; // times its class's scale
+    float size = 1;  // the Gun or Hand size: drawn so (put_mount), its place and muzzle already sized
     Vec3 muzzle;     // where it fires from, Rerac-vr's blaster.rs place: where the hand aims from
 };
 
@@ -149,20 +159,27 @@ inline Mount mirrored(const Mount& m, const HandFrame& hand) {
     return out;
 }
 
-inline Mount mount_right(const HandFrame& hand, int oclass, int item, float scale, const JointFrame& joint, bool left);
+inline Mount mount_right(const HandFrame& hand, int oclass, int item, float scale, const JointFrame& joint, bool left,
+                         float size);
 
 // A moby of `oclass` holding hand item `item`, in `hand`. `scale`: the moby's own; `joint`: its
 // first joint list's end. `left`: in the left hand, a gun by its grip mirrored, a model made for the
-// right hand placed as the right's and then mirrored.
-inline Mount mount_item(const HandFrame& hand, int oclass, int item, float scale, const JointFrame& joint, bool left = false) {
+// right hand placed as the right's and then mirrored. What points (held_pointing) is drawn `gun_size`
+// of the game's size and a glove, which is the hand, `hand_size`, each shrunk about the hand; the rest
+// keeps the game's.
+inline Mount mount_item(const HandFrame& hand, int oclass, int item, float scale, const JointFrame& joint, bool left = false,
+                        float gun_size = 1.0f, float hand_size = 1.0f) {
+    const float size = held_pointing(oclass, item) ? gun_size : glove_item(item) ? hand_size : 1.0f;
     if (left && right_handed(oclass, item)) {
-        return mirrored(mount_right(hand, oclass, item, scale, joint, false), hand);
+        return mirrored(mount_right(hand, oclass, item, scale, joint, false, size), hand);
     }
-    return mount_right(hand, oclass, item, scale, joint, left);
+    return mount_right(hand, oclass, item, scale, joint, left, size);
 }
 
-inline Mount mount_right(const HandFrame& hand, int oclass, int item, float scale, const JointFrame& joint, bool left) {
+inline Mount mount_right(const HandFrame& hand, int oclass, int item, float scale, const JointFrame& joint, bool left,
+                         float size) {
     Mount out;
+    out.size = size;
     HandFrame h = hand;
 
     // The Swingshot's housing goes on the back of the wrist: a quarter about the fist.
@@ -193,19 +210,19 @@ inline Mount mount_right(const HandFrame& hand, int oclass, int item, float scal
         out.axes = (oclass == 483 || oclass == 619) ? Mat3{h.up, h.left * -1.0f, h.forward} : gun;
         // In the left hand the grip is mirrored across the gun's side.
         const Vec3 held = left ? Vec3{grip->grip.x, grip->grip.y, -grip->grip.z} : grip->grip;
-        out.position = h.at - out.axes * held;
+        out.position = h.at - out.axes * (held * size);
         // The muzzle: the first joint list's end on the model (its bind pose here, where Rerac-vr
         // poses it), or Rerac-vr's own point; the remotes fire nothing and keep their grip.
         Vec3 point = grip->grip;
         if (!fixed_muzzle(oclass, point) && oclass != 483 && oclass != 619 && joint.valid) {
             point = joint.anchor * (scale / 1024.0f);
         }
-        out.muzzle = out.position + out.axes * point;
+        out.muzzle = out.position + out.axes * (point * size);
         return out;
     }
 
     out.axes = joint.valid ? gun * transpose(joint.basis) : gun;
-    const Vec3 anchor = joint.valid ? joint.anchor * (scale / 1024.0f) : Vec3{};
+    const Vec3 anchor = joint.valid ? joint.anchor * (scale * size / 1024.0f) : Vec3{};
     if (glove_item(item)) {
         out.position = h.at - out.axes * anchor;
         out.muzzle = h.at;
@@ -216,7 +233,7 @@ inline Mount mount_right(const HandFrame& hand, int oclass, int item, float scal
     const float reach = oclass == kPyrocitorClass                                     ? 0.65f
                         : (oclass == 157 || oclass == 163 || oclass == 454 || oclass == 849) ? 0.70f
                                                                                           : 0.40f;
-    out.muzzle = h.at + h.forward * reach + h.up * 0.03f;
+    out.muzzle = h.at + (h.forward * reach + h.up * 0.03f) * size;
     out.position = out.muzzle - out.axes * anchor;
     return out;
 }

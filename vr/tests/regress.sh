@@ -41,6 +41,10 @@ run aim-pyro aim 1 $G=16 $H=16
 run aim-tesla aim 1 $G=19 $H=19
 run aim-morph aim 1 $G=21 $H=21
 run aim-suck aim 1 $G=9 $H=9
+# 0.1.8: the sim's grip 40 degrees above its aim, as on a Quest: pointed level, the guns fire level ([vr-aim] z 0)
+run aim-tilt aim 1 $G=15,16 $H=15 QUEST_SIM_GRIP_TILT=40
+run aim-tilt-pyro aim 1 $G=16 $H=16 QUEST_SIM_GRIP_TILT=40
+run aim-sizes aim 1 $G=15,10 $H=15 'QUEST_VR_OPTIONS=gun_size 50;hand_size 60' KEEP=1
 run akimbo-blaster akimbo 1 $G=15,16 $H=16 $L=15
 run akimbo-taunter akimbo 1 $G=15,14 $H=15 $L=14
 run akimbo-suck akimbo 1 $G=15,9 $H=15 $L=9
@@ -129,6 +133,8 @@ run menusticks menusticks 1 KEEP=1
 run mapsticks mapsticks 1 KEEP=1
 run thirdperson thirdperson 1 KEEP=1
 run options options 1
+run vrhands vrhands 1
+run vrhands2 vrhands2 1 $G=15 $H=15 KEEP=1
 run pointer pointer 1
 run pointer2 pointer2 1
 run pointer3 pointer3 1

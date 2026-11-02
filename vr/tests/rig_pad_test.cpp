@@ -538,6 +538,35 @@ void test_mounts() {
                          m.axes.x.x * m.axes.y.y - m.axes.x.y * m.axes.y.x};
         near_(dot(cross, m.axes.z), 1, "right-handed");
     }
+
+    // The Gun size: what points shrinks about the hand, its handle still in the palm and its muzzle that much
+    // nearer; the wrench, the gloves, the Swingshot and the remotes keep the game's size.
+    const float blaster_joint[16] = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 3000.0f, 0, 1};
+    const JointFrame muzzle_joint = joint_frame(blaster_joint);
+    const Mount full = mount_item(hand, 168, 15, 0.1f, muzzle_joint);
+    const Mount half = mount_item(hand, 168, 15, 0.1f, muzzle_joint, false, 0.5f);
+    near_(half.size, 0.5f, "the Blaster drawn at half size");
+    near_(length(half.position + half.axes * (Vec3{-0.065f, -0.13f, 0.0f} * 0.5f) - hand.at), 0,
+          "the half-size Blaster's handle is in the palm");
+    near_(length(half.muzzle - hand.at), length(full.muzzle - hand.at) * 0.5f, "its muzzle half as far");
+    const Mount unmeasured = mount_item(hand, 999, 15, 0.1f, JointFrame{}, false, 0.5f);
+    near_(length(unmeasured.muzzle - hand.at), std::sqrt(0.40f * 0.40f + 0.03f * 0.03f) * 0.5f,
+          "an unmeasured gun's muzzle half as far");
+    near_(mount_item(hand, kWrenchClass, 8, 0.1255f, joint, false, 0.5f, 0.5f).size, 1, "the wrench keeps its size");
+    near_(mount_item(hand, 192, 10, 0.1458f, palm_joint, false, 0.5f).size, 1, "a glove is not a gun");
+    near_(mount_item(hand, kSwingshotClass, 12, 0.1f, JointFrame{}, false, 0.5f, 0.5f).size, 1, "the Swingshot keeps its size");
+    near_(mount_item(hand, 619, 30, 0.1f, JointFrame{}, false, 0.5f, 0.5f).size, 1, "the PDA keeps its size");
+    near_(mount_item(hand, 168, 15, 0.1f, muzzle_joint, false, 1.0f, 0.5f).size, 1, "the Hand size is not a gun's");
+    // The Hand size: a glove, which is the hand, shrinks about the palm, which stays in the hand.
+    const Mount small_glove = mount_item(hand, 192, 10, 0.1458f, palm_joint, false, 1.0f, 0.5f);
+    near_(small_glove.size, 0.5f, "a glove at half the hand's size");
+    near_(length(small_glove.position + small_glove.axes * (palm_joint.anchor * (0.1458f * 0.5f / 1024.0f)) - hand.at), 0,
+          "the half-size glove's palm is in the hand");
+    check(held_pointing(168, 15) && held_pointing(176, 16) && held_pointing(kWalloperClass, 26),
+          "the Blaster, the Pyrocitor and the Walloper point where the controller points");
+    check(!held_pointing(kWrenchClass, 8) && !held_pointing(192, 10) && !held_pointing(kSwingshotClass, 12)
+              && !held_pointing(483, 21) && !held_pointing(619, 30),
+          "the wrench, a glove, the Swingshot and the remotes sit as the grip has them");
 }
 
 void test_notice() {

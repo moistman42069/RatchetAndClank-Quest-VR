@@ -1,0 +1,48 @@
+# VR Hands by the pointer, live (0.1.8; QUEST_SIM_GIVE=15 QUEST_SIM_HOLD=15): paused, Options, VR Hands (the Options
+# page's seventh row of ten); the trigger on Gun size once (100 wraps to 50 percent), on Hand size three times (130
+# percent), on Gun angle once (5 up). Back in play the Blaster is half size in a bigger hand, and pointed level it
+# fires 5 degrees up ([vr-aim] forward z 0.09). The page's three rows take the pointer by their own spacing
+# ([vr-pointer] VR Hands: 3 rows in a box ...).
+600 y 1
+606 y 0
+2950 shot before
+3000 y 1
+3006 y 0
+3120 hand_pitch 0
+3140 hand_pitch 28
+3200 hand_pitch -5.4
+3240 right_trigger 1
+3246 right_trigger 0
+3320 hand_pitch 7.75
+3340 shot on-vr-hands
+3360 right_trigger 1
+3366 right_trigger 0
+3440 shot hands-page
+3460 hand_pitch 11.2
+3500 shot on-gun-size
+3520 right_trigger 1
+3526 right_trigger 0
+3580 shot gun-size-stepped
+3600 hand_pitch 5.8
+3640 shot on-hand-size
+3660 right_trigger 1
+3666 right_trigger 0
+3700 right_trigger 1
+3706 right_trigger 0
+3740 right_trigger 1
+3746 right_trigger 0
+3800 shot hand-size-stepped
+3820 hand_pitch 16.2
+3860 shot on-gun-angle
+3880 right_trigger 1
+3886 right_trigger 0
+3940 shot gun-angle-stepped
+3960 hand_pitch -70
+4000 y 1
+4006 y 0
+4120 hand_pitch 0
+4200 shot after
+4220 right_trigger 1
+4250 shot after-fire
+4280 right_trigger 0
+4400 quit 0
