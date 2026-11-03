@@ -1,0 +1,21 @@
+# Left-handed (Akimbo, QUEST_SIM_LEFT=16): the Pyrocitor in the left hand, held with both arms, the right hand free. The
+# right hand to its barrel (the foregrip of Ratchet's own two-arm hold, mirrored: about 29 cm right of the left hand,
+# 20 cm up and 13 cm ahead, as twohand.sim's left hand is of the right), the right grip squeezed: it holds the gun
+# ([vr-hand] the right hand holds the left gun's foregrip), no wrench comes out, and the gun points from the left hand
+# to the right. Let go: the right hand is its own again.
+600 y 1
+606 y 0
+3200 shot rest
+3300 rh_x -0.11
+3301 rh_y 0.2
+3302 rh_z -0.13
+3310 right_grip 1
+3340 shot both
+# The right hand raised: the barrel points up, from the left hand to the right.
+3360 rh_y 0.42
+3400 shot raised
+3420 left_trigger 1
+3450 left_trigger 0
+3500 right_grip 0
+3520 shot let-go
+3600 quit 0

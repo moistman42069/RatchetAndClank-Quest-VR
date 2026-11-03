@@ -85,7 +85,8 @@ inline constexpr float kSupportLet = 0.35f;
 // The Hydrodisplacer is not heavy: plugging it into a tap wants the hand's exact pose.
 inline constexpr int kHydrodisplacerItem = 22;
 
-// Where the left hand holds item `item`, from the right hand's grip (right, up, back).
+// Where the left hand holds item `item`, from the right hand's grip (right, up, back): Rerac-vr's table, for
+// when Ratchet's own pose on the weapon is not read (Support::grip).
 inline Vec3 foregrip(int item) {
     switch (item) {
     case 11: return {-0.27f, 0.09f, -0.36f};  // Devastator
@@ -97,6 +98,8 @@ inline Vec3 foregrip(int item) {
     }
 }
 
+// The weapon's hand is the right in what follows, its other hand the left; a weapon in the left hand
+// has them the other way, its foregrip mirrored (Support::grip).
 struct Support {
     bool held = false;        // the left hand holds the foregrip
     bool two_handed = false;  // the item in the hand is held with both arms
@@ -105,14 +108,18 @@ struct Support {
     Quat rotation;            // the weapon's turn and grip, lagging behind the right hand
     Vec3 position;
     Vec3 lag;                 // `position` from where the right hand puts it
+    bool grip_given = false;  // `grip` is where the foregrip is now, else foregrip(weapon)
+    Vec3 grip;                // from the weapon hand's grip (right, up, back): Ratchet's own other palm on it
 
     void release() {
         settled = false;
         lag = {};
     }
 
+    Vec3 offset() const { return grip_given ? grip : foregrip(weapon); }
+
     // The foregrip with the right hand at `right`.
-    Vec3 point(const Pose& right) const { return right.position + rotate(right.orientation, foregrip(weapon)); }
+    Vec3 point(const Pose& right) const { return right.position + rotate(right.orientation, offset()); }
 
     // The left hand at `left` holds, or would take, the foregrip.
     bool reaches(const Pose& right, const Pose& left) const {
@@ -125,7 +132,7 @@ inline Pose physical_hand(Pose right, const Pose* left, const Support& s) {
     if (s.held && left != nullptr) {
         const Vec3 direction = left->position - right.position;
         if (length(direction) > 0.12f) {
-            const Vec3 current = normalized(rotate(right.orientation, foregrip(s.weapon)));
+            const Vec3 current = normalized(rotate(right.orientation, s.offset()));
             right.orientation = normalized(rotation_arc(current, normalized(direction)) * right.orientation);
         }
     }

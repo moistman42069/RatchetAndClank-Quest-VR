@@ -1,8 +1,9 @@
 # VR Hands by the pointer, live (0.1.8; QUEST_SIM_GIVE=15 QUEST_SIM_HOLD=15): paused, Options, VR Hands (the Options
 # page's seventh row of ten); the trigger on Gun size once (100 wraps to 50 percent), on Hand size three times (130
-# percent), on Gun angle once (5 up). Back in play the Blaster is half size in a bigger hand, and pointed level it
-# fires 5 degrees up ([vr-aim] forward z 0.09). The page's three rows take the pointer by their own spacing
-# ([vr-pointer] VR Hands: 3 rows in a box ...).
+# percent), on Gun angle once (5 up), on HUD size twice (120 percent) and on HUD height once (5 cm up). Back in play the
+# Blaster is half size in a bigger hand (Items match hand size: 65 percent of the game's), the HUD bigger and higher, and
+# pointed level it fires 5 degrees up ([vr-aim] forward z 0.09). The page's eight rows, as VR Options' in its box, take
+# the pointer at its pitches ([vr-pointer] VR Hands: 8 rows in a box ...).
 600 y 1
 606 y 0
 2950 shot before
@@ -18,12 +19,12 @@
 3360 right_trigger 1
 3366 right_trigger 0
 3440 shot hands-page
-3460 hand_pitch 11.2
+3460 hand_pitch 17.3
 3500 shot on-gun-size
 3520 right_trigger 1
 3526 right_trigger 0
 3580 shot gun-size-stepped
-3600 hand_pitch 5.8
+3600 hand_pitch 14.8
 3640 shot on-hand-size
 3660 right_trigger 1
 3666 right_trigger 0
@@ -32,17 +33,28 @@
 3740 right_trigger 1
 3746 right_trigger 0
 3800 shot hand-size-stepped
-3820 hand_pitch 16.2
+3820 hand_pitch 19.8
 3860 shot on-gun-angle
 3880 right_trigger 1
 3886 right_trigger 0
 3940 shot gun-angle-stepped
-3960 hand_pitch -70
-4000 y 1
-4006 y 0
-4120 hand_pitch 0
-4200 shot after
-4220 right_trigger 1
-4250 shot after-fire
-4280 right_trigger 0
-4400 quit 0
+3960 hand_pitch 5.0
+3980 shot on-hud-size
+4000 right_trigger 1
+4006 right_trigger 0
+4040 right_trigger 1
+4046 right_trigger 0
+4080 hand_pitch 2.5
+4100 shot on-hud-height
+4120 right_trigger 1
+4126 right_trigger 0
+4160 shot hud-stepped
+4180 hand_pitch -70
+4220 y 1
+4226 y 0
+4340 hand_pitch 0
+4420 shot after
+4440 right_trigger 1
+4470 shot after-fire
+4500 right_trigger 0
+4620 quit 0

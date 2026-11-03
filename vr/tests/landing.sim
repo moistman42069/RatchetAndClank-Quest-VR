@@ -1,0 +1,17 @@
+# Ratchet's ship landing as a level starts (Rerac-vr's pilot view, travel_render.rs): the view along his heading, not
+# side-on to the ship, and in the cockpit's shots his seat, not under the pad (QUEST_SHIP_TRACE=1 says which). Then out
+# of it in play with the Bomb Glove in the hand (QUEST_SIM_GIVE=10 QUEST_SIM_HOLD=10): the glove steady, the gun sized.
+600 y 1
+606 y 0
+1100 shot a1100
+1300 shot a1300
+1500 shot a1500
+1700 shot a1700
+1900 shot a1900
+2100 shot a2100
+2300 shot a2300
+2700 shot p2700
+2701 shot p2701
+2702 shot p2702
+2703 shot p2703
+2760 quit 0

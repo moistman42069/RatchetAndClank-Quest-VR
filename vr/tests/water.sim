@@ -1,0 +1,23 @@
+# Water seen from its bank (Novalis's pond, put by the lilies, class 695, some way off): looking at it, down at
+# it, and with the head turned from the game's camera. A tester saw water only once Ratchet was in it.
+600 y 1
+606 y 0
+3300 shot ahead
+3320 head_pitch -25
+3360 shot down
+3380 head_yaw 50
+3420 shot turned
+3440 head_yaw -50
+3480 shot turned2
+3490 head_yaw 180
+3510 shot back
+3515 head_yaw 0
+3516 head_y 2.5
+3517 head_pitch -30
+3530 shot high
+3532 head_y 0
+3534 head_pitch 0
+3540 left_y 1
+3640 left_y 0
+3700 shot closer
+3760 quit 0

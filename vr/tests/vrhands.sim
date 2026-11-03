@@ -1,8 +1,10 @@
 # The pause menu's VR Hands (0.1.8) by the sticks: pause, down to Options, into it, down past VR Options to VR Hands,
 # into it; Gun angle stepped up once and down twice (5 down), down to Gun size and stepped down twice (80 percent), down
-# to Hand size and stepped up once and down twice (90 percent). The right hand is gone, so the sticks move the cursor
-# (options.sim's way). The [vr-hand] VR Hands lines say what each step set; the run's vr-options.txt keeps gun_angle -5,
-# gun_size 80 and hand_size 90.
+# to Hand size and stepped up once and down twice (90 percent); then (0.1.10) Items match hand size, Mirror left-hand
+# guns and Left gun ammo each switched Off, HUD size stepped down twice (80 percent) and HUD height up once (5 cm up).
+# The right hand is gone, so the sticks move the cursor (options.sim's way). The [vr-hand] VR Hands lines say what each
+# step set; the run's vr-options.txt keeps gun_angle -5, gun_size 80, hand_size 90, follow_hands 0, mirror_guns 0,
+# left_ammo 0, hud_size 80 and hud_height 5.
 600 y 1
 606 y 0
 3000 y 1
@@ -65,4 +67,28 @@
 4380 left_x -1
 4392 left_x 0
 4440 shot hand-size-down
-4540 quit 0
+4460 left_y -1
+4472 left_y 0
+4500 left_x 1
+4512 left_x 0
+4540 left_y -1
+4552 left_y 0
+4580 left_x 1
+4592 left_x 0
+4620 left_y -1
+4632 left_y 0
+4660 left_x 1
+4672 left_x 0
+4700 shot toggles-off
+4720 left_y -1
+4732 left_y 0
+4760 left_x -1
+4772 left_x 0
+4800 left_x -1
+4812 left_x 0
+4840 left_y -1
+4852 left_y 0
+4880 left_x 1
+4892 left_x 0
+4940 shot hud-stepped
+5040 quit 0

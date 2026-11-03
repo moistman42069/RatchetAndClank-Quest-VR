@@ -31,6 +31,30 @@ it worked (the log is in Download/RatchetQuestVR). PC-proven features are in STA
   cutscenes seen through his eyes. Watch the opening scene on Novalis and look down at his arms as the scene moves
   them: there should be nothing between them. In play, hold both hands out in front of you: nothing between them
   either. With Player body on Cutscenes or Always, his body should look as in 0.1.8.
+- **A tester's list (0.1.10).** Each item a tester reported on 0.1.7 to 0.1.9:
+  - The ship's landing on Novalis (a new game, or leave for another planet and come back): the view is Ratchet's eyes,
+    turned the way he faces, as the ship flies in and he climbs out; never at his feet nor inside the ground or the
+    ship, his hands not twisted. Then the gun in the hand at its usual size, and the Bomb Glove steady (no flicker),
+    after the landing and after loading a save.
+  - The Bomb Glove: hold a bomb in it and wave the hand: the bomb stays in the glove. The Pyrocitor: its flame along
+    the barrel wherever the hand points, not where Ratchet's body faces.
+  - Hand size 70 and 130 percent (VR Hands): the wrench and the guns in the palm at both, smaller and bigger with
+    Items match hand size On, the game's size with it Off.
+  - The Pyrocitor and the RYNO held two-handed: the left hand on the barrel where Ratchet's own left hand goes. The
+    log's `[vr-hand] item 16's foregrip at (...) from the grip (Rerac-vr's table: ...)` gives both points: say if the
+    first looks wrong in the headset.
+  - Left-handed: Akimbo on, the Pyrocitor in the left hand. Squeeze the right grip on its barrel: both hands hold it,
+    and no wrench comes out. With Mirror left-hand guns On its tank and handle sit as on a left-handed gun. The ammo
+    box shows the gun fired last (Left gun ammo): the left's once it fires (`[vr-akimbo] the ammo box shows item 16's,
+    the left gun's`), the right's again once that fires (`[vr-akimbo] the ammo box goes back to the held gun's`), each
+    change sliding the box out and back in as a weapon change does, never flickering between the two.
+  - HUD size and HUD height (VR Hands): the HUD grows, shrinks, rises and drops at once and keeps its place after a
+    restart; the launcher's HUD size, changed after, wins.
+  - A vendor: the bolts at the top of the view whole and readable, not at its very edge.
+  - VR Options' View to Third person and back to First person, several times, on Novalis and on another planet: no
+    crash. A line `[vr-hand] a wall test not asked` may show once; that is the fix at work.
+  - Water: walk up to Novalis's pond from its bank. Not reproduced on PC: if the water shows only once Ratchet is in
+    it, a video and the log.
 - **The US disc (NTSC-U).** 0.1.2 to 0.1.5 never loaded the VR mod on it: a black headset, and
   `mod quest-vr not loaded: Hud_Frame: the hook point's signature is another` in the log. On 0.1.6 or later with that
   disc the log must say `mod quest-vr 0.1.7 loaded` (or the version run), and the headset show the game. Fixed and

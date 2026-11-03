@@ -59,9 +59,12 @@ run inputs inputs 1 $G=15,16,21
 run quick quick 1 $G=10,15,16,11,13,9,18,19,20,17,21,23
 run throw throw 1 $G=10,17,20,25 $H=10
 run throw-doom throw 1 $G=20 $H=20
+run glovehold glovehold 1 $G=10 $H=10
 run twohand twohand 1 $G=23 $H=23
 # A left hand holding an item takes no foregrip (Rerac-vr's): no "holds the foregrip" line.
 run twohandleft twohand 1 $G=23,15 $H=23 $L=15
+run twohand-pyro twohand 1 $G=16 $H=16
+run supportleft supportleft 1 $G=15,16 $L=16
 run visibomb visibomb 1 $G=13 $H=13 QUEST_MISSILE_TRACE=1 KEEP=1
 run visibombgone visibombgone 1 $G=13 $H=13 KEEP=1
 # The same flame twice, its sprites turned to the eyes and left to the game's camera: compare the shots.
@@ -70,6 +73,7 @@ run spritesfaceoff spritesfaceoff 1 $G=16 $H=16 QUEST_SPRITES_OFF=1 KEEP=1
 run walloper walloper 1 $G=18 $H=18 $N=500
 run walloperchain walloperchain 1 $G=18 $H=18 QUEST_STATE_TRACE=1
 run wrench wrench 1 $G=10 $N=511 KEEP=1
+run wrench70 wrench 1 $G=10 $N=511 'QUEST_VR_OPTIONS=hand_size 70' KEEP=1
 run wrenchthrow wrenchthrow 1 $G=15 $H=15
 run unequip unequip 1 $G=10 $H=10 KEEP=1
 run wrenchwall wrenchwall 1
@@ -99,6 +103,7 @@ run socket socket 2 $G=26 $H=26 $N=615 $A=2.2,0
 run puzzle puzzle 2 $G=26 $H=26 $N=615 $A=2.2,0
 run sockethydro sockethydro 5 $G=22 $H=22 $N=341 $A=1.3,0
 run swim swim 1 $N=695 $A=2.0,0 QUEST_STATE_TRACE=1
+run water water 1 $N=695 $A=10,0 KEEP=1
 # The body, the view, scenes, turrets, ships
 run body body 10
 run bodyflip bodyflip 1 'QUEST_VR_OPTIONS=camera_flip 1;body 2'
@@ -108,6 +113,7 @@ run room room 1 $N=500 $A=1.6,0
 run scene scene 1
 # 0.1.9: looking down in a cutscene through his eyes, no thin line from one elbow to the other
 run scenearms scenearms 1 KEEP=1
+run landing landing 1 $G=10 $H=10 QUEST_SHIP_TRACE=1 KEEP=1
 run screen screen 1
 run t1 t1 1
 run t2 t2 1

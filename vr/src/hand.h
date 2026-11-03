@@ -163,14 +163,20 @@ inline Mount mount_right(const HandFrame& hand, int oclass, int item, float scal
                          float size);
 
 // A moby of `oclass` holding hand item `item`, in `hand`. `scale`: the moby's own; `joint`: its
-// first joint list's end. `left`: in the left hand, a gun by its grip mirrored, a model made for the
-// right hand placed as the right's and then mirrored. What points (held_pointing) is drawn `gun_size`
-// of the game's size and a glove, which is the hand, `hand_size`, each shrunk about the hand; the rest
-// keeps the game's.
+// first joint list's end. `left`: in the left hand, a model made for the right hand placed as the
+// right's and then mirrored, and so a gun with `mirror_guns` (its handle, a side grip or a tank on the
+// other side then, as a left-handed gun has them; else only its grip is mirrored, as Rerac-vr holds
+// it). What points (held_pointing) is drawn `gun_size` of the game's size and a glove, which is the
+// hand, `hand_size`, each shrunk about the hand. With `follow_hands` (Items match hand size) what
+// points is drawn at both sizes and the rest, the wrench among it, at the Hand size; without it the
+// rest keeps the game's.
 inline Mount mount_item(const HandFrame& hand, int oclass, int item, float scale, const JointFrame& joint, bool left = false,
-                        float gun_size = 1.0f, float hand_size = 1.0f) {
-    const float size = held_pointing(oclass, item) ? gun_size : glove_item(item) ? hand_size : 1.0f;
-    if (left && right_handed(oclass, item)) {
+                        float gun_size = 1.0f, float hand_size = 1.0f, bool mirror_guns = false, bool follow_hands = false) {
+    const float size = glove_item(item)               ? hand_size
+                       : held_pointing(oclass, item) ? gun_size * (follow_hands ? hand_size : 1.0f)
+                       : follow_hands                ? hand_size
+                                                     : 1.0f;
+    if (left && (right_handed(oclass, item) || (mirror_guns && held_pointing(oclass, item)))) {
         return mirrored(mount_right(hand, oclass, item, scale, joint, false, size), hand);
     }
     return mount_right(hand, oclass, item, scale, joint, left, size);
@@ -199,7 +205,7 @@ inline Mount mount_right(const HandFrame& hand, int oclass, int item, float scal
         out.axes = joint.valid ? desired * transpose(joint.basis) : desired;
         out.position = h.at;
         if (joint.valid) {
-            out.position = h.at - out.axes * (joint.anchor * (scale * kWrenchScale / 1024.0f));
+            out.position = h.at - out.axes * (joint.anchor * (scale * kWrenchScale * size / 1024.0f));
         }
         out.muzzle = h.at;
         return out;
