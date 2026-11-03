@@ -120,6 +120,12 @@ run t2 t2 1
 # How far the eyes see, the head turned from the game's camera: the ship must show in turned and turned2. QUEST_LOD=true,
 # or QUEST_HEAD_TURNS_OFF=1, to compare. Veldin's intro gives control at frame 8056.
 run far far 0 QUEST_SIM_ALIGN=2620 QUEST_DRAWN_TRACE=1 KEEP=1
+# A bolt's twinkle (the glints) in the world, not on the panel: no 2D strip of tbp 0x316c or 0x3158 in the UI
+# residual, and horizon40's panel has none (0.1.10's had one there, behind the ship). sparkleview: the glint at
+# about x 747 in level, 800 and 700 with the head 6 degrees each way (QUEST_SPARKLE_TRACE logs each glint's numbers);
+# QUEST_SETTINGS='{"sparkles_in_world": false}' for the game's own, on the panel, to compare.
+run sparkles sparkles 0 QUEST_SIM_ALIGN=2620 OPENRAC_UI_RESIDUAL=1 KEEP=1
+run sparkleview sparkleview 0 QUEST_SIM_ALIGN=2620 OPENRAC_UI_RESIDUAL=1 QUEST_SPARKLE_TRACE=1 KEEP=1
 run particles particles 1 $G=16 $H=16 QUEST_SIM_ALIGN=2620 OPENRAC_DRAW_COVERAGE=C:/RACQuest/logs/regress/particles.json
 run board board 5 $N=439 QUEST_STATE_TRACE=1 QUEST_BOARD_TRACE=1
 run board-kalebo board 16 $N=439 QUEST_STATE_TRACE=1 QUEST_BOARD_TRACE=1

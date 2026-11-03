@@ -144,6 +144,7 @@ struct Options {
     bool swim_strokes = true;  // the arms swim, under the water where the head looks (Rerac-vr's)
     bool solid_hands = true;   // what is held stops at walls, and does not fire through them (Rerac-vr's)
     bool swing_wrench = true;  // the wrench hits what its head sweeps through (Rerac-vr's), not the game's swing
+    bool sparkles_in_world = true;  // a bolt's twinkle on the bolt, not on the screen (draw_glints)
 };
 
 // The pause menu's VR Options (Rerac-vr's), kept in a file of their own: not the launcher's.
@@ -218,6 +219,7 @@ bool s_eyes_shown = false;
 bool s_panel_shown = false;
 bool s_panel_is_hud = false;
 bool s_panel_is_monitor = false;
+bool s_world_eyes = false;  // the last frame drawn showed the world in the eyes, not a picture of the game
 
 // The turn and walk read from the frame, for the pad.
 float s_aim_yaw = 0;
@@ -8052,6 +8054,7 @@ int views_begin(void*, openrac_view* views, int max) {
     const bool world_phase = !picture && !s_options.screen
                              && (phase == OPENRAC_PLAY_PLAYING || s_world_menu || s_title_world
                                  || (phase == OPENRAC_PLAY_SCENE && s_options.scenes_in_vr));
+    s_world_eyes = world_phase;
     if (world_phase) {
         const bool first_person = first_person_now(phase) || s_world_menu;
         fill_eye(views[count++], 0, s_frame, first_person, alpha);
@@ -8799,6 +8802,161 @@ bool canvas_point(Vec3 world, float& x, float& y) {
     x = out[0] / out[3] * get_float(view + 0x190u) * 0.25f + static_cast<float>(ref<int32_t>(extent + 8u));
     y = out[1] / out[3] * get_float(view + 0x194u) * 0.25f + static_cast<float>(ref<int32_t>(extent + 12u));
     return true;
+}
+
+// The glints (a bolt's twinkle, a gold bolt's: append_billboard_batch) are a spinning star the game draws on the
+// screen over a point of the world, so in the eyes they were on the HUD's layer, which the head carries (an owner's
+// report on 0.1.10, a Quest 3: a twinkle that stays on the screen). With the eyes on the world each is a quad there
+// instead, facing the game's camera (the port turns it to the eye), as big as the game makes it at that distance and
+// spun as it spins. The game's draw still runs, for the glints it frees out of its view; what it wrote to the render
+// list is taken back.
+constexpr uint32_t kGlints = 16, kGlintBytes = 0x20u;
+constexpr uint32_t kGlintLife = 0x10u, kGlintAlpha = 0x12u, kGlintAngle = 0x18u, kGlintScale = 0x1Cu;
+constexpr uint32_t kGlintViewMatrix = 0xC0u;   // the matrix under the camera's (camera_matrix - this)
+constexpr uint32_t kViewScreenScale = 0x210u;  // view_context's projection_scale
+constexpr uint32_t kQuadBytes = 0x90u, kQuadRgba = 0x40u, kQuadSt = 0x50u, kQuadRegisters = 0x70u;
+constexpr int32_t kGlintTexture = 0x13;
+
+// Where the glints' draw puts a point on the screen, in pixels from its centre.
+bool glint_screen(Vec3 p, Vec3 camera, gaddr matrix, float scale, float& x, float& y) {
+    const Vec3 d = (p - camera) * 1024.0f;
+    float out[4];
+    for (uint32_t i = 0; i < 4u; ++i) {
+        out[i] = get_float(matrix + 4u * i) * d.x + get_float(matrix + 0x10u + 4u * i) * d.y
+                 + get_float(matrix + 0x20u + 4u * i) * d.z + get_float(matrix + 0x30u + 4u * i);
+    }
+    if (std::abs(out[3]) < 1e-6f) {
+        return false;
+    }
+    x = out[0] * scale / out[3];
+    y = out[1] * scale / out[3];
+    return true;
+}
+
+template <class Original>
+void draw_glints(Original original) {
+#if !defined(__ANDROID__)
+    // A PC test aid: each live glint's numbers, each tick.
+    static const bool trace = std::getenv("QUEST_SPARKLE_TRACE") != nullptr;
+#else
+    constexpr bool trace = false;
+#endif
+    const gaddr glints = s_mod->relocate(s_disc->glints);
+    const bool in_world = s_options.sparkles_in_world && !s_options.screen && s_world_eyes;
+    if (trace) {
+        int live = 0;
+        for (uint32_t i = 0; i < kGlints; ++i) {
+            live += ref<int16_t>(glints + i * kGlintBytes + kGlintLife) > 0 ? 1 : 0;
+        }
+        if (live > 0) {
+            char line[120];
+            std::snprintf(line, sizeof line, "[vr-sparkle] tick %llu: %d live before the game's draw, %s",
+                          static_cast<unsigned long long>(s_tick), live, in_world ? "in the world" : "the game's");
+            log_line(1, line);
+        }
+    }
+    if (!in_world) {
+        original();
+        return;
+    }
+    const gaddr cursor = s_mod->relocate(s_disc->render_cursor);
+    const uint32_t list = ref<uint32_t>(cursor);
+    original();
+    ref<uint32_t>(cursor) = list;
+
+    const openrac_api& api = s_mod->api();
+    static const auto texture = reinterpret_cast<uint64_t (*)(int32_t)>(api.function(s_disc->effect_texture));
+    static const auto quad = reinterpret_cast<void (*)(uint32_t, int32_t, int32_t)>(api.function(s_disc->world_quad));
+    if (texture == nullptr || quad == nullptr) {
+        return;
+    }
+    const gaddr matrix = s_mod->relocate(s_disc->camera_matrix - kGlintViewMatrix);
+    const Vec3 camera = read_vec(s_mod->relocate(s_disc->camera_matrix) + 0x40u);
+    const float scale = get_float(s_mod->relocate(s_disc->view_context) + kViewScreenScale);
+    static bool told = false;
+    for (uint32_t i = 0; i < kGlints; ++i) {
+        const gaddr g = glints + i * kGlintBytes;
+        if (ref<int16_t>(g + kGlintLife) <= 0) {
+            continue;
+        }
+        const Vec3 at = read_vec(g);
+        const float distance = length(at - camera);
+        const Vec3 facing = normalized(camera - at);
+        if (distance < 0.01f) {
+            continue;
+        }
+        Vec3 across = normalized(cross({0, 0, 1}, facing));
+        if (length(across) < 0.5f) {
+            across = {1, 0, 0};
+        }
+        const Vec3 up = cross(facing, across);
+        // The game's size on the screen (radius_scale, the alpha's swell, nearer bigger), over the pixels a world unit
+        // spans at that distance straight ahead of its camera (along the matrix's depth, its w): off to the side of its
+        // screen a unit spans more, and the glint would shrink and grow as that camera turns.
+        const int32_t alpha = std::clamp<int32_t>(ref<int16_t>(g + kGlintAlpha), 0, 0x80);
+        const float pixels = get_float(g + kGlintScale) * static_cast<float>(alpha + 16) / 64.0f
+                             * (24.0f - std::clamp(distance, 2.0f, 18.0f));
+        const Vec3 depth{get_float(matrix + 12u), get_float(matrix + 28u), get_float(matrix + 44u)};
+        Vec3 ahead = at, side = across;
+        if (length(depth) > 1e-6f) {
+            const Vec3 forward = normalized(depth) * (dot(depth, at - camera) < 0.0f ? -1.0f : 1.0f);
+            ahead = camera + forward * distance;
+            side = normalized(cross({0, 0, 1}, forward));
+            if (length(side) < 0.5f) {
+                side = {1, 0, 0};
+            }
+        }
+        const float step = distance * 0.01f;
+        float x0 = 0, y0 = 0, x1 = 0, y1 = 0;
+        const bool seen = glint_screen(ahead, camera, matrix, scale, x0, y0) && glint_screen(ahead + side * step, camera, matrix, scale, x1, y1);
+        const float per_unit = seen ? std::hypot(x1 - x0, y1 - y0) / step : 0.0f;
+        if (trace) {
+            glint_screen(at, camera, matrix, scale, x0, y0);
+        }
+        if (trace) {
+            char line[200];
+            std::snprintf(line, sizeof line, "[vr-sparkle] tick %llu glint %u at (%.2f %.2f %.2f) %.2f away, screen (%.1f %.1f), %.1f px, %.1f px a unit, alpha %d",
+                          static_cast<unsigned long long>(s_tick), i, static_cast<double>(at.x), static_cast<double>(at.y),
+                          static_cast<double>(at.z), static_cast<double>(distance), static_cast<double>(x0), static_cast<double>(y0),
+                          static_cast<double>(pixels), static_cast<double>(per_unit), static_cast<int>(alpha));
+            log_line(1, line);
+        }
+        if (!seen || per_unit < 1e-3f) {
+            continue;
+        }
+        const float half = pixels / per_unit, angle = get_float(g + kGlintAngle);
+        const float s = half * std::sin(angle), c = half * std::cos(angle);
+        // The game's corners, right and down on the screen, in its strip's order.
+        const float offsets[4][2] = {{s, c}, {c, -s}, {-c, s}, {-s, -c}};
+        const uint64_t tex0 = texture(kGlintTexture);
+        const float s_max = 32.0f / static_cast<float>(1u << ((tex0 >> 26) & 0xFu));
+        const float t_max = 32.0f / static_cast<float>(1u << ((tex0 >> 30) & 0xFu));
+        const float st[4][2] = {{0, 0}, {s_max, 0}, {0, t_max}, {s_max, t_max}};
+        openrac::StackFrame frame(*s_mod, kQuadBytes);
+        const gaddr q = frame.address();
+        for (uint32_t k = 0; k < 4u; ++k) {
+            const Vec3 corner = at + across * offsets[k][0] - up * offsets[k][1];
+            put_float(q + 0x10u * k, corner.x);
+            put_float(q + 0x10u * k + 4u, corner.y);
+            put_float(q + 0x10u * k + 8u, corner.z);
+            put_float(q + 0x10u * k + 12u, 1.0f);
+            ref<uint32_t>(q + kQuadRgba + 4u * k) = static_cast<uint32_t>(alpha) << 24 | 0x808080u;
+            put_float(q + kQuadSt + 8u * k, st[k][0]);
+            put_float(q + kQuadSt + 8u * k + 4u, st[k][1]);
+        }
+        ref<uint64_t>(q + kQuadRegisters) = 5u;                         // CLAMP_1: clamped both ways
+        ref<uint64_t>(q + kQuadRegisters + 8u) = tex0;                  // TEX0_1
+        ref<uint64_t>(q + kQuadRegisters + 16u) = 0xFF9000000260ull;    // TEX1_1: the light flare's (draw_light_flare)
+        ref<uint64_t>(q + kQuadRegisters + 24u) = 0x8000000048ull;      // ALPHA_1: added, as the game draws them
+        quad(q, 0, 0);
+        if (!told) {
+            told = true;
+            char line[160];
+            std::snprintf(line, sizeof line, "[vr-sparkle] a glint in the world: %.2f from the camera, %.3f across, alpha %d",
+                          static_cast<double>(distance), static_cast<double>(half), static_cast<int>(alpha));
+            log_line(1, line);
+        }
+    }
 }
 
 // A screen from its three points, less its margins: on the monitor, off it toward the camera, and the rectangle the
@@ -9979,6 +10137,7 @@ void load(openrac::Mod& mod) {
     s_options.room_scale = mod.setting<bool>("room_scale");
     s_options.swim_strokes = mod.setting<bool>("swim_strokes");
     s_options.solid_hands = mod.setting<bool>("solid_hands");
+    s_options.sparkles_in_world = mod.setting<bool>("sparkles_in_world");
     s_xr.refresh_hz = static_cast<float>(mod.setting<std::int64_t>("refresh_hz"));
     s_xr.resolution = static_cast<float>(mod.setting<double>("resolution"));
     s_rig.scale = s_options.world_scale;
@@ -10101,6 +10260,7 @@ void load(openrac::Mod& mod) {
     mod.hook<rac1::Hero_LocalPoint>([](auto original, uint32_t out, float x, float y, float z) { local_point(original, out, x, y, z); });
     mod.hook<rac1::Hud_OrdersRingUpdate>([](auto original, uint32_t ring) { ring_by_hand([&] { original(ring); }); });
     mod.hook<rac1::Sound_Update>([](auto original) { return sound_update(original); });
+    mod.hook<rac1::Glints_Draw>([](auto original) { draw_glints(original); });
     mod.hook<rac1::Hero_CheckLedgeGrab>([](auto original) { check_ledge(original); });
     mod.hook<rac1::Hero_CheckLedgeGrabB>([](auto original) { check_ledge(original); });
     turret_hook<TurretKind::kGaspar, rac1::Moby_Turret_Update>(mod);
@@ -10125,4 +10285,4 @@ void load(openrac::Mod& mod) {
 
 }  // namespace
 
-OPENRAC_MOD_CPP("quest-vr", "0.1.10", load)
+OPENRAC_MOD_CPP("quest-vr", "0.1.11", load)

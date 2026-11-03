@@ -2,7 +2,7 @@
   "format": 2,
   "id": "quest-vr",
   "name": "Quest VR",
-  "version": "0.1.10",
+  "version": "0.1.11",
   "author": "Ratchet & Clank Quest VR contributors",
   "description": "Ratchet & Clank in a standalone headset through OpenXR: first person with head tracking, hand aiming and Touch controllers.",
   "license": "GPL-3.0-or-later",
@@ -14,6 +14,7 @@
     "rac1.vendor.close",
     "rac1.menu.backdrop",
     "rac1.ui.frame",
+    "rac1.effect.glints_draw",
     "rac1.hud.quick_select_draw",
     "rac1.hud.frame",
     "rac1.moby.wrench.update",
@@ -87,6 +88,7 @@
     { "key": "room_scale", "name": "Walk around your room", "type": "bool", "default": true },
     { "key": "swim_strokes", "name": "Swim with your arms", "type": "bool", "default": true },
     { "key": "solid_hands", "name": "Solid walls for what you hold", "type": "bool", "default": true },
+    { "key": "sparkles_in_world", "name": "Sparkles on the bolts", "type": "bool", "default": true },
     { "key": "refresh_hz", "name": "Refresh rate", "type": "int", "default": 72, "min": 60, "max": 120 },
     { "key": "resolution", "name": "Resolution", "type": "float", "default": 1, "min": 0.5, "max": 1.5, "step": 0.05 }
   ]

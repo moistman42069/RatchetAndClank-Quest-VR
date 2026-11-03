@@ -1,0 +1,21 @@
+# Veldin's sky stars (an owner's report on 0.1.10, a Quest 3: twinkles that seem to stay on the screen): the head up at
+# the sky, shot on following ticks (the twinkle), then turned and tilted (a star the world holds moves across the
+# picture; one the screen holds does not), then at the horizon's moons and haze.
+600 y 1
+606 y 0
+3000 head_pitch 45
+3010 shot up0
+3011 shot up1
+3012 shot up2
+3040 head_yaw 10
+3050 shot yaw10
+3080 head_yaw 20
+3090 shot yaw20
+3120 head_pitch 55
+3130 shot pitch55
+3160 head_yaw 0
+3160 head_pitch 15
+3170 shot horizon
+3200 head_yaw 40
+3210 shot horizon40
+3240 quit 0

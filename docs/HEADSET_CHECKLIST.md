@@ -55,6 +55,12 @@ it worked (the log is in Download/RatchetQuestVR). PC-proven features are in STA
     crash. A line `[vr-hand] a wall test not asked` may show once; that is the fix at work.
   - Water: walk up to Novalis's pond from its bank. Not reproduced on PC: if the water shows only once Ratchet is in
     it, a video and the log.
+- **Sparkles on the bolts (0.1.11).** On 0.1.10 a small twinkle now and then seemed to hang in front of the eyes,
+  tied to nothing (an owner's report, Veldin, a Quest 3): the glint the game puts on a bolt, drawn flat on the HUD's
+  layer. Stand on Veldin's start and look round at the bolts lying about: now and then one twinkles, on the bolt;
+  turn the head while it does and the twinkle stays on the bolt. A bolt behind a ledge or the ship twinkles only where
+  it shows. No twinkle anywhere else, nor in front of the HUD. The log says `[vr-sparkle] a glint in the world` once.
+  With the launcher's "Sparkles on the bolts" Off, the 0.1.10 twinkle comes back, to compare.
 - **The US disc (NTSC-U).** 0.1.2 to 0.1.5 never loaded the VR mod on it: a black headset, and
   `mod quest-vr not loaded: Hud_Frame: the hook point's signature is another` in the log. On 0.1.6 or later with that
   disc the log must say `mod quest-vr 0.1.7 loaded` (or the version run), and the headset show the game. Fixed and

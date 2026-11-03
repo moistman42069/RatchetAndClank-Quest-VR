@@ -1,0 +1,16 @@
+# A bolt's glint in view (sparkles.sim's run: one 55 units out at its brightest about frame 2629, in the open left of
+# the game's camera; one 44 units out at about frames 2747 to 2771, ahead of it, mostly behind a ledge, the head still
+# level): the first shot as it is, the second level, then with the head turned 6 degrees each way and back. In the
+# world it moves across the eyes' picture against the turn and comes back to the same place; the panel has none.
+# QUEST_SETTINGS='{"sparkles_in_world": false}' gives the game's own, flat on the panel, to compare.
+600 y 1
+606 y 0
+2629 shot clear
+2750 shot level
+2753 head_yaw 6
+2755 shot right6
+2757 head_yaw -6
+2759 shot left6
+2761 head_yaw 0
+2763 shot back
+2800 quit 0

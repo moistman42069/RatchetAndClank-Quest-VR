@@ -127,6 +127,10 @@ final class Config {
     static final Choice SOLID_HANDS = new Choice("solid_hands", "Solid walls for what you hold",
         "Your wrench and guns stop at walls, and cannot fire through them. Off: they pass through.",
         ON_OFF, TRUE_FALSE, "true");
+    static final Choice SPARKLES_IN_WORLD = new Choice("sparkles_in_world", "Sparkles on the bolts",
+        "On: the twinkle that shows a bolt or a gold bolt is on it, in the world. Off: as the game draws it, flat on your "
+            + "view, where it seems to float in front of you.",
+        ON_OFF, TRUE_FALSE, "true");
     static final Choice GLYPHS = new Choice("glyphs", "Controller buttons in hints",
         "The game's hints and menus show your controller's buttons (A, the trigger, the grips, the sticks) in place of "
             + "the PlayStation's. Off: the PlayStation's.",
@@ -143,7 +147,7 @@ final class Config {
     static final Choice HAPTICS = new Choice("haptics", "Vibration", "", ON_OFF, TRUE_FALSE, "true");
     static final Choice[] VR = {VIEW, CUTSCENES, TURN, SNAP, SMOOTH, WORLD, HUD, HAND_AIM, HAND_WEAPON, THROW_BY_HAND,
         SWING_WRENCH, TWO_HANDED, SHOW_HANDS, GRAB_LEDGES, PUZZLE_OVER_TOOL, SHOP_ON_FOOT, MENU_IN_WORLD, ROOM_SCALE,
-        SWIM_STROKES, SOLID_HANDS, HIDE_BODY, GLYPHS, HAPTICS};
+        SWIM_STROKES, SOLID_HANDS, SPARKLES_IN_WORLD, HIDE_BODY, GLYPHS, HAPTICS};
 
     private static final String KEY_FAR_SCENERY = "far_scenery_moved";
 
@@ -256,6 +260,7 @@ final class Config {
             settings.put("room_scale", Boolean.parseBoolean(get(ROOM_SCALE)));
             settings.put("swim_strokes", Boolean.parseBoolean(get(SWIM_STROKES)));
             settings.put("solid_hands", Boolean.parseBoolean(get(SOLID_HANDS)));
+            settings.put("sparkles_in_world", Boolean.parseBoolean(get(SPARKLES_IN_WORLD)));
             settings.put("glyphs", Boolean.parseBoolean(get(GLYPHS)));
             settings.put("refresh_hz", Integer.parseInt(get(REFRESH)));
             settings.put("resolution", Double.parseDouble(get(RESOLUTION)));
