@@ -4,7 +4,7 @@
 
 ## New in 0.1.12
 
-Two testers' lists and the owner's own, worked through, and a body and hands of your own. Thanks for the videos and the logs.
+Two testers' lists and the owner's own, worked through, a body and hands of your own, and **mod support**: OpenRAC's mods in the launcher, five of them built in, and more from a file. Thanks for the videos and the logs.
 
 **A body and hands of your own** (all of it can be changed in the game)
 
@@ -18,6 +18,13 @@ Two testers' lists and the owner's own, worked through, and a body and hands of 
 - **Physical crouch** (VR Controls, on): lower your head and Ratchet crouches. **Crouch when head drops** sets how far, 10 to 60 cm (25 to start). Looking down is not a crouch: it is measured at your neck. A jump from low is the game's high jump. The game's crouch cannot walk, so the stick walks him with your head still low, and he crouches again when you stop. The left grip's crouch works as before. Rerac-vr has only that grip.
 - **New page, VR Controls** (VR Options, in play): Turning, Snap angle, Smooth turn speed, **Physical crouch** and **Crouch when head drops**, then the launcher's switches for your hands and body: Vibration, Aim with the right hand, Grab ledges with your hands, Swim with your arms, Swing the wrench for real, Throw by hand, Two-handed weapons, World collision, World vibration, Walk around your room and Sparkles on the bolts. A change here is saved. If you later change the same switch in the launcher, the launcher's wins.
 - **Hand size and Empty hand angle work with the bending arms.** The arm reaches the hand at any size; the forearm grows from your elbow to the hand's size at the wrist, and takes half of the hand's roll, so a wrist turned over stays whole.
+
+**Mods** (new: the launcher's Game tab)
+
+- **Mod support.** The launcher's new **Game** tab runs [OpenRAC's mods](https://github.com/OpenRAC/rac1-mods), built for the headset. Each one is turned on there, with its own settings and presets, and counts from the game's next start.
+- **Five come with it:** **Difficulty**, **Item randomizer**, **Xbox button icons** and **Button swap** (off until you turn them on) and **Ammo at the most** (on). A save made with the Item randomizer belongs to its seed.
+- **Add a mod file** takes another OpenRAC mod's .zip: a script mod, a data pack, or a native mod with a build for the headset (android-arm64), of mod interface 1.11 or older. The launcher says why if it cannot take one, and **Remove this mod** takes an added one out again. The game runs what it can load and says what it refused. Mods are programs: add only ones you trust. Some, made for a flat screen, may not suit VR.
+- **In VR:** the game's button pictures are already the Quest's, so **Xbox button icons** changes nothing you see in the headset. **Button swap** swaps the game's buttons after the Quest's are given: with Cross and Square swapped (its default), A swings the wrench instead of jumping, and A and the trigger no longer pick in the game's menus; the pictures stay as they were.
 
 **The Swingshot**
 
@@ -53,12 +60,12 @@ Two testers' lists and the owner's own, worked through, and a body and hands of 
 
 **The launcher and the US disc**
 
-- **New Game tab in the launcher:** **Skip any movie** (on), **Game volume**, and [OpenRAC's own mods](https://github.com/OpenRAC/rac1-mods): **Difficulty**, **Item randomizer**, **Xbox button icons** and **Button swap** (off) and **Ammo at the most** (on). **Add a mod file** takes other OpenRAC mods, of mod interface 1.11 or older; the game runs what it can load and says what it refused. In the headset the game's button pictures are already the Quest's, so **Xbox button icons** changes nothing you see there. **Button swap** swaps the game's buttons after the Quest's are given: with Cross and Square swapped (its default), A swings the wrench instead of jumping, and A and the trigger no longer pick in the game's menus; the pictures stay as they were.
+- **New Game tab in the launcher:** **Skip any movie** (on) and **Game volume**, beside the mods above.
 - **OpenRAC's fixes since our version, taken one by one:** the European disc's freeze after picking Quartu and drowning there; the landing and the vendor's scene with a full list of things; a grey Pyrocitor on the vendor's screen; screen fills reaching the edges; leaving out what the level's own visibility data says cannot be seen; Clank's shadow; the flight between planets; two small errors in the game's line tests; and the Difficulty and Item randomizer mods' own fixes.
 - **US disc:** a small maths function in the game did nothing on that disc, so some of the game's tests on things' joints read numbers never written. It now works.
 - **Ledges:** opening both hands drops you. Shorter logs too.
 
-Tested on PC with the European disc on Kerwan and other planets: the Swingshot's facing, a pull and a real swing with its rumble before and after; losing the shell when its marker is moved away; buying the Heli-Pack; the two-handed hold walking; Empty hand angle at 0 and 30 each way; scenes at Big Al's and the ship's take-off and landing; the pause on five planets. Also on PC: **Physical crouch** (looking down and a small dip do nothing, a real crouch does, and you can walk low and jump from it); the whole body and each **Body parts** choice, with **Seated** and **View height**, and their shadows; the fingers and their bend around walls; **World collision** and **World vibration** with a gun in each hand pushed into a wall and the ground, at about 8 line tests a game tick and 0.03 ms; walking around your room with the whole body; the weapon wheel; the VR Body, VR Controls and Cheats pages; X switching a cutscene's view three times over in the Novalis arrival, with play after it still in first person, and the new Cutscenes row; saving and loading with a gun in your hand; the level's own visibility data on Veldin, Novalis, Kerwan and Pokitaru, which leaves out nothing your head can see; all six bundled mods loading; the OpenRAC tests that this release's changes reach; and the launcher's tests. **Not yet tried on a Quest**, and nothing here has yet been run on the US disc on PC, because we only have the European one to test with here. Please tell us how all of it feels.
+Tested on PC with the European disc on Kerwan and other planets: the Swingshot's facing, a pull and a real swing with its rumble before and after; losing the shell when its marker is moved away; buying the Heli-Pack; the two-handed hold walking; Empty hand angle at 0 and 30 each way; scenes at Big Al's and the ship's take-off and landing; the pause on five planets. Also on PC: **Physical crouch** (looking down and a small dip do nothing, a real crouch does, and you can walk low and jump from it); the whole body and each **Body parts** choice, with **Seated** and **View height**, and their shadows; the fingers and their bend around walls; **World collision** and **World vibration** with a gun in each hand pushed into a wall and the ground, at about 8 line tests a game tick and 0.03 ms; walking around your room with the whole body; the weapon wheel; the VR Body, VR Controls and Cheats pages; X switching a cutscene's view three times over in the Novalis arrival, with play after it still in first person, and the new Cutscenes row; saving and loading with a gun in your hand; the level's own visibility data on Veldin, Novalis, Kerwan and Pokitaru, which leaves out nothing your head can see; the five bundled mods all on and loading beside the VR mod; the OpenRAC tests that this release's changes reach; and the launcher's tests. **Not yet tried on a Quest**, and nothing here has yet been run on the US disc on PC, because we only have the European one to test with here. Please tell us how all of it feels.
 
 ## New in 0.1.11
 
@@ -201,6 +208,7 @@ Rerac-vr's design, rebuilt on OpenRAC so that a headset can run it:
 - **Cutscenes** through Ratchet's eyes (the default), in VR around you, or on a screen, chosen in the launcher's **VR** tab or VR Options, or with X as one plays. Y skips them.
 - **Feel.** Vibration for each weapon, hits, packs, ledges and more. On-screen hints show your controller's buttons. The Visibomb's picture on the weapon's own screen.
 - **Settings.** Graphics presets, 72 to 120 Hz, resolution, MSAA, smooth or snap turning, and a toggle for nearly everything.
+- **Mods**, new to this port: OpenRAC's mods in the launcher's **Game** tab, with **Difficulty**, **Item randomizer**, **Xbox button icons**, **Button swap** and **Ammo at the most** built in, and more added from a file.
 
 ## Controls
 
