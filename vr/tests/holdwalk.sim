@@ -1,0 +1,17 @@
+# The two-handed hold walking and standing (a tester's shaky hold): QUEST_SIM_GIVE=23 QUEST_SIM_HOLD=23 QUEST_SWING_TRACE=1,
+# as twohand.sim's hands. [vr-hold]: the foregrip used stays while held, his palm goes on moving. The barrel's way in each shot.
+600 y 1
+606 y 0
+3000 lh_x 0.11
+3001 lh_y 0.23
+3002 lh_z -0.12
+3010 left_grip 1
+3100 shot held
+3120 left_y 1
+3200 shot walk1
+3240 shot walk2
+3280 shot walk3
+3320 shot walk4
+3360 left_y 0
+3500 shot stand
+3700 quit 0

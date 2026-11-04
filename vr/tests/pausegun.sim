@@ -1,0 +1,17 @@
+# A tester's Pyrocitor went giant in the pause menu (0.1.11): the gun in the hand, paused (the menu in the world), the
+# gun and the hand as in play, and the same after. Run with QUEST_SIM_GIVE=16 QUEST_SIM_HOLD=16.
+600 y 1
+606 y 0
+2900 shot playing
+3000 y 1
+3006 y 0
+3100 shot paused
+3200 shot paused-later
+3240 hand_pitch -5.4
+3300 shot paused-pointing
+3320 hand_pitch 0
+3400 y 1
+3406 y 0
+3460 shot played
+3600 shot played-later
+3700 quit 0

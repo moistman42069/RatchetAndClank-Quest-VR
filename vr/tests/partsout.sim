@@ -1,0 +1,17 @@
+# VR Body's Body parts, from outside, once he is in play: what shows, and the shadow it casts (seen low from the front, and from
+# higher up so that all of the shadow is in the picture). The shadow is of what is drawn, at its bent place.
+600 y 1
+606 y 0
+2700 view_free 1
+2701 view_z -1.3
+2702 view_y -0.2
+2703 view_yaw 180
+2760 shot out
+2770 view_y 0.7
+2771 view_z -2.0
+2774 view_pitch -40
+2830 shot above
+2840 rh_y 0.2
+2842 lh_x -0.3
+2900 shot moved
+2950 quit 0

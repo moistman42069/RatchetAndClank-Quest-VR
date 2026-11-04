@@ -1,0 +1,99 @@
+# The Cheats page (0.1.12) by the sticks: pause, down to Options, into it, down to VR Options, into it (options.sim's
+# way), down past View and Cutscenes to the tenth row, Cheats (the window moves two rows), into it; Invincible, Infinite ammo, Infinite
+# bolts and Big heads each stepped On, Trippy contrails left Off; Give all weapons, Give all gadgets and Unlock all
+# planets each chosen; B back to VR Options. The right hand is gone, so the sticks move the cursor. The [vr-cheat]
+# lines say what each step set and gave; the run's vr-options.txt keeps cheat_invincible 1, cheat_ammo 1, cheat_bolts 1,
+# cheat_big_heads 1 and cheat_contrails 0.
+600 y 1
+606 y 0
+3000 y 1
+3006 y 0
+3010 right_gone 1
+3100 shot paused
+3120 left_y -1
+3132 left_y 0
+3160 left_y -1
+3172 left_y 0
+3200 left_y -1
+3212 left_y 0
+3240 left_y -1
+3252 left_y 0
+3280 left_y -1
+3292 left_y 0
+3340 a 1
+3346 a 0
+3440 left_y -1
+3452 left_y 0
+3480 left_y -1
+3492 left_y 0
+3520 left_y -1
+3532 left_y 0
+3560 left_y -1
+3572 left_y 0
+3600 left_y -1
+3612 left_y 0
+3700 a 1
+3706 a 0
+3780 shot vr-page
+# Down nine rows to Cheats (past Cutscenes, 0.1.12).
+3800 left_y -1
+3812 left_y 0
+3840 left_y -1
+3852 left_y 0
+3880 left_y -1
+3892 left_y 0
+3920 left_y -1
+3932 left_y 0
+3960 left_y -1
+3972 left_y 0
+4000 left_y -1
+4012 left_y 0
+4040 left_y -1
+4052 left_y 0
+4080 left_y -1
+4092 left_y 0
+4120 left_y -1
+4132 left_y 0
+4150 shot cheats-row
+4170 a 1
+4176 a 0
+4240 shot cheats-page
+# Invincible, Infinite ammo, Infinite bolts, Big heads: each On.
+4260 left_x 1
+4272 left_x 0
+4300 left_y -1
+4312 left_y 0
+4340 left_x 1
+4352 left_x 0
+4380 left_y -1
+4392 left_y 0
+4420 left_x 1
+4432 left_x 0
+4460 left_y -1
+4472 left_y 0
+4500 left_x 1
+4512 left_x 0
+4560 shot toggles-on
+# Past Trippy contrails to the buttons, each chosen.
+4580 left_y -1
+4592 left_y 0
+4620 left_y -1
+4632 left_y 0
+4660 a 1
+4666 a 0
+4740 left_y -1
+4752 left_y 0
+4780 a 1
+4786 a 0
+4860 left_y -1
+4872 left_y 0
+4900 a 1
+4906 a 0
+4980 shot given
+5000 b 1
+5006 b 0
+5080 shot back
+5100 y 1
+5106 y 0
+5300 shot playing
+5400 quit 0

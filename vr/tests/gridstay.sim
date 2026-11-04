@@ -1,0 +1,7 @@
+# Three minutes standing at a level's start with QUEST_GRID_TRACE=1: whether anything piles up in the moby grid, on the levels
+# whose heap keeps the disc's 255 spare slots (5, 6, 15; moby_pool.c).
+600 y 1
+606 y 0
+5000 shot middle
+9600 shot end
+9700 quit 0

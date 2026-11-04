@@ -1,0 +1,33 @@
+# Baked visibility (OpenRAC's, on OpenGL) against what a VR head sees: the same look round with it on and with
+# OPENRAC_PVS_OFF=1. The eyes are not where the retail camera goes, and can look any way; nothing fixed may go missing.
+600 y 1
+606 y 0
+2800 shot a0
+2810 head_yaw 90
+2880 shot a90
+2890 head_yaw 180
+2960 shot a180
+2970 head_yaw 270
+3040 shot a270
+3050 head_yaw 0
+3060 head_pitch -50
+3130 shot down
+3140 head_pitch 40
+3210 shot up
+3220 head_pitch 0
+3230 left_y 1
+3350 shot walk1
+3351 left_y 0
+3360 head_yaw 180
+3430 shot walk1back
+3440 head_yaw 0
+3450 left_y 1
+3570 shot walk2
+3571 left_y 0
+3580 head_yaw 90
+3650 shot walk2side
+3660 head_yaw 0
+3670 head_x 0.4
+3680 head_y 0.3
+3750 shot lean
+3800 quit 0

@@ -48,6 +48,16 @@ def main() -> int:
          ROOT / "vr/tests/rig_pad_test.cpp", f"/Fe{test}", f"/Fo{out / 'rig_pad_test.obj'}"], env=env)
     run([test], env=env)
     print(f"{out / 'package/quest_vr'}: the mod for vr/tests/pc_run.sh", flush=True)
+    # The mods the APK bundles (build_quest.py BUNDLED_MODS), for pc_run.sh's QUEST_MODS.
+    sys.path.insert(0, str(ROOT / "tools"))
+    import build_quest  # noqa: E402
+    build_quest.check_rac1_mods()
+    mods = BUILD_ROOT / "rac1-mods-pc"
+    run(["cmake", "-S", build_quest.RAC1_MODS, "-B", mods, "-G", "Ninja", "-DCMAKE_BUILD_TYPE=RelWithDebInfo",
+         "-DCMAKE_C_COMPILER=clang-cl", "-DCMAKE_CXX_COMPILER=clang-cl", f"-DCMAKE_MAKE_PROGRAM={shutil.which('ninja')}",
+         f"-DOPENRAC_SDK={(OPENRAC / 'sdk').as_posix()}", "-DBUILD_TESTING=OFF", "-Wno-dev"], env=env)
+    run(["cmake", "--build", mods, "--target", *build_quest.BUNDLED_MODS.values()], env=env)
+    print(f"{mods / 'package'}: the bundled mods for vr/tests/pc_run.sh", flush=True)
     return 0
 
 

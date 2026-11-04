@@ -1,0 +1,7 @@
+# The Invincible cheat (0.1.12) against a hit dealt the game's way: --level 1 (Novalis), QUEST_SIM_HURT=200 calls
+# Hero_TakeDamage(1) three times, 100 ticks apart, once Ratchet is in control, and logs his hit points before and after.
+# Run with QUEST_VR_OPTIONS="cheat_invincible 1": each hit taken away ("[vr-cheat] invincible: a hit of 1 taken away"
+# once, the hit points the same); and without: one hit point less each time.
+600 y 1
+606 y 0
+3800 quit 0

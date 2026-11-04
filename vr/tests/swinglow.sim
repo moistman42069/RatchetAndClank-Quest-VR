@@ -1,0 +1,27 @@
+# The Swingshot's housing see-through as the hand nears the view's edge (a tester's video): the moby's main parts culled by
+# its game sphere, which stays where the game's tick left it, and only its shine pass left. QUEST_SIM_GIVE=12 QUEST_SIM_HOLD=12,
+# --level 3. The hand before the eyes, the view looking up by steps, then the hand held out to the left. Whole in each shot.
+600 y 1
+606 y 0
+2900 rh_x -0.2
+2901 rh_y 0.2
+2902 rh_z -0.1
+3000 shot h00
+3020 head_pitch 10
+3060 shot h10
+3080 head_pitch 20
+3120 shot h20
+3140 head_pitch 30
+3180 shot h30
+3200 head_pitch 40
+3240 shot h40
+3260 head_pitch 50
+3300 shot h50
+3320 head_pitch 0
+3340 rh_x -0.4
+3380 shot l40
+3400 rh_x -0.6
+3440 shot l60
+3460 rh_x 0.2
+3500 shot r20
+3600 quit 0

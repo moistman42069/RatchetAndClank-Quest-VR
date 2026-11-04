@@ -1,0 +1,29 @@
+# Kerwan's rail movers from Big Al's: QUEST_SIM_AT=295.6,245.3,34.5,0 QUEST_SIM_BOLTS=9000 QUEST_GRID_TRACE=1 --level 3. They pile up frozen
+# at a path's start, past their update distance, while its spawner runs: [vr-rail] says how many, up to the most the port lets
+# stand. Then the head turns to them, which runs them all at once, and the Heli-Pack is bought: no "moby grid:" line.
+600 y 1
+606 y 0
+3000 right_trigger 1
+3006 right_trigger 0
+3400 a 1
+3406 a 0
+3800 a 1
+3806 a 0
+4200 a 1
+4206 a 0
+4600 a 1
+4606 a 0
+5000 a 1
+5006 a 0
+5400 a 1
+5406 a 0
+14000 shot piled
+14100 head_yaw 110
+14400 shot looking
+14800 head_yaw 0
+15200 right_click 1
+15206 right_click 0
+15400 shot buying
+15700 shot scene
+16100 shot on
+16700 quit 0

@@ -1,0 +1,14 @@
+# A look at a level's plants on the ground, for Smooth plant edges (0.1.12) On and Off: QUEST_SMOOTH_PLANTS=true or false.
+# In play at the level's start: ahead, then 50 degrees down, then turned.
+600 y 1
+606 y 0
+2900 shot ahead
+3000 head_pitch -50
+3100 shot down
+3200 head_yaw 90
+3300 shot right
+3400 head_yaw -90
+3500 shot left
+3600 head_yaw 0
+3600 head_pitch 0
+3700 quit 0

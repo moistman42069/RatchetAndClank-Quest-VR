@@ -1,0 +1,40 @@
+# A tester's 0.1.11 load, as their log has it (level 2: the ship's scene, first person in state 101, the save-icon
+# notice in the way): loadgun.sim's way from the title, on a save made by savegun.sim with --level 2. The notice stays up
+# later here, so the trigger waits for its Continue. Then the gun as the save brings it back: the first ticks in control
+# (loaded), later, the right grip for the wrench, let go, and the trigger takes the gun out again (back). The same size
+# and hold in each as in savegun's holding. Then the pause, after a load as they had it.
+# QUEST_VR_OPTIONS="gun_size 50;hand_size 70", --cards a copy of the save.
+100 hand_pitch 45
+900 a 1
+906 a 0
+1500 a 1
+1506 a 0
+1900 hand_pitch 16.5
+1980 right_trigger 1
+1986 right_trigger 0
+2420 hand_yaw 29
+2420 hand_pitch 27.2
+2500 right_trigger 1
+2506 right_trigger 0
+2920 hand_yaw 0
+2920 hand_pitch 0
+3900 shot notice
+4300 right_trigger 1
+4306 right_trigger 0
+4330 shot loaded-a
+4360 shot loaded-b
+4420 shot loaded-c
+4640 shot loaded-later
+4700 right_grip 1
+4820 shot wrench
+4840 right_grip 0
+5100 right_trigger 1
+5106 right_trigger 0
+5400 shot back
+5500 y 1
+5506 y 0
+5620 shot paused
+5700 y 1
+5706 y 0
+5820 shot played
+5900 quit 0

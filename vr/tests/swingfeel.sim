@@ -1,0 +1,19 @@
+# The rumble of the Swingshot (a tester's constant one): QUEST_SIM_GIVE=12 QUEST_SIM_HOLD=12 QUEST_SIM_NEAR=803 QUEST_SIM_NEAR_AT=11.3,-5.6,-95
+# --level 3: on the pull target's platform on Kerwan, facing the swing target, where that tester swung. A swing (state 0x2C, "hook
+# holds"), let go, then put down and brought back. [vr-feel] "item 12 runs" only with its rope out, not when it comes back.
+600 y 1
+606 y 0
+3100 shot before
+3200 right_trigger 1
+3206 shot out
+3230 shot swing
+3400 shot there
+3560 right_trigger 0
+3660 shot after
+3800 right_grip 1
+3860 right_grip 0
+4100 right_trigger 1
+4106 right_trigger 0
+4300 shot back
+4600 shot later
+4800 quit 0

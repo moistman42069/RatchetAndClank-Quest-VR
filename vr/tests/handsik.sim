@@ -1,0 +1,26 @@
+# Hand size, Empty hand angle and the bending arms together (VR Hands, VR Body), from outside: the hand on the arm with the
+# controller rolled and tilted. The wrist stays closed, the forearm is as thick as the hand is big, the arm reaches the hand.
+600 y 1
+606 y 0
+2400 view_free 1
+2401 view_z -1.0
+2402 view_y -0.3
+2403 view_yaw 180
+2860 shot neutral
+2870 hand_roll 90
+2930 shot roll90
+2940 hand_roll -90
+3000 shot rollm90
+3010 hand_roll 180
+3070 shot roll180
+3080 hand_roll 0
+3090 hand_pitch 60
+3150 shot pitch60
+3160 hand_pitch -60
+3220 shot pitchm60
+3230 hand_pitch 0
+3240 view_x 0.8
+3242 view_z -0.2
+3244 view_yaw 90
+3300 shot side
+3400 quit 0

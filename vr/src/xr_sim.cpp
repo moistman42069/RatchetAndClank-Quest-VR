@@ -6,7 +6,8 @@
 //
 //   QUEST_SIM_SCRIPT=<file>  a line each: <frame> <name> <value>, values holding until changed.
 //       a b x y left_click right_click: 0 or 1; left_x left_y right_x right_y left_trigger
-//       right_trigger left_grip right_grip: -1..1; head_yaw hand_yaw (degrees, left positive);
+//       right_trigger left_grip right_grip: -1..1; left_first_touch right_first_touch left_thumb_touch
+//       right_thumb_touch: 0 or 1; head_yaw hand_yaw (degrees, left positive);
 //       head_pitch hand_pitch hand_roll (degrees, up positive); head_x head_y head_z (metres); shot <name>: the eyes and panel as
 //       PNGs; quit 0: ends the run.
 //   QUEST_SIM_OUT=<folder>   where the PNGs go.
@@ -222,6 +223,16 @@ public:
         const Vec3 half = rotate(look, {0.032f, 0, 0});
         out.eye[0] = {head - half, look};
         out.eye[1] = {head + half, look};
+        // view_free 1: the eyes alone stand at view_x view_y view_z (metres from the head), turned view_yaw and
+        // view_pitch: a look at the player's body from outside, the head that fits it staying where it is.
+        if (number("view_free") != 0) {
+            const float view_pitch = number("view_pitch") * kPi / 360.0f;
+            const Quat view_look = yaw_quat(number("view_yaw") * kPi / 180.0f) * Quat{std::sin(view_pitch), 0, 0, std::cos(view_pitch)};
+            const Vec3 view_at = head + Vec3{number("view_x"), number("view_y"), number("view_z")};
+            const Vec3 view_half = rotate(view_look, {0.032f, 0, 0});
+            out.eye[0] = {view_at - view_half, view_look};
+            out.eye[1] = {view_at + view_half, view_look};
+        }
         for (int eye = 0; eye < 2; ++eye) {
             out.fov[eye][0] = eye == 0 ? -0.95f : -0.75f;
             out.fov[eye][1] = eye == 0 ? 0.75f : 0.95f;
@@ -260,6 +271,10 @@ public:
         c.right_trigger = number("right_trigger");
         c.left_grip = sim_left_grip ? 1.0f : number("left_grip");
         c.right_grip = number("right_grip");
+        c.left_first_touch = number("left_first_touch") != 0;
+        c.right_first_touch = number("right_first_touch") != 0;
+        c.left_thumb_touch = number("left_thumb_touch") != 0;
+        c.right_thumb_touch = number("right_thumb_touch") != 0;
         return true;
     }
 

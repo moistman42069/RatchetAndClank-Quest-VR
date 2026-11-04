@@ -1,0 +1,25 @@
+# The Pyrocitor's pilot flame (a tester's 0.1.11 report: the flame hung outside the gun). The pilot lights once the gun has
+# fired. A short burst with the hand turned aside so the nozzle shows, then not firing: still, while the hand sweeps (the
+# frame moves the gun after the tick: the flame has to go along), the hand raised. QUEST_SIM_GIVE=16 QUEST_SIM_HOLD=16,
+# --level 1; with QUEST_VR_OPTIONS="gun_size 50" for the smaller gun.
+600 y 1
+606 y 0
+3200 hand_yaw 50
+3300 right_trigger 1
+3330 shot firing
+3360 right_trigger 0
+3380 shot just-after
+3420 shot still
+3430 hand_yaw 44
+3434 hand_yaw 38
+3438 hand_yaw 32
+3440 shot sweep-a
+3442 hand_yaw 40
+3446 hand_yaw 48
+3450 hand_yaw 56
+3452 shot sweep-b
+3460 hand_yaw 50
+3460 hand_pitch 20
+3480 shot raised
+3700 shot rest
+3900 quit 0

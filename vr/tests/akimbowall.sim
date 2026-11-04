@@ -1,0 +1,25 @@
+# World collision with a gun in each hand (Akimbo, QUEST_SIM_LEFT): looking down, both hands pushed forward and down
+# through the ground; both guns, the left one and the right hand's, stop on it, each hand's vibration grows with the
+# push. Then seen from the side, still pushed. QUEST_SIM_GIVE=15,16 QUEST_SIM_HOLD=15 QUEST_SIM_LEFT=16.
+600 y 1
+606 y 0
+3000 head_pitch -65
+3040 lh_z -0.45
+3041 rh_z -0.45
+3060 shot before
+3100 lh_y -0.5
+3101 rh_y -0.5
+3140 shot down-half
+3180 lh_y -1.4
+3181 rh_y -1.4
+3220 shot through
+3230 view_free 1
+3231 view_x 1.2
+3232 view_y -0.5
+3233 view_yaw 90
+3280 shot side
+3290 view_free 0
+3300 lh_y 0
+3301 rh_y 0
+3340 shot after
+3360 quit 0

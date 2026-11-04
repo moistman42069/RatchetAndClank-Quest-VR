@@ -1,0 +1,20 @@
+# Body parts' shadows from either side and from high up, where his feet do not cover his legs' shadow (partsout.sim's
+# views are from the front, where the feet hide most of it). QUEST_VR_OPTIONS="body 2;body_parts N" picks the parts.
+600 y 1
+606 y 0
+2700 view_free 1
+2701 view_x 1.4
+2702 view_y 0.8
+2703 view_yaw 90
+2704 view_pitch -45
+2760 shot right
+2770 view_x -1.4
+2771 view_yaw -90
+2830 shot left
+2840 view_x 0
+2841 view_z 0
+2842 view_y 2.2
+2843 view_yaw 180
+2844 view_pitch -85
+2900 shot top
+2950 quit 0

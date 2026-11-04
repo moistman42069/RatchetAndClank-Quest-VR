@@ -1,0 +1,44 @@
+# Walk around your room with the whole body, from outside: steps of the head carry him, the game's collision stops him at the
+# crates ahead, leaning beyond them does not push the head or the body through, and turning the head turns him on the spot.
+# QUEST_BODY_TRACE=1 shows how the body sits; "[vr-room]" what the steps became.
+600 y 1
+606 y 0
+2700 view_free 1
+2701 view_x 1.2
+2702 view_y -0.4
+2703 view_yaw 90
+2760 shot before
+2800 head_z -0.1
+2830 head_z -0.2
+2860 head_z -0.3
+2890 head_z -0.4
+2920 head_z -0.5
+2950 head_z -0.6
+3000 shot stepped
+3030 head_z -0.8
+3060 head_z -1.0
+3090 head_z -1.2
+3120 head_z -1.4
+3150 head_z -1.6
+3180 head_z -1.8
+3210 head_z -2.0
+3240 head_z -2.2
+3270 head_z -2.4
+3350 shot blocked
+3360 head_x 0.2
+3390 head_x 0.4
+3450 shot aside
+3500 head_yaw 90
+3600 shot turned
+3650 head_yaw -90
+3750 shot turnedback
+3800 head_yaw 0
+3830 view_x 0
+3832 view_z 1.2
+3834 view_yaw 0
+3900 shot behind
+3910 head_z -2.0
+3920 head_z -1.6
+3930 head_z -1.2
+4000 shot backsteps
+4100 quit 0

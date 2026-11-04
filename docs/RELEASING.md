@@ -61,8 +61,13 @@ it), where the logs are (`Download/RatchetQuestVR`), and how to report.
 
 ## Updating OpenRAC
 
-1. Write the current changes out first, `git stash` is no backup:
-   `git -C third_party/OpenRAC diff --full-index > patches/0001-quest-vr-frame-path.patch`.
+1. Write the current changes out first, `git stash` is no backup. A plain diff leaves new files out, so mark each new
+   file first with `git -C third_party/OpenRAC add -N <file>`, which is not a commit (`git -C third_party/OpenRAC status
+   --short` lists them as `??`). For 0.1.12 they are `port/game/rac1-ntsc/host/vector.c`,
+   `port/game/rac1/host/hero_anim_guard.c`, `port/game/common/frontend/hero_shadows.h` and
+   `port/tests/hero_shadow_rig_test.cpp`. Then
+   `git -C third_party/OpenRAC diff --full-index > patches/0001-quest-vr-frame-path.patch`. On Windows, gen_binding.py
+   writes CRLF: put its files back to LF first, or the patch carries the line endings.
 2. `git -C third_party/OpenRAC fetch origin develop`, check it out, and `git apply` the patch.
 3. Read upstream's diff of every patched file, and every new window swap or draw path: in VR the
    headset's frame replaces the window's swap.

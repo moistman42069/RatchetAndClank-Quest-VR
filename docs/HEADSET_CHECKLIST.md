@@ -31,6 +31,12 @@ it worked (the log is in Download/RatchetQuestVR). PC-proven features are in STA
   cutscenes seen through his eyes. Watch the opening scene on Novalis and look down at his arms as the scene moves
   them: there should be nothing between them. In play, hold both hands out in front of you: nothing between them
   either. With Player body on Cutscenes or Always, his body should look as in 0.1.8.
+- **Odd views in scenes seen through his eyes.** Your eyes follow the scene's own Ratchet even in shots where the game's
+  camera looks elsewhere, so a moment can be seen from under the ground or the wrong place (on PC, a Novalis scene
+  started out of its place in the story). Note the planet and the scene with your log. Press X: the scene goes on In VR,
+  from the game's own camera, X again On a screen, X again back through his eyes (`[vr-scene] X in a scene: cutscenes
+  ... now`). When the scene ends you should play in your View as before, first person by default, and X should open the
+  map again. VR Options' Cutscenes row (after View) shows what X left, and sets it too.
 - **A tester's list (0.1.10).** Each item a tester reported on 0.1.7 to 0.1.9:
   - The ship's landing on Novalis (a new game, or leave for another planet and come back): the view is Ratchet's eyes,
     turned the way he faces, as the ship flies in and he climbs out; never at his feet nor inside the ground or the
@@ -55,6 +61,50 @@ it worked (the log is in Download/RatchetQuestVR). PC-proven features are in STA
     crash. A line `[vr-hand] a wall test not asked` may show once; that is the fix at work.
   - Water: walk up to Novalis's pond from its bank. Not reproduced on PC: if the water shows only once Ratchet is in
     it, a video and the log.
+- **Two testers' lists (0.1.12).** Everything here ran on PC with the PAL disc only.
+  - The Swingshot, on Kerwan: its ribbed shell on the back of the wrist, the hook ahead of the hand, the rope leaving
+    the hook. Swap it for the wrench and back many times: never a giant hook, the shell never see-through as the hand
+    moves about or out of view. Swing on a real target, let go, swap it, bring it back: `[vr-feel] item 12 runs` only
+    while the rope is out, and no buzz in the hand after. The giant hook was not reproduced on PC.
+  - **The US disc:** buy the Heli-Pack from Big Al on Kerwan. The game must go on, with no `moby grid:` line in the log.
+    Send the log whatever happens. On PC (PAL) the cause was found: Max draw distance ran hidden spawners, whose rail cars
+    piled up in one grid cell; `[vr-grid]` is a PC aid only, so the log's word is the absence of `moby grid:`.
+  - The US disc: load a save with Gun size 50 and Hand size 70. The gun at its size and both hands right from the first
+    moment, not only after the wrench. Also after leaving the ship.
+  - The Pyrocitor's pilot flame from the front, at Gun size 50 and 100: in the gun, in proportion.
+  - The RYNO or the Pyrocitor held with both hands while walking: steady, not swaying with his steps. The left hand's
+    spot where it was when you took hold.
+  - Empty hand angle (VR Hands): the hands with nothing in them tilt, the wrench and the guns do not. VR Hands has nine
+    rows in a window of eight: the last row reachable.
+  - Pause on Novalis, Kerwan, Rilgar and a river or lava level, on both discs: the level, the hands and the seas, lava
+    or mud stay; closing it does not stop the game. Then a death and a swim: fades still cover the view.
+  - Scenes: at Big Al's counter on Kerwan, at his place, not the ship's seat, starting along your gaze. The ship's take-off
+    and landing still from the ship (`[vr-scene] ... his ship's scene`).
+  - The foot of Veldin's trees: no hard lines round the low plants as the head moves. Other levels' low plants look right.
+  - Ratchet's shadow with Player body Off and Always: just the hands, or the whole body.
+  - Cheats (VR Options, in play): Invincible against a real hit, Big heads with Third person, Trippy contrails.
+- **A body and hands of your own (0.1.12).** New, and PC-run with a simulated headset only.
+  - **Arms by default:** a new install, and a settings file from 0.1.11 with Player body Off, starts with arms from the
+    shoulders to the controllers. Reach out, up, to the side, across, down: the elbow stays natural, the hand on the
+    controller. VR Body's Arm length and Body height: note the values that suit you.
+  - **Fingers (Tracked):** first finger off the trigger points; thumb off the buttons, stick and rest is a thumbs-up; grip
+    closes the rest. The touch sensors have never run on a headset. The log's `[vr-hand] tracked fingers on class 0`
+    says the path ran, and class 87 as Clank. Static brings the old hands back.
+  - **World collision and World vibration:** push a hand, the wrench, a gun and a glove into a wall and the ground: each
+    stops there, the buzz grows with the push and fades when rested. Nothing buzzes when nothing is touched (a tester had
+    a stuck rumble). Note the frame rate with World collision and Fingers bend around the world on and off: the cost of
+    their line tests has not been measured on a Quest. Each `[vr-perf]` line ends with it, `line tests N a tick, X ms a
+    tick` (on PC, pushing two guns into the ground: 6 to 8 a tick, 0.02 to 0.03 ms; none with World collision off).
+  - **Physical crouch:** lower your head about 25 cm and he crouches (`[vr-body] physical crouch on`), rise and he stands.
+    Looking at the floor must not do it; try Crouch when head drops 15 and 40. A jump from low is a high jump. The stick
+    walks him with your head low. The view must not drop twice. Seated too, after a recentre.
+  - **Room scale with the whole body:** Player body Always, Body parts Everything: step about, lean, turn on the spot, walk
+    up to a wall. The body stays under your head; his feet slide while you step, as his walk is not played for room steps.
+  - **Mods:** the launcher's Game tab: Difficulty, Item randomizer, Xbox button icons, Button swap, then Add a mod file with
+    a mod of interface 1.11; a newer one is refused and said so. On PC: with Button swap's Cross and Square, A swings
+    the wrench (hero state 0x13, not the jump's 0x7) and A or the trigger no longer picks in the game's menus; Xbox button
+    icons changes nothing in the headset, as the Quest's pictures are painted either way (VR Options' hint, the same to
+    the pixel). All six mods load (plugins/status.json).
 - **Sparkles on the bolts (0.1.11).** On 0.1.10 a small twinkle now and then seemed to hang in front of the eyes,
   tied to nothing (an owner's report, Veldin, a Quest 3): the glint the game puts on a bolt, drawn flat on the HUD's
   layer. Stand on Veldin's start and look round at the bolts lying about: now and then one twinkles, on the bolt;

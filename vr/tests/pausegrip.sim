@@ -1,0 +1,21 @@
+# The wrench under the pause menu: held on the grip it stays in the hand at its size; let go it stays away (it stood at
+# the game's own size, five times the hand's, with the hand on it, in any pause). In play and paused, each way.
+600 y 1
+606 y 0
+2700 right_grip 1
+2900 shot held-playing
+3000 y 1
+3006 y 0
+3160 shot held-paused
+3200 y 1
+3206 y 0
+3360 shot held-played
+3400 right_grip 0
+3500 shot free-playing
+3600 y 1
+3606 y 0
+3760 shot free-paused
+3800 y 1
+3806 y 0
+3960 shot free-played
+4000 quit 0

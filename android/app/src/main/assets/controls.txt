@@ -4,7 +4,8 @@ LEFT STICK    Walk, towards where you look (or your body's facing: Direction in 
 RIGHT STICK   Turn (smooth by default; snap in the VR tab). In third person, the game's camera
 A             Jump. Twice for a double jump
 B             Hover and strafe with Clank's packs, Hydro-Pack boost
-X             Map
+X             Map. In a cutscene: how it is seen, through his eyes, in VR or on a screen
+              (only the cutscene's view: you play on in your View when it ends)
 Y             Pause. Skips a cutscene
 RIGHT TRIGGER Fire where your hand points. With an empty hand, takes your last gun or glove back out
               Gloves: hold the trigger, throw with your hand and let go. Let go slowly to keep it
@@ -15,6 +16,7 @@ RIGHT GRIP    Takes the wrench out. Swing your hand for real to hit, weak taps d
               In the air, slam it down for the Hyper Strike
               Near a bolt: hold it on the bolt and walk around it
 LEFT GRIP or TRIGGER   Crouch, and the packs (hold with A for long and high jumps, flips)
+              Or crouch for real: lower your head (Physical crouch, VR Controls)
               Near the front of a big weapon, the left grip holds it with both hands
 RIGHT STICK CLICK      Talk, and quick select: hold, move your right hand toward a weapon, let go
                        Pull the right trigger while holding it for the next page
@@ -56,7 +58,8 @@ IN MENUS
 
 Point with your right hand and pull the trigger or press A. On a page you can point at, the sticks
 do nothing (if the right controller is off, they move the cursor). The map pans with its sticks.
-B goes back, Y closes the pause menu. VR Options: View switches first and third person at any time.
+B goes back, Y closes the pause menu. VR Options: View switches first and third person at any time,
+Cutscenes how the scenes are seen.
 The left grip and trigger turn the pages.
 Sound page: hold the trigger on a bar and move along it to set the volume.
 A box with key labels (Yes, No, OK): point at a label and pull the trigger or press A.

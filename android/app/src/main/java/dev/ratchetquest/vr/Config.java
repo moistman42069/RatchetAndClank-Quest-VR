@@ -71,7 +71,29 @@ final class Config {
             + "Off draws each of those only as near as the game did. Costs some frame rate. Original draw distances "
             + "On overrides it.",
         ON_OFF, TRUE_FALSE, "true");
-    static final Choice[] GRAPHICS = {PRESET, REFRESH, RESOLUTION, MSAA, FILTER, ANISOTROPY, ORIGINAL_LOD, MAX_DRAW};
+    static final Choice MATCHING_SHADOW = new Choice("matching_shadow", "Shadow matches what you see",
+        "In first person Ratchet's shadow is cast by what you see of him: only your hands, or his body too with Player "
+            + "body on. Off: by the whole body the game animates, wherever your hands are.",
+        ON_OFF, TRUE_FALSE, "true");
+    static final Choice FADES_IN_VIEW = new Choice("fades_in_view", "Fades fill your view",
+        "The game's fades to black and white, the underwater tint and its screen flashes cover your whole view, as "
+            + "they covered the television. Off: only the panel in front of you shows them.",
+        ON_OFF, TRUE_FALSE, "true");
+    static final Choice SMOOTH_PLANT_EDGES = new Choice("smooth_plant_edges", "Smooth plant edges",
+        "Removes the thin stray lines on leaves and flowers, and the hard straight edge of the dark patch round a "
+            + "tree's foot, which fades out instead. Off: those lines and that edge stay.",
+        ON_OFF, TRUE_FALSE, "true");
+    static final Choice[] GRAPHICS = {PRESET, REFRESH, RESOLUTION, MSAA, FILTER, ANISOTROPY, ORIGINAL_LOD, MAX_DRAW,
+        MATCHING_SHADOW, FADES_IN_VIEW, SMOOTH_PLANT_EDGES};
+
+    // The port's own options for play (docs/port/SETTINGS.md), beside OpenRAC's mods on the Game tab.
+    static final Choice SKIP_ANY_MOVIE = new Choice("skip_any_movie", "Skip any movie",
+        "Y skips every movie, also those the game makes you watch the first time. Off: only those the game lets you skip.",
+        ON_OFF, TRUE_FALSE, "true");
+    static final Choice VOLUME = new Choice("volume", "Game volume",
+        "Everything the game plays, under the headset's own volume and the game's music and effects options.",
+        new String[] {"100%", "80%", "60%", "40%", "20%", "Off"}, new String[] {"100", "80", "60", "40", "20", "0"}, "100");
+    static final Choice[] GAME = {SKIP_ANY_MOVIE, VOLUME};
 
     static final Choice VIEW = new Choice("view", "View",
         "First person is through Ratchet's eyes. Third person keeps the game's camera, with your head looking around. VR Options in the game switches it at any time.",
@@ -79,7 +101,10 @@ final class Config {
     static final Choice CUTSCENES = new Choice("cutscenes", "Cutscenes",
         "Through Ratchet's eyes: you see the scene from his head, your own head free, his hands as the scene moves them; " + 
             "a scene without him is seen from its camera. In VR: from the game's camera, in 3D around you. On a screen: the game's " + 
-            "own framing on a big screen ahead, kinder if camera moves bother you. Movies are always on the screen.",
+            "own framing on a big screen ahead, kinder if camera moves bother you. Movies are always on the screen. " +
+            "Through his eyes can now and then show a shot from an odd place, as his eyes are where the scene puts him even when " +
+            "its camera looks elsewhere. X during a cutscene steps through the three, and VR Options in the game has this row too; " +
+            "it changes only how cutscenes are seen, never the View you play in.",
         new String[] {"Through his eyes", "In VR", "On a screen"}, new String[] {"eyes", "vr", "screen"}, "eyes");
     static final Choice TURN = new Choice("turn", "Turning", "Smooth is the default. If it makes you queasy, Snap is kinder to most stomachs.",
         new String[] {"Smooth", "Snap"}, new String[] {"smooth", "snap"}, "smooth");
@@ -124,8 +149,11 @@ final class Config {
         "In water, stroke with your palms to swim where you look; push the water up with both hands to dive. "
             + "Off: as in the game.",
         ON_OFF, TRUE_FALSE, "true");
-    static final Choice SOLID_HANDS = new Choice("solid_hands", "Solid walls for what you hold",
-        "Your wrench and guns stop at walls, and cannot fire through them. Off: they pass through.",
+    static final Choice WALL_FEEL = new Choice("wall_feel", "Vibrate when your hands meet the world",
+        "The controller vibrates as your hand or what it holds touches a wall, more the harder you push.",
+        ON_OFF, TRUE_FALSE, "true");
+    static final Choice SOLID_HANDS = new Choice("solid_hands", "World collision",
+        "Your hands, wrench and guns stop at walls and cannot fire through them. Off: they pass through.",
         ON_OFF, TRUE_FALSE, "true");
     static final Choice SPARKLES_IN_WORLD = new Choice("sparkles_in_world", "Sparkles on the bolts",
         "On: the twinkle that shows a bolt or a gold bolt is on it, in the world. Off: as the game draws it, flat on your "
@@ -147,7 +175,7 @@ final class Config {
     static final Choice HAPTICS = new Choice("haptics", "Vibration", "", ON_OFF, TRUE_FALSE, "true");
     static final Choice[] VR = {VIEW, CUTSCENES, TURN, SNAP, SMOOTH, WORLD, HUD, HAND_AIM, HAND_WEAPON, THROW_BY_HAND,
         SWING_WRENCH, TWO_HANDED, SHOW_HANDS, GRAB_LEDGES, PUZZLE_OVER_TOOL, SHOP_ON_FOOT, MENU_IN_WORLD, ROOM_SCALE,
-        SWIM_STROKES, SOLID_HANDS, SPARKLES_IN_WORLD, HIDE_BODY, GLYPHS, HAPTICS};
+        SWIM_STROKES, SOLID_HANDS, WALL_FEEL, SPARKLES_IN_WORLD, HIDE_BODY, GLYPHS, HAPTICS};
 
     private static final String KEY_FAR_SCENERY = "far_scenery_moved";
 
@@ -260,6 +288,7 @@ final class Config {
             settings.put("room_scale", Boolean.parseBoolean(get(ROOM_SCALE)));
             settings.put("swim_strokes", Boolean.parseBoolean(get(SWIM_STROKES)));
             settings.put("solid_hands", Boolean.parseBoolean(get(SOLID_HANDS)));
+            settings.put("wall_feel", Boolean.parseBoolean(get(WALL_FEEL)));
             settings.put("sparkles_in_world", Boolean.parseBoolean(get(SPARKLES_IN_WORLD)));
             settings.put("glyphs", Boolean.parseBoolean(get(GLYPHS)));
             settings.put("refresh_hz", Integer.parseInt(get(REFRESH)));
@@ -268,9 +297,13 @@ final class Config {
             mod.put("id", MOD_ID);
             mod.put("enabled", true);
             mod.put("settings", settings);
+            JSONArray mods = new JSONArray().put(mod);
+            for (JSONObject bundled : new BundledMods(context).writeForGame(tools.plugins(), tools.nativeLibraries())) {
+                mods.put(bundled);
+            }
             JSONObject list = new JSONObject();
             list.put("format", 1);
-            list.put("mods", new JSONArray().put(mod));
+            list.put("mods", mods);
             Files.write(new File(tools.plugins(), "plugins.json").toPath(),
                 list.toString(2).getBytes(StandardCharsets.UTF_8));
         } catch (JSONException e) {
@@ -295,6 +328,11 @@ final class Config {
             + "texture_filter = " + get(FILTER) + "\n"
             + "anisotropy = " + get(ANISOTROPY) + "\n"
             + "original_lod = " + get(ORIGINAL_LOD) + "\n"
-            + "max_draw_distance = " + get(MAX_DRAW) + "\n";
+            + "max_draw_distance = " + get(MAX_DRAW) + "\n"
+            + "matching_shadow = " + get(MATCHING_SHADOW) + "\n"
+            + "fades_in_view = " + get(FADES_IN_VIEW) + "\n"
+            + "smooth_plant_edges = " + get(SMOOTH_PLANT_EDGES) + "\n"
+            + "skip_any_movie = " + get(SKIP_ANY_MOVIE) + "\n"
+            + "volume = " + get(VOLUME) + "\n";
     }
 }

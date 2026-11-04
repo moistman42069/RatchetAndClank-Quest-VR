@@ -230,6 +230,20 @@ public class LauncherTest {
         allowed.put("original_lod", bools);
         allowed.put("max_draw_distance", bools);
         assertTrue("the port parses max_draw_distance", cpp.contains("key == \"max_draw_distance\""));
+        allowed.put("matching_shadow", bools);
+        assertTrue("the port parses matching_shadow", cpp.contains("key == \"matching_shadow\""));
+        allowed.put("fades_in_view", bools);
+        assertTrue("the port parses fades_in_view", cpp.contains("key == \"fades_in_view\""));
+        allowed.put("smooth_plant_edges", bools);
+        assertTrue("the port parses smooth_plant_edges", cpp.contains("key == \"smooth_plant_edges\""));
+        allowed.put("skip_any_movie", bools);
+        assertTrue("the port parses skip_any_movie", cpp.contains("key == \"skip_any_movie\""));
+        List<String> volumes = new ArrayList<>();
+        for (int volume = 0; volume <= 100; volume++) {
+            volumes.add(Integer.toString(volume));
+        }
+        allowed.put("volume", volumes);
+        assertTrue("the port reads volume from 0 to 100", cpp.contains("parse_int(value, 0, 100, s.volume)"));
 
         Config config = new Config(app);
         readByThePort(config.gameSettings(), allowed);
@@ -243,6 +257,12 @@ public class LauncherTest {
                     config.set(choice, value);
                     readByThePort(config.gameSettings(), allowed);
                 }
+            }
+        }
+        for (Config.Choice choice : Config.GAME) {
+            for (String value : choice.values) {
+                config.set(choice, value);
+                readByThePort(config.gameSettings(), allowed);
             }
         }
         // A value an older version stored and no longer offered is the default.
@@ -293,6 +313,200 @@ public class LauncherTest {
         assertEquals("true", config.get(Config.MAX_DRAW));
         config.set(Config.MAX_DRAW, "false");
         assertEquals("false", new Config(app).get(Config.MAX_DRAW));
+    }
+
+    @Test
+    public void matchingShadowIsOnByDefaultWhateverThePreset() {
+        app.getSharedPreferences("options", Context.MODE_PRIVATE).edit().clear().commit();
+        Config config = new Config(app);
+        assertTrue(config.gameSettings().contains("matching_shadow = true\n"));
+        for (String preset : Config.PRESET.values) {
+            config.applyPreset(preset);
+            assertEquals("true", config.get(Config.MATCHING_SHADOW));
+        }
+        config.set(Config.MATCHING_SHADOW, "false");
+        assertTrue(new Config(app).gameSettings().contains("matching_shadow = false\n"));
+    }
+
+    @Test
+    public void fadesFillYourViewByDefaultWhateverThePreset() {
+        app.getSharedPreferences("options", Context.MODE_PRIVATE).edit().clear().commit();
+        Config config = new Config(app);
+        assertTrue(config.gameSettings().contains("fades_in_view = true\n"));
+        for (String preset : Config.PRESET.values) {
+            config.applyPreset(preset);
+            assertEquals("true", config.get(Config.FADES_IN_VIEW));
+        }
+        config.set(Config.FADES_IN_VIEW, "false");
+        assertTrue(new Config(app).gameSettings().contains("fades_in_view = false\n"));
+    }
+
+    @Test
+    public void plantEdgesAreSmoothByDefaultWhateverThePreset() {
+        app.getSharedPreferences("options", Context.MODE_PRIVATE).edit().clear().commit();
+        Config config = new Config(app);
+        assertTrue(config.gameSettings().contains("smooth_plant_edges = true\n"));
+        for (String preset : Config.PRESET.values) {
+            config.applyPreset(preset);
+            assertEquals("true", config.get(Config.SMOOTH_PLANT_EDGES));
+        }
+        config.set(Config.SMOOTH_PLANT_EDGES, "false");
+        assertTrue(new Config(app).gameSettings().contains("smooth_plant_edges = false\n"));
+    }
+
+    @Test
+    public void everyMovieSkipsAndTheVolumeIsFullByDefault() {
+        app.getSharedPreferences("options", Context.MODE_PRIVATE).edit().clear().commit();
+        Config config = new Config(app);
+        assertTrue(config.gameSettings().contains("skip_any_movie = true\n"));
+        assertTrue(config.gameSettings().contains("volume = 100\n"));
+        config.set(Config.SKIP_ANY_MOVIE, "false");
+        config.set(Config.VOLUME, "40");
+        String ini = new Config(app).gameSettings();
+        assertTrue(ini.contains("skip_any_movie = false\n"));
+        assertTrue(ini.contains("volume = 40\n"));
+    }
+
+    /** A manifest as OpenRAC's SDK packages one (tools/package_mod.py): every setting type the launcher offers. */
+    private static final String MANIFEST = "{\"format\": 2, \"id\": \"test-mod\", \"name\": \"Test mod\","
+        + " \"description\": \"For the test.\", \"plugin\": {\"android-arm64\": \"lib/android-arm64/test_mod.so\"},"
+        + " \"settings\": ["
+        + "  {\"key\": \"trace\", \"name\": \"Trace\", \"type\": \"bool\", \"default\": false},"
+        + "  {\"key\": \"mode\", \"name\": \"Mode\", \"type\": \"choice\", \"default\": \"b\","
+        + "   \"choices\": [{\"value\": \"a\", \"name\": \"A\"}, {\"value\": \"b\", \"name\": \"B\"}]},"
+        + "  {\"key\": \"count\", \"name\": \"Count\", \"type\": \"int\", \"default\": 2, \"min\": 0, \"max\": 4},"
+        + "  {\"key\": \"scale\", \"name\": \"Scale\", \"type\": \"float\", \"default\": 1.0, \"min\": 0.5,"
+        + "   \"max\": 2.0, \"step\": 0.25},"
+        + "  {\"key\": \"seed\", \"name\": \"Seed\", \"type\": \"string\", \"default\": \"\", \"max_length\": 8}],"
+        + " \"presets\": [{\"id\": \"hard\", \"name\": \"Hard\", \"values\": {\"count\": 4, \"scale\": 2.0}}]}";
+
+    @Test
+    public void aBundledModsSettingsAreItsManifests() throws Exception {
+        BundledMods.Mod mod = BundledMods.parse(MANIFEST);
+        assertEquals("test-mod", mod.id);
+        assertEquals("test_mod.so", mod.library);
+        assertEquals(5, mod.settings.size());
+        BundledMods.Setting count = mod.settings.get(2), scale = mod.settings.get(3);
+        assertEquals(Arrays.asList("0", "1", "2", "3", "4"), Arrays.asList(count.values));
+        assertEquals(Arrays.asList("0.5", "0.75", "1", "1.25", "1.5", "1.75", "2"), Arrays.asList(scale.values));
+        assertEquals("1", scale.fallback);
+
+        app.getSharedPreferences("mods", Context.MODE_PRIVATE).edit().clear().commit();
+        BundledMods mods = new BundledMods(app);
+        JSONObject defaults = mods.settings(mod);
+        assertEquals(false, defaults.get("trace"));
+        assertEquals("b", defaults.get("mode"));
+        assertEquals(2, defaults.get("count"));
+        assertEquals(1.0, defaults.getDouble("scale"), 0.0);
+        assertEquals("", defaults.get("seed"));
+        assertTrue("a mod that changes the game's rules is off until the player turns it on", !mods.on(mod));
+
+        // A preset sets what it names and puts the others back.
+        mods.set(mod, mod.settings.get(1), "a");
+        mods.apply(mod, mod.presets.get(0));
+        JSONObject hard = mods.settings(mod);
+        assertEquals(4, hard.get("count"));
+        assertEquals(2.0, hard.getDouble("scale"), 0.0);
+        assertEquals("b", hard.get("mode"));
+
+        // A stored value the manifest no longer offers, or too long, is not written.
+        mods.set(mod, count, "9");
+        mods.set(mod, mod.settings.get(4), "abcdefghij");
+        assertEquals(2, mods.settings(mod).get("count"));
+        assertEquals("abcdefgh", mods.settings(mod).get("seed"));
+    }
+
+    private static byte[] zip(String... namesAndTexts) throws Exception {
+        java.io.ByteArrayOutputStream bytes = new java.io.ByteArrayOutputStream();
+        try (java.util.zip.ZipOutputStream out = new java.util.zip.ZipOutputStream(bytes)) {
+            for (int i = 0; i < namesAndTexts.length; i += 2) {
+                out.putNextEntry(new java.util.zip.ZipEntry(namesAndTexts[i]));
+                out.write(namesAndTexts[i + 1].getBytes(StandardCharsets.UTF_8));
+                out.closeEntry();
+            }
+        }
+        return bytes.toByteArray();
+    }
+
+    @Test
+    public void aModFileIsKeptAndGoesToTheGame() throws Exception {
+        String manifest = "{\"format\": 2, \"id\": \"swap\", \"name\": \"Swap\", \"type\": \"script\", \"api\": \"1.1\","
+            + " \"scripts\": [\"main.luau\"], \"games\": {\"rac1\": [\"pal\", \"ntsc\"]}}";
+        app.getSharedPreferences("mods", Context.MODE_PRIVATE).edit().clear().commit();
+        BundledMods mods = new BundledMods(app);
+        assertEquals("Swap", mods.add(new java.io.ByteArrayInputStream(
+            zip("swap/openrac-mod.json", manifest, "swap/main.luau", "-- a script"))));
+        BundledMods.Mod added = null;
+        for (BundledMods.Mod mod : mods.list()) {
+            if (mod.id.equals("swap")) {
+                added = mod;
+            } else {
+                mods.setOn(mod, false);
+            }
+        }
+        assertTrue(added != null && added.added);
+        assertTrue("a mod the player added is on until they turn it off", mods.on(added));
+        File plugins = new File(app.getFilesDir(), "test-plugins");
+        java.util.List<JSONObject> entries = mods.writeForGame(plugins, new File(app.getFilesDir(), "no-libraries"));
+        assertEquals(1, entries.size());
+        assertEquals("swap", entries.get(0).get("id"));
+        assertTrue(new File(plugins, "swap/main.luau").isFile());
+        assertEquals("", BundledMods.lastStart(plugins, added));
+        Files.write(new File(plugins, "status.json").toPath(), ("{\"mods\": [{\"id\": \"swap\", \"state\": \"failed\","
+            + " \"reason\": \"it stopped\"}]}").getBytes(StandardCharsets.UTF_8));
+        assertEquals("it stopped", BundledMods.lastStart(plugins, added));
+        mods.remove(added, plugins);
+        assertTrue(!new File(plugins, "swap").exists());
+        for (BundledMods.Mod mod : mods.list()) {
+            assertTrue(!mod.id.equals("swap"));
+        }
+    }
+
+    @Test
+    public void aModFileTheGameWouldRefuseIsNotKept() throws Exception {
+        assertNull(BundledMods.refusal(new JSONObject("{\"id\": \"a\", \"api\": \"1." + BundledMods.API_MINOR + "\"}")));
+        assertTrue(BundledMods.refusal(new JSONObject("{\"id\": \"a\", \"api\": \"1."
+            + (BundledMods.API_MINOR + 1) + "\"}")).contains("mod interface"));
+        assertTrue(BundledMods.refusal(new JSONObject("{\"id\": \"a\", \"api\": \"2.0\"}")).contains("mod interface"));
+        assertTrue(BundledMods.refusal(new JSONObject("{\"id\": \"a\", \"api\": \"1.1\", \"plugin\": "
+            + "{\"windows-x86_64\": \"a.dll\"}}")).contains("android-arm64"));
+        assertTrue(BundledMods.refusal(new JSONObject("{\"id\": \"a\", \"api\": \"1.1\", \"games\": "
+            + "{\"rac2\": [\"ntsc\"]}}")).contains("another game"));
+        assertTrue(BundledMods.refusal(new JSONObject("{\"id\": \"../a\", \"api\": \"1.1\"}")).contains("id"));
+        assertTrue(BundledMods.refusal(new JSONObject("{\"id\": \"quest-vr\", \"api\": \"1.1\"}")).contains("id"));
+
+        BundledMods mods = new BundledMods(app);
+        String[][] files = {
+            {"readme.txt", "no manifest"},
+            {"../outside.txt", "a path out of its folder"},
+            {"openrac-mod.json", "{\"id\": \"a\", \"api\": \"1.1\", \"plugin\": {\"android-arm64\": \"lib/a.so\"}}"},
+        };
+        for (String[] file : files) {
+            boolean refused = false;
+            try {
+                mods.add(new java.io.ByteArrayInputStream(zip(file)));
+            } catch (java.io.IOException e) {
+                refused = true;
+            }
+            assertTrue(file[0], refused);
+        }
+        assertTrue(!new File(new File(app.getFilesDir(), "added-mods"), "../outside.txt").exists());
+        assertTrue(!new File(new File(app.getFilesDir(), "added-mods"), "a").exists());
+    }
+
+    @Test
+    public void theLauncherKnowsTheGamesModInterface() throws Exception {
+        String header = new String(Files.readAllBytes(
+            new File("../../third_party/OpenRAC/sdk/include/openrac/openrac_mod.h").toPath()), StandardCharsets.UTF_8);
+        assertTrue(header.contains("#define OPENRAC_MOD_API_MINOR " + BundledMods.API_MINOR + "\n"));
+        assertTrue(header.contains("#define OPENRAC_MOD_API_MAJOR " + BundledMods.API_MAJOR + "\n"));
+    }
+
+    @Test
+    public void theBuildBundlesTheModsTheLauncherKnows() throws Exception {
+        String build = new String(Files.readAllBytes(new File("../../tools/build_quest.py").toPath()), StandardCharsets.UTF_8);
+        assertTrue(build.contains("\"ammo-max\": \"ammo_max\""));
+        assertTrue(build.contains("assets/mods/{mod_id}/openrac-mod.json"));
     }
 
     @Test
@@ -371,14 +585,20 @@ public class LauncherTest {
     @Test
     public void everyTabDraws() throws Exception {
         LauncherActivity activity = open();
-        String[] tabs = {"Play", "Graphics", "VR", "Controls", "Logs", "Credits"};
+        String[] tabs = {"Play", "Graphics", "VR", "Game", "Controls", "Logs", "Credits"};
         for (int i = 0; i < tabs.length; i++) {
             button(activity, tabs[i]).performClick();
             shot(activity, String.format("0%d-%s", i + 2, tabs[i].toLowerCase()));
         }
+        button(activity, "Game").performClick();
+        String game = allText(activity);
+        for (String words : new String[] {"Skip any movie", "Game volume", "Cheats", "OpenRAC's mods"}) {
+            assertTrue("the Game tab shows " + words, game.contains(words));
+        }
         button(activity, "Credits").performClick();
         String credits = allText(activity);
-        for (String name : new String[] {"OpenRAC", "npiriou", "Lynder063", "Rerac-vr", "ReRAC", "Insomniac", "Sony"}) {
+        for (String name : new String[] {"OpenRAC", "npiriou", "Lynder063", "Rerac-vr", "ReRAC", "Insomniac", "Sony",
+                                         "rac1-mods"}) {
             assertTrue("credits name " + name, credits.contains(name));
         }
     }

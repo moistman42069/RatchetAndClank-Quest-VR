@@ -9,7 +9,7 @@
 //
 //   left stick   walk                      right stick  turn; click: talk, quick select (Triangle)
 //   A            jump (Cross)              B            hover, strafe, Hydro-Pack boost (R2)
-//   X            map (Select)              Y            pause, skip a scene (Start)
+//   X            map (Select); in a scene, its view (the mod's)   Y   pause, skip a scene (Start)
 //   right trigger  fire (Circle)           right grip   the wrench, swung for real (Square)
 //   left grip, left trigger  crouch, the packs (R1)
 //
@@ -63,6 +63,9 @@ struct Controls {
     bool a = false, b = false, x = false, y = false;
     bool menu = false;           // the left controller's menu button
     bool left_click = false, right_click = false;
+    // The controllers' touch sensors: a first finger on the trigger, a thumb on a button, the stick or the thumb rest.
+    bool left_first_touch = false, right_first_touch = false;
+    bool left_thumb_touch = false, right_thumb_touch = false;
 };
 
 // What the mod knows of the moment.
@@ -80,6 +83,7 @@ struct PadContext {
     bool throw_by_hand = false;      // the trigger holds a glove's bomb for the hand to throw
     bool punch = false;              // a punch of the hand: the Walloper's lunge, as its fire
     bool left_support = false;       // the left grip holds the weapon's foregrip, not R1
+    bool crouch = false;             // Physical crouch: the player's own head is down, R1 as the left grip's crouch is
     // Hanging by the hands: the grips hold on, so R1 and the stick are the mod's, and A climbs only
     // with both hands on and settled.
     bool ledge = false;
@@ -111,6 +115,7 @@ struct PadContext {
     bool menu_pointing = false;      // in a menu with things to point at, the right hand tracked: pointing is the
                                      // selection, A answers as the trigger does and the sticks leave the cursor alone
     bool skip_held = false;          // Y skipped a scene and is still down: it does nothing else until let go
+    bool view_held = false;          // X switched a scene's view and is still down: no map (Select) until let go
 };
 
 // The pad as it comes out.
@@ -258,6 +263,9 @@ public:
         if (context.skip_held) {
             c.y = false;
         }
+        if (context.view_held) {
+            c.x = false;
+        }
 
         // At the vendor on foot the trigger and the right stick's click are the shop's, which the mod sends to its
         // update alone; a pull that was the shop's fires nothing after it, until let go (game_input.rs).
@@ -305,7 +313,7 @@ public:
                     }
                 }
             } else {
-                set(out, (left_squeeze && !context.left_support) || (left_fire && !context.left_weapon), kPadR1);
+                set(out, (left_squeeze && !context.left_support) || (left_fire && !context.left_weapon) || context.crouch, kPadR1);
             }
         }
         set(out, c.y, kPadStart);

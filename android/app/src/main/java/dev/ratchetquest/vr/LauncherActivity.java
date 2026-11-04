@@ -10,11 +10,16 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.text.Editable;
+import android.text.InputFilter;
+import android.text.InputType;
+import android.text.TextWatcher;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
@@ -28,18 +33,24 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 /** The launcher: a 2D panel on the Quest. Choose the disc once, change settings, play. */
 public final class LauncherActivity extends Activity {
     private static final int REQUEST_DISC = 0x5243;
+    private static final int REQUEST_MOD = 0x5244;
+    /** What became of the last mod file picked, shown on the Game tab. */
+    private String modNote = "";
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private LinearLayout page;
     private final List<Button> tabs = new ArrayList<>();
     private int tab = 0;
     private Config config;
+    private BundledMods mods;
     private Tools tools;
     private ProgressBar progress;
     private TextView progressText, progressDetail;
@@ -69,6 +80,7 @@ public final class LauncherActivity extends Activity {
     protected void onCreate(Bundle state) {
         super.onCreate(state);
         config = new Config(this);
+        mods = new BundledMods(this);
         tools = new Tools(this);
         buildFrame();
         // What the last run left goes to Download, on a thread of its own: logcat takes a moment.
@@ -163,7 +175,7 @@ public final class LauncherActivity extends Activity {
 
         LinearLayout bar = new LinearLayout(this);
         bar.setPadding(0, dp(12), 0, dp(10));
-        String[] names = {"Play", "Graphics", "VR", "Controls", "Logs", "Credits"};
+        String[] names = {"Play", "Graphics", "VR", "Game", "Controls", "Logs", "Credits"};
         for (int i = 0; i < names.length; i++) {
             final int index = i;
             Button tabButton = button(names[i], false, view -> showTab(index));
@@ -193,8 +205,9 @@ public final class LauncherActivity extends Activity {
             case 0: showPlay(); break;
             case 1: showChoices(Config.GRAPHICS); break;
             case 2: showChoices(Config.VR); break;
-            case 3: showControls(); break;
-            case 4: showLogs(); break;
+            case 3: showGame(); break;
+            case 4: showControls(); break;
+            case 5: showLogs(); break;
             default: showCredits(); break;
         }
     }
@@ -401,6 +414,10 @@ public final class LauncherActivity extends Activity {
     @Override
     protected void onActivityResult(int request, int result, Intent data) {
         super.onActivityResult(request, result, data);
+        if (request == REQUEST_MOD && result == RESULT_OK && data != null && data.getData() != null) {
+            addMod(data.getData());
+            return;
+        }
         if (request != REQUEST_DISC || result != RESULT_OK || data == null || data.getData() == null) {
             return;
         }
@@ -497,6 +514,172 @@ public final class LauncherActivity extends Activity {
             card.addView(row);
             page.addView(card);
         }
+    }
+
+    // ---- Game: the port's options for play, the cheats, and OpenRAC's own mods (BundledMods) ----
+
+    private void showGame() {
+        showChoices(Config.GAME);
+        LinearLayout cheats = card();
+        cheats.addView(text("Cheats", 16, Artwork.INK, true));
+        cheats.addView(text("In the game: pause, VR Options, Cheats. Invincible, infinite ammo, infinite bolts, every "
+            + "weapon, every gadget, every planet, and the game's own big heads and trippy contrails, without beating "
+            + "the game first. All off until you turn them on, and on until you turn them off; a save keeps what they "
+            + "gave you.", 13, Artwork.MUTED, false));
+        page.addView(cheats);
+        LinearLayout about = card();
+        about.addView(text("OpenRAC's mods", 18, Artwork.ORANGE, true));
+        about.addView(text("Mods made for OpenRAC, the PC port this game runs on, built for the headset. Each counts "
+            + "from the game's next start. A save made with the Item randomizer belongs to its seed.", 13, Artwork.MUTED,
+            false));
+        about.addView(text("Add a mod file takes another OpenRAC mod's .zip: a script mod, a data pack, or a native mod "
+            + "with an android-arm64 build. Mods are programs: add only ones you trust. Made for a flat screen, some may "
+            + "not suit VR.", 13, Artwork.MUTED, false));
+        about.addView(button("Add a mod file", false, view -> chooseMod()));
+        if (!modNote.isEmpty()) {
+            about.addView(text(modNote, 13, Artwork.ORANGE, false));
+        }
+        page.addView(about);
+        for (BundledMods.Mod mod : mods.list()) {
+            showMod(mod);
+        }
+    }
+
+    private void chooseMod() {
+        Intent pick = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        pick.addCategory(Intent.CATEGORY_OPENABLE);
+        pick.setType("*/*");
+        try {
+            startActivityForResult(pick, REQUEST_MOD);
+        } catch (ActivityNotFoundException e) {
+            modNote = "This headset has no file picker to choose the mod with.";
+            showTab(tab);
+        }
+    }
+
+    private void addMod(Uri file) {
+        modNote = "Adding the mod...";
+        showTab(tab);
+        new Thread(() -> {
+            String note;
+            try (java.io.InputStream in = getContentResolver().openInputStream(file)) {
+                note = "Added " + mods.add(in) + ". It counts from the game's next start.";
+            } catch (java.io.IOException | RuntimeException e) {
+                note = "Not added. " + e.getMessage();
+            }
+            final String said = note;
+            runOnUiThread(() -> {
+                modNote = said;
+                showTab(tab);
+            });
+        }, "add-mod").start();
+    }
+
+    private void showMod(BundledMods.Mod mod) {
+        LinearLayout card = card();
+        card.addView(text(mod.name, 16, Artwork.INK, true));
+        card.addView(text(mod.description, 13, Artwork.MUTED, false));
+        boolean on = mods.on(mod);
+        if (on) {
+            String problem = BundledMods.lastStart(tools.plugins(), mod);
+            if (!problem.isEmpty()) {
+                card.addView(text("At the game's last start it did not run: " + problem, 13, Artwork.ORANGE, false));
+            }
+        }
+        if (mod.added) {
+            card.addView(button("Remove this mod", false, view -> {
+                mods.remove(mod, tools.plugins());
+                showTab(tab);
+            }));
+        }
+        card.addView(row(new String[] {"On", "Off"}, new String[] {"true", "false"}, on ? "true" : "false", value -> {
+            mods.setOn(mod, Boolean.parseBoolean(value));
+            showTab(tab);
+        }));
+        if (on) {
+            if (!mod.presets.isEmpty()) {
+                card.addView(text("Presets", 14, Artwork.INK, true));
+                String[] names = new String[mod.presets.size()];
+                for (int i = 0; i < names.length; i++) {
+                    names[i] = mod.presets.get(i).name;
+                }
+                card.addView(row(names, names, "", value -> {
+                    mods.apply(mod, mod.presets.get(Arrays.asList(names).indexOf(value)));
+                    showTab(tab);
+                }));
+            }
+            for (BundledMods.Setting s : mod.settings) {
+                card.addView(text(s.name, 14, Artwork.INK, true));
+                if (!s.help.isEmpty()) {
+                    card.addView(text(s.help, 12, Artwork.MUTED, false));
+                }
+                String current = mods.get(mod, s);
+                if (s.stepped()) {
+                    card.addView(stepper(s, current, value -> {
+                        mods.set(mod, s, value);
+                        showTab(tab);
+                    }));
+                } else if (s.type.equals("string")) {
+                    card.addView(field(s, current, value -> mods.set(mod, s, value)));
+                } else {
+                    card.addView(row(s.names, s.values, current, value -> {
+                        mods.set(mod, s, value);
+                        showTab(tab);
+                    }));
+                }
+            }
+        }
+        page.addView(card);
+    }
+
+    /** A button for each value, the current one lit. */
+    private LinearLayout row(String[] names, String[] values, String current, Consumer<String> chosen) {
+        LinearLayout row = new LinearLayout(this);
+        row.setPadding(0, dp(6), 0, dp(4));
+        for (int i = 0; i < names.length; i++) {
+            final String value = values[i];
+            Button option = button(names[i], false, view -> chosen.accept(value));
+            if (value.equals(current)) {
+                option.setBackground(plate(Artwork.ORANGE_DARK, Artwork.ORANGE, 10));
+            }
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1);
+            params.rightMargin = dp(6);
+            row.addView(option, params);
+        }
+        return row;
+    }
+
+    /** A number's value between a step down and a step up, its manifest's range. */
+    private LinearLayout stepper(BundledMods.Setting s, String current, Consumer<String> chosen) {
+        LinearLayout row = new LinearLayout(this);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(0, dp(6), 0, dp(4));
+        int at = Math.max(0, Arrays.asList(s.values).indexOf(current));
+        Button less = button("−", false, view -> chosen.accept(s.values[Math.max(0, at - 1)]));
+        Button more = button("+", false, view -> chosen.accept(s.values[Math.min(s.values.length - 1, at + 1)]));
+        TextView value = text(current + (current.equals(s.fallback) ? "  (default)" : ""), 16, Artwork.INK, true);
+        value.setGravity(Gravity.CENTER);
+        row.addView(less, new LinearLayout.LayoutParams(dp(72), ViewGroup.LayoutParams.WRAP_CONTENT));
+        row.addView(value, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+        row.addView(more, new LinearLayout.LayoutParams(dp(72), ViewGroup.LayoutParams.WRAP_CONTENT));
+        return row;
+    }
+
+    /** A line of text the player types (a seed), kept as it changes. */
+    private EditText field(BundledMods.Setting s, String current, Consumer<String> typed) {
+        EditText field = new EditText(this);
+        field.setSingleLine(true);
+        field.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
+        field.setFilters(new InputFilter[] {new InputFilter.LengthFilter(s.maxLength)});
+        field.setText(current);
+        field.setTextColor(Artwork.INK);
+        field.setHint("blank: a random one");
+        field.addTextChangedListener(new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence text, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence text, int start, int before, int count) {}
+            @Override public void afterTextChanged(Editable text) { typed.accept(text.toString()); }
+        });
+        return field;
     }
 
     private void showControls() {

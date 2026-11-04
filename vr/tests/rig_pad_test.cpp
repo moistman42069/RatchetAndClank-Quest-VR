@@ -282,6 +282,15 @@ void test_mapper() {
     check(!(skipped.map(c, after_scene).held & kPadStart), "the skip's Y does not pause");
     check(skipped.map(c, playing).held & kPadStart, "Y pauses once it is its own");
 
+    // X that switched a scene's view does not open the map as play comes back under it.
+    PadMapper switched;
+    PadContext view_after;
+    view_after.view_held = true;
+    c = Controls{};
+    c.x = true;
+    check(!(switched.map(c, view_after).held & kPadSelect), "the view switch's X does not open the map");
+    check(switched.map(c, playing).held & kPadSelect, "X opens the map once it is its own");
+
     // A stick still pushed as the ring or the shop lets it go turns nothing until it comes back.
     TurnControl snap;
     TurnSettings turning;
@@ -516,10 +525,11 @@ void test_mounts() {
     const Vec3 handle = m.position + m.axes * Vec3{0.0f, -0.16f, 0.0f};
     near_(length(handle - hand.at), 0, "the gun's handle is in the palm");
 
-    // The Swingshot rolls a quarter about the fist; forward stays.
+    // The Swingshot rolls a quarter about the fist, as Rerac-vr's hand * Rz(+90): forward stays, its side (the housing) up.
     m = mount_item(hand, kSwingshotClass, 12, 0.1f, JointFrame{});
     near_(m.axes.y.y, -1, "the Swingshot aims forward");
-    near_(m.axes.x.x, 1, "its top is out of the wrist's side");
+    near_(m.axes.x.x, -1, "its top is out of the wrist's left");
+    near_(m.axes.z.z, 1, "its housing is on the back of the wrist");
 
     // The bomb glove, class 192: identity axes, the palm at its third joint.
     const float glove[16] = {1, 0, 0, 106, 0, 1, 0, -882, 0, 0, 1, -2, -131.82437f, 1193.24011f, 0, 0};

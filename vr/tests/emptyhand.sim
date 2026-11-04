@@ -1,0 +1,9 @@
+# Empty hand angle (VR Hands): QUEST_VR_OPTIONS="empty_hand_angle -30" and without: the hands with nothing in them, wrench put down.
+600 y 1
+606 y 0
+2900 right_grip 1
+2960 right_grip 0
+3100 lh_y 0.2
+3101 rh_y 0.2
+3200 shot empty
+3400 quit 0

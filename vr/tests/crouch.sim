@@ -1,0 +1,40 @@
+# Physical crouch (VR Controls): the player's own head goes down and Ratchet crouches, comes up and he stands. Seen from
+# outside and from his eyes; QUEST_STATE_TRACE=1 logs the game's state (4 is its crouch), "[vr-body] physical crouch" each
+# change. A small dip does nothing, looking down does nothing, the stick still walks, a jump from low is the game's own.
+600 y 1
+606 y 0
+2400 shot stand
+# Looking at the floor alone is no crouch.
+2420 head_pitch -70
+2421 head_y -0.19
+2520 shot lookdown
+2530 head_pitch 0
+2531 head_y 0
+# A dip under the height: nothing.
+2600 head_y -0.15
+2700 shot dip
+2710 head_y 0
+2800 head_y -0.35
+2900 shot low
+2910 view_free 1
+2911 view_z -1.3
+2912 view_y -0.2
+2913 view_yaw 180
+2970 shot lowout
+2980 view_free 0
+# Walking while low.
+3000 left_y 1
+3120 shot lowwalk
+3130 left_y 0
+3200 shot lowstill
+# A jump from low: the game's high jump.
+3300 a 1
+3306 a 0
+3360 shot lowjump
+3500 shot landed
+# Up again.
+3600 head_y -0.20
+3700 shot partway
+3710 head_y 0
+3800 shot up
+3900 quit 0

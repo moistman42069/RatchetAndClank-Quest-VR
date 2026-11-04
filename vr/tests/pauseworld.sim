@@ -1,0 +1,13 @@
+# The pause menu in the world, on any level: the level has to stay drawn round the menu, with the hands (the eyes showed
+# only the game's own backdrop with Fades fill your view; a pause closing on level 2 stopped the game in the mod's line
+# test). --level N. In play, then paused, then back: the run has to end on its quit, not at the close.
+600 y 1
+606 y 0
+2900 shot playing
+3000 y 1
+3006 y 0
+3160 shot paused
+3200 y 1
+3206 y 0
+3360 shot played
+3400 quit 0

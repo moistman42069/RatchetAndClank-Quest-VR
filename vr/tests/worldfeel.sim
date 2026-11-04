@@ -1,0 +1,43 @@
+# World collision and its vibration, and fingers on the world. Seen from outside: the hands, palm down, pressed down
+# onto the ground deeper and deeper, then what the right holds. The hands stop on the ground, the fingers bend back on
+# it, and the "[sim] haptic" lines grow with the push, going quiet when the hand has rested still.
+600 y 1
+606 y 0
+2400 view_free 1
+2401 view_x 0.15
+2402 view_y -0.95
+2403 view_z -0.95
+2404 view_yaw 180
+2405 view_pitch -10
+2410 hand_roll -90
+2500 shot palms
+2510 lh_y -0.55
+2512 rh_y -0.55
+2600 shot above
+2610 lh_y -0.75
+2612 rh_y -0.75
+2700 shot touching
+2710 lh_y -0.85
+2712 rh_y -0.85
+2800 shot in10
+2810 lh_y -0.95
+2812 rh_y -0.95
+2900 shot in20
+2910 lh_y -1.20
+2912 rh_y -1.20
+3000 shot in45
+3400 shot rested
+3410 lh_y -0.55
+3412 rh_y -0.55
+3420 hand_roll 0
+3430 lh_z -0.20
+3432 rh_z -0.20
+3500 shot fingersout
+3510 lh_y -0.90
+3512 rh_y -0.90
+3600 shot fingersdown
+3610 lh_y 0
+3612 rh_y 0
+3620 lh_z 0
+3622 rh_z 0
+3700 quit 0

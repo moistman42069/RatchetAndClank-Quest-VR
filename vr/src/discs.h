@@ -137,6 +137,15 @@ typedef struct quest_disc {
     uint32_t render_cursor;
     const char* effect_texture;
     const char* world_quad;
+    /* The Cheats page (pause, VR Options, Cheats): the game's cheat bytes (gCheats, one a cheat: 0 the others' big
+     * heads, 1 Ratchet's, 2 the trippy contrails, 3 Clank's, 7 the enemies'), level 0's item table (0x18 bytes an item
+     * id, its most rounds a u16 at +0x0E; ammo-max's item_table), and by name the game's GiveItem and UnlockPlanet
+     * (rac1.item.give, rac1.planet.unlock). */
+    uint32_t cheats;
+    uint32_t item_table;
+    const char* give_item;
+    const char* unlock_planet;
+    uint32_t moby_grid;  /* the moby grid's cells, through relocate_data (hand/game_moby_grid.c's exe_grid) */
 } quest_disc;
 
 /* turn_step is the game's g_frame_time (0.02 s a tick on PAL, 1/60 on NTSC-U), frame_scale its
@@ -149,7 +158,8 @@ static const quest_disc k_quest_discs[] = {
      "func_001F3D78", "func_L00_00233950", "func_L00_00251E30", "func_L00_002EBF50", "func_L00_002EC0C8",
      "func_L00_002EBE88", "func_L00_002EBEE0", "func_0012E558", "func_00216F28",
      0x001E6518u, 0x00187140u, 0x0018CE00u, 0x0013E600u, 0x0029BED8u, 404u, 0x00222B80u, 0x0015F7F8u, "func_00200198",
-     "func_L00_0023B750", 0x0015FA44u, "func_001FFDA0", 0x0018EE00u, 0x00161000u, "func_001F4868", "func_001F7EF8"},
+     "func_L00_0023B750", 0x0015FA44u, "func_001FFDA0", 0x0018EE00u, 0x00161000u, "func_001F4868", "func_001F7EF8",
+     0x0015EEB0u, 0x001C43B0u, "func_L00_002618D8", "func_L00_00261848", 0x001B7A60u},
     {"ntsc", 0x0013F350u, 0x0015ED64u, 0x0015ED6Cu, 0x0015F5C4u, 0x00166DD8u, 0x00166E00u, 0x00179AC0u, 0x001E7C10u, 0x0013D428u, 0x0013D4C0u, 0x001619A0u, 0x00173E40u, "func_L00_001EFC70", 0x0017DAC0u, 0x00141EA0u, 0x0013C940u,
      {0x001DF050u, 0x001DF3F0u, 0x001DF790u}, 0x0018D440u, 0x0015F460u, 0x001C3150u, 0x001D5BF0u, "FUN_0021abf8", "FUN_0021b1c8", 0x0015ED98u, "FUN_0022da68", "FUN_L00_002a8028", "FUN_0020d580", "FUN_0021b858", "FUN_00220e28", "FUN_002212b8", "FUN_0021cb30",
      "FUN_0021d4a8", "FUN_00221930", "FUN_0021e890", "FUN_002239e0", "FUN_00219fa0", 0x001DDE28u, 0x0013DD58u, 0x0013DD40u,
@@ -157,7 +167,8 @@ static const quest_disc k_quest_discs[] = {
      "FUN_001f39d0", "FUN_L00_002330d0", "FUN_L00_00250df8", "FUN_L00_002eaaa0", "FUN_L00_002eac18",
      "FUN_L00_002ea9d8", "FUN_L00_002eaa30", "FUN_0012e418", "music_unpause",
      0x001E6218u, 0x00187040u, 0x0018CD00u, 0x0013E500u, 0x0029AB70u, 404u, 0x002223F8u, 0x0015F718u, "FUN_001ff960",
-     "FUN_L00_0023adb8", 0x0015F96Cu, "FUN_001ff570", 0x0018ED00u, 0x00160F00u, "FUN_001f44b8", "FUN_001f7d30"},
+     "FUN_L00_0023adb8", 0x0015F96Cu, "FUN_001ff570", 0x0018ED00u, 0x00160F00u, "FUN_001f44b8", "FUN_001f7d30",
+     0x0015EDB0u, 0x001C40B0u, "FUN_L00_00260860", "FUN_L00_002607d0", 0x001B76E0u},
 };
 
 #endif /* QUEST_DISCS_H */

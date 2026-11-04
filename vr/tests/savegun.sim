@@ -1,0 +1,26 @@
+# The first half of loadgun.sim (a tester's 0.1.11 report: after loading a save the gun was smaller than the Gun size
+# set and the hands were off it, until the wrench came out): a save made with the Pyrocitor in the hand. pointer16.sim's
+# way (paused, Options, Save on a fresh card, Yes, Cross: the current slot, save0.bin), with QUEST_SIM_GIVE=16
+# QUEST_SIM_HOLD=16, QUEST_VR_OPTIONS="gun_size 50;hand_size 60", --level 1 --cards C:/RACQuest/pc/cards/savegun.
+600 y 1
+606 y 0
+2900 shot holding
+3000 y 1
+3006 y 0
+3120 hand_pitch -5.4
+3160 right_trigger 1
+3166 right_trigger 0
+3320 hand_pitch 20.7
+3360 right_trigger 1
+3366 right_trigger 0
+3600 shot dialog
+3620 hand_pitch 1.1
+3620 hand_yaw 12
+3660 shot on-yes
+3680 right_trigger 1
+3686 right_trigger 0
+4300 shot after-box
+4320 right_trigger 1
+4326 right_trigger 0
+4700 shot after-trigger
+4900 quit 0

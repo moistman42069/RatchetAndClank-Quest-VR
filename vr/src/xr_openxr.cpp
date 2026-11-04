@@ -630,6 +630,10 @@ private:
         m_b = make_action(XR_ACTION_TYPE_BOOLEAN_INPUT, "button_b", "B", false);
         m_x = make_action(XR_ACTION_TYPE_BOOLEAN_INPUT, "button_x", "X", false);
         m_y = make_action(XR_ACTION_TYPE_BOOLEAN_INPUT, "button_y", "Y", false);
+        m_first_left = make_action(XR_ACTION_TYPE_BOOLEAN_INPUT, "first_left", "Left first finger", false);
+        m_first_right = make_action(XR_ACTION_TYPE_BOOLEAN_INPUT, "first_right", "Right first finger", false);
+        m_thumb_left = make_action(XR_ACTION_TYPE_BOOLEAN_INPUT, "thumb_left", "Left thumb", false);
+        m_thumb_right = make_action(XR_ACTION_TYPE_BOOLEAN_INPUT, "thumb_right", "Right thumb", false);
         m_haptic = make_action(XR_ACTION_TYPE_VIBRATION_OUTPUT, "haptic", "Vibration", true);
 
         const std::vector<XrActionSuggestedBinding> touch = {
@@ -650,6 +654,16 @@ private:
             {m_b, path("/user/hand/right/input/b/click")},
             {m_x, path("/user/hand/left/input/x/click")},
             {m_y, path("/user/hand/left/input/y/click")},
+            {m_first_left, path("/user/hand/left/input/trigger/touch")},
+            {m_first_right, path("/user/hand/right/input/trigger/touch")},
+            {m_thumb_left, path("/user/hand/left/input/x/touch")},
+            {m_thumb_left, path("/user/hand/left/input/y/touch")},
+            {m_thumb_left, path("/user/hand/left/input/thumbstick/touch")},
+            {m_thumb_left, path("/user/hand/left/input/thumbrest/touch")},
+            {m_thumb_right, path("/user/hand/right/input/a/touch")},
+            {m_thumb_right, path("/user/hand/right/input/b/touch")},
+            {m_thumb_right, path("/user/hand/right/input/thumbstick/touch")},
+            {m_thumb_right, path("/user/hand/right/input/thumbrest/touch")},
             {m_haptic, path("/user/hand/left/output/haptic")},
             {m_haptic, path("/user/hand/right/output/haptic")},
         };
@@ -939,6 +953,10 @@ private:
         c.x = read_bool(m_x);
         c.y = read_bool(m_y);
         c.menu = read_bool(m_menu);
+        c.left_first_touch = read_bool(m_first_left);
+        c.right_first_touch = read_bool(m_first_right);
+        c.left_thumb_touch = read_bool(m_thumb_left);
+        c.right_thumb_touch = read_bool(m_thumb_right);
     }
 
     // The pointer's picture, a soft white spot both quads use: filled once, the first time a menu
@@ -1120,6 +1138,8 @@ private:
     XrAction m_move = XR_NULL_HANDLE, m_look = XR_NULL_HANDLE;
     XrAction m_trigger_left = XR_NULL_HANDLE, m_trigger_right = XR_NULL_HANDLE;
     XrAction m_squeeze_left = XR_NULL_HANDLE, m_squeeze_right = XR_NULL_HANDLE;
+    XrAction m_first_left = XR_NULL_HANDLE, m_first_right = XR_NULL_HANDLE;
+    XrAction m_thumb_left = XR_NULL_HANDLE, m_thumb_right = XR_NULL_HANDLE;
     XrAction m_click_left = XR_NULL_HANDLE, m_click_right = XR_NULL_HANDLE;
     XrAction m_a = XR_NULL_HANDLE, m_b = XR_NULL_HANDLE, m_x = XR_NULL_HANDLE, m_y = XR_NULL_HANDLE;
     XrAction m_menu = XR_NULL_HANDLE;

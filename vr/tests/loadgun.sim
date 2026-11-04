@@ -1,0 +1,36 @@
+# A tester's 0.1.11 report: after loading a save the gun was smaller than the Gun size set and the hands were off it,
+# until the wrench came out. savegun.sim's save (the Pyrocitor in the hand) loaded from the title, pointer17.sim's way
+# but its first slot, with QUEST_VR_OPTIONS="gun_size 50;hand_size 60" and --cards C:/RACQuest/pc/cards/savegun (a copy:
+# a run may write to it). The game shows its save-icon notice after a load, the world frozen behind it (later); the trigger
+# dismisses it. The gun as the save brings it back in control (loaded, loaded-later), then the right grip for the wrench
+# (wrench), let go, and the trigger takes the gun out again (back): the same size and hold in each.
+100 hand_pitch 45
+900 a 1
+906 a 0
+1500 a 1
+1506 a 0
+1900 hand_pitch 16.5
+1960 shot on-load
+1980 right_trigger 1
+1986 right_trigger 0
+2400 shot load-page
+2420 hand_yaw 29
+2420 hand_pitch 27.2
+2480 shot slot0
+2500 right_trigger 1
+2506 right_trigger 0
+2900 shot after-load
+2920 hand_yaw 0
+2920 hand_pitch 0
+3400 shot later
+3500 right_trigger 1
+3506 right_trigger 0
+3900 shot loaded
+4100 shot loaded-later
+4200 right_grip 1
+4320 shot wrench
+4340 right_grip 0
+4600 right_trigger 1
+4606 right_trigger 0
+4900 shot back
+5100 quit 0

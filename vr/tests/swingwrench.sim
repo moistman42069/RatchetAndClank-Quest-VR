@@ -1,0 +1,21 @@
+# The Swingshot put down and brought back (a tester's "equips at a massive size"): QUEST_SIM_GIVE=12 QUEST_SIM_HOLD=12,
+# --level 3. The grip takes the wrench, a slow release leaves the hand empty, the trigger brings the Swingshot back
+# ("the trigger asks the last gun back"); then the same again. Its size must be the same in each shot.
+600 y 1
+606 y 0
+3000 shot first
+3050 right_grip 1
+3150 shot wrench
+3160 right_grip 0
+3300 shot empty
+3320 right_trigger 1
+3326 right_trigger 0
+3440 shot back
+3500 right_grip 1
+3600 shot wrench2
+3610 right_grip 0
+3750 shot empty2
+3770 right_trigger 1
+3776 right_trigger 0
+3890 shot back2
+4000 quit 0

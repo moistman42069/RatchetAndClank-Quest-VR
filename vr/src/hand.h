@@ -188,11 +188,12 @@ inline Mount mount_right(const HandFrame& hand, int oclass, int item, float scal
     out.size = size;
     HandFrame h = hand;
 
-    // The Swingshot's housing goes on the back of the wrist: a quarter about the fist.
+    // The Swingshot's housing goes on the back of the wrist: a quarter about the fist, from his right side up (Rerac-vr's
+    // blaster.rs, the hand turned +90 degrees about its Z). This was a quarter the other way until 0.1.12, which put the
+    // housing under the fist and the whole thing upside down (a tester's "facing the wrong way").
     if (oclass == kSwingshotClass) {
-        const Vec3 right = hand.left * -1.0f;
-        h.up = right;
-        h.left = hand.up;
+        h.up = hand.left;
+        h.left = hand.up * -1.0f;
     }
     const Vec3 right = h.left * -1.0f;
     const Mat3 gun{h.up, h.forward * -1.0f, right};

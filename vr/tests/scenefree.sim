@@ -1,0 +1,12 @@
+# A scene with no Ratchet in it, as Rerac-vr plays it: a spectator at the scene's camera, its heading taken at each cut, the head
+# free and the horizon level. QUEST_SIM_SCENE=k picks the level's scene (--level N): [vr-scene] says whose eyes, or the camera's.
+600 y 1
+606 y 0
+1500 shot before
+2000 shot one
+2300 head_yaw 60
+2340 shot look
+2360 head_yaw 0
+2700 shot two
+3400 shot three
+4000 quit 0

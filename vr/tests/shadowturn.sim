@@ -1,0 +1,26 @@
+# Ratchet's shadow as the head turns (the owner's first hiccup, HANDOFF-2026-11-03c): standing still, looking down at
+# the ground about him, the head turned a few degrees at a time either way, a shot at each. In the port only Ratchet
+# casts a shadow (the game's shadow volumes, hard-edged); in 0.1.11 it was his animated body's, turned with the gaze, so
+# its outline changed with every turn of the head. Run with QUEST_MATCHING_SHADOW=false (0.1.11) and true (0.1.12: the
+# shadow of what is drawn, the hands with Player body Off) and compare the ground.
+600 y 1
+606 y 0
+3000 head_pitch -60
+3100 shot t00
+3120 head_yaw 6
+3180 shot t06
+3200 head_yaw 12
+3260 shot t12
+3280 head_yaw 18
+3340 shot t18
+3360 head_yaw 24
+3420 shot t24
+3440 head_yaw -6
+3500 shot tm06
+3520 head_yaw -12
+3580 shot tm12
+3600 head_yaw -18
+3660 shot tm18
+3680 head_yaw -24
+3740 shot tm24
+3800 quit 0

@@ -1,0 +1,73 @@
+# X in a cutscene steps how it is seen (0.1.12, the owner's ask): the Novalis arrival scene through his eyes (the
+# launcher's default), X: in VR around you, X: on a screen, X: through his eyes again, X: in VR, and play after the scene
+# in first person all the same (the View row's, which X leaves alone: [vr-state] first_person 1), X then the map's own.
+# Then VR Options by the sticks as options.sim goes, down to the ninth row, Cutscenes (In VR, from the last X), stepped
+# back to Through his eyes. The [vr-scene] lines say each step; the run's vr-options.txt keeps scene_view 0 and
+# launcher_scene_view 0.
+600 y 1
+606 y 0
+1000 shot eyes
+1040 x 1
+1046 x 0
+1200 shot invr
+1240 x 1
+1246 x 0
+1400 shot onscreen
+1440 x 1
+1446 x 0
+1600 shot eyesagain
+1640 x 1
+1646 x 0
+1800 shot invr2
+2800 shot play
+3000 y 1
+3006 y 0
+3010 right_gone 1
+3100 shot paused
+3120 left_y -1
+3132 left_y 0
+3160 left_y -1
+3172 left_y 0
+3200 left_y -1
+3212 left_y 0
+3240 left_y -1
+3252 left_y 0
+3280 left_y -1
+3292 left_y 0
+3340 a 1
+3346 a 0
+3440 left_y -1
+3452 left_y 0
+3480 left_y -1
+3492 left_y 0
+3520 left_y -1
+3532 left_y 0
+3560 left_y -1
+3572 left_y 0
+3600 left_y -1
+3612 left_y 0
+3700 a 1
+3706 a 0
+3780 shot vr-page
+# Down eight rows to Cutscenes.
+3800 left_y -1
+3812 left_y 0
+3840 left_y -1
+3852 left_y 0
+3880 left_y -1
+3892 left_y 0
+3920 left_y -1
+3932 left_y 0
+3960 left_y -1
+3972 left_y 0
+4000 left_y -1
+4012 left_y 0
+4040 left_y -1
+4052 left_y 0
+4080 left_y -1
+4092 left_y 0
+4140 shot cutscenes-row
+4160 left_x -1
+4172 left_x 0
+4220 shot cutscenes-eyes
+4320 quit 0

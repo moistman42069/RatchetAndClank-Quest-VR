@@ -1,0 +1,27 @@
+# The moby grid over a long stay at Big Al's on Kerwan, then the buy, where a tester's game stopped 37 minutes in (0.1.11):
+# QUEST_SIM_AT=295.6,245.3,34.5,0 QUEST_SIM_BOLTS=9000 QUEST_GRID_TRACE=1 --level 3. Rail movers come and go all the while:
+# [vr-grid] has to say nothing not listed, and no more entries than wanted, however long it runs.
+600 y 1
+606 y 0
+3000 right_trigger 1
+3006 right_trigger 0
+3400 a 1
+3406 a 0
+3800 a 1
+3806 a 0
+4200 a 1
+4206 a 0
+4600 a 1
+4606 a 0
+5000 a 1
+5006 a 0
+5400 a 1
+5406 a 0
+6000 shot waiting
+50000 shot long
+50100 right_click 1
+50106 right_click 0
+50300 shot buying
+50600 shot scene
+51000 shot on
+51600 quit 0
