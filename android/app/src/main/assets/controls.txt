@@ -16,11 +16,13 @@ RIGHT GRIP    Takes the wrench out. Swing your hand for real to hit, weak taps d
               In the air, slam it down for the Hyper Strike
               Near a bolt: hold it on the bolt and walk around it
 LEFT GRIP or TRIGGER   Crouch, and the packs (hold with A for long and high jumps, flips)
-              Or crouch for real: lower your head (Physical crouch, VR Controls)
+              Or crouch for real: lower your head (Physical crouch, VR Controls). With it on,
+              the left grip crouches no more and the hand is free; the trigger still does it all
+              (with Akimbo's gun in the left hand, the grip stays the crouch)
               Near the front of a big weapon, the left grip holds it with both hands
 RIGHT STICK CLICK      Talk, and quick select: hold, move your right hand toward a weapon, let go
                        Pull the right trigger while holding it for the next page
-LEFT STICK CLICK       With Akimbo on (VR Options): the same for your left hand, on a ring of
+LEFT STICK CLICK       Akimbo (VR Options, on by default): the same for your left hand, on a ring of
                        its own. Both can be open at once. Left trigger fires it, or turns its
                        page while the ring is open; what it cannot hold is greyed. Pick what it
                        holds to empty it. A glove is thrown by the left hand, and the Walloper
@@ -29,14 +31,28 @@ LEFT STICK CLICK       With Akimbo on (VR Options): the same for your left hand,
                        On the hoverboard the left weapon is put away
 LEFT MENU BUTTON       Recentre (holding the headset's own button does it too)
 
-LEDGES        Squeeze a grip near the edge as you fall. Slide your hands along it. One hand holds,
-              and the other can shoot. Push both hands down, or A, to climb. Let go of both to drop
+LEDGES        Squeeze a grip near the edge as you fall. To shimmy, hold your hands out the way you
+              want to go (right to go right), or push the left stick. Ledge shimmy (More controls):
+              Pull slides your hands the other way instead. One hand holds, and the other can shoot;
+              the holding hand's gun is put away until it lets go. To climb, pull yourself up: draw
+              a holding hand (or both) down toward your chest. Pushing both down fast, or A, climbs
+              too. Let go of both to drop
 SWIMMING      Breaststroke with your hands, palms pushing back. Push the water up to dive
 HYDRODISPLACER, TRESPASSER   Push the tool into its slot, or pull the trigger on it
 TRESPASSER RINGS   The sticks turn them. Y, the click or the trigger takes the tool out. They hang
               over the tool you plugged in (a setting puts them before your face)
 VISIBOMB      Fire it, then the left stick flies the missile, A speeds it up and the trigger sets
               it off. Its picture is on the gun's own screen, in your hand
+SWINGSHOT     At a yellow or green target, hold the trigger. With Swingshot anywhere on (VR Controls,
+              More controls, off to start): in the right hand it zips you to any wall or ground in
+              reach, in the left (Akimbo) it swings you from a point above your head. Hold to zip or
+              swing, let go to drop off with your speed; lean to push a swing. One in each hand to
+              chain them
+ARM MOVES     Arm moves on Buttons (More controls, For real to start), for hands and wrists that
+              should not swing: the right grip swings the wrench (again for the next blow; in the
+              air, the jump attack), the trigger punches with the Walloper, and as Giant Clank the
+              grip punches. The trigger throws a glove's bomb, ledges are caught for you, the left
+              stick swims. Your hands still aim
 
 ON THE HOVERBOARD
 
@@ -57,10 +73,17 @@ lasers, X and the left trigger the missiles.
 IN MENUS
 
 Point with your right hand and pull the trigger or press A. On a page you can point at, the sticks
-do nothing (if the right controller is off, they move the cursor). The map pans with its sticks.
+do nothing (if the right controller is off, they move the cursor). The map pans with its sticks;
+there A shows the planet's missions and the trigger plays its infobot.
 B goes back, Y closes the pause menu. VR Options: View switches first and third person at any time,
 Cutscenes how the scenes are seen.
 The left grip and trigger turn the pages.
+Menu pointer (More controls): with Both hands, pull the left trigger at the menu to point with the
+left hand (that pull only moves the pointer), the right trigger to go back to the right. While the
+left points, its trigger picks and the right grip and trigger turn the pages. Right hand or Left
+hand keeps the pointer on one.
+Hide black bars (More controls, on): no black bars at the top and bottom in the game's short
+scenes during play, such as the start of Oltanis's grind race, in first or third person.
 Sound page: hold the trigger on a bar and move along it to set the volume.
 A box with key labels (Yes, No, OK): point at a label and pull the trigger or press A.
 

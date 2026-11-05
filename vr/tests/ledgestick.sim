@@ -1,0 +1,16 @@
+# A ledge shimmied by the left stick (0.1.13, a tester's ask): both hands on the crates' top and kept still, the stick
+# pushed right ("[vr-ledge] a shimmy to his right, by the left stick", the game's shimmy right, 27), let go (he hangs),
+# then pushed left (26), let go. The hands still hold on: no drop.
+600 y 1
+606 y 0
+1700 left_grip 1
+2400 right_grip 1
+2600 shot before
+2650 left_x 1
+2900 shot right
+2950 left_x 0
+3050 left_x -1
+3300 shot left
+3350 left_x 0
+3450 shot after
+3500 quit 0

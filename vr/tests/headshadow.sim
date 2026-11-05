@@ -1,0 +1,28 @@
+# 0.1.13: his head in the shadow alone (in first person the draw leaves it out, so it is not in the way of the eyes),
+# turned as the player's head is: ahead, left, right, down, up, from high above (as legshadow.sim's top) and from the
+# side. "[vr-body] the shadow has his head, turned as the player's" with a torso drawn (Everything, the start).
+600 y 1
+606 y 0
+2700 view_free 1
+2701 view_y 2.2
+2702 view_yaw 180
+2703 view_pitch -85
+2760 shot head-ahead
+2770 head_yaw 50
+2830 shot head-left
+2840 head_yaw -50
+2900 shot head-right
+2910 head_yaw 0
+2911 head_pitch -50
+2970 shot head-down
+2980 head_pitch 40
+3040 shot head-up
+3050 head_pitch 0
+3051 view_y 0.8
+3052 view_x 1.4
+3053 view_yaw 90
+3054 view_pitch -45
+3110 shot side-ahead
+3120 head_pitch -50
+3180 shot side-down
+3200 quit 0

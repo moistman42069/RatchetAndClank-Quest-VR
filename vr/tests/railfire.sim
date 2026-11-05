@@ -1,0 +1,22 @@
+# Shooting on Oltanis's grind rail (rail.sim's: QUEST_SIM_RAIL=2,0.3,3 QUEST_SIM_ALIGN=2620, Grindboots item 29) with the
+# Blaster in the right hand and, with Akimbo, the Pyrocitor in the left (QUEST_SIM_GIVE=29,15,16 QUEST_SIM_HOLD=15
+# QUEST_SIM_LEFT=16): each trigger held while he grinds (state 0x28; the game's own weapon check takes mode 0xF).
+# The level has him in a scripted state, 0x72, a second after the catch (rail.sim too, with no guns) and back on
+# the rail later: the triggers are pulled in both grinds. [vr-akimbo] counts the left gun's rounds; [sim] the right's.
+600 y 1
+606 y 0
+2622 shot rail-caught
+2624 right_trigger 1
+2640 shot rail-right-firing
+2652 right_trigger 0
+2654 left_trigger 1
+2668 shot rail-left-firing
+2682 left_trigger 0
+2990 shot rail-again
+2992 right_trigger 1
+2992 left_trigger 1
+3010 shot rail-both-firing
+3040 right_trigger 0
+3040 left_trigger 0
+3060 shot rail-after
+3100 quit 0

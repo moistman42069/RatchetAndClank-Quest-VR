@@ -2,6 +2,8 @@
 package dev.ratchetquest.vr;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -96,6 +98,48 @@ public class LauncherTest {
         button(activity, "Automatic checks: On").performClick();
         button(activity, "Automatic checks: Off");
         Updater.setAutomatic(app, true);
+    }
+
+    /** What's new (0.1.13): on a version's first start, biggest first (Swingshot anywhere), once; Updates shows it again. */
+    @Test
+    public void whatsNewShowsOnceAVersionBiggestFirst() throws Exception {
+        installed("pal");
+        app.getSharedPreferences(LauncherActivity.WHATS_NEW_PREFS, Context.MODE_PRIVATE).edit().clear().commit();
+        open();
+        android.app.Dialog dialog = org.robolectric.shadows.ShadowDialog.getLatestDialog();
+        assertTrue("the first start of a version shows it", dialog != null && dialog.isShowing());
+        View box = dialog.getWindow().getDecorView();
+        List<View> views = new ArrayList<>();
+        collect(box, views);
+        StringBuilder words = new StringBuilder();
+        Button ok = null;
+        for (View view : views) {
+            if (view instanceof Button && ((Button) view).getText().toString().equals("Got it")) {
+                ok = (Button) view;
+            } else if (view instanceof TextView) {
+                words.append(((TextView) view).getText()).append('\n');
+            }
+        }
+        String text = words.toString();
+        assertTrue(text.contains("What's new in " + BuildConfig.VERSION_NAME));
+        int anywhere = text.indexOf("Swingshot anywhere"), akimbo = text.indexOf("Akimbo is on for everyone");
+        assertTrue("Swingshot anywhere comes first", anywhere >= 0 && akimbo > anywhere);
+        box.measure(View.MeasureSpec.makeMeasureSpec(820, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(700, View.MeasureSpec.AT_MOST));
+        box.layout(0, 0, box.getMeasuredWidth(), box.getMeasuredHeight());
+        Bitmap bitmap = Bitmap.createBitmap(box.getMeasuredWidth(), box.getMeasuredHeight(), Bitmap.Config.ARGB_8888);
+        box.draw(new Canvas(bitmap));
+        try (FileOutputStream out = new FileOutputStream(new File(OUT, "14-whats-new.png"))) {
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, out);
+        }
+        assertTrue("it has a Got it", ok != null);
+        ok.performClick();
+        assertFalse(dialog.isShowing());
+        LauncherActivity again = open();
+        assertTrue("once a version", org.robolectric.shadows.ShadowDialog.getLatestDialog() == dialog);
+        button(again, "What's new").performClick();
+        android.app.Dialog shown = org.robolectric.shadows.ShadowDialog.getLatestDialog();
+        assertTrue("the Updates card shows it again", shown != dialog && shown.isShowing());
     }
 
     private LauncherActivity open() {
@@ -702,6 +746,12 @@ public class LauncherTest {
         }
         assertTrue(keys.contains("refresh_hz"));
         assertTrue(keys.contains("resolution"));
+        // "Hide Ratchet's body" is gone (0.1.13): Off broke first person (a tester's report). Neither the mod nor the
+        // launcher may have it again.
+        assertFalse("the mod has no hide_body", keys.contains("hide_body"));
+        for (Config.Choice choice : Config.VR) {
+            assertNotEquals("hide_body", choice.key);
+        }
         assertEquals("smooth", manifest.getJSONArray("settings").getJSONObject(keys.indexOf("turn")).getString("default"));
         assertTrue(manifest.getJSONObject("plugin").has("android-arm64"));
     }

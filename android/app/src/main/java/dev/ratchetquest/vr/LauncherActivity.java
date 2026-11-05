@@ -2,9 +2,12 @@
 package dev.ratchetquest.vr;
 
 import android.app.Activity;
+import android.app.Dialog;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Typeface;
+import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.os.Bundle;
@@ -18,6 +21,7 @@ import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.Window;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -86,7 +90,49 @@ public final class LauncherActivity extends Activity {
         // What the last run left goes to Download, on a thread of its own: logcat takes a moment.
         new Thread(() -> RunLog.saveLastRun(this), "last-run-log").start();
         showTab(0);
+        showWhatsNewOnce();
         Updater.maybeCheck(this, this::updatesChanged);
+    }
+
+    // ---- What's new ----
+
+    static final String WHATS_NEW_PREFS = "whats_new";
+    static final String KEY_WHATS_NEW_SHOWN = "shown";
+
+    /** The first start of a version (a new install or an update): what it brought, biggest first, once. */
+    private void showWhatsNewOnce() {
+        SharedPreferences seen = getSharedPreferences(WHATS_NEW_PREFS, MODE_PRIVATE);
+        if (BuildConfig.VERSION_NAME.equals(seen.getString(KEY_WHATS_NEW_SHOWN, ""))) {
+            return;
+        }
+        seen.edit().putString(KEY_WHATS_NEW_SHOWN, BuildConfig.VERSION_NAME).apply();
+        showWhatsNew();
+    }
+
+    /** whats_new.txt in a box over the launcher, until Got it. The Play tab's Updates card shows it again. */
+    Dialog showWhatsNew() {
+        final Dialog dialog = new Dialog(this);
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setBackground(plate(Artwork.NAVY, Artwork.ORANGE, 14));
+        box.setPadding(dp(24), dp(20), dp(24), dp(18));
+        box.addView(text("What's new in " + BuildConfig.VERSION_NAME, 22, Artwork.ORANGE, true));
+        TextView words = text(readAsset("whats_new.txt").trim(), 15, Artwork.INK, false);
+        words.setPadding(0, dp(10), 0, dp(14));
+        ScrollView scroll = new ScrollView(this);
+        scroll.addView(words);
+        box.addView(scroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(460)));
+        box.addView(button("Got it", true, view -> dialog.dismiss()),
+            new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        dialog.setContentView(box);
+        Window window = dialog.getWindow();
+        if (window != null) {
+            window.setBackgroundDrawable(new ColorDrawable(0));
+            window.setLayout(dp(820), ViewGroup.LayoutParams.WRAP_CONTENT);
+        }
+        dialog.show();
+        return dialog;
     }
 
     @Override
@@ -267,6 +313,7 @@ public final class LauncherActivity extends Activity {
             Updater.setAutomatic(this, !Updater.automatic(this));
             showTab(0);
         }), 1);
+        addToRow(row, button("What's new", false, view -> showWhatsNew()), 1);
         card.addView(row);
         page.addView(card);
     }

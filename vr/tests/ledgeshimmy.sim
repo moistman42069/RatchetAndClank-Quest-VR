@@ -1,5 +1,8 @@
-# A ledge pulled along: both hands on the crates' top, then moved together to one side and back. The
-# hands stay where they took hold, so Ratchet goes the other way, by the game's own shimmy.
+# A ledge shimmied by the hands: both hands on the crates' top, then held out together to his right and then to his
+# left. Ledge shimmy's Reach (0.1.13's start, a tester's ask): he goes the way the hands reach, right ("[vr-ledge] a
+# shimmy to his right, by the hands' reach", the game's shimmy right, 27) while they are held out, then left (26).
+# With QUEST_VR_OPTIONS="shimmy_pull 1" (Pull, Rerac-vr's and 0.1.12's) the other way: left first ("by the hands'
+# pull", 26), then right.
 600 y 1
 606 y 0
 1700 left_grip 1

@@ -1,0 +1,15 @@
+# Akimbo on a ledge (0.1.13, a tester's 0.1.12: the gun over the hands, the Bomb Glove a third hand): the Blaster in the
+# right hand, the Bomb Glove in the left (QUEST_SIM_GIVE=15,10 QUEST_SIM_HOLD=15 QUEST_SIM_LEFT=10), at Novalis's crates.
+# Both hands take the top: "[vr-akimbo] the left hand holds the ledge: its gun put away until it lets go", nothing over
+# the hands (hanging-both). The left lets go, he hangs by the right: the glove back in the left hand (left-free).
+# The right lets go too: he drops.
+600 y 1
+606 y 0
+1700 left_grip 1
+2400 right_grip 1
+2600 shot hanging-both
+2700 left_grip 0
+2850 shot left-free
+2950 right_grip 0
+3150 shot dropped
+3200 quit 0

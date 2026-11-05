@@ -1,0 +1,29 @@
+# Menu pointer, Both hands (More controls, the default; a tester's ask, 0.1.13): paused, the left hand put where the right
+# is (lh_x 0.4: the sim's hands are 0.4 m apart, turned alike), so both beams fall on the pause page's last button,
+# Options (thirdperson.sim's aim). The left trigger: "[vr-pointer] the left hand's trigger on the menu: the left hand
+# points", and nothing pressed (left-points: the pause page still). The left trigger again: Options opens (its list of
+# 10 rows). Aimed at VR Options (row 5), the right trigger: "the right hand's trigger on the menu: the right hand
+# points", nothing pressed (right-points: the Options list still). The right trigger again: VR Options opens.
+600 y 1
+606 y 0
+2950 shot playing
+3000 y 1
+3006 y 0
+3010 lh_x 0.4
+3120 hand_pitch 0
+3140 hand_pitch 28
+3200 hand_pitch -5.4
+3240 left_trigger 1
+3246 left_trigger 0
+3300 shot left-points
+3320 left_trigger 1
+3326 left_trigger 0
+3400 shot options-by-left
+3420 hand_pitch 10.4
+3460 right_trigger 1
+3466 right_trigger 0
+3520 shot right-points
+3540 right_trigger 1
+3546 right_trigger 0
+3640 shot vr-page
+3700 quit 0

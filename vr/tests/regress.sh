@@ -50,6 +50,8 @@ run akimbo-taunter akimbo 1 $G=15,14 $H=15 $L=14
 run akimbo-suck akimbo 1 $G=15,9 $H=15 $L=9
 run akimbo2 akimbo2 1 $G=15,21 $H=21 $L=21
 run akimboglove akimboglove 1 $G=15,10 $H=15 $L=10
+# 0.1.13: the ammo box through the wrench and back (a tester's Pyrocitor and Bomb Glove: the left gun's box stayed).
+run akimbobox akimbobox 1 $G=16,10 $H=10 $L=16 QUEST_AMMO_TRACE=1 KEEP=1
 run akimboglove-decoy akimboglove 1 $G=15,25 $H=15 $L=25
 run akimbolead akimbolead 1 $G=15,18 $H=15 $L=18
 run akimboring akimboring 1 $G=15,16,19,21 $H=16 $L=0
@@ -57,6 +59,38 @@ run hands-21 hands 1 $G=15,16,21 $H=21
 run hands-16 hands 1 $G=15,16,21 $H=16
 run inputs inputs 1 $G=15,16,21
 run quick quick 1 $G=10,15,16,11,13,9,18,19,20,17,21,23
+# 0.1.13: Akimbo on for everyone ([vr-options] says it). The ring as 0.1.12 had it, with Akimbo chosen off; a file of
+# 0.1.12's with Off (its start) switches on once, one with On stays on, Off chosen on the page stays off.
+run quick-akimbooff quick 1 $G=10,15,16,11,13,9,18,19,20,17,21,23 'QUEST_VR_OPTIONS=akimbo 0;akimbo_chosen 1'
+run akimbo-oldoff t2 1 'QUEST_VR_OPTIONS=akimbo 0;body 2'
+run akimbo-oldon t2 1 'QUEST_VR_OPTIONS=akimbo 1;body 2'
+run akimbo-chosenoff t2 1 'QUEST_VR_OPTIONS=akimbo 0;akimbo_chosen 1;body 2'
+# 0.1.13: Empty hand angle reaches 65 down (a tester's ask; 45 before), the guns' Gun angle still 45. vrhands.sim's
+# step of the row (5 up) is the page's side of it.
+run emptyhand emptyhand 3
+run emptyhand-down emptyhand 3 'QUEST_VR_OPTIONS=empty_hand_angle -65' KEEP=1
+# 0.1.13: an item's own angle (VR Hands' last row; a tester's Swingshot was "a bit wild"): set on the page, and from
+# the file, the Swingshot's housing drawn 30 down while its hook still pulls; the Blaster's 20 up fires 20 up.
+run itemangle itemangle 3 $G=12 $H=12 KEEP=1
+run swing-right-angle swing 3 $G=12 $H=12 $N=758 $A=10,1,180 QUEST_STATE_TRACE=1 'QUEST_VR_OPTIONS=item_angle_12 -30' KEEP=1
+run aim-itemangle aim 1 $G=15 $H=15 'QUEST_VR_OPTIONS=item_angle_15 20'
+# 0.1.13: Swingshot anywhere (More controls, off; testers' ideas): on Kerwan, at the start (a tunnel), no target near.
+# The right hand's Swingshot pulls him to the floor it aims at; the left's (Akimbo, leading) swings him from the arch
+# (a point over his head; the floor: "a swing needs a point above his head"); one in each hand chains a swing into a
+# pull; a zip let go midway keeps its speed; a lean in the room pushes a swing. Off, nothing is done; at Kerwan's target
+# the game's own pull, with it on. On Novalis (level 1), whose game code has no Swingshot states, nothing is given; given
+# there all the same (the PC's QUEST_ANYWHERE_ANY_LEVEL), the pull stalls in 0x25 and the watchdog lets him go. The
+# More controls page's row sets it, by the sticks (anywherepage, which steps Hide black bars too).
+run anywhere anywhere 3 $G=12 $H=12 QUEST_STATE_TRACE=1 'QUEST_VR_OPTIONS=swing_anywhere 1' KEEP=1
+run anywhere-off anywhere 3 $G=12 $H=12 QUEST_STATE_TRACE=1
+run anywhere-left anywhereleft 3 $G=15,12 $H=15 $L=12 QUEST_STATE_TRACE=1 'QUEST_VR_OPTIONS=swing_anywhere 1' KEEP=1
+run anywhere-chain anywherechain 3 $G=12 $H=12 $L=12 QUEST_STATE_TRACE=1 'QUEST_VR_OPTIONS=swing_anywhere 1' KEEP=1
+run anywhere-letgo anywhereletgo 3 $G=12 $H=12 QUEST_STATE_TRACE=1 'QUEST_VR_OPTIONS=swing_anywhere 1' KEEP=1
+run anywhere-lean anywherelean 3 $G=15,12 $H=15 $L=12 QUEST_STATE_TRACE=1 'QUEST_VR_OPTIONS=swing_anywhere 1'
+run anywhere-novalis anywhere 1 $G=12 $H=12 QUEST_STATE_TRACE=1 'QUEST_VR_OPTIONS=swing_anywhere 1'
+run anywhere-stall anywhere 1 $G=12 $H=12 QUEST_STATE_TRACE=1 QUEST_ANYWHERE_ANY_LEVEL=1 'QUEST_VR_OPTIONS=swing_anywhere 1'
+run swing-right-anywhere swing 3 $G=12 $H=12 $N=758 $A=10,1,180 QUEST_STATE_TRACE=1 'QUEST_VR_OPTIONS=swing_anywhere 1'
+run anywherepage anywherepage 1 KEEP=1
 run throw throw 1 $G=10,17,20,25 $H=10
 run throw-doom throw 1 $G=20 $H=20
 run glovehold glovehold 1 $G=10 $H=10
@@ -79,6 +113,15 @@ run unequip unequip 1 $G=10 $H=10 KEEP=1
 run wrenchwall wrenchwall 1
 run hyper hyper 1
 run hypercrate hypercrate 1 $N=500 $A=1.2,0 QUEST_POINTER_TRACE=1
+# 0.1.13: Arm moves on Buttons (More controls; a player's ask: wrists and hands that hurt to swing). The grip is the
+# game's swing, the trigger the Walloper's punch; the throws, ledges, strokes, cranks and Giant Clank's fists the game's.
+run armbuttons armbuttons 1 $G=15 $H=15 $N=511 'QUEST_VR_OPTIONS=button_moves 1' QUEST_STATE_TRACE=1 KEEP=1
+run walloperbuttons walloperbuttons 1 $G=18 $H=18 $N=500 'QUEST_VR_OPTIONS=button_moves 1' QUEST_STATE_TRACE=1
+run throw-buttons throw 1 $G=10,17,20,25 $H=10 'QUEST_VR_OPTIONS=button_moves 1'
+run ledge-buttons ledge 9 $N=500 $A=0.95,2.6 'QUEST_VR_OPTIONS=button_moves 1' QUEST_STATE_TRACE=1
+run swim-buttons swim 1 $N=695 $A=2.0,0 'QUEST_VR_OPTIONS=button_moves 1' QUEST_STATE_TRACE=1
+run crankstick-buttons crankstick 1 $N=280 $A=1.2,0 'QUEST_VR_OPTIONS=button_moves 1' QUEST_STATE_TRACE=1
+run giant-buttons giant 15 QUEST_SIM_NEAR=1451 QUEST_SIM_NEAR_AT=0,0 QUEST_STATE_TRACE=1 'QUEST_VR_OPTIONS=button_moves 1' KEEP=1
 run solidhand solidhand 1 KEEP=1
 run disguise disguise 1 $G=31 $H=31
 run swing-right swing 3 $G=12 $H=12 $N=758 $A=10,1,180 QUEST_STATE_TRACE=1
@@ -88,12 +131,22 @@ run ledge ledge 9 $N=500 $A=0.95,2.6
 run ledgenofire ledgenofire 9 $G=15 $H=15 $N=500 $A=0.95,2.6
 run ledgeshoot ledgeshoot 9 $G=15 $H=15 $N=500 $A=0.95,2.6
 run ledgeshootleft ledgeshootleft 9 $G=15,16 $H=16 $L=15 $N=500 $A=0.95,2.6
+# 0.1.13: the gun held above the stack he hangs from (ledgeshoot's breaks it): 25 rounds while he hangs, dropped by the grip
+run ledgeshoothigh ledgeshoothigh 9 $G=15 $H=15 $N=500 $A=0.95,2.6
 run ledgeearly ledgeearly 1 $N=501 $A=0.95,1.7,90 QUEST_SIM_GRIP=1
 run ledgereach ledgereach 9 $N=500 $A=0.95,0
 run wrenchlong wrenchlong 1 $G=10 KEEP=1
 run ledgedrop ledgedrop 1 $N=501 $A=0.95,1.7,90
 run ledgeopen ledgeopen 1 $N=501 $A=0.95,1.7,90
 run ledgeshimmy ledgeshimmy 1 $N=501 $A=0.95,1.7,90
+# 0.1.13: Ledge shimmy's Pull, 0.1.12's way kept as a choice; the left stick shimmies too (testers' asks).
+run ledgeshimmy-pull ledgeshimmy 1 $N=501 $A=0.95,1.7,90 'QUEST_VR_OPTIONS=shimmy_pull 1'
+run ledgestick ledgestick 1 $N=501 $A=0.95,1.7,90
+run ledgeakimbo ledgeakimbo 1 $G=15,10 $H=15 $L=10 $N=501 $A=0.95,1.7,90 KEEP=1
+# 0.1.13: the pull up, with both hands, with one, and during a shimmy
+run ledgepull ledgepull 1 $N=501 $A=0.95,1.7,90
+run ledgepullone ledgepullone 1 $N=501 $A=0.95,1.7,90
+run ledgepullshimmy ledgepullshimmy 1 $N=501 $A=0.95,1.7,90
 run ledgegame ledgegame 1 $N=501 $A=0.95,1.7,90 'QUEST_SETTINGS={"grab_ledges":false}'
 run crank crank 1 $N=280 $A=1.2,0
 run crankstick crankstick 1 $N=280 $A=1.2,0
@@ -108,12 +161,32 @@ run water water 1 $N=695 $A=10,0 KEEP=1
 run body body 10
 run bodyflip bodyflip 1 'QUEST_VR_OPTIONS=camera_flip 1;body 2'
 run bodyroll bodyroll 1 'QUEST_VR_OPTIONS=body 2'
+# 0.1.13: a tester's 0.1.12 videos (Kerwan, the Heli-Pack): his body hidden and fitted in first person, and the same with
+# a settings file that still says hide_body false (the launcher's gone "Hide Ratchet's body" Off), which nothing reads
+run kerwanheli kerwanheli 3 $G=2 KEEP=1
+run kerwanheli-oldhide kerwanheli 3 $G=2 'QUEST_SETTINGS={"hide_body":false}' KEEP=1
+# 0.1.13: the shadow's fingers and head (OPENRAC_DEBUG: the proxies' count)
+run fingershadow fingershadow 1 OPENRAC_DEBUG=1 QUEST_STATE_TRACE=1 KEEP=1
+run headshadow headshadow 1 OPENRAC_DEBUG=1 KEEP=1
 run death death 1 QUEST_SIM_KILL=150
 run room room 1 $N=500 $A=1.6,0
 run scene scene 1
+# 0.1.13: Hide black bars (More controls, on; a tester's ask for third person). The game's bars (draw_letterbox_bars,
+# Rerac-vr's DrawScreenFade) come with its director's short cutaways, such as Oltanis's grind race start, not in talks or
+# the arrival scenes: on the rail in third person, "[vr-view] the game's black bars were wanted (height 1): hidden" and no
+# opaque black strips on the panel shots; Off, none of that line and opaque black strips top and bottom on r2 to r5.
+run bars rail 14 $G=29 QUEST_SIM_RAIL=2,0.3,3 QUEST_SIM_ALIGN=2620 'QUEST_SETTINGS={"view":"third"}' KEEP=1
+run bars-off rail 14 $G=29 QUEST_SIM_RAIL=2,0.3,3 QUEST_SIM_ALIGN=2620 'QUEST_SETTINGS={"view":"third"}' 'QUEST_VR_OPTIONS=hide_bars 0' KEEP=1
+# The same in first person (the owner's word: the bars show there too): the same line and shots.
+run bars-first rail 14 $G=29 QUEST_SIM_RAIL=2,0.3,3 QUEST_SIM_ALIGN=2620 KEEP=1
+run bars-first-off rail 14 $G=29 QUEST_SIM_RAIL=2,0.3,3 QUEST_SIM_ALIGN=2620 'QUEST_VR_OPTIONS=hide_bars 0' KEEP=1
 # 0.1.9: looking down in a cutscene through his eyes, no thin line from one elbow to the other
 run scenearms scenearms 1 KEEP=1
 run landing landing 1 $G=10 $H=10 QUEST_SHIP_TRACE=1 KEEP=1
+# 0.1.13: Aridia's landing ("[vr-scene] his eyes ducked in the ship ...: held at the seat's height", a tester's sinking
+# before he climbs out), then Skid's scene where the tester had it (QUEST_SCENE_TRACE: his drawn flag 0x80 comes and
+# goes as the game's camera cuts; not fixed, the scene's own draw test)
+run aridia aridiascene 2 QUEST_SIM_AT=250.8,270.8,25.5,-20 QUEST_SHIP_TRACE=1 QUEST_SCENE_TRACE=1 KEEP=1
 run screen screen 1
 run t1 t1 1
 run t2 t2 1
@@ -132,6 +205,9 @@ run board-kalebo board 16 $N=439 QUEST_STATE_TRACE=1 QUEST_BOARD_TRACE=1
 run boardjump boardjump 5 $N=439 QUEST_STATE_TRACE=1 QUEST_BOARD_TWIST=1
 run rail rail 14 $G=29 QUEST_SIM_RAIL=2,0.3,3 QUEST_SIM_ALIGN=2620 QUEST_STATE_TRACE=1 KEEP=1
 run cable cable 3 QUEST_SIM_RAIL=0,-1.3,0 QUEST_SIM_ALIGN=2620 QUEST_STATE_TRACE=1 KEEP=1
+# 0.1.13: the guns on a rail and on a cable, Akimbo's left too ([vr-akimbo] the left gun fired, [sim] item 15's rounds)
+run railfire railfire 14 $G=29,15,16 $H=15 $L=16 QUEST_SIM_RAIL=2,0.3,3 QUEST_SIM_ALIGN=2620 QUEST_STATE_TRACE=1 KEEP=1
+run cablefire cablefire 3 $G=15,16 $H=15 $L=16 QUEST_SIM_RAIL=0,-1.3,0 QUEST_SIM_ALIGN=2620 QUEST_STATE_TRACE=1 KEEP=1
 run shipboard shipboard 11 $G=7 $N=1242 $A=2,0 QUEST_STATE_TRACE=1 KEEP=1
 run shipboard-fleet shipboard 17 $G=7 $N=1379 $A=2,0 QUEST_STATE_TRACE=1
 run ship ship 17 $N=1379 $A=0.5,1.0
@@ -145,6 +221,12 @@ run save save -
 run menus menus 1
 run menusticks menusticks 1 KEEP=1
 run mapsticks mapsticks 1 KEEP=1
+# 0.1.13: the map's A (its missions, Cross) and trigger (the planet's infobot, Circle) apart; both had pressed both
+run mapmissions mapmissions 1 KEEP=1
+# 0.1.13: Menu pointer (More controls; a tester's ask): Both hands, the default, a trigger gives its hand the pointer
+# (that pull no press); Left hand, the left trigger presses from the start.
+run menupointer menupointer 1 KEEP=1
+run menuleft menuleft 1 'QUEST_VR_OPTIONS=menu_hand 2' KEEP=1
 run thirdperson thirdperson 1 KEEP=1
 run options options 1
 run vrhands vrhands 1

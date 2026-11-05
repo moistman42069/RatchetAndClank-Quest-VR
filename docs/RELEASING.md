@@ -63,7 +63,7 @@ it), where the logs are (`Download/RatchetQuestVR`), and how to report.
 
 1. Write the current changes out first, `git stash` is no backup. A plain diff leaves new files out, so mark each new
    file first with `git -C third_party/OpenRAC add -N <file>`, which is not a commit (`git -C third_party/OpenRAC status
-   --short` lists them as `??`). For 0.1.12 they are `port/game/rac1-ntsc/host/vector.c`,
+   --short` lists them as `??`). For 0.1.12 and 0.1.13 they are `port/game/rac1-ntsc/host/vector.c`,
    `port/game/rac1/host/hero_anim_guard.c`, `port/game/common/frontend/hero_shadows.h` and
    `port/tests/hero_shadow_rig_test.cpp`. Then
    `git -C third_party/OpenRAC diff --full-index > patches/0001-quest-vr-frame-path.patch`. On Windows, gen_binding.py

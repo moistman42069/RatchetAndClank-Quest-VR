@@ -11,7 +11,7 @@
 //   A            jump (Cross)              B            hover, strafe, Hydro-Pack boost (R2)
 //   X            map (Select); in a scene, its view (the mod's)   Y   pause, skip a scene (Start)
 //   right trigger  fire (Circle)           right grip   the wrench, swung for real (Square)
-//   left grip, left trigger  crouch, the packs (R1)
+//   left grip, left trigger  crouch, the packs (R1); with Physical crouch in first person, the trigger alone
 //
 // Mounted (a turret, a flown ship) X and B keep Circle and Square; on a turret the left stick steers
 // it, the trigger fires it and the right stick's click leaves it. In a menu, where Rerac-vr has a
@@ -79,11 +79,15 @@ struct PadContext {
     bool mounted = false;       // a turret or a flown ship
     bool flying = false;        // a flown ship: its lasers are Square
     bool swing = false;         // first person: the right hand is swinging the wrench
+    bool button_moves = false;  // first person, Arm moves on Buttons: the right grip is the game's swing, as in third person
     bool trigger_held_back = false;  // the trigger is taking the gun out, not firing it
     bool throw_by_hand = false;      // the trigger holds a glove's bomb for the hand to throw
     bool punch = false;              // a punch of the hand: the Walloper's lunge, as its fire
     bool left_support = false;       // the left grip holds the weapon's foregrip, not R1
     bool crouch = false;             // Physical crouch: the player's own head is down, R1 as the left grip's crouch is
+    // The left grip is R1 (crouch, the packs), Rerac-vr's; not with Physical crouch on foot in first person, where the
+    // head crouches and the hand is left free for its fingers (the owner's ask). The left trigger is R1 still.
+    bool grip_crouch = true;
     // Hanging by the hands: the grips hold on, so R1 and the stick are the mod's, and A climbs only
     // with both hands on and settled.
     bool ledge = false;
@@ -114,6 +118,8 @@ struct PadContext {
                                      // trigger presses that key alone, not Cross
     bool menu_pointing = false;      // in a menu with things to point at, the right hand tracked: pointing is the
                                      // selection, A answers as the trigger does and the sticks leave the cursor alone
+    bool menu_map = false;           // the pause menu's map: A is Cross alone (its missions), the trigger Circle alone
+                                     // (the planet's infobot), as their icons there say
     bool skip_held = false;          // Y skipped a scene and is still down: it does nothing else until let go
     bool view_held = false;          // X switched a scene's view and is still down: no map (Select) until let go
 };
@@ -232,8 +238,15 @@ public:
             // A answers a pointed key label as the trigger does; at the vendor A stays Cross, which buys, as its screen says.
             const bool a_keyed = keyed && !context.menu_aimed;
             const bool confirm = (c.a && !a_keyed) || (fire && !keyed && !context.menu_aimed);
-            set(out, confirm, kPadCross);
-            set(out, confirm || c.x, kPadCircle);
+            if (context.menu_map) {
+                // The map takes Cross for its missions page and Circle for the planet's infobot, which closes the
+                // menu: both at once (A's confirm), the infobot won over the missions (a tester's, 0.1.12).
+                set(out, c.a && !a_keyed, kPadCross);
+                set(out, (fire && !keyed) || c.x, kPadCircle);
+            } else {
+                set(out, confirm, kPadCross);
+                set(out, confirm || c.x, kPadCircle);
+            }
             if ((keyed && fire) || (a_keyed && c.a)) {
                 out.held = static_cast<std::uint16_t>(out.held | context.menu_key);
             }
@@ -313,7 +326,8 @@ public:
                     }
                 }
             } else {
-                set(out, (left_squeeze && !context.left_support) || (left_fire && !context.left_weapon) || context.crouch, kPadR1);
+                set(out, (left_squeeze && !context.left_support && context.grip_crouch) || (left_fire && !context.left_weapon) || context.crouch,
+                    kPadR1);
             }
         }
         set(out, c.y, kPadStart);
@@ -329,11 +343,12 @@ public:
         set(out, context.salute, kPadCircle);
         set(out, c.right_click, kPadTriangle);
 
-        // In first person the wrench swings when the hand does; else the grip is the button. A turret
-        // has no wrench to swing, and a hand on a ledge is climbing: a shove with the right grip closed
-        // is not a swing, which would knock him off.
+        // In first person the wrench swings when the hand does; else the grip is the button (and in first
+        // person too with Arm moves on Buttons). A turret has no wrench to swing, and a hand on a ledge is
+        // climbing: a shove with the right grip closed is not a swing, which would knock him off.
         const bool turret = context.mounted && !context.flying;
-        set(out, !turret && !context.ledge && (context.first_person ? context.swing : wrench), kPadSquare);
+        const bool swung = context.first_person ? context.swing || (context.button_moves && wrench) : wrench;
+        set(out, !turret && !context.ledge && swung, kPadSquare);
         set(out, context.dive, kPadSquare);
         set(out, context.left_ring, kPadTriangle);
 

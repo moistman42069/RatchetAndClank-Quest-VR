@@ -1,0 +1,37 @@
+# 0.1.13: the hands' shadows with their fingers (Shadow matches what you see): each finger and thumb casts its own, bent
+# as drawn, the palm from the wrist to the knuckles. The hands held out to the sides, seen from high above (as
+# legshadow.sim's top), where their shadows lie on the ground apart from his body's: open, the left in a fist, pointing,
+# thumb up, the right's touches. With Physical crouch on (the start), the left grip is the hand's alone: no crouch.
+600 y 1
+606 y 0
+2700 view_free 1
+2701 view_y 2.2
+2702 view_yaw 180
+2703 view_pitch -85
+2704 lh_x -0.45
+2705 lh_y 0.05
+2706 rh_x 0.45
+2707 rh_y 0.05
+2760 shot open
+2770 left_grip 1
+2771 left_first_touch 1
+2772 left_thumb_touch 1
+2830 shot left-fist
+2840 left_first_touch 0
+2900 shot left-point
+2910 left_first_touch 1
+2911 left_thumb_touch 0
+2970 shot left-thumb
+2980 left_grip 0
+2981 left_first_touch 0
+2990 right_first_touch 1
+2991 right_thumb_touch 1
+3050 shot right-touch
+3060 view_y 0.8
+3061 view_x -1.4
+3062 view_yaw -90
+3063 view_pitch -45
+3064 left_grip 1
+3065 left_thumb_touch 1
+3120 shot side-left-fist
+3150 quit 0

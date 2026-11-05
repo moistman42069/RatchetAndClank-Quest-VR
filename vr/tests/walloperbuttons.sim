@@ -1,0 +1,20 @@
+# The Walloper with Arm moves on Buttons (QUEST_VR_OPTIONS=button_moves 1), by an ammo crate (class 500), as
+# walloper.sim: a real punch forward (20 cm in four frames, walloper.sim's) lunges no more (no [vr-punch] line, no
+# state 0x20 then); the trigger is the game's fire, its own punch: a lunge (hero state 0x20) that breaks the crate.
+600 y 1
+606 y 0
+3200 shot ahead
+# A real punch: nothing.
+3300 rh_z -0.05
+3301 rh_z -0.10
+3302 rh_z -0.15
+3303 rh_z -0.20
+3330 rh_z 0
+# The trigger: the game's punch.
+3450 right_trigger 1
+3470 shot punch
+3480 right_trigger 0
+3600 right_trigger 1
+3630 right_trigger 0
+3700 shot after
+3800 quit 0

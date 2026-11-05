@@ -105,6 +105,105 @@ it worked (the log is in Download/RatchetQuestVR). PC-proven features are in STA
     the wrench (hero state 0x13, not the jump's 0x7) and A or the trigger no longer picks in the game's menus; Xbox button
     icons changes nothing in the headset, as the Quest's pictures are painted either way (VR Options' hint, the same to
     the pixel). All six mods load (plugins/status.json).
+- **A tester's notes on 0.1.12 (0.1.13).** PC-run with a simulated headset only, on the PAL disc; the tester's is the US one.
+  - **Ledge shimmy, Reach:** hang from a ledge with both hands and hold them out to the right: Ratchet shimmies right
+    (`[vr-ledge] a shimmy to his right, by the hands' reach`), for as long as they are out; back in front of you, he
+    stops. The same to the left. Then push the left stick along the ledge (`by the left stick`): he goes that way,
+    and pushing it toward the wall does nothing. **Pull** (More controls) gives 0.1.12's way: draw the hands the other way.
+  - **No gun over the hands:** with a gun in each hand (Akimbo, the Bomb Glove in one), take the ledge with both: no
+    gun or glove floats over them (`[vr-akimbo] the left hand holds the ledge: its gun put away until it lets go`); let
+    go with the left, and it comes back in that hand.
+  - **The ammo box:** the Pyrocitor in the right hand, the Bomb Glove in the left, then switch the right hand's between
+    them and the wrench a few times: the box shows the right hand's weapon each time, and the left gun's after it fires.
+    If it ever stays on the wrong one, the log says `the ammo box still showed item`.
+  - **Hide black bars (On):** in first person, and again in third, grind onto Oltanis's three rails by the bot lift,
+    where the race's short scene starts: no black bars at the top and bottom (`[vr-view] the game's black bars were
+    wanted (height 1): hidden`, once). Off (More controls): the bars come back. On PC that was so in both views; the
+    Novalis arrival, Skid's scene and Kerwan's help desk have no bars at all. Say where else you see bars, and whether
+    they hide.
+  - **Menu pointer (Both hands):** pause, aim the left hand at the menu and pull its trigger: the beam moves to the left
+    hand and nothing is picked (`[vr-pointer] the left hand's trigger on the menu: the left hand points`). Pull it again
+    on a row: that row is picked. The right grip and trigger turn the pages. The right trigger on the menu gives the
+    beam back to the right hand. Then Right hand and Left hand each keep the beam on that hand.
+  - **The map:** X for the map; A opens the missions page (no infobot); B back; the trigger plays the planet's infobot.
+  - **The landing:** arriving on a planet with Cutscenes through Ratchet's eyes, as he climbs out the view stays at the
+    seat's height, not down through the hull (`[vr-scene] his eyes ducked in the ship`).
+  - **Scenes through his eyes:** in Skid's scene on Aridia, Skid still vanishes for a moment in some shots (not fixed:
+    the game does not draw him in shots its camera aims elsewhere). Say whether the camera still goes under the level
+    or someone sinks into the floor, and where: neither was seen on PC.
+- **Arm moves on Buttons (0.1.13: a player whose wrists hurt to swing).** PC-run with a simulated headset only. Set
+  **Arm moves** (More controls) to **Buttons** (`[vr-controls] Arm moves: Buttons`), then, without swinging:
+  - **The wrench:** by a crate, squeeze the right grip with the hand still: the wrench swings and breaks it; squeeze
+    again for the next blow. Jump and squeeze at the top: the jump attack. Pull the trigger: your gun comes back, and
+    the next pull fires it. A fast swing with the grip open does nothing.
+  - **The Walloper:** the trigger punches (a lunge). A real punch does nothing.
+  - **Giant Clank:** the right grip punches (on PC: the game's punch, a lunge, and no punch by hand). Say whether little
+    Clank's punch works too: no PC test reaches him.
+  - **The rest:** a glove's bomb goes when you pull the trigger; a ledge is caught for you as you fall by it; the right
+    grip at a bolt puts the wrench on it, the game's way. On PC: the Bomb Glove threw one bomb a pull, nothing by hand;
+    a fall by a ledge caught it with the hands doing nothing; at a bolt the grip seated the wrench (the turn is not
+    logged on Buttons); in the water no arm stroke was taken. Not run on PC: swimming with the left stick on Buttons,
+    so say whether it does. Back to **For real**: the swings, punches, throws, ledges and strokes work by hand again.
+- **The owner's list (0.1.13).** PC-run with a simulated headset only.
+  - **More controls (VR Controls' last row):** it opens a page of its own: Swingshot anywhere, Ledge shimmy, Hide
+    black bars, Menu pointer, Arm moves, then Two-handed weapons to Sparkles on the bolts, each reachable (`[vr-rig] the More
+    controls page opened`; no log line says a page has more rows than the port's). B goes back to VR Controls.
+  - **Swingshot anywhere (testers' ideas, More controls' first row, Off to start):** first with it **Off**: the Swingshot
+    is the game's at Kerwan's yellow and green targets, and aimed at a plain wall nothing happens. Switch it **On**
+    (`[vr-swing] Swingshot anywhere: on`). Where no target is near, with the Swingshot in the right hand, aim at a wall or the ground 5 to 30 units off
+    and hold the trigger: the hook flies, holds and zips you there (`[vr-swing] anywhere: a pull to`). Let go midway:
+    you fly on with the speed you had (`let go mid-zip at ... the speed kept`). Put a Swingshot in the left hand too
+    (Akimbo): aimed at a ceiling, an arch or a high wall within 16 units, the left trigger swings you from it (`a swing
+    from`); lean in your room toward where you want to go (`leaning into the swing`), let go to fly off, and fire the
+    right one before you land to zip on. Aimed at the floor, the left hand does nothing (`a swing needs a point above
+    his head`). Where the way is blocked he drops, as at a game target. Near a game target, the game's own move
+    comes first. On Novalis nothing happens (`Novalis has no Swingshot pull`). Say how it feels, and whether you were
+    ever held in place (the log's `the pull stopped moving` or `the swing outlasted the fire let go`).
+  - **What's new:** the first launch after the update shows the What's new box, Swingshot anywhere first; Got it closes
+    it, the next launch does not show it, and What's new on the Updates card shows it again.
+  - **Everything is the start:** a new install, and a settings file from 0.1.12 that never changed Body parts, shows
+    the whole body (`[vr-body] Body parts: arms with hands was the start before 0.1.13, everything is now` once for the
+    old file). A Body parts choice other than Arms only stays. Clank on Orxon: his body shows too, and walking it can
+    come over his left hand (on PC); say whether it bothers you, and try Arms only, which shows his hands alone as
+    before. Giant Clank: as before.
+  - **The shadow's fingers:** stand where Ratchet's shadow is sharp, hold a hand out to the side over it and point, make
+    a fist, give a thumbs-up, spread the hand: each finger's shadow moves with yours. The arm's and the body's shadow as
+    in 0.1.12 (it still follows the bent arms, the legs and the head turn).
+  - **The shadow's head:** look left, right, down and up: the head's shadow turns as you look, on the shoulders, and
+    the head is still not drawn in your view. `[vr-body] the shadow has his head, turned as the player's`. With Body
+    parts Arms only, Legs only or Arms and legs there is no head in the shadow (no torso to sit on).
+  - **The left grip with Physical crouch on:** squeeze it standing, walking and in the air: no crouch, no packs, the
+    hand only closes. The left trigger still crouches, long-jumps and works the packs; lowering your head still
+    crouches. With Akimbo's gun in the left hand the grip crouches as before (the trigger is that gun's). Physical
+    crouch off: the grip crouches as before.
+  - **Climbing by pulling:** hang from a ledge with one hand, then pull yourself up, drawing that hand down toward your
+    chest at an easy pace: he climbs (`[vr-ledge] a pull up with the left hand: he climbs`). The same with the right,
+    and with both. Also while sliding along the ledge (`the shimmy ended: the climb goes on`). The fast push of both
+    hands and A still climb. Hang one-handed and shoot with the other for a while: no climb by itself. Hold that gun
+    out from what you hang from: a shot into the crates you hang on breaks them and you fall with them.
+  - **Rails and cables:** on Oltanis's or Rilgar's rails, fire the right hand's gun and, with Akimbo, the left's while
+    grinding. On Kerwan's cables the right hand holds the wrench on the cable, as in the game; with Akimbo the left gun
+    fires all the way along.
+  - **Empty hand angle to 65 down (a tester's ask):** VR Hands' Empty hand angle steps on past 45 down to 50, 55, 60
+    and 65 down, and no further; the empty hands tilt down that far, what the hands hold does not. Up still ends at 45
+    up. A setting saved on 0.1.12 is the same after the update.
+  - **An angle for each item (the Swingshot's "a bit wild" angle):** draw the Swingshot, pause, VR Hands: the last row
+    says Swingshot angle, Default. Step it down: back in play the housing on the wrist turns down by that much, and the
+    hook still flies where the controller points (`[vr-hand] the Swingshot's angle: -30 (item 12)`). Find the step
+    where the housing lines up with where the hook goes and say which it was. Draw the Blaster: the row says Blaster
+    angle, Default, and its own step turns the Blaster and where it fires, the Swingshot's staying as set. The wrench
+    and the gloves leave the row as it was. Restart: the angles are kept (`[vr-hand] items' own angles: Swingshot -30`).
+  - **Akimbo on for everyone:** after the update from 0.1.12, VR Options says Akimbo On, and the log has
+    `[vr-akimbo] Akimbo: off was the start before 0.1.13, on is now` and `[vr-options] Akimbo on`. The left hand is
+    empty: the left trigger crouches and high-jumps, and with Physical crouch on the left grip only closes the hand.
+    Click the left stick, reach toward a gun and let go: it is in the left hand, the left trigger fires it. Pick it again
+    to empty the hand. The right stick's ring is at the HUD's right edge, its pages your layout then all you own. Set
+    Akimbo Off, restart: it stays Off (`Akimbo off (chosen)`).
+  - **No "Hide Ratchet's body" (a tester's report on 0.1.12):** the launcher's VR tab has no such row. Switched off on
+    0.1.12 it drew his whole model around the eyes: the view inside or above his head, the gun floating. On 0.1.13,
+    after an update from a 0.1.12 that had it off, first person is as for everyone: no head or body around the eyes,
+    the gun in your hand, standing and seated, whatever Player body says. The log's start has `[vr-settings] the
+    launcher's: view first, ...; off: none` (or the switches you turned off by name).
 - **Sparkles on the bolts (0.1.11).** On 0.1.10 a small twinkle now and then seemed to hang in front of the eyes,
   tied to nothing (an owner's report, Veldin, a Quest 3): the glint the game puts on a bolt, drawn flat on the HUD's
   layer. Stand on Veldin's start and look round at the bolts lying about: now and then one twinkles, on the bolt;

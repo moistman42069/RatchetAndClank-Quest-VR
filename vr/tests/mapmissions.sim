@@ -1,0 +1,22 @@
+# The map's two buttons apart (a tester's 0.1.12: its "show missions" played the infobot). X opens the map ("[vr-pointer]
+# the map (page ...)"); A, its icon there: the missions page (missions: the planet's list, no "movie at sector" line).
+# B back to the map; the trigger, its icon there: the planet's infobot (the "movie at sector" line), Y skips it. Before,
+# A and the trigger both pressed Cross and Circle: Circle's infobot closed the menu over the missions page.
+600 y 1
+606 y 0
+3000 x 1
+3006 x 0
+3200 shot map
+3220 a 1
+3226 a 0
+3400 shot missions
+3420 b 1
+3426 b 0
+3600 shot map-again
+3620 right_trigger 1
+3626 right_trigger 0
+3900 shot infobot
+3920 y 1
+3926 y 0
+4100 shot after
+4200 quit 0

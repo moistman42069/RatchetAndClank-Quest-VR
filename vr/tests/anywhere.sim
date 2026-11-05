@@ -1,0 +1,21 @@
+# Swingshot anywhere (VR Controls, 0.1.13; QUEST_VR_OPTIONS="swing_anywhere 1", QUEST_SIM_GIVE=12 QUEST_SIM_HOLD=12, at
+# Kerwan's start, a tunnel with no yellow target near): the trigger held with the hand level (nothing within 30 units:
+# the tunnel runs on), let go; then held with the hand 5 degrees down at the floor ahead, let go. [vr-swing] says what
+# the aim found and each pull given, then the hero's states through it: 0x24 the hook out, 0x25 the pull, and the
+# fall or idle it ends in. Off (the start) nothing is done: no [vr-swing] line. On Novalis (level 1) nothing is given.
+600 y 1
+606 y 0
+3000 shot before
+3100 right_trigger 1
+3130 shot level-1
+3200 shot level-2
+3300 right_trigger 0
+3400 hand_pitch -5
+3420 shot down-before
+3500 right_trigger 1
+3520 shot down-1
+3560 shot down-2
+3620 shot down-3
+3700 right_trigger 0
+3800 shot after
+3900 quit 0

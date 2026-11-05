@@ -330,7 +330,7 @@ index 0cade011c6e07f2902c83e298ba8ef0a8a99edc8..21ebcb89c4dd9fc4f493cd8e253303c5
  void sky_sprite(const std::uint8_t* record, std::uint64_t tex0);
  
 diff --git a/port/game/common/frontend/frame.cpp b/port/game/common/frontend/frame.cpp
-index 092aec37b6049b0a3854c21612c4918f7629caf4..82c8e2d169a13c0d92cd9d02763ae49b1ed3d986 100644
+index 092aec37b6049b0a3854c21612c4918f7629caf4..bee62f698002a5a7c5b447a6e8a1f60e1a09ceda 100644
 --- a/port/game/common/frontend/frame.cpp
 +++ b/port/game/common/frontend/frame.cpp
 @@ -43,6 +43,7 @@
@@ -427,7 +427,7 @@ index 092aec37b6049b0a3854c21612c4918f7629caf4..82c8e2d169a13c0d92cd9d02763ae49b
              continue;
          }
          if (only_own_camera
-@@ -1309,29 +1324,34 @@ TickMobys pose_mobys(
+@@ -1309,29 +1324,35 @@ TickMobys pose_mobys(
              target_mobys.push_back({m.address, instance, *t->second, true});
              continue;
          }
@@ -453,11 +453,12 @@ index 092aec37b6049b0a3854c21612c4918f7629caf4..82c8e2d169a13c0d92cd9d02763ae49b
              if (shadow_state.enabled) {
 -                shadows = scene::moby_shadows(ram, m.address, m.matrix, shadow_state.scale);
 +                // Quest VR (Shadow matches what you see, settings.h matching_shadow): drawn as his arms alone, the
-+                // shadow is theirs, at the controllers, and the body's where it is drawn, not the animated body's.
++                // shadow is theirs, at the controllers, and the body's where it is drawn, not the animated body's: the
++                // hands with their fingers as drawn, and the head the draw leaves out, turned with the player's.
 +                const scene::MobyArms& drawn_arms = scene::moby_arms();
 +                if (settings::get().matching_shadow && drawn_arms.moby == m.address) {
 +                    const auto drawn = scene::moby_arms_pose(ram, drawn_arms);
-+                    shadows = scene::moby_shadows(ram, m.address, m.matrix, shadow_state.scale, &drawn);
++                    shadows = scene::moby_shadows(ram, m.address, m.matrix, shadow_state.scale, &drawn, &drawn_arms);
 +                } else {
 +                    shadows = scene::moby_shadows(ram, m.address, m.matrix, shadow_state.scale);
 +                }
@@ -470,7 +471,7 @@ index 092aec37b6049b0a3854c21612c4918f7629caf4..82c8e2d169a13c0d92cd9d02763ae49b
                      "extrusion {:.2f} {:.2f} {:.2f}, slab {:.3f}..{:.3f}, scale {:.3f}",
                      shadows.size(),
                      shadow_state.direction_index,
-@@ -1374,8 +1394,12 @@ TickMobys pose_mobys(
+@@ -1374,8 +1395,12 @@ TickMobys pose_mobys(
      // part of reading the scene, about 1.5 ms a tick for 180 mobys on a phone's fast core), then
      // given palette slots in the loop's order, as one thread gave them.
      std::vector<std::vector<assets::rac1::JointMatrix>> poses(pose_jobs.size());
@@ -484,7 +485,7 @@ index 092aec37b6049b0a3854c21612c4918f7629caf4..82c8e2d169a13c0d92cd9d02763ae49b
      });
      for (std::size_t k = 0; k < pose_jobs.size(); ++k) {
          const PoseJob& job = pose_jobs[k];
-@@ -1385,9 +1409,15 @@ TickMobys pose_mobys(
+@@ -1385,9 +1410,15 @@ TickMobys pose_mobys(
          }
          scene::Instance& instance = job.target ? target_mobys[job.index].instance : live[job.index];
          instance.palette = static_cast<int>(palette.size());
@@ -500,7 +501,7 @@ index 092aec37b6049b0a3854c21612c4918f7629caf4..82c8e2d169a13c0d92cd9d02763ae49b
          for (int j = 0; j < job.joints; ++j) {
              // Columns: the images of the axes, then the translation, which the palette has in
              // packed units (the mesh is in packed units / 1024).
-@@ -1403,7 +1433,11 @@ TickMobys pose_mobys(
+@@ -1403,7 +1434,11 @@ TickMobys pose_mobys(
                  c[12] = f[3][0] / 1024.0f;
                  c[13] = f[3][1] / 1024.0f;
                  c[14] = f[3][2] / 1024.0f;
@@ -513,7 +514,7 @@ index 092aec37b6049b0a3854c21612c4918f7629caf4..82c8e2d169a13c0d92cd9d02763ae49b
              }
              palette.push_back(c);
          }
-@@ -1617,7 +1651,12 @@ TickPackets capture_2d_path(
+@@ -1617,7 +1652,12 @@ TickPackets capture_2d_path(
      if (before_world == SIZE_MAX && (draws & 0x10u) != 0) {
          before_world = first_offscreen;
      }
@@ -527,7 +528,7 @@ index 092aec37b6049b0a3854c21612c4918f7629caf4..82c8e2d169a13c0d92cd9d02763ae49b
      k.named_quads = named_quads;
      return k;
  }
-@@ -2022,8 +2061,27 @@ bool frame(std::span<const std::uint8_t> ram, std::uint32_t chain, std::uint32_t
+@@ -2022,8 +2062,27 @@ bool frame(std::span<const std::uint8_t> ram, std::uint32_t chain, std::uint32_t
      keep_tick(ram, state, draws, std::move(mobys));
      g->kept->world_under_menu = under_menu;
      g->kept->packets = std::move(packets.packets);
@@ -557,7 +558,7 @@ index 092aec37b6049b0a3854c21612c4918f7629caf4..82c8e2d169a13c0d92cd9d02763ae49b
      g->kept->before_world = bytes_before_world(packets.before_world, under_menu);
      part.reset();
      return finish_tick(ram, state, packets.named_quads, level, debug, scene);
-@@ -2043,6 +2101,10 @@ bool keep_picture() {
+@@ -2043,6 +2102,10 @@ bool keep_picture() {
      if (run_over()) {
          return false;
      }
@@ -1969,7 +1970,7 @@ index c363135654c1b37d7c5acaf14c1cd014f92110bc..cde7af4ede13e7d0ce74a00525424570
          if (state == nullptr) {
              return false;
 diff --git a/port/game/common/mod_play.cpp b/port/game/common/mod_play.cpp
-index 67e3ab3bf448dad32e2b9001630d212b61e442fd..e45fedbbf0595545779df1b6ae8328fe3f5871f6 100644
+index 67e3ab3bf448dad32e2b9001630d212b61e442fd..d406980a5f23a93c89d3a0f289c7468b364962ea 100644
 --- a/port/game/common/mod_play.cpp
 +++ b/port/game/common/mod_play.cpp
 @@ -15,11 +15,14 @@
@@ -2008,7 +2009,7 @@ index 67e3ab3bf448dad32e2b9001630d212b61e442fd..e45fedbbf0595545779df1b6ae8328fe
      return OPENRAC_HOOK_OK;
  }
  
-@@ -638,6 +646,134 @@ int api_moby_hide(openrac_mod* mod, int slot, int hidden) {
+@@ -638,6 +646,145 @@ int api_moby_hide(openrac_mod* mod, int slot, int hidden) {
      return OPENRAC_HOOK_OK;
  }
  
@@ -2035,6 +2036,12 @@ index 67e3ab3bf448dad32e2b9001630d212b61e442fd..e45fedbbf0595545779df1b6ae8328fe
 +    for (std::size_t w = 0; w < set.hide.size(); ++w) {
 +        set.hide[w] = arms[0].hide[w];
 +    }
++    set.head = arms[0].head != 0;
++    for (std::size_t r = 0; r < 3; ++r) {
++        for (std::size_t c = 0; c < 3; ++c) {
++            set.head_rows[r][c] = arms[0].head_rows[r][c];
++        }
++    }
 +    for (std::size_t side = 0; side < set.arms.size(); ++side) {
 +        const openrac_moby_arm& from = arms[side];
 +        scene::MobyArm& to = set.arms[side];
@@ -2047,6 +2054,11 @@ index 67e3ab3bf448dad32e2b9001630d212b61e442fd..e45fedbbf0595545779df1b6ae8328fe
 +        to.wrist = from.wrist;
 +        to.reach = from.reach > 0.0f ? from.reach : 1.0f;
 +        to.ankle = from.ankle;
++        to.fingers = from.fingers;
++        to.finger_count = from.finger_count;
++        to.finger_joints = from.finger_joints;
++        to.thumb = from.thumb;
++        to.thumb_joints = from.thumb_joints;
 +        for (std::size_t r = 0; r < 3; ++r) {
 +            for (std::size_t c = 0; c < 3; ++c) {
 +                to.rows[r][c] = from.rows[r][c];
@@ -2143,7 +2155,7 @@ index 67e3ab3bf448dad32e2b9001630d212b61e442fd..e45fedbbf0595545779df1b6ae8328fe
  int api_moby_deletion(int slot, openrac_moby_deletion* out) {
      if (out == nullptr || out->size < sizeof(openrac_moby_deletion) || g_play == nullptr
          || g_play->moby_deletion == nullptr) {
-@@ -732,6 +868,7 @@ void fill_play_api(
+@@ -732,6 +879,7 @@ void fill_play_api(
      api.save_capture = api_save_capture;
      api.save_slot = api_save_slot;
      api.save_read = api_save_read;
@@ -2151,7 +2163,7 @@ index 67e3ab3bf448dad32e2b9001630d212b61e442fd..e45fedbbf0595545779df1b6ae8328fe
      api.moby_list = api_moby_list;
      api.moby_slot = api_moby_slot;
      api.moby_drive = api_moby_drive;
-@@ -756,6 +893,13 @@ void fill_play_api(
+@@ -756,6 +904,13 @@ void fill_play_api(
      api.scene_playing = api_scene_playing;
      api.play_scene = api_play_scene;
      api.moby_hide = api_moby_hide;
@@ -7958,7 +7970,7 @@ index f9a406bfb960e28c5fcfaac097062acffad0dd75..e5d29e86e9486a9b2479688de99c5b5f
      // it); until set, the level's exported sets.
      // Shared lighting for optional world materials outside the mesh renderer.
 diff --git a/port/scene/moby_pose.cpp b/port/scene/moby_pose.cpp
-index ba890d2d518ca0d1af252fcbd69f4ea76d974421..c0b766ed7285cf0f7252610b535a8922fae1ec9a 100644
+index ba890d2d518ca0d1af252fcbd69f4ea76d974421..d4ff0b533ea3b427a867b89d21144de65c62566a 100644
 --- a/port/scene/moby_pose.cpp
 +++ b/port/scene/moby_pose.cpp
 @@ -3,6 +3,8 @@
@@ -7970,7 +7982,7 @@ index ba890d2d518ca0d1af252fcbd69f4ea76d974421..c0b766ed7285cf0f7252610b535a8922
  #include <cstring>
  #include <optional>
  
-@@ -54,21 +56,456 @@ std::optional<rac1::MobyFrame> key_at(
+@@ -54,21 +56,509 @@ std::optional<rac1::MobyFrame> key_at(
  
  namespace {
  
@@ -7995,10 +8007,11 @@ index ba890d2d518ca0d1af252fcbd69f4ea76d974421..c0b766ed7285cf0f7252610b535a8922
 +MobyArms& moby_arms() {
 +    static MobyArms arms;
 +    return arms;
-+}
-+
-+namespace {
-+
+ }
+ 
+ namespace {
+ 
+-std::vector<rac1::JointMatrix> evaluate_moby(std::span<const std::uint8_t> ram, std::uint32_t moby, bool bind) {
 +// A whole body's moves of joints in the model: v -> a * v + s, a's columns the images of the axes.
 +using V3 = std::array<float, 3>;
 +using Axes = std::array<V3, 3>;
@@ -8359,6 +8372,55 @@ index ba890d2d518ca0d1af252fcbd69f4ea76d974421..c0b766ed7285cf0f7252610b535a8922
 +        }
 +    }
 +
++    // Quest VR, the shadow's head (moby_arms_pose with `head`): what cut_only closes in the draw is posed here, its top
++    // joint turned to face `head_rows` as it faces the model's +x upright in the class's bind pose (the inverse of the
++    // skeleton's matrix), and kept where the body as drawn has it. The draw's palette (`bind`) never has it.
++    bool head_posed = false;
++    Move head_move;
++    if (!bind && arms.head && arms.cut_only > 0 && arms.cut_only < joints) {
++        const int h = arms.cut_only;
++        const auto skeleton = at<std::uint32_t>(ram, cls + 0x14);
++        const auto& p = pose[static_cast<std::size_t>(h)];
++        if (inside(ram, skeleton, 0x40 * static_cast<std::size_t>(joints))) {
++            std::array<V, 3> s{};
++            for (std::uint32_t r = 0; r < 3; ++r) {
++                for (std::uint32_t c = 0; c < 3; ++c) {
++                    s[r][c] = at<float>(ram, skeleton + 0x40u * static_cast<std::uint32_t>(h) + 0x10u * r + 4u * c);
++                }
++            }
++            // The head's bind axes in the model, B = S^-1; then where they go with the head facing head_rows.
++            const V s0 = s[0], s1 = s[1], s2 = s[2];
++            const V k0 = cross3(s1, s2), k1 = cross3(s2, s0), k2 = cross3(s0, s1);
++            const float s_det = dot3(s0, k0);
++            const V b0{p[0][0], p[0][1], p[0][2]}, b1{p[1][0], p[1][1], p[1][2]}, b2{p[2][0], p[2][1], p[2][2]};
++            const V i0 = cross3(b1, b2), i1 = cross3(b2, b0), i2 = cross3(b0, b1);
++            const float p_det = dot3(b0, i0);
++            if (std::abs(s_det) > 1e-6f && std::abs(p_det) > 1e-6f) {
++                Axes facing{};  // the model's forward, left and up as the head faces
++                for (std::size_t a = 0; a < 3; ++a) {
++                    facing[a] = {dot(arms.head_rows[a], rows[0]), dot(arms.head_rows[a], rows[1]), dot(arms.head_rows[a], rows[2])};
++                }
++                std::array<V, 3> want{};
++                for (std::size_t k = 0; k < 3; ++k) {
++                    want[k] = mul(facing, V{k0[k] / s_det, k1[k] / s_det, k2[k] / s_det});
++                }
++                Axes turn{};  // takes the head as posed to want
++                for (std::size_t k = 0; k < 3; ++k) {
++                    const V row{i0[k] / p_det, i1[k] / p_det, i2[k] / p_det};
++                    for (std::size_t c = 0; c < 3; ++c) {
++                        turn[k][c] = want[0][c] * row[0] + want[1][c] * row[1] + want[2][c] * row[2];
++                    }
++                }
++                const V was{p[3][0], p[3][1], p[3][2]};
++                const V place = whole ? moved_to(moves[static_cast<std::size_t>(h)], was) : was;
++                head_move = Move{turn, sub(place, mul(turn, was))};
++                head_posed = std::all_of(turn.begin(), turn.end(), [](const V& v) {
++                    return std::isfinite(v[0]) && std::isfinite(v[1]) && std::isfinite(v[2]);
++                }) && std::isfinite(head_move.s[0]) && std::isfinite(head_move.s[1]) && std::isfinite(head_move.s[2]);
++            }
++        }
++    }
++
 +    for (int j = 0; j < joints; ++j) {
 +        auto& f = palette[static_cast<std::size_t>(j)];
 +        int side = -1;
@@ -8375,6 +8437,10 @@ index ba890d2d518ca0d1af252fcbd69f4ea76d974421..c0b766ed7285cf0f7252610b535a8922
 +            if (whole) {
 +                put(f, moves[static_cast<std::size_t>(j)]);
 +            }
++            continue;
++        }
++        if (side < 0 && head_posed && under(j, arms.cut_only) && !gone) {
++            put(f, head_move);
 +            continue;
 +        }
 +        if (side < 0) {
@@ -8419,11 +8485,10 @@ index ba890d2d518ca0d1af252fcbd69f4ea76d974421..c0b766ed7285cf0f7252610b535a8922
 +
 +std::vector<rac1::JointMatrix> moby_arms_pose(std::span<const std::uint8_t> ram, const MobyArms& arms) {
 +    return arms_matrices(ram, arms, false, nullptr);
- }
- 
- namespace {
- 
--std::vector<rac1::JointMatrix> evaluate_moby(std::span<const std::uint8_t> ram, std::uint32_t moby, bool bind) {
++}
++
++namespace {
++
 +std::vector<rac1::JointMatrix> evaluate_moby(
 +    std::span<const std::uint8_t> ram, std::uint32_t moby, bool bind,
 +    const std::vector<rac1::JointModifier>& extra
@@ -8431,7 +8496,7 @@ index ba890d2d518ca0d1af252fcbd69f4ea76d974421..c0b766ed7285cf0f7252610b535a8922
      const auto cls = at<std::uint32_t>(ram, moby + 0x24);
      if (!inside(ram, cls, 0x48)) {
          return {};
-@@ -146,6 +583,7 @@ std::vector<rac1::JointMatrix> evaluate_moby(std::span<const std::uint8_t> ram,
+@@ -146,6 +636,7 @@ std::vector<rac1::JointMatrix> evaluate_moby(std::span<const std::uint8_t> ram,
          }
          mods.push_back(m);
      }
@@ -8440,7 +8505,7 @@ index ba890d2d518ca0d1af252fcbd69f4ea76d974421..c0b766ed7285cf0f7252610b535a8922
      // front): Ratchet's weapon arm, its keys at +0x38 / +0x3C ready in his joint layout. Without them
      // his arms kept the unarmed idle and a gun hung from his lowered hand.
 diff --git a/port/scene/moby_pose.h b/port/scene/moby_pose.h
-index 2cdefac6deb65032099cd8f32034428becfd3dc7..af122cebf83c3817cf6353a62446c3795ee8382f 100644
+index 2cdefac6deb65032099cd8f32034428becfd3dc7..37bf1d9b04fc14c6b34157f62d14bb3353fd4c14 100644
 --- a/port/scene/moby_pose.h
 +++ b/port/scene/moby_pose.h
 @@ -24,6 +24,7 @@
@@ -8451,7 +8516,7 @@ index 2cdefac6deb65032099cd8f32034428becfd3dc7..af122cebf83c3817cf6353a62446c379
  #include <cstdint>
  #include <span>
  #include <vector>
-@@ -50,4 +51,57 @@ std::vector<assets::rac1::JointMatrix> moby_pose_matrices(
+@@ -50,4 +51,69 @@ std::vector<assets::rac1::JointMatrix> moby_pose_matrices(
      std::span<const std::uint8_t> ram, std::uint32_t moby
  );
  
@@ -8474,6 +8539,13 @@ index 2cdefac6deb65032099cd8f32034428becfd3dc7..af122cebf83c3817cf6353a62446c379
 +    int wrist = 0;
 +    float reach = 1.0f;
 +    int ankle = 0;  // 1 or more: that leg bends from the hip to a foot where the game has it
++    // The shadow's hand (moby_shadows): `finger_count` runs of `finger_joints` from `fingers`, a thumb of `thumb_joints`
++    // from `thumb`; none, the game's own proxy for the hand.
++    int fingers = 0;
++    int finger_count = 0;
++    int finger_joints = 0;
++    int thumb = 0;
++    int thumb_joints = 0;
 +};
 +
 +struct MobyArms {
@@ -8488,6 +8560,10 @@ index 2cdefac6deb65032099cd8f32034428becfd3dc7..af122cebf83c3817cf6353a62446c379
 +    int twist_root = 0;
 +    int twist_joints = 0;
 +    std::array<std::uint32_t, 4> hide{};
++    // The shadow's head (moby_arms_pose): what cut_only closes in the draw is posed for the shadow, its top joint
++    // facing `head_rows` in the world (forward, left, up).
++    bool head = false;
++    std::array<std::array<float, 3>, 3> head_rows{};
 +};
 +
 +/** The set in force: written before the capture, read by it, on the game's thread. */
@@ -8505,25 +8581,27 @@ index 2cdefac6deb65032099cd8f32034428becfd3dc7..af122cebf83c3817cf6353a62446c379
 +/**
 + * The pose matrices P_j of `arms.moby` as those arms, moved as moby_arms_palette moves its palette: what is drawn,
 + * for the game's shadow proxies (moby_shadow.h). A joint closed onto an elbow has no axes: nothing of it is drawn.
++ * With `arms.head`, the head that cut_only leaves out of the draw is here, turned to `head_rows`: the shadow's alone.
 + */
 +std::vector<assets::rac1::JointMatrix> moby_arms_pose(std::span<const std::uint8_t> ram, const MobyArms& arms);
 +
  }  // namespace openrac::scene
 diff --git a/port/scene/moby_shadow.cpp b/port/scene/moby_shadow.cpp
-index f387a5af9e755aa41b9a5220b65c7fc24f944cbf..344729865ca131f7f3b8e625341857cbfa92e693 100644
+index f387a5af9e755aa41b9a5220b65c7fc24f944cbf..a7a3d4b8bdeeb327101eefc26e3fec46d97afc15 100644
 --- a/port/scene/moby_shadow.cpp
 +++ b/port/scene/moby_shadow.cpp
-@@ -83,7 +83,8 @@ std::vector<renderer::ShadowCapsule> moby_shadows(
+@@ -83,7 +83,9 @@ std::vector<renderer::ShadowCapsule> moby_shadows(
      std::span<const std::uint8_t> ram,
      std::uint32_t moby,
      const renderer::Mat4& model,
 -    float proxy_scale
 +    float proxy_scale,
-+    const std::vector<assets::rac1::JointMatrix>* drawn
++    const std::vector<assets::rac1::JointMatrix>* drawn,
++    const MobyArms* arms
  ) {
      std::vector<renderer::ShadowCapsule> out;
      if (!std::isfinite(proxy_scale) || proxy_scale <= 0 || proxy_scale > 1 || moby > ram.size()
-@@ -106,7 +107,7 @@ std::vector<renderer::ShadowCapsule> moby_shadows(
+@@ -106,7 +108,7 @@ std::vector<renderer::ShadowCapsule> moby_shadows(
      if (!size || skeleton < size || skeleton > ram.size()) {
          return out;
      }
@@ -8532,7 +8610,7 @@ index f387a5af9e755aa41b9a5220b65c7fc24f944cbf..344729865ca131f7f3b8e625341857cb
      if (pose.empty()) {
          return out;
      }
-@@ -120,6 +121,12 @@ std::vector<renderer::ShadowCapsule> moby_shadows(
+@@ -120,6 +122,12 @@ std::vector<renderer::ShadowCapsule> moby_shadows(
              if (joint < 0 || static_cast<std::size_t>(joint) >= pose.size()) {
                  return false;
              }
@@ -8545,11 +8623,145 @@ index f387a5af9e755aa41b9a5220b65c7fc24f944cbf..344729865ca131f7f3b8e625341857cb
              // Proxies are joint-local, so use P_j rather than the mesh palette
              // P_j * inverse_bind. Packed translations and proxy points use 1/1024 units.
              renderer::Mat4 local = renderer::identity();
+@@ -145,10 +153,92 @@ std::vector<renderer::ShadowCapsule> moby_shadows(
+             radius = p[3] * scale / 1024.0f;
+             return true;
+         };
++        // Quest VR: the hands whose fingers `arms` names, as they are drawn: each finger and the thumb a run of thin
++        // capsules from joint to joint and on to a tip (the last bone again, 0.8 of it, as the fingers' bend takes it),
++        // a palm from the wrist joint to each knuckle, and the class's one proxy for the whole hand left out. A finger's
++        // radius is from how far apart the knuckles are drawn, so it keeps to the hand at any Hand size.
++        constexpr std::array<float, 4> kOrigin{0, 0, 0, 1024.0f};
++        const auto joint_at = [&](int joint, renderer::Vec3& at, float& unit) { return endpoint(joint, kOrigin, at, unit); };
++        const auto distance = [](const renderer::Vec3& a, const renderer::Vec3& b) {
++            const renderer::Vec3 d{a[0] - b[0], a[1] - b[1], a[2] - b[2]};
++            return std::sqrt(renderer::dot(d, d));
++        };
++        std::vector<renderer::ShadowCapsule> hands;
++        std::array<int, 2> hand_wrist{-1, -1};  // the joint whose proxy a drawn hand's own shapes replace
++        for (std::size_t side = 0; arms != nullptr && drawn != nullptr && side < 2; ++side) {
++            const MobyArm& arm = arms->arms[side];
++            const int runs = arm.finger_count, each = arm.finger_joints;
++            renderer::Vec3 wrist{};
++            float unit = 0;
++            if (runs < 1 || runs > 5 || each < 1 || each > 4 || arm.fingers <= 0 || arm.wrist <= 0
++                || !joint_at(arm.wrist, wrist, unit)) {
++                continue;
++            }
++            std::vector<std::vector<renderer::Vec3>> chains;
++            const auto chain = [&](int first, int count) {
++                std::vector<renderer::Vec3> points;
++                for (int i = 0; i < count; ++i) {
++                    renderer::Vec3 at{};
++                    float u = 0;
++                    if (!joint_at(first + i, at, u)) {
++                        return;
++                    }
++                    points.push_back(at);
++                }
++                chains.push_back(std::move(points));
++            };
++            for (int f = 0; f < runs; ++f) {
++                chain(arm.fingers + f * each, each);
++            }
++            const std::size_t finger_chains = chains.size();
++            if (arm.thumb > 0 && arm.thumb_joints > 0 && arm.thumb_joints <= 4) {
++                chain(arm.thumb, arm.thumb_joints);
++            }
++            if (finger_chains == 0) {
++                continue;
++            }
++            float spacing = 0, palm = 0;
++            for (std::size_t f = 0; f < finger_chains; ++f) {
++                palm += distance(wrist, chains[f].front());
++                if (f > 0) {
++                    spacing += distance(chains[f - 1].front(), chains[f].front());
++                }
++            }
++            palm /= static_cast<float>(finger_chains);
++            spacing = finger_chains > 1 ? spacing / static_cast<float>(finger_chains - 1) : palm * 0.3f;
++            const float finger = std::clamp(spacing * 0.42f, palm * 0.07f, palm * 0.2f);
++            if (!std::isfinite(finger) || finger <= 0) {
++                continue;
++            }
++            const auto capsule = [&](const renderer::Vec3& a, float ra, const renderer::Vec3& b, float rb) {
++                renderer::ShadowCapsule c;
++                c.a = a;
++                c.b = b;
++                c.radius_a = ra;
++                c.radius_b = rb;
++                c.segments_a = c.segments_b = 6;
++                hands.push_back(c);
++            };
++            for (std::size_t f = 0; f < chains.size(); ++f) {
++                const auto& points = chains[f];
++                const float r = f < finger_chains ? finger : finger * 1.15f;
++                capsule(wrist, finger * 1.3f, points.front(), r * 1.1f);  // the palm, out to this knuckle
++                for (std::size_t i = 0; i + 1 < points.size(); ++i) {
++                    capsule(points[i], r, points[i + 1], r);
++                }
++                const auto& last = points.back();
++                const auto& before = points.size() > 1 ? points[points.size() - 2] : wrist;
++                const renderer::Vec3 tip{last[0] + (last[0] - before[0]) * 0.8f, last[1] + (last[1] - before[1]) * 0.8f,
++                                         last[2] + (last[2] - before[2]) * 0.8f};
++                capsule(last, r, tip, r * 0.85f);
++            }
++            hand_wrist[side] = arm.wrist;
++        }
++        const auto on_hand = [&](int joint) { return joint >= 0 && (joint == hand_wrist[0] || joint == hand_wrist[1]); };
+         for (const auto& primitive : block.primitives) {
+             renderer::ShadowCapsule c;
+             if (const auto* s = std::get_if<assets::rac1::ShadowSphere>(&primitive)) {
+-                if (!endpoint(s->joint, s->centre, c.a, c.radius_a)) {
++                if (on_hand(s->joint) || !endpoint(s->joint, s->centre, c.a, c.radius_a)) {
+                     continue;
+                 }
+                 c.b = c.a;
+@@ -162,9 +252,39 @@ std::vector<renderer::ShadowCapsule> moby_shadows(
+                 }
+                 c.segments_a = capsule.segments[0];
+                 c.segments_b = capsule.segments[1];
++                // The whole hand's proxy, wrist to palm: kept as the wrist alone, from its forearm end to the hand's
++                // wrist joint, as thick as the palm's start.
++                const bool hand_a = on_hand(capsule.joints[0]), hand_b = on_hand(capsule.joints[1]);
++                if (hand_a || hand_b) {
++                    renderer::Vec3 wrist{};
++                    float unit = 0;
++                    if (hand_a && hand_b) {
++                        continue;
++                    }
++                    if (!endpoint(hand_a ? capsule.joints[0] : capsule.joints[1], kOrigin, wrist, unit)) {
++                        continue;
++                    }
++                    for (const auto& h : hands) {
++                        if (h.a == wrist) {
++                            const float thick = h.radius_a;
++                            if (hand_a) {
++                                c.a = wrist;
++                                c.radius_a = thick;
++                                c.radius_b = std::min(c.radius_b, thick * 1.2f);
++                            } else {
++                                c.b = wrist;
++                                c.radius_b = thick;
++                                c.radius_a = std::min(c.radius_a, thick * 1.2f);
++                            }
++                            break;
++                        }
++                    }
++                    c.segments_a = c.segments_b = 6;
++                }
+             }
+             out.push_back(c);
+         }
++        out.insert(out.end(), hands.begin(), hands.end());
+     } catch (const assets::AssetError&) {
+         // A loading frame or a class without a complete proxy block.
+     }
 diff --git a/port/scene/moby_shadow.h b/port/scene/moby_shadow.h
-index 74bb2b39cf3102e976b3fe6491c1fb7b9575990c..c50d0d9ff40dae6629bd427dc48cccc57213ee1c 100644
+index 74bb2b39cf3102e976b3fe6491c1fb7b9575990c..048cd9f0f82774dde73c349730a29cb44442f3a8 100644
 --- a/port/scene/moby_shadow.h
 +++ b/port/scene/moby_shadow.h
-@@ -5,6 +5,7 @@
+@@ -5,9 +5,12 @@
  #include <span>
  #include <vector>
  
@@ -8557,21 +8769,28 @@ index 74bb2b39cf3102e976b3fe6491c1fb7b9575990c..c50d0d9ff40dae6629bd427dc48cccc5
  #include "renderer/shadow_volume.h"
  
  namespace openrac::scene {
-@@ -25,11 +26,14 @@ MobyShadowState moby_shadow_state(
++struct MobyArms;
++
+ struct MobyShadowState {
+     bool enabled = false;
+     renderer::Vec3 extrusion{};
+@@ -25,11 +28,16 @@ MobyShadowState moby_shadow_state(
      const renderer::Mat4& view
  );
  
 -// The relocated class block, posed with P_j (not the mesh's P_j S_j).
 +// The relocated class block, posed with P_j (not the mesh's P_j S_j). Quest VR: `drawn`, when given, is the
 +// pose the moby is drawn in instead of its own (moby_arms_pose: its arms at the controllers); a proxy on a joint
-+// with no axes there (closed onto an elbow, nothing of it drawn) casts nothing.
++// with no axes there (closed onto an elbow, nothing of it drawn) casts nothing. `arms`, with `drawn`: a hand whose
++// fingers it names casts each finger and its thumb as drawn, and a palm, in place of the class's one proxy for it.
  std::vector<renderer::ShadowCapsule> moby_shadows(
      std::span<const std::uint8_t> ram,
      std::uint32_t moby,
      const renderer::Mat4& model,
 -    float scale = 1.0f
 +    float scale = 1.0f,
-+    const std::vector<assets::rac1::JointMatrix>* drawn = nullptr
++    const std::vector<assets::rac1::JointMatrix>* drawn = nullptr,
++    const MobyArms* arms = nullptr
  );
  }  // namespace openrac::scene
 diff --git a/port/scene/pvs.h b/port/scene/pvs.h
@@ -10139,7 +10358,7 @@ index f7599bfd303332ecb59f19adbd344481de5fea5f..4e37e027798d452fd53736bae503872b
      bool has_world() const {
          return m_api->api_minor >= 9
 diff --git a/sdk/include/openrac/openrac_mod.h b/sdk/include/openrac/openrac_mod.h
-index 1c39e2802298cb408295bfad2d777539cf40371e..315c3bdfdc24fc12259a0aad4b1ea0006996e2a5 100644
+index 1c39e2802298cb408295bfad2d777539cf40371e..45114dd56cf2dd556b4182b7d71b46ec076645b3 100644
 --- a/sdk/include/openrac/openrac_mod.h
 +++ b/sdk/include/openrac/openrac_mod.h
 @@ -51,9 +51,10 @@ extern "C" {
@@ -10204,7 +10423,7 @@ index 1c39e2802298cb408295bfad2d777539cf40371e..315c3bdfdc24fc12259a0aad4b1ea000
  } openrac_view_source;
  
  /* What a mod gives setup_vulkan so that the port's Vulkan device is one the mod
-@@ -796,6 +832,49 @@ typedef struct openrac_hit {
+@@ -796,6 +832,61 @@ typedef struct openrac_hit {
   * never reads it), 0 to leave it. Since 1.9. */
  typedef int (*openrac_hit_fn)(void* user, const openrac_hit* hit);
  
@@ -10249,12 +10468,24 @@ index 1c39e2802298cb408295bfad2d777539cf40371e..315c3bdfdc24fc12259a0aad4b1ea000
 +    int32_t twist_root;
 +    int32_t twist_joints;
 +    uint32_t hide[4];
++    /* The shadow only (Shadow matches what you see), all zero for the game's own proxies. On each arm: its hand's
++     * fingers, `finger_count` runs of `finger_joints` joints from `fingers`, and its thumb, `thumb_joints` from `thumb`,
++     * each run casting a shadow of its own as it is drawn; the proxy on `wrist` (the whole hand's) gives way to a palm.
++     * On the first arm: `head` 1 and what cut_only leaves out of the draw still casts its shadow, turned so that the
++     * head faces `head_rows` (forward, left, up in the world), at its place on the body as drawn. */
++    int32_t fingers;
++    int32_t finger_count;
++    int32_t finger_joints;
++    int32_t thumb;
++    int32_t thumb_joints;
++    int32_t head;
++    float head_rows[3][3];
 +} openrac_moby_arm;
 +
  /* The most eyes (openrac_api.play_eyes). Since 1.9. */
  #define OPENRAC_EYES_MAX 8
  
-@@ -1349,6 +1428,64 @@ typedef struct openrac_api {
+@@ -1349,6 +1440,64 @@ typedef struct openrac_api {
      /* Changes a registered item's label, copying `label`. Only from this mod's tick-boundary
       * callback. Since 1.10. */
      int (*developer_menu_set_label)(openrac_mod* mod, uint32_t action, const char* label);

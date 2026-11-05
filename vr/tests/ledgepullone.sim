@@ -1,0 +1,37 @@
+# The pull up with one hand (0.1.13): the left hand alone holds the crates' top, is raised, then drawn down slowly, and
+# he climbs: "[vr-ledge] a pull up with the left hand: he climbs". The right hand stays where it is, free.
+# Level 1, QUEST_SIM_NEAR=501, QUEST_SIM_NEAR_AT=0.95,1.7,90, as ledgedrop.
+600 y 1
+606 y 0
+1700 left_grip 1
+2500 shot hanging
+2500 lh_y 0.25
+2700 shot hand-up
+3000 lh_y 0.24
+3001 lh_y 0.23
+3002 lh_y 0.22
+3003 lh_y 0.21
+3004 lh_y 0.20
+3005 lh_y 0.19
+3006 lh_y 0.18
+3007 lh_y 0.17
+3008 lh_y 0.16
+3009 lh_y 0.15
+3010 lh_y 0.14
+3011 lh_y 0.13
+3012 lh_y 0.12
+3013 lh_y 0.11
+3014 lh_y 0.10
+3015 lh_y 0.09
+3016 lh_y 0.08
+3017 lh_y 0.07
+3018 lh_y 0.06
+3019 lh_y 0.05
+3020 lh_y 0.04
+3021 lh_y 0.03
+3022 lh_y 0.02
+3023 lh_y 0.01
+3024 lh_y 0.00
+3200 shot after-pull
+3500 shot climbed
+3600 quit 0

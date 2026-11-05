@@ -1,0 +1,21 @@
+# Swingshot anywhere with the left hand (Akimbo; QUEST_VR_OPTIONS="swing_anywhere 1", QUEST_SIM_GIVE=15,12
+# QUEST_SIM_HOLD=15 QUEST_SIM_LEFT=12, at Kerwan's start, a tunnel): the left hand's Swingshot leads on the left
+# trigger and swings. Held 5 degrees down at the floor first: nothing ("a swing needs a point above his head"). Then
+# 40 degrees up at the tunnel's arch: [vr-swing] says "a swing from" it "by the left hand", state 0x2C; let go, 0x2D,
+# the fall after a swing, and he lands.
+600 y 1
+606 y 0
+3000 shot before
+3100 hand_pitch -5
+3150 left_trigger 1
+3250 left_trigger 0
+3300 hand_pitch 40
+3320 shot up-before
+3400 left_trigger 1
+3430 shot up-1
+3500 shot up-2
+3600 shot up-3
+3700 left_trigger 0
+3720 shot let-go
+3800 shot after
+3900 quit 0

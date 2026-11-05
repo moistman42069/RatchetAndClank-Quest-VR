@@ -28,9 +28,11 @@ fi
 cat > "$DATA/plugins/plugins.json" <<JSON
 {"format": 1, "mods": [{"id": "quest-vr", "enabled": true, "settings": ${QUEST_SETTINGS:-{\}}}${QUEST_MODS:-}]}
 JSON
+# 60 frames a second whatever the display runs at: the sims move the hands by the frame, so a slower display made
+# every motion slower (a 31 Hz desktop on 5 November halved a throw's speed). "display" was the rate before.
 cat > "$DATA/quest-settings.ini" <<INI
 vsync = off
-frame_rate = display
+frame_rate = ${QUEST_FRAME_RATE:-60}
 aspect = 4:3
 hud = centre
 menu_bar = off

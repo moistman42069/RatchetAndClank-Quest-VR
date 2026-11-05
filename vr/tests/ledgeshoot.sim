@@ -1,5 +1,8 @@
 # One hand on a ledge, the other keeps its weapon (Rerac-vr's off_hand.rs): Ratchet dropped beside a stack of crates, the left
 # grip alone takes the top; the right trigger fires the hand's gun, where the right hand points, while he hangs by the left.
+# Here the hand holds the gun at the face of the crate he hangs from (its muzzle 0.4 under the top), so the first shot breaks
+# that crate and he falls with it, as the game's own crates go (0.1.13's runs, with Body parts at Everything and at Arms
+# only alike; the Pyrocitor's flame does it too). ledgeshoothigh.sim holds the gun above the stack: he hangs on through it.
 600 y 1
 606 y 0
 1700 left_grip 1

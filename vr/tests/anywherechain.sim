@@ -1,0 +1,21 @@
+# Swingshot anywhere, one in each hand (Akimbo; QUEST_VR_OPTIONS="swing_anywhere 1", QUEST_SIM_GIVE=12
+# QUEST_SIM_HOLD=12 QUEST_SIM_LEFT=12, at Kerwan's start, a tunnel): the tester's chain. The left trigger, the hands
+# 40 degrees up at the arch: a swing (0x2C) by the left hand; let go on the forward swing, rising (about 50 ticks in),
+# the fall after it (0x2D); the right trigger at once, the hands 10 degrees down: a pull (0x24, 0x25) by the right hand
+# to the floor ahead, out of the fall, and its end. (0.1.13's first try let go at the swing's back end, landed, and
+# its 5 degrees down found no floor within 30 units.)
+600 y 1
+606 y 0
+3000 shot before
+3100 hand_pitch 40
+3150 left_trigger 1
+3180 shot swing-1
+3200 left_trigger 0
+3203 hand_pitch -10
+3206 shot let-go
+3212 right_trigger 1
+3240 shot pull-1
+3280 shot pull-2
+3400 right_trigger 0
+3500 shot after
+3600 quit 0

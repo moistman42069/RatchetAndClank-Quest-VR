@@ -1,0 +1,44 @@
+# Arm moves on Buttons (More controls; a player's ask, 0.1.13: wrists and hands that hurt to swing), from the file
+# (QUEST_VR_OPTIONS=button_moves 1), by a bolt crate (class 511) with the Blaster held. The right grip squeezed with
+# the hand still is the game's own swing (Square): the crate breaks and its bolts are counted ([sim] bolts), a second
+# squeeze swings again. Fast strokes with the grip open do nothing (no [vr-wrench] hit line). A jump with the grip
+# squeezed at its top: the game's jump attack (hero state 0x14). Then the trigger: with the wrench in the hand it asks
+# for the Blaster back ("the trigger asks the last gun back"), and the next pull fires it (its rounds go down).
+# Last, the left trigger held (the crouch, R1) and the grip squeezed: the game's own move for the two (its wrench
+# thrown, hero state and shot comet). The start logs "[vr-options] Arm moves: Buttons".
+600 y 1
+606 y 0
+3200 shot ahead
+3250 right_grip 1
+3290 shot swing
+3300 right_grip 0
+3340 right_grip 1
+3352 right_grip 0
+3400 shot after-swings
+# Fast strokes, the grip open: nothing.
+3420 rh_x -0.20
+3421 rh_x -0.10
+3422 rh_x 0.00
+3423 rh_x 0.10
+3424 rh_x 0.20
+3440 rh_x 0
+# A jump, and the grip at its top: the game's jump attack.
+3500 a 1
+3506 a 0
+3518 right_grip 1
+3526 shot strike
+3540 right_grip 0
+# The trigger: the Blaster back, then a shot.
+3700 right_trigger 1
+3712 right_trigger 0
+3760 right_trigger 1
+3772 right_trigger 0
+3850 shot end
+# The crouch and the grip.
+3900 left_trigger 1
+3930 right_grip 1
+3946 shot comet
+3960 right_grip 0
+3990 left_trigger 0
+4100 shot after-comet
+4200 quit 0

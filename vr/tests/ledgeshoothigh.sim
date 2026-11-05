@@ -1,0 +1,16 @@
+# ledgeshoot.sim with the right hand far back and up (0.9 back, 0.6 up): the Blaster held above the crate stack he hangs
+# from, its muzzle blast clear of it. 0.1.13 PC run: 25 rounds while he hung by the left hand, then "both hands let go: he
+# drops" when the grip opened. ledgeshoot.sim holds it at the crate face, which the first shot breaks.
+590 rh_z 0.9
+590 rh_y 0.6
+600 y 1
+606 y 0
+1700 left_grip 1
+2400 shot hanging
+2500 right_trigger 1
+2560 shot firing
+2700 right_trigger 0
+2800 shot stopped
+2900 left_grip 0
+3100 shot dropped
+3200 quit 0

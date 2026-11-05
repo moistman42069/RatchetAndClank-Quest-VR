@@ -1,0 +1,17 @@
+# Swingshot anywhere, a zip let go midway (QUEST_VR_OPTIONS="swing_anywhere 1", QUEST_SIM_GIVE=12 QUEST_SIM_HOLD=12,
+# at Kerwan's start, a tunnel): the trigger held with the hand 40 degrees up, at the arch 13 units off, and let go in
+# the pull (0x25), a few ticks into it: [vr-swing] "let go mid-zip at ... units a second: the speed kept", and the fall
+# (6) carries him on; the pulling and state lines say where. (0.1.13's first try aimed 3 down at a step 5 units off,
+# whose pull was over before the let-go. The let-go 28 frames in was written on a 31 Hz desktop; at the pinned 60
+# frames a second it came before the hook reached the arch, so it is 55 frames in.)
+600 y 1
+606 y 0
+3000 shot before
+3400 hand_pitch 40
+3500 right_trigger 1
+3540 shot zip-1
+3555 right_trigger 0
+3570 shot let-go
+3620 shot after-1
+3720 shot after-2
+3920 quit 0

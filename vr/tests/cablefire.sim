@@ -1,0 +1,14 @@
+# Shooting on a Kerwan cable (cable.sim's: QUEST_SIM_RAIL=0,-1.3,0 QUEST_SIM_ALIGN=2620, state 0x74) with the Blaster in
+# the right hand and, with Akimbo, the Pyrocitor in the left (QUEST_SIM_GIVE=15,16 QUEST_SIM_HOLD=15 QUEST_SIM_LEFT=16):
+# each trigger held on the slide. [vr-akimbo] counts the left gun's rounds.
+600 y 1
+606 y 0
+2645 shot cable-grab
+2650 right_trigger 1
+2680 shot cable-right-trigger
+2695 right_trigger 0
+2700 left_trigger 1
+2725 shot cable-left-firing
+2745 left_trigger 0
+2760 shot cable-after
+2900 quit 0

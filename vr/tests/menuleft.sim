@@ -1,0 +1,21 @@
+# Menu pointer, Left hand (QUEST_VR_OPTIONS=menu_hand 2): paused, the left hand put where the right is (lh_x 0.4), on the
+# pause page's last button, Options. The left trigger presses at once: Options opens (options-left). At VR Options
+# (row 5) the left trigger again: VR Options opens (vr-page-left). No "hand's trigger on the menu" line: the left points
+# from the start.
+600 y 1
+606 y 0
+2950 shot playing
+3000 y 1
+3006 y 0
+3010 lh_x 0.4
+3120 hand_pitch 0
+3140 hand_pitch 28
+3200 hand_pitch -5.4
+3240 left_trigger 1
+3246 left_trigger 0
+3320 shot options-left
+3340 hand_pitch 10.4
+3380 left_trigger 1
+3386 left_trigger 0
+3480 shot vr-page-left
+3500 quit 0

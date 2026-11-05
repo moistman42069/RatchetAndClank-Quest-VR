@@ -1,0 +1,36 @@
+# 0.1.13: the shadow close up, from about a metre over the ground where it falls on Novalis's start (to his left and a
+# little behind, from fingershadow.sim's top view): the hands' fingers open, in a fist, pointing, thumb up, then the
+# head's shadow turned left, right and down. QUEST_MATCHING_SHADOW=false shows the game's own shadow to compare.
+600 y 1
+606 y 0
+2700 view_free 1
+2701 view_x -0.7
+2702 view_y -0.5
+2703 view_z 0.1
+2704 view_yaw 180
+2705 view_pitch -88
+2706 lh_x -0.3
+2707 lh_y 0.05
+2708 rh_x 0.3
+2709 rh_y 0.05
+2760 shot c-open
+2770 left_grip 1
+2771 left_first_touch 1
+2772 left_thumb_touch 1
+2830 shot c-fist
+2840 left_first_touch 0
+2900 shot c-point
+2910 left_first_touch 1
+2911 left_thumb_touch 0
+2970 shot c-thumb
+2980 left_grip 0
+2981 left_first_touch 0
+2982 left_thumb_touch 0
+2990 head_yaw 40
+3050 shot c-head-left
+3060 head_yaw -40
+3120 shot c-head-right
+3130 head_yaw 0
+3131 head_pitch -50
+3190 shot c-head-down
+3200 quit 0

@@ -207,6 +207,22 @@ void test_mapper() {
     c = Controls{};
     c.left_trigger = 1;
     check(table2.map(c, context).held & kPadR1, "left trigger crouches");
+    {
+        // Physical crouch in first person: the left grip is the hand's alone, the trigger still crouches.
+        PadContext free_grip = context;
+        free_grip.grip_crouch = false;
+        PadMapper grip_mapper;
+        Controls grip{};
+        grip.left_grip = 1;
+        check(!(grip_mapper.map(grip, free_grip).held & kPadR1), "with Physical crouch the left grip does not crouch");
+        PadMapper trigger_mapper;
+        Controls trigger{};
+        trigger.left_trigger = 1;
+        check(trigger_mapper.map(trigger, free_grip).held & kPadR1, "with Physical crouch the left trigger still crouches");
+        PadMapper head_mapper;
+        free_grip.crouch = true;
+        check(head_mapper.map(Controls{}, free_grip).held & kPadR1, "and the head's crouch is R1");
+    }
     PadMapper table3;
     c = Controls{};
     c.right_click = true;
@@ -215,6 +231,27 @@ void test_mapper() {
     context.swing = true;
     check(table3.map(c, context).held & kPadSquare, "a swing is the wrench");
     context.swing = false;
+    {
+        // Arm moves on Buttons (a player's ask, 0.1.13): the grip alone is the game's swing in first person; held
+        // or not; never on a ledge or in a turret; off again, the grip alone swings nothing.
+        PadContext buttons = context;
+        buttons.button_moves = true;
+        Controls grip{};
+        grip.right_grip = 0.9f;
+        PadMapper on;
+        check(on.map(grip, buttons).held & kPadSquare, "Arm moves on Buttons: the grip swings");
+        check(!(on.map(Controls{}, buttons).held & kPadSquare), "and let go, it does not");
+        PadContext hanging = buttons;
+        hanging.ledge = true;
+        PadMapper ledge;
+        check(!(ledge.map(grip, hanging).held & kPadSquare), "Buttons: not on a ledge");
+        PadContext turret = buttons;
+        turret.mounted = true;
+        PadMapper seat;
+        check(!(seat.map(grip, turret).held & kPadSquare), "Buttons: not in a turret");
+        PadMapper off;
+        check(!(off.map(grip, context).held & kPadSquare), "For real: the grip alone does not swing");
+    }
 
     // Mounted X and B keep Circle and Square; a flown ship's trigger is its lasers.
     PadMapper turret;

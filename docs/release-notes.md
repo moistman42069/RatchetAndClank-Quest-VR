@@ -2,6 +2,60 @@
 
 > **This is a test build, and we need your logs.** **Expect bugs.** Every log helps, including from runs that worked: **Send your log** below says how.
 
+## New in 0.1.13
+
+The owner's list after playing 0.1.12 on a Quest 3, a tester's notes and logs on 0.1.12 (the US disc), and a player's message asking for buttons in place of the swings, built on what 0.1.12 has. Thanks for the logs.
+
+**From the tester's notes**
+
+- **Shimmy the way you reach.** Hanging from a ledge, hold your hands out to the right and Ratchet shimmies right, to the left and he goes left, for as long as you hold them out; bring them back in front of you and he stops. The tester found 0.1.12's way backwards: there the hands slid along the ledge, so they had to be drawn left to go right. **Ledge shimmy** (More controls) is **Reach** to start; **Pull** gives 0.1.12's way back.
+- **Shimmy with the left stick too** (the tester's ask). Pushed along the ledge, the stick shimmies that way, whatever the hands do. Pushed toward or away from it, it does nothing, so a climb or a drop is still the hands' and A's.
+- **No gun over your hands on a ledge.** A hand holding the ledge puts its gun away (Akimbo's left gun too) until it lets go, and gets it back then. In 0.1.12 the gun stayed drawn above the hands, and the Bomb Glove looked like a third hand floating there.
+- **The ammo box after switching weapons.** After switching between two weapons, such as the Pyrocitor and the Bomb Glove with the other in the left hand, the box could stay on the left gun's ammo for the rest of the session. Each weapon change passes through an empty hand for a tick, and that tick made the box take the left gun's; the box now changes only after a moment of the hand empty, and a box still showing the left gun's with another weapon drawn is slid off, so the game's own comes back.
+- **Hide black bars** (new, More controls, **On** to start; the tester's ask for third person). The game's black bars at the top and bottom in its short scenes during play, such as the start of Oltanis's grind race, are not drawn, in first person as in third. The HUD still hides there, as in the game. **Off** gives the bars back. 2D mode keeps them.
+- **Point with either hand in menus** (new, More controls, **Menu pointer**: **Both hands** to start; the tester's ask). The right hand points, as before, until you pull the left trigger with the left hand aimed at the menu: then the left points, until you pull the right trigger aimed at it. That pull only moves the pointer, it picks nothing. While the left hand points, its trigger picks and its grip is Square, and the right grip and trigger turn the pages (L1 and R1). **Right hand** or **Left hand** keeps the pointer on that one. The vendor on foot still takes the right hand.
+- **The map's missions** (the tester's "show missions" played the infobot). On the map, A and the trigger each pressed both of the game's buttons there: the missions page's and the infobot's, and the infobot won. Now A shows the missions and the trigger plays the infobot, as their icons on the map say. Every other menu is as before.
+- **Climbing out of the ship** (the tester's "sinking through the floor right before exiting the ship"). In the landing scene Ratchet ducks in the cockpit before he jumps out, and seen through his eyes the view went down through the hull to under the pad (on Aridia, 3.5 units). Over the cockpit his eyes now go no lower than the seat; once out, beside the ship, they are his again.
+- **VR Controls' last rows can be reached.** The port shows at most 12 rows of a page, and VR Controls had 16 in 0.1.12: its last four (Sparkles on the bolts and the three before it) could not be reached. The page now ends with **More controls**, which holds them and the new rows: Swingshot anywhere, Ledge shimmy, Hide black bars, Menu pointer, Arm moves. A page with more rows than the port shows now says so in the log.
+- **Not fixed: someone vanishing in a scene through Ratchet's eyes.** In the tester's scene on Aridia (Skid's), he vanishes for a moment and comes back. On PC the game itself does not draw him in some of the scene's shots, the ones its own camera aims elsewhere; seen from Ratchet's eyes he is in plain view then. That is the game's own drawing, not the view, and changing it reaches every moby drawn, so it is left for a later version. **Cutscenes** (VR Options) **In VR, around you** or **On a screen** shows the scene from the game's own camera, as it was made to be seen. The camera under the level and the sinking at the end were not seen on PC (the PAL disc).
+
+**From a player's message**
+
+- **Arm moves** (new, More controls, **For real** to start; for a player whose wrists and hands hurt to swing). On **Buttons**, nothing in first person asks you to swing or punch. Squeeze the right grip and the wrench swings, the game's own swing: squeeze again for the next blow, and in the air for its jump attack. Pull the trigger and the Walloper punches. As Giant Clank the right grip punches. Gloves are thrown by the trigger, the game's way; ledges are caught for you, as the game does it; the left stick swims. Your hands still aim the guns. The wrench shows in your hand as it swings, but it does not move with a swing your hand does not make. **Swing the wrench for real**, **Throw by hand**, **Grab ledges with your hands** and **Swim with your arms** keep what you set, for when you go back to **For real**.
+
+**From the owner's list**
+
+- **Swingshot anywhere** (new, More controls' first row: pause, VR Options, VR Controls, More controls; **Off** to start; testers' ideas). Where no Swingshot target of the game's is in reach, the whole level is one:
+  - **In your right hand** the Swingshot zips you to whatever wall or ground you aim it at, up to the 30 units the game's own pull reaches, as at a yellow target.
+  - **In your left hand** (Akimbo) it swings you from any point above your head, up to the game's 16 units, as at a green target.
+  - **Hold the trigger** to zip or swing, and **let go** to drop off. A zip let go midway now keeps its speed, as a swing let go does: the game would brake it at once.
+  - **Lean in your room** during a swing to push it that way, as the left stick does in the game's own swings.
+  - **One Swingshot in each hand** chains them: swing, let go, zip, and on.
+
+  The game does the moves itself: its hook, its pull, its swing and its rope, with a hidden target of the mod's put where you aim. So its rules hold: a blocked way drops you, as at its targets. The game's own targets come first, and **with the switch off the Swingshot is exactly the game's**. It does nothing on **Novalis**, the one level whose game code has no Swingshot moves (the game never fires it there). A pull or swing that stalls is let go after a moment, whatever the level, so it can never hold you in place.
+- **What's new, in the launcher.** The first time you open a new version, a box lists what changed, the biggest first. **What's new** on the Updates card shows it again.
+- **"Hide Ratchet's body" is gone from the launcher.** Switched off, it drew his whole model around your eyes in first person: the view inside or above his head, the gun floating, your hands no longer his (a tester's report on 0.1.12). Now his body is always fitted to you in first person, and how much of it you see is set by **Player body** and **Body parts** (VR Body). If you had switched it off, there is nothing to do: 0.1.13 no longer reads it. Your log now also starts with a `[vr-settings]` line naming the launcher's settings, and which of its switches are off, so a report shows what was set.
+- **Akimbo is on for everyone.** **Akimbo** (VR Options) now starts **On**, and a settings file from 0.1.12 or before that never had Akimbo changed switches to On once. If you had switched it off yourself, switch it off again: 0.1.12's files cannot tell a choice of Off from the start it was then. Nothing changes until you want it: the left hand stays empty, and your left trigger and grip do what they did, until you click the left stick and pick a gun from the left hand's ring. Pick the same gun again there to empty the hand. With Akimbo on, the right hand's weapon ring sits at the right edge of the HUD, to leave room for the left one, and its pages go from your own quick select layout to all you own, eight at a time, keeping your layout as it is.
+- **Empty hand angle goes to 65 down.** VR Hands' **Empty hand angle** now reaches 65 down (it stopped at 45), for hands that still feel turned too high with nothing in them (a tester's ask). It still goes to 45 up, in steps of 5, and your setting stays as it was. **Gun angle** is unchanged.
+- **An angle for each weapon, the Swingshot too.** VR Hands has a new last row named after the item you last drew, such as **Swingshot angle** or **Blaster angle**: 60 down to 60 up, in steps of 5, for that item alone, in either hand, on top of **Gun angle**. For a gun it turns how the gun sits in your hand and where it fires, together. For the **Swingshot** it turns only the housing on your wrist: the hook still flies where your controller points. So if the housing looks tilted away from where the hook goes (a tester found it "a bit wild"), turn it until the two line up. **Gun angle** could not do that: it turns where the hook flies, but not the housing. Every item starts at **Default**, so nothing changes until you set one. The wrench and the gloves have no angle of their own.
+- **The whole body is the start.** **Body parts** (VR Body) now starts on **Everything**. **A settings file from 0.1.12 or before that never had Body parts changed switches to Everything once.** Any other choice you made stays. If you had picked **Arms only** yourself, pick it again: 0.1.12's files cannot tell a choice of Arms only from the start it was then. As Clank, Everything shows his body too: walking, it can come into the bottom of your view and cover his left hand. **Arms only** shows his hands alone, as 0.1.12 did. Giant Clank looks the same either way.
+- **Fingers in the shadow.** With **Shadow matches what you see** (Graphics, on), each of Ratchet's fingers and his thumb now casts its own shadow, bent as you bend yours, with the palm between them and the wrist. The hand was one rounded block before. The shadow is still the game's: its shapes along his bones, not his exact outline.
+- **His head in the shadow.** In first person the head is still not drawn, so it never gets in your view, but it now casts its shadow, turned as you turn and tilt your head. It shows with the torso: Everything, Body and legs, Body and arms.
+- **The left grip is free with Physical crouch.** With **Physical crouch** on, in first person and on foot, the left grip no longer crouches or works the packs: your left hand only closes, for a fist or a grab. Lower your head to crouch. The **left trigger** still does all the grip did: crouch, long and high jumps, the packs. With **Akimbo** and a gun in the left hand, the trigger fires that gun, so the grip stays the crouch there. With Physical crouch off, nothing changes.
+- **Climb a ledge by pulling yourself up.** Hanging on, draw a holding hand down toward your chest at an easy pace, the left, the right or both, and Ratchet climbs. Before, only a fast push down with both hands at once counted, so a slower or one-handed pull did nothing and A was the only way up (the owner's logs). The fast push and A still work. A climb asked for while you slide along the ledge now waits for the slide to end, instead of being lost.
+- **Shooting on rails and cables, checked.** Grinding, the right hand's gun fires (the game allows it) and, with **Akimbo**, the left hand's too. On a cable the right hand holds the wrench on the cable, as in the game; with Akimbo the left gun fires all the way along. Nothing had to change for this.
+- **The wrench stays on the right grip.** A grab from the chest or the hip was looked at. The wrench is Rerac-vr's: held only while the grip is squeezed, thrown by letting go mid-swing, put away by letting go slowly. A second way to take it out would clash with all three, and with the two-handed hold and the ledges on the same grip, so it is left as it is.
+
+**Tested for 0.1.13 on PC only** (the PAL disc and a simulated headset; none of it has run on a Quest yet):
+- **Ledges:** the pull up climbed with both hands, with the left hand alone, and in the middle of a slide, where it waited and then climbed. The fast push, A and letting go to drop still work, and the earlier ledge runs give what they did.
+- **Rails and cables:** on Oltanis's rail both guns fired while he ground, on both stretches. On Kerwan's cable the left gun fired all the way along.
+- **The left grip:** with Physical crouch on, holding it gave no crouch, and the trigger still crouched and high-jumped.
+- **Settings files:** files from 0.1.12 switched to Everything once; other choices stayed.
+- **The shadow:** with **Shadow matches what you see** on, it showed the fingers, and the head turning with the view. With it off, the game's own shadow is as before.
+- **The tester's notes:** hanging on a ledge, hands held out to the right shimmied him right, to the left left; **Pull** shimmied the 0.1.12 way; the left stick shimmied both ways. With Akimbo, the left hand on the ledge put its gun away. With the Pyrocitor in the left hand, switching the right hand's Bomb Glove to the wrench and back twice, the ammo box ended on the glove's each time. On the map, A opened the missions page with no infobot, and the trigger played the infobot. **Menu pointer:** the left trigger at the menu moved the pointer to the left hand and picked nothing; on **Left hand**, its trigger opened Options, then VR Options. Landing on Aridia and Kerwan, the view stayed at the seat's height. **Hide black bars:** at the start of Oltanis's grind race the game's bars were not drawn, in first person and in third; **Off**, they were, in both.
+- **Arm moves on Buttons:** by a crate, the grip swung the wrench twice and broke it; at the top of a jump the grip gave the jump attack; fast swings with the grip open did nothing; the trigger brought the Blaster back, then fired it. The Walloper's trigger lunged and broke a crate, and a real punch did nothing. As Giant Clank the grip gave the game's punch. The Bomb Glove threw one bomb a pull; a fall by a ledge was caught with the hands doing nothing; at a bolt the grip seated the wrench. No swing, throw, ledge grab or stroke was taken from the hands. Not run on PC: swimming with the left stick on Buttons, and little Clank's punch.
+- **Everything else:** the Akimbo, wrench, Walloper, throw, swimming, Giant Clank, Swingshot, ledge, scene, menu, map, VR Hands and vendor runs gave what they did before, with the new lines above.
+
 ## New in 0.1.12
 
 Two testers' lists and the owner's own, worked through, a body and hands of your own, and **mod support**: OpenRAC's mods in the launcher, five of them built in, and more from a file. Thanks for the videos and the logs.
@@ -162,9 +216,9 @@ More on screen costs some frame rate: if a planet got less smooth, tell us which
 ## Install
 
 1. Put your Quest in **Developer Mode** (in the Meta Horizon app on your phone).
-2. Get `RatchetQuestVR-0.1.12.apk` onto the headset and install it. Either:
+2. Get `RatchetQuestVR-0.1.13.apk` onto the headset and install it. Either:
    - download it in the Quest's browser (or email it to yourself and download it there) and open it from the **Files** app, or
-   - sideload it with SideQuest or `adb install -r RatchetQuestVR-0.1.12.apk`.
+   - sideload it with SideQuest or `adb install -r RatchetQuestVR-0.1.13.apk`.
 3. Open **Ratchet & Clank Quest VR** from your Library's **Unknown Sources**.
 4. Copy your `.iso` to the headset's **Download** folder and choose it in the launcher. The first set-up copies the disc and prepares the levels: **up to half an hour, once. Keep the headset on charge.**
 5. Press **PLAY IN VR**. **Play in 2D** puts the game on a big flat screen, played with the Touch controllers as a PlayStation pad: if VR fails, try it and tell us, as it separates a game problem from a VR problem.
@@ -181,6 +235,7 @@ The log holds your headset's model and Android version, the game's own log, why 
 
 **Most useful right now:**
 
+- **0.1.13's changes:** whether an easy pull up a ledge climbs when you mean it, and only then; the left grip with Physical crouch; the whole body as the start (as Ratchet and as Clank); the shadow's fingers and head.
 - **With the US disc (NTSC-U):** buying the Heli-Pack from Big Al on Kerwan, loading a save, and any log from that disc.
 - **The Swingshot:** which way it faces, its size after swaps, any buzz that will not stop.
 - **Two-handed guns while walking**, and whether **Empty hand angle** gets your hands right.
@@ -193,14 +248,14 @@ The log holds your headset's model and Android version, the game's own log, why 
 - If a bar in the headset says a controller is missing, tell us.
 - Anything that crashes, freezes or leaves you stuck: the log says why far more often than not.
 
-The full list of what to try is in [docs/HEADSET_CHECKLIST.md](https://github.com/moistman42069/RatchetAndClank-Quest-VR/blob/v0.1.12/docs/HEADSET_CHECKLIST.md).
+The full list of what to try is in [docs/HEADSET_CHECKLIST.md](https://github.com/moistman42069/RatchetAndClank-Quest-VR/blob/v0.1.13/docs/HEADSET_CHECKLIST.md).
 
 ## What is in it
 
 Rerac-vr's design, rebuilt on OpenRAC so that a headset can run it:
 
 - **First person** through Ratchet's eyes at his height, or **third person** from the game's camera. Switch at any time in **VR Options**.
-- **Your hands are his hands.** Real wrench swings, throws and Hyper Strikes; guns that aim where your hand points; thrown bombs, mines and Decoys; a real punch for the Walloper; two-handed heavy weapons; **Akimbo** (off by default). His arms bend to your controllers, his fingers follow yours, and all of it stops at the world's walls.
+- **Your hands are his hands.** Real wrench swings, throws and Hyper Strikes; guns that aim where your hand points; thrown bombs, mines and Decoys; a real punch for the Walloper; two-handed heavy weapons; **Akimbo** (on by default from 0.1.13). His arms bend to your controllers, his fingers follow yours, and all of it stops at the world's walls.
 - **Moving with your body.** Grab ledges with your hands and climb, swim with your arms, turn bolt cranks by walking round them, plug in the Hydrodisplacer and Trespasser by pushing them in, walk around your room, crouch by crouching.
 - **Levels and vehicles.** Hand-aimed turrets, the hoverboard ridden side-on and steered about its own heading, grind rails with a smooth view, flown ships from the cockpit, cable slides.
 - **Clank and Giant Clank** in first person with their own hands and fists, and the Hologuise.
@@ -222,10 +277,10 @@ Rerac-vr's design, rebuilt on OpenRAC so that a headset can run it:
 | Y | Pause; skips a cutscene |
 | Right trigger | Fire; with the wrench in hand, takes your last gun back out |
 | Right grip | Takes the wrench out; swing your hand for real to hit, let go mid-swing to throw |
-| Left grip or trigger | Crouch, and the packs (with A: long and high jumps, flips). Lowering your head crouches too |
-| A grip by an edge | Grab a ledge; push both hands down or press A to climb; let go of both to drop |
+| Left grip or trigger | Crouch, and the packs (with A: long and high jumps, flips). Lowering your head crouches too; with **Physical crouch** on, the trigger alone (the grip is your hand's) |
+| A grip by an edge | Grab a ledge; pull yourself up (a holding hand, or both, drawn down toward you), push both hands down fast or press A to climb; let go of both to drop |
 | Right stick click | Talk; hold for quick select, move your right hand towards a weapon, let go |
-| Left stick click | With Akimbo on: the left hand's own quick select |
+| Left stick click | With Akimbo (on by default): the left hand's own quick select |
 | Left menu button | Recentre (the headset's own recentre too) |
 
 **Menus:** point with your right hand and pull the trigger or press A. B goes back. **Hoverboard:** left stick steers, left trigger boosts, right trigger shoots, A jumps, right stick for tricks. The whole list is in the launcher's **Controls** tab.
@@ -238,7 +293,7 @@ In the game: pause, **Options**, **VR Options** (or **VR Options** on the title'
 
 **On a real Quest (a Quest 3):** on 0.1.2 both controllers bind, walking works, and the first level plays, at about 60 to 70 frames a second against the headset's 72 Hz. The launcher's update has worked from 0.1.2 to 0.1.3, and 0.1.4 starts after an update. Most of the game has yet to be played on one.
 
-**On PC, with the PAL disc and a simulated headset:** menus, saving and loading, vendors, weapons, wrench, ledges, swimming, cranks, turrets, Clank and Giant Clank, scenes, the hoverboard on Rilgar and Kalebo III, grind rails, Kerwan's cable, and flying the ships of Pokitaru and the fleet. The full table is in [docs/STATUS.md](https://github.com/moistman42069/RatchetAndClank-Quest-VR/blob/v0.1.12/docs/STATUS.md). A simulated headset proves that a feature runs, not how it feels: aim angles, comfort and haptics need real hands.
+**On PC, with the PAL disc and a simulated headset:** menus, saving and loading, vendors, weapons, wrench, ledges, swimming, cranks, turrets, Clank and Giant Clank, scenes, the hoverboard on Rilgar and Kalebo III, grind rails, Kerwan's cable, and flying the ships of Pokitaru and the fleet. The full table is in [docs/STATUS.md](https://github.com/moistman42069/RatchetAndClank-Quest-VR/blob/v0.1.13/docs/STATUS.md). A simulated headset proves that a feature runs, not how it feels: aim angles, comfort and haptics need real hands.
 
 **On a real Quest with the NTSC-U disc:** one tester's run on 0.1.5: the game started, the VR mod did not load (fixed in 0.1.6, checked against the disc's tables, not yet played).
 
@@ -249,6 +304,8 @@ In the game: pause, **Options**, **VR Options** (or **VR Options** on the title'
 - **Frame rate:** the first level ran at about 60 to 70 frames a second on 0.1.4, and about 57 on 0.1.6, under the headset's 72 Hz, so it may not look perfectly smooth. 0.1.7's Max draw distance draws more again and has not yet been measured on a Quest: switch it off in the launcher's Graphics tab if a planet gets less smooth. 120 Hz is tried at the start and falls back to 72 Hz. Improving this is next. A tester's log on the US disc showed **47 to 60 frames a second on Aridia, 48 on average**. The log's `[vr-perf]` lines now also say how many of the game's line tests your hands, fingers and the menu pointer ask each tick, and how long they take (on PC about 8 a tick, 0.03 ms, while pushing against the world): please send a log either way.
 - **Feet slide when you walk around your room:** the steps move Ratchet without his walk, so his feet slide along the ground.
 - **Cutscenes seen through Ratchet's eyes can show an odd view for a moment.** With **Cutscenes** on **Through his eyes** (the default), your eyes ride on the scene's own Ratchet, even in a shot where the game's camera is looking somewhere else. The game never shows him in those shots, so he can be standing below the ground or off to one side, and for that moment you see the level from underneath or from the wrong place. It is only the view: the scene plays and ends as normal. We saw it once on PC, in a Novalis scene that the test started out of its place in the story. If it happens, press **X**: the scene goes on **In VR**, from the game's own camera, and X again puts it **On a screen** (On a screen was checked in that scene on PC). VR Options' **Cutscenes** row and the launcher's **VR** tab set it too, and Y skips the scene.
+- **Sat down after starting? Recentre.** **Physical crouch** measures from your height when you last recentred. Sit down after that and Ratchet crouches each time you stand still, as if you were crouching (a tester's log: 66 cm below standing). Press the **left menu button** once you are seated, or play with Physical crouch off (VR Controls).
+- **A gun held against the crates you hang from breaks them.** Its first shot (or the Pyrocitor's flame) breaks the crate under your hand, and you fall with it, as the game's crates go. Hold the gun out, away from what you hang from: held above the stack on PC, he hung on through 33 shots, until the test let go. Nothing in 0.1.13 changed this.
 - **A full list of things can still stop the game** at a place in the game other than the scenes fixed here, if the list fills there. The fixes in this release keep it from filling on Kerwan; tell us where it happens, with your log.
 - VR Options' rows sit close together (about 10 cm on the menu), closer than in Rerac-vr. Tell us if the pointer picks the wrong row.
 - A crooked hoverboard landing is straightened instead of throwing you off, as in Rerac-vr, but how much that helps is unproven.
@@ -262,7 +319,7 @@ In the game: pause, **Options**, **VR Options** (or **VR Options** on the title'
 
 ## Credits and licence
 
-Built on **[Rerac-vr](https://github.com/npiriou/Rerac-vr)** by npiriou, the main base of this project and its VR design (ISC), and on **[OpenRAC](https://github.com/OpenRAC/OpenRAC)** and [rac1-mods](https://github.com/OpenRAC/rac1-mods) (GPL-3.0-or-later). Thanks also to the [ReRAC](https://github.com/re-rac/rerac) team. Full [credits](https://github.com/moistman42069/RatchetAndClank-Quest-VR/blob/v0.1.12/CREDITS.md) and [third-party notices](https://github.com/moistman42069/RatchetAndClank-Quest-VR/blob/v0.1.12/THIRD_PARTY_NOTICES.txt).
+Built on **[Rerac-vr](https://github.com/npiriou/Rerac-vr)** by npiriou, the main base of this project and its VR design (ISC), and on **[OpenRAC](https://github.com/OpenRAC/OpenRAC)** and [rac1-mods](https://github.com/OpenRAC/rac1-mods) (GPL-3.0-or-later). Thanks also to the [ReRAC](https://github.com/re-rac/rerac) team. Full [credits](https://github.com/moistman42069/RatchetAndClank-Quest-VR/blob/v0.1.13/CREDITS.md) and [third-party notices](https://github.com/moistman42069/RatchetAndClank-Quest-VR/blob/v0.1.13/THIRD_PARTY_NOTICES.txt).
 
 Please **report bugs in this port here**, not to Rerac-vr, ReRAC or OpenRAC.
 
@@ -272,4 +329,4 @@ This is free software under GPL-3.0-or-later, without any warranty. The source o
 
 | File | SHA-256 |
 | --- | --- |
-| `RatchetQuestVR-0.1.12.apk` (version code 13, 48 MB) | `2f61bd7448ea622259a62085a6581df7c5f380c5c49fdb34bef001d32515c3ff` |
+| `RatchetQuestVR-0.1.13.apk` (version code 14, 48 MB) | `01ebbad514e8eecb37bdbaf9fdbcd00a8fff292a1a033a4ea55960e9cfa62181` |

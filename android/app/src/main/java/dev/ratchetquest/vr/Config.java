@@ -118,9 +118,10 @@ final class Config {
         new String[] {"0.8", "1", "1.2"}, "1");
     static final Choice HAND_AIM = new Choice("hand_aim", "Aim with your right hand",
         "On: Ratchet faces where your hand points. Off: where you look.", ON_OFF, TRUE_FALSE, "true");
-    static final Choice HIDE_BODY = new Choice("hide_body", "Hide Ratchet's body",
-        "In first person: Ratchet, Clank and the pack on his back. The weapon in your hand stays.",
-        ON_OFF, TRUE_FALSE, "true");
+    // "Hide Ratchet's body" (hide_body, to 0.1.12) is gone, from the mod and its manifest too: Off drew his whole model
+    // around the eyes in first person, the view inside or above his head and the weapon floating, with all of VR Body's
+    // fitting off (a tester's report, 2026-11-05). His body in first person is VR Body's Player body and Body parts. A
+    // value 0.1.12 saved for it stays in the preferences, never read nor passed to the game.
     static final Choice HAND_WEAPON = new Choice("hand_weapon", "Weapon in your right hand",
         "In first person. Off leaves it where the game draws it.", ON_OFF, TRUE_FALSE, "true");
     static final Choice THROW_BY_HAND = new Choice("throw_by_hand", "Throw bombs, mines and Decoys by hand",
@@ -136,7 +137,7 @@ final class Config {
         ON_OFF, TRUE_FALSE, "true");
     static final Choice SHOW_HANDS = new Choice("show_hands", "Ratchet's hands",
         "See Ratchet's forearms and hands at your controllers; they close with the grips and hold what you hold. "
-            + "Needs Ratchet's body hidden. Off: only what you hold is seen.",
+            + "Off: only what you hold is seen.",
         ON_OFF, TRUE_FALSE, "true");
     static final Choice GRAB_LEDGES = new Choice("grab_ledges", "Grab ledges with your hands",
         "Squeeze the grips near a ledge to hold it. Let go with both to drop; shove down with both, or press A, to climb; "
@@ -175,7 +176,7 @@ final class Config {
     static final Choice HAPTICS = new Choice("haptics", "Vibration", "", ON_OFF, TRUE_FALSE, "true");
     static final Choice[] VR = {VIEW, CUTSCENES, TURN, SNAP, SMOOTH, WORLD, HUD, HAND_AIM, HAND_WEAPON, THROW_BY_HAND,
         SWING_WRENCH, TWO_HANDED, SHOW_HANDS, GRAB_LEDGES, PUZZLE_OVER_TOOL, SHOP_ON_FOOT, MENU_IN_WORLD, ROOM_SCALE,
-        SWIM_STROKES, SOLID_HANDS, WALL_FEEL, SPARKLES_IN_WORLD, HIDE_BODY, GLYPHS, HAPTICS};
+        SWIM_STROKES, SOLID_HANDS, WALL_FEEL, SPARKLES_IN_WORLD, GLYPHS, HAPTICS};
 
     private static final String KEY_FAR_SCENERY = "far_scenery_moved";
 
@@ -275,7 +276,6 @@ final class Config {
             settings.put("hud_scale", Double.parseDouble(get(HUD)));
             settings.put("haptics", Boolean.parseBoolean(get(HAPTICS)));
             settings.put("hand_aim", Boolean.parseBoolean(get(HAND_AIM)));
-            settings.put("hide_body", Boolean.parseBoolean(get(HIDE_BODY)));
             settings.put("hand_weapon", Boolean.parseBoolean(get(HAND_WEAPON)));
             settings.put("throw_by_hand", Boolean.parseBoolean(get(THROW_BY_HAND)));
             settings.put("swing_wrench", Boolean.parseBoolean(get(SWING_WRENCH)));

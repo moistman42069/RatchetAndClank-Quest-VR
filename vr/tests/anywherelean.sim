@@ -1,0 +1,21 @@
+# Swingshot anywhere, a swing leaned into (Akimbo; QUEST_VR_OPTIONS="swing_anywhere 1", QUEST_SIM_GIVE=15,12
+# QUEST_SIM_HOLD=15 QUEST_SIM_LEFT=12, at Kerwan's start, a tunnel): anywhereleft.sim's swing from the arch, frame for
+# frame, with the head 12 cm to the right once the hook has held and the swing's first 40 ticks are past:
+# [vr-swing] "leaning into the swing: 12 cm", and its swinging lines part from anywhereleft's toward that side.
+600 y 1
+606 y 0
+3000 shot before
+3100 hand_pitch -5
+3150 left_trigger 1
+3250 left_trigger 0
+3300 hand_pitch 40
+3320 shot up-before
+3400 left_trigger 1
+3430 shot up-1
+3470 head_x 0.12
+3500 shot up-2
+3600 shot up-3
+3700 left_trigger 0
+3720 shot let-go
+3800 shot after
+3900 quit 0

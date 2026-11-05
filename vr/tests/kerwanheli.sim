@@ -1,0 +1,19 @@
+# A tester's 0.1.12 videos (2026-11-05): on Kerwan with the Heli-Pack on his back, the eyes above Ratchet's head, his
+# body and Clank drawn, the wrench floating at the hand. The same place on PC: level 3, the Heli-Pack given
+# (QUEST_SIM_GIVE=2), standing, the wrench out, looking ahead and down; then walking.
+600 y 1
+606 y 0
+2400 shot ahead
+2450 head_pitch -60
+2500 shot down
+2550 right_grip 1
+2650 shot wrench
+2700 head_pitch -85
+2750 shot feet
+2800 head_pitch 0
+2850 left_y 1
+3050 left_y 0
+3100 shot walked
+3150 head_pitch -60
+3200 shot walked-down
+3300 quit 0

@@ -1,0 +1,26 @@
+# The ammo box through a tester's 0.1.12 switches (0.1.13): the Bomb Glove in the right hand, the Pyrocitor in the left
+# (QUEST_SIM_GIVE=16,10 QUEST_SIM_HOLD=10 QUEST_SIM_LEFT=16), on Novalis, QUEST_AMMO_TRACE=1. The left gun fires: the
+# box is the Pyrocitor's (left-fired). The grip takes the wrench out and puts it away, and the trigger takes the glove
+# back out: the hand is empty for a tick between, which in 0.1.12 flipped the box to the left gun's and back and left
+# the Pyrocitor's on the screen. Now the box is the glove's again (glove-back), and the same again (again-back); no
+# "[vr-akimbo] the ammo box still showed" line is needed for it, and the trace's last box is the hand's.
+600 y 1
+606 y 0
+3000 shot held
+3100 left_trigger 1
+3200 left_trigger 0
+3300 shot left-fired
+3350 right_grip 1
+3420 right_grip 0
+3480 right_trigger 1
+3486 right_trigger 0
+3640 shot glove-back
+3700 left_trigger 1
+3760 left_trigger 0
+3800 shot left-again
+3840 right_grip 1
+3880 right_grip 0
+3900 right_trigger 1
+3906 right_trigger 0
+4060 shot again-back
+4100 quit 0

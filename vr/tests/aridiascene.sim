@@ -1,0 +1,21 @@
+# A scene on Aridia where a tester's 0.1.12 log had one (level 2, Ratchet at 250.8 270.8 24.9 as it began): put there
+# (QUEST_SIM_AT), the scene through his eyes, a shot every 100 frames, for the camera under the level and the one who
+# talks to him vanishing or sinking (the tester's words).
+600 y 1
+606 y 0
+2000 shot s2000
+2100 shot s2100
+2200 shot s2200
+2300 shot s2300
+2400 shot s2400
+2500 shot s2500
+2600 shot s2600
+2700 shot s2700
+2800 shot s2800
+2900 shot s2900
+3000 shot s3000
+3200 shot s3200
+3400 shot s3400
+3600 shot s3600
+3800 shot s3800
+4000 quit 0

@@ -1,0 +1,61 @@
+1.  Swingshot anywhere (new, Off to start). Switch it on in the game: pause, VR Options, VR Controls, More
+    controls, first row. Where there is no Swingshot target in reach, the whole level is one. In your right
+    hand it zips you to whatever wall or ground you aim it at; in your left hand (Akimbo) it swings you from any
+    point above your head. Hold the trigger to zip or swing, let go to drop off: a zip let go midway keeps your
+    speed, as a swing does. Lean in your room to push a swing. One in each hand: swing, let go, zip, and on. The
+    game's own targets work as before, and with it off the Swingshot is the game's. Not on Novalis, whose game
+    has no Swingshot moves.
+
+2.  Arm moves (new, More controls, For real to start). On Buttons, nothing asks you to swing: squeeze the right
+    grip to swing the wrench (again for the next blow, and in the air for the jump attack), pull the trigger to
+    punch with the Walloper, and as Giant Clank the grip punches. The trigger throws a glove's bomb, ledges are
+    caught for you and the left stick swims. Your hands still aim. For hands and wrists that hurt to swing.
+
+3.  Shimmy along a ledge the way you reach. Hanging on, hold your hands out to the right to go right, to the
+    left to go left. The left stick shimmies too. Ledge shimmy (More controls) brings back the old way, Pull.
+    The hand holding the ledge puts its gun away until it lets go: no gun floating over your hands.
+
+4.  Hide black bars (More controls, On). No black bars at the top and bottom in the game's short scenes
+    during play, such as the start of Oltanis's grind race, in first or third person. Off gives the game's
+    own back.
+
+5.  Point with either hand in menus. Menu pointer (More controls): Both hands, the start, points with the
+    right hand until you pull the left trigger at the menu, and then with the left until you pull the right
+    one; that pull only moves the pointer. Right hand or Left hand keeps it on one. While the left points, its
+    trigger picks and the right grip and trigger turn the pages.
+
+6.  The map's two buttons. A shows the planet's missions and the trigger plays its infobot, as their icons
+    say. Before, both played the infobot.
+
+7.  The ammo box follows your gun again after switching between two weapons, such as the Pyrocitor and the
+    Bomb Glove, where it could stay on the left hand's gun.
+
+8.  Climbing out of your ship, the view no longer dips through the hull: it stays at the seat's height until
+    Ratchet jumps out.
+
+9.  Akimbo is on for everyone. Click the left stick and pick a gun to hold one in each hand; pick it again to
+    empty the hand. Until you do, your left hand, trigger and grip work as before.
+
+10. Climb ledges by pulling yourself up. Hanging on, draw a holding hand down toward your chest, one hand or
+    both. The quick push down and A still climb.
+
+11. Checked: grinding a rail, either hand's gun fires; on a cable, the left hand's (Akimbo), the right holding on.
+
+12. An angle for each weapon, the Swingshot too. VR Hands' last row is named after the item you last drew,
+    such as "Swingshot angle": it turns that item alone in your hand, on top of Gun angle. For the Swingshot it
+    turns the housing on your wrist, so you can line it up with where the hook flies.
+
+13. The whole body to start. Body parts (VR Body) now starts on Everything. A choice you made yourself stays.
+
+14. Fingers and head in the shadow. With "Shadow matches what you see" on, each finger and your head cast their
+    own shadow.
+
+15. The left grip only closes your hand with Physical crouch on. Lower your head to crouch, or use the left
+    trigger, which still does all the grip did.
+
+16. Empty hand angle (VR Hands) now goes to 65 down.
+
+17. VR Controls' last rows can be reached: the page now ends with More controls, which holds them. Before, the
+    last four could not be reached.
+
+18. "Hide Ratchet's body" is gone from the VR tab. Switched off, it put your view inside his head.
