@@ -1,0 +1,29 @@
+# Swingshot anywhere, the fling in a swing (Akimbo; QUEST_VR_OPTIONS="swing_anywhere 1", QUEST_SIM_GIVE=12 QUEST_SIM_HOLD=12
+# QUEST_SIM_LEFT=12, at Kerwan's start, a tunnel): a swing by the left hand from the arch, and in it the hand yanked back, about
+# 4 m/s: [vr-swing] "a fling out of the swing", his speed above the game's 22, and a tunnel's walls still stop him: he is never
+# past its ceiling (62.7) or floor (54.5). A slow hand does nothing. Let go, the speed goes on.
+600 y 1
+606 y 0
+3000 shot before
+3400 hand_pitch 40
+3500 left_trigger 1
+3560 lh_z 0.07
+3561 lh_z 0.14
+3562 lh_z 0.21
+3563 lh_z 0.28
+3564 lh_z 0.35
+3565 lh_z 0.42
+3590 lh_z 0.41
+3591 lh_z 0.40
+3592 lh_z 0.39
+3593 lh_z 0.38
+3640 lh_z 0.31
+3641 lh_z 0.24
+3642 lh_z 0.17
+3643 lh_z 0.10
+3644 lh_z 0.03
+3645 lh_z 0
+3700 shot swung
+3720 left_trigger 0
+3800 shot after
+3950 quit 0

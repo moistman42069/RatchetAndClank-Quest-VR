@@ -1,0 +1,27 @@
+# Wall run and jump, from a zip (QUEST_VR_OPTIONS="swing_anywhere 1\nwall_moves 1", QUEST_SIM_GIVE=12 QUEST_SIM_HOLD=12, at Kerwan's
+# start, a tunnel). A tester on 0.1.13: "Im zipping to walls and just kinda hitting them then falling straight down". The right hand
+# aimed at the tunnel's side wall, the trigger held: "a pull to", then [vr-wall] "on the wall", and he stays up, no stick touched.
+# Looking back along the tunnel, the jump button: "a wall jump", its way the look's, and when he lands "came down", a degree or two off
+# its way. The second zip's arrival has the stick along the wall: "a wall run", still going level after a second.
+600 y 1
+606 y 0
+3000 shot before
+3400 hand_yaw 75
+3410 hand_pitch 22
+3420 head_yaw 75
+3500 right_trigger 1
+3620 right_trigger 0
+3640 shot on-the-wall
+3660 head_yaw 150
+3670 a 1
+3676 a 0
+3690 shot leapt
+3900 head_yaw 75
+3910 hand_yaw 75
+3920 hand_pitch 22
+4000 right_trigger 1
+4040 left_x -1
+4120 right_trigger 0
+4160 shot running
+4300 left_x 0
+4500 quit 0

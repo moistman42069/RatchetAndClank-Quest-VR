@@ -6,6 +6,7 @@ A release is what the launcher's updater installs (`UpdatePolicy.java`), so its 
 | --- | --- |
 | Tag | `vX.Y.Z`, the APK's `versionName` with a `v` |
 | APK asset | `RatchetQuestVR-X.Y.Z.apk`, exactly (`tools/build_quest.py` names it so) |
+| PC asset | `RatchetQuestVR-X.Y.Z-windows.zip`, exactly (`tools/build_pc.py --package` names it so; the PC launcher looks for it, `UpdatePolicy.pcAsset`), at most 1 GB |
 | Release | Published, not a draft and not a pre-release: the updater reads GitHub's *latest* release only |
 | `versionCode` | Higher than the last release's |
 | Signing key | The project's release key, whose certificate is `tools/release-cert.sha256` |
@@ -31,7 +32,7 @@ one in `tools/release-cert.sha256`.
    ```sh
    source env.sh
    python tools/build_quest.py --release          # android/build/RatchetQuestVR-X.Y.Z.apk
-   python tools/build_pc.py                        # the game and the mod for the PC test
+   python tools/build_pc.py --package              # both games, the mod, the PC launcher: pc/build/RatchetQuestVR-X.Y.Z-windows.zip
    OPENRAC_DIRECT=1 bash vr/tests/pc_run.sh t2 --level 1   # the real game, a simulated headset
    ```
    Look at the shots in `C:\RACQuest\pc\out\t2` and the `[vr-…]` lines in its `stdout.txt`.
@@ -40,18 +41,23 @@ one in `tools/release-cert.sha256`.
    either disc. Such a disc refuses the whole mod and the headset stays black, as on the US disc
    from 0.1.2 to 0.1.5.
 4. Test the APK on a headset: a fresh install and set-up, an update over the last release (its
-   set-up and saves kept), Play in VR, the 2D test.
+   set-up and saves kept), Play in VR, the 2D test. The PC zip: `--package` runs the launcher's
+   `--self-test` on the folder it made (options, mods, the update script, what the folder carries);
+   then unzip it, open `RatchetClankVR.exe`, set up from a disc and play, in VR and in 2D. With no
+   headset, `vr/tests/pcvr_null.ps1` runs the game under SteamVR's simulated one.
 5. Commit, tag and push:
    ```sh
    git tag vX.Y.Z && git push origin main vX.Y.Z
    ```
 6. Publish, with the checksums:
    ```sh
-   cd android/build && sha256sum RatchetQuestVR-X.Y.Z.apk > SHA256SUMS.txt
-   gh release create vX.Y.Z RatchetQuestVR-X.Y.Z.apk SHA256SUMS.txt \
-     --title "Ratchet & Clank Quest VR X.Y.Z" --notes-file ../../docs/release-notes.md
+   cp pc/build/RatchetQuestVR-X.Y.Z-windows.zip android/build/
+   cd android/build && sha256sum RatchetQuestVR-X.Y.Z.apk RatchetQuestVR-X.Y.Z-windows.zip > SHA256SUMS.txt
+   gh release create vX.Y.Z RatchetQuestVR-X.Y.Z.apk RatchetQuestVR-X.Y.Z-windows.zip SHA256SUMS.txt \
+     --title "Ratchet & Clank VR X.Y.Z" --notes-file ../../docs/release-notes.md
    ```
-   GitHub records each asset's SHA-256 itself, which the updater checks the download against.
+   GitHub records each asset's SHA-256 itself, which both updaters check the download against. The PC
+   launcher installs only a release that has the zip: an APK-only release leaves PC players where they are.
 
 ## Release notes
 

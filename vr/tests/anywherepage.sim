@@ -1,12 +1,13 @@
-# Swingshot anywhere's row (More controls' first, 0.1.13): the way to VR Options as bodypage.sim goes, by the sticks with
-# the right controller off, eleven rows down to VR Controls; there eleven down to its last row, More controls, and A
-# opens it. Its first row stepped once: Swingshot anywhere On. Two down (past Ledge shimmy), Hide black bars stepped
-# right then left: "[vr-view] Hide black bars: off, the game's own", then "on". Two down (past Menu pointer),
+# The Moves page (More controls' first row, 0.1.14) and More controls: the way to VR Options as bodypage.sim goes, by the sticks with
+# the right controller off, eleven rows down to VR Controls; there eleven down to its last row, More controls, and A opens it. Its
+# first row is a button, Moves: A opens that page. Each row stepped: Swingshot anywhere On, Wall run and jump On, Swingshot reach twice
+# (No limit), Wrench throw distance Far, Wrench comes back When you call it. B back to More controls. Two down (past Ledge shimmy),
+# Hide black bars stepped right then left: "[vr-view] Hide black bars: off, the game's own", then "on". Two down (past Menu pointer),
 # Arm moves stepped: Buttons ("[vr-controls] Arm moves: Buttons"); five down, the page's last, Sparkles on the bolts
 # stepped: Off. B back to VR Controls. The [vr-swing] line says "Swingshot anywhere: on", the [vr-rig] lines arm moves
 # buttons, then sparkles_in_world off, and no line says a page has more rows than the port's 12; the run's
-# vr-options.txt keeps swing_anywhere 1, hide_bars 1 and button_moves 1. (0.1.12's VR Controls had 16 rows, and the port
-# shows 12 of a page: its last four could not be reached. 0.1.13's first try of this sim stopped at row 11 for that.)
+# vr-options.txt keeps swing_anywhere 1, wall_moves 1, swing_reach 2, wrench_far 1, wrench_stay 1, hide_bars 1 and button_moves 1. (0.1.12's
+# VR Controls had 16 rows, and the port shows 12 of a page: its last four could not be reached.)
 600 y 1
 606 y 0
 3000 y 1
@@ -90,36 +91,61 @@
 4880 a 1
 4892 a 0
 4990 shot more-top
-5000 left_x 1
-5012 left_x 0
-5030 left_y -1
-5042 left_y 0
-5060 left_y -1
-5072 left_y 0
-5090 left_x 1
-5102 left_x 0
-5130 left_x -1
-5142 left_x 0
-5170 left_y -1
-5182 left_y 0
-5200 left_y -1
-5212 left_y 0
-5230 left_x 1
-5242 left_x 0
-5270 left_y -1
-5282 left_y 0
-5310 left_y -1
-5322 left_y 0
+5000 a 1
+5012 a 0
+5100 shot moves-top
+5110 left_x 1
+5122 left_x 0
+5150 left_y -1
+5162 left_y 0
+5190 left_x 1
+5202 left_x 0
+5230 left_y -1
+5242 left_y 0
+5270 left_x 1
+5282 left_x 0
+5310 left_x 1
+5322 left_x 0
 5350 left_y -1
 5362 left_y 0
-5390 left_y -1
-5402 left_y 0
+5390 left_x 1
+5402 left_x 0
 5430 left_y -1
 5442 left_y 0
 5470 left_x 1
 5482 left_x 0
-5520 shot more-end
+5520 shot moves-end
 5530 b 1
 5542 b 0
-5640 shot back-controls
-5670 quit 0
+5640 shot more-again
+5650 left_y -1
+5662 left_y 0
+5690 left_y -1
+5702 left_y 0
+5730 left_x 1
+5742 left_x 0
+5770 left_x -1
+5782 left_x 0
+5810 left_y -1
+5822 left_y 0
+5850 left_y -1
+5862 left_y 0
+5890 left_x 1
+5902 left_x 0
+5930 left_y -1
+5942 left_y 0
+5970 left_y -1
+5982 left_y 0
+6010 left_y -1
+6022 left_y 0
+6050 left_y -1
+6062 left_y 0
+6090 left_y -1
+6102 left_y 0
+6130 left_x 1
+6142 left_x 0
+6180 shot more-end
+6190 b 1
+6202 b 0
+6300 shot back-controls
+6330 quit 0

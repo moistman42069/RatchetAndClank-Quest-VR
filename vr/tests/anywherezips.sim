@@ -1,0 +1,21 @@
+# Swingshot anywhere, zips in a chain, all with the right hand (QUEST_VR_OPTIONS="swing_anywhere 1",
+# QUEST_SIM_GIVE=12 QUEST_SIM_HOLD=12, at Kerwan's start, a tunnel). A tester on 0.1.13: "the right zip one only works
+# once in a chain. You can only use it again after touching the ground." Each zip is let go a few ticks into the pull,
+# and the trigger pulled again in the air: [vr-swing] says "a pull to" three times, each from higher than the floor.
+600 y 1
+606 y 0
+3000 shot before
+3400 hand_pitch 40
+3500 right_trigger 1
+3555 right_trigger 0
+3558 hand_pitch 20
+3562 right_trigger 1
+3564 shot zip-2
+3600 shot zip-2b
+3625 right_trigger 0
+3628 hand_pitch 30
+3632 right_trigger 1
+3634 shot zip-3
+3695 right_trigger 0
+3760 shot after
+3900 quit 0

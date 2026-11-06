@@ -23,6 +23,7 @@ enum Target { kTargetLeftEye = 0, kTargetRightEye = 1, kTargetPanel = 2, kTarget
 
 struct XrSettings {
     float refresh_hz = 0;        // 0: the headset's own
+    bool keep_refresh = true;    // stay at it where it is not held; false: back to 72 Hz after two slow 10 s spells
     float resolution = 1.0f;     // of the headset's recommended eye size
     int panel_width = 1024;
     int panel_height = 768;

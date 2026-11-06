@@ -1,0 +1,29 @@
+# A wrench waiting to be called, and the left hand's Swingshot taking the hand slot (QUEST_VR_OPTIONS="swing_anywhere 1;wrench_far 2;wrench_stay 1",
+# QUEST_SIM_GIVE=15,12 QUEST_SIM_HOLD=15 QUEST_SIM_LEFT=12, Kerwan's start). The right hand throws; "at rest". The left trigger leads: "left where
+# it is while the left hand leads", and a swing of the left hand (aimed up: state 0x2D). The wrench neither jumps to the hand nor hangs where the
+# hand was when the lead ends. Then the grip: "called back by the grip", caught, no stuck state.
+600 y 1
+606 y 0
+3200 shot ahead
+3250 right_grip 1
+3360 rh_z -0.07
+3361 rh_z -0.14
+3362 rh_z -0.21
+3363 rh_z -0.28
+3364 rh_z -0.35
+3364 right_grip 0
+3420 rh_z 0
+3500 shot resting
+3560 hand_pitch 40
+3600 left_trigger 1
+3700 shot leading
+3900 left_trigger 0
+4100 hand_pitch 0
+4200 shot after
+4400 right_grip 1
+4420 right_grip 0
+4500 shot coming
+4900 shot caught
+5000 right_grip 1
+5020 right_grip 0
+5100 quit 0

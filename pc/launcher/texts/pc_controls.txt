@@ -1,0 +1,27 @@
+On a PC the game asks your headset's software for each of these controllers, and the
+buttons above are where they are on a Touch controller. On the others:
+
+QUEST, QUEST PRO, PICO 4, PICO NEO 3, VIVE COSMOS, VIVE FOCUS 3, HP REVERB G2
+              As above: A, B, X, Y, the sticks, the triggers and the grips where they are
+              on a Touch controller. The menu button is the left one.
+
+VALVE INDEX   The right A and B are A and B; the left A and B are X and Y. Squeeze the
+              left touchpad firmly for the menu button (recentre).
+
+WINDOWS MIXED REALITY, SAMSUNG ODYSSEY
+              The sticks as above. Press the right touchpad for A, the left for X; the
+              right menu button is B, the left Y. The grips are buttons.
+
+VIVE WANDS    The touchpads are the sticks: touch to move and turn, press the right one
+              for A and the left one for X. The menu buttons are B and Y; the grips are
+              buttons.
+
+PLAYSTATION VR2, STEAM FRAME, DPVR AND OTHERS ON STEAMVR
+              SteamVR gives the game a controller it knows (most often the Touch or the
+              Index layout above) and maps your buttons onto it. To change any of them:
+              SteamVR, Settings, Controllers, Manage controller bindings, this game.
+
+Controllers that cannot feel a finger (Vive wands, Windows Mixed Reality): Ratchet's
+finger leaves the trigger until you pull it, and his thumb stays on the controller.
+The game's log says which controller each hand has ([openxr] left hand, right hand)
+and how many controller families your headset's software took.

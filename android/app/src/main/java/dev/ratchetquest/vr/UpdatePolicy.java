@@ -10,6 +10,8 @@ final class UpdatePolicy {
     static final String LATEST = "https://api.github.com/repos/" + REPOSITORY + "/releases/latest";
     static final String PAGE = "https://github.com/" + REPOSITORY + "/releases/latest";
     static final long MAX_APK = 256L * 1024 * 1024;
+    /** The PC release: the launcher, the game for both discs, the tools with their Python, the VR mod. */
+    static final long MAX_PC_ZIP = 1024L * 1024 * 1024;
 
     private UpdatePolicy() {}
 
@@ -32,6 +34,12 @@ final class UpdatePolicy {
     static String asset(String tag) {
         int[] version = tag != null && tag.startsWith("v") ? version(tag.substring(1)) : null;
         return version == null ? null : "RatchetQuestVR-" + tag.substring(1) + ".apk";
+    }
+
+    /** The PC release's zip a release tagged `vX.Y.Z` carries (tools/build_pc.py --package names it), or null. */
+    static String pcAsset(String tag) {
+        int[] version = tag != null && tag.startsWith("v") ? version(tag.substring(1)) : null;
+        return version == null ? null : "RatchetQuestVR-" + tag.substring(1) + "-windows.zip";
     }
 
     /** Whether the release tagged `tag` is newer than the installed `versionName`. */

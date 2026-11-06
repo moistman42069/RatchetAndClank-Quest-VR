@@ -1,0 +1,23 @@
+# Swingshot anywhere with one in each hand (Akimbo; QUEST_VR_OPTIONS="swing_anywhere 1", QUEST_SIM_GIVE=12
+# QUEST_SIM_HOLD=12 QUEST_SIM_LEFT=12, at Kerwan's start, a tunnel), as a tester chains them: a zip by the right, let go in the
+# air, a swing by the left from there, a zip by the right out of that. Shots: the left's hook stays home on its housing while the
+# right's flies (it flew too until 0.1.14); and the right's stays home on its housing while the left swings, even fired just after
+# the right's zip, its hook still on the way back (it hung in the air for all of the left's swing until 0.1.14).
+600 y 1
+606 y 0
+3000 shot before
+3400 hand_pitch 40
+3500 right_trigger 1
+3530 shot zip-out
+3565 shot zip-held
+3590 right_trigger 0
+3592 hand_pitch 60
+3596 left_trigger 1
+3600 shot swing-out
+3640 shot swing-held
+3700 left_trigger 0
+3702 hand_pitch 5
+3706 right_trigger 1
+3712 shot zip2-out
+3780 right_trigger 0
+4000 quit 0

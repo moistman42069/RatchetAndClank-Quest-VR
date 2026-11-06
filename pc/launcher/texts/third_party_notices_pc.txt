@@ -1,0 +1,22 @@
+THE PC RELEASE: WHAT IT CARRIES BESIDES THE ABOVE
+
+The launcher (RatchetClankVR.exe, app/)
+  This project's own, GPL-3.0-or-later (LICENSE).
+
+The Java runtime the launcher runs on (runtime/)
+  Eclipse Temurin 17 (OpenJDK), made smaller with jlink. GNU General Public License v2 with the
+  Classpath Exception. Its own notices are in runtime/legal.
+
+The Khronos OpenXR loader for Windows 1.1.63 (vr/lib/windows-x86_64/openxr_loader.dll)
+  Copyright (c) 2017-2026 The Khronos Group Inc. Apache-2.0 (licenses/openxr-loader-LICENSE.txt).
+
+CPython 3.12 for the set-up's tools (openrac/python/)
+  From python-build-standalone (Astral), release 20261009. Python Software Foundation License;
+  its own notices, and those of what it is built with, are in openrac/python.
+
+The Microsoft Visual C++ runtime beside the game (openrac/port/build/release/vcruntime140*.dll,
+msvcp140*.dll)
+  Redistributed as Microsoft's Visual Studio licence allows for an application's own folder.
+
+The bundled mods (mods/): difficulty, item-randomizer, ammo-max, xbox-icons, button-swap
+  OpenRAC/rac1-mods, built unchanged for Windows. GPL-3.0-or-later.

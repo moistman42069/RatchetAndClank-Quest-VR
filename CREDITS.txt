@@ -11,7 +11,8 @@ This app is a Quest port of Rerac-vr, npiriou's PC VR mod for Ratchet & Clank, a
 main base. From it come the VR design (first person, aiming and shooting with your hand, the weapon
 in your hand, quick select by reaching), the Touch controller layout, the comfort choices, the notes
 on the hero's items that let this app hide Ratchet and Clank in first person, and every VR feature
-still to come. On PC, play Rerac-vr itself. github.com/npiriou/Rerac-vr
+still to come. The PC build is this same Quest port on a PC; Rerac-vr is the original PC VR mod.
+github.com/npiriou/Rerac-vr
 ReRAC, the Rust rewrite of Ratchet & Clank that Rerac-vr builds on: the ReRAC contributors.
 github.com/re-rac/rerac
 

@@ -69,6 +69,24 @@ run akimbo-chosenoff t2 1 'QUEST_VR_OPTIONS=akimbo 0;akimbo_chosen 1;body 2'
 # step of the row (5 up) is the page's side of it.
 run emptyhand emptyhand 3
 run emptyhand-down emptyhand 3 'QUEST_VR_OPTIONS=empty_hand_angle -65' KEEP=1
+# 0.1.14: the start is 65 down (the owner's pick). A file of 0.1.13's 0, the start then, becomes 65 down once ("[vr-hand]
+# Empty hand angle: 0 was the start before 0.1.14"); 0 set on the page stays; another angle of an old file stays.
+run emptyhand-old emptyhand 3 'QUEST_VR_OPTIONS=empty_hand_angle 0'
+run emptyhand-zero emptyhand 3 'QUEST_VR_OPTIONS=empty_hand_angle 0;empty_hand_chosen 1'
+run emptyhand-oldchosen emptyhand 3 'QUEST_VR_OPTIONS=empty_hand_angle -30'
+# 0.1.14: the thumb on and off the controller, from the head and the side (KEEP=1: look at it), at the start and at 0.
+run thumb thumb 3 KEEP=1
+run thumb-zero thumb 3 'QUEST_VR_OPTIONS=empty_hand_angle 0;empty_hand_chosen 1' KEEP=1
+# 0.1.14: walking straight back does not slide him ahead as the stick is let go ("[vr-move] the stick let go", ahead
+# stays below 0 to the stop); the run forward and back, the strafe let go.
+run backwalk backwalk 3 QUEST_WALK_TRACE=1 QUEST_STATE_TRACE=1
+# 0.1.14: the first screens (the owner's "frame warping in the first screen ... like a credits area"): the copyright
+# lines and the title stand still in the room as the head turns and moves.
+run titlelook titlelook - QUEST_VIEW_TRACE=1 KEEP=1
+# 0.1.14: on foot in first person the left grip never crouches, Physical crouch off or on; the left trigger does
+# ("[sim] hero state" 4 only after the trigger).
+run gripcrouch-off gripcrouch 3 QUEST_STATE_TRACE=1 'QUEST_VR_OPTIONS=physical_crouch 0'
+run gripcrouch-on gripcrouch 3 QUEST_STATE_TRACE=1
 # 0.1.13: an item's own angle (VR Hands' last row; a tester's Swingshot was "a bit wild"): set on the page, and from
 # the file, the Swingshot's housing drawn 30 down while its hook still pulls; the Blaster's 20 up fires 20 up.
 run itemangle itemangle 3 $G=12 $H=12 KEEP=1
@@ -87,6 +105,54 @@ run anywhere-left anywhereleft 3 $G=15,12 $H=15 $L=12 QUEST_STATE_TRACE=1 'QUEST
 run anywhere-chain anywherechain 3 $G=12 $H=12 $L=12 QUEST_STATE_TRACE=1 'QUEST_VR_OPTIONS=swing_anywhere 1' KEEP=1
 run anywhere-letgo anywhereletgo 3 $G=12 $H=12 QUEST_STATE_TRACE=1 'QUEST_VR_OPTIONS=swing_anywhere 1' KEEP=1
 run anywhere-lean anywherelean 3 $G=15,12 $H=15 $L=12 QUEST_STATE_TRACE=1 'QUEST_VR_OPTIONS=swing_anywhere 1'
+run anywhere-zips anywherezips 3 $G=12 $H=12 QUEST_STATE_TRACE=1 'QUEST_VR_OPTIONS=swing_anywhere 1'
+run anywhere-zips2 anywherezips2 3 $G=12 $H=12 $L=12 QUEST_STATE_TRACE=1 'QUEST_VR_OPTIONS=swing_anywhere 1' KEEP=1
+run anywhere-zips3 anywherezips3 3 $G=12 $H=12 QUEST_STATE_TRACE=1 'QUEST_VR_OPTIONS=swing_anywhere 1'
+run anywhere-fling anywherefling 3 $G=12 $H=12 QUEST_STATE_TRACE=1 'QUEST_VR_OPTIONS=swing_anywhere 1'
+run anywhere-fling-swing anywhereflingswing 3 $G=12 $H=12 $L=12 QUEST_STATE_TRACE=1 'QUEST_VR_OPTIONS=swing_anywhere 1'
+run anywhere-hover anywherehover 3 $G=2,12 $H=12 QUEST_STATE_TRACE=1 'QUEST_VR_OPTIONS=swing_anywhere 1'
+run swing-hold swinghold 3 $G=12 $H=12 $L=12 QUEST_SIM_GRIP_TILT=50 KEEP=1
+run anywhere-slow anywhereslow 3 $G=12 $H=12 QUEST_STATE_TRACE=1 'QUEST_VR_OPTIONS=swing_anywhere 1'
+# Wall run and jump, Swingshot reach, the wrench thrown far and called (More controls, Moves; 0.1.14).
+run wallzip wallzip 3 $G=12 $H=12 QUEST_STATE_TRACE=1 'QUEST_VR_OPTIONS=swing_anywhere 1;wall_moves 1' KEEP=1
+run wallzip-off wallzip 3 $G=12 $H=12 QUEST_STATE_TRACE=1 'QUEST_VR_OPTIONS=swing_anywhere 1'
+run wallrun wallrun 3 QUEST_STATE_TRACE=1 'QUEST_VR_OPTIONS=wall_moves 1'
+run wallrun-off wallrun 3 QUEST_STATE_TRACE=1
+run wallup wallup 3 QUEST_STATE_TRACE=1 'QUEST_VR_OPTIONS=wall_moves 1'
+run wallchain wallchain 3 $G=12 $H=12 QUEST_STATE_TRACE=1 'QUEST_VR_OPTIONS=swing_anywhere 1;wall_moves 1'
+run swingfar swingfar 3 $G=12 $H=12 QUEST_STATE_TRACE=1 'QUEST_VR_OPTIONS=swing_anywhere 1;swing_reach 2;wall_moves 1' KEEP=1
+run swingfar-normal swingfar 3 $G=12 $H=12 QUEST_STATE_TRACE=1 'QUEST_VR_OPTIONS=swing_anywhere 1'
+run swingfarleft swingfarleft 3 $G=15,12 $H=15 $L=12 QUEST_STATE_TRACE=1 'QUEST_VR_OPTIONS=swing_anywhere 1;swing_reach 2'
+run swingtarget swingtarget 3 $G=12 $H=12 $N=758 $A=45,6,0 QUEST_STATE_TRACE=1 'QUEST_VR_OPTIONS=swing_reach 1'
+run swingtarget-normal swingtarget 3 $G=12 $H=12 $N=758 $A=45,6,0 QUEST_STATE_TRACE=1
+run wrenchfar wrenchfar 3 $G=15 $H=15 'QUEST_VR_OPTIONS=wrench_far 3'
+run wrenchfar-normal wrenchfar 3 $G=15 $H=15
+run wrenchcall wrenchcall 3 $G=15,10,16 $H=15 'QUEST_VR_OPTIONS=wrench_far 2;wrench_stay 1' KEEP=1
+run wrenchbuttons wrenchbuttons 3 $G=15 $H=15 'QUEST_VR_OPTIONS=button_moves 1;wrench_far 2;wrench_stay 1' QUEST_STATE_TRACE=1
+run wrenchthird wrenchthird 3 $G=15 $H=15 'QUEST_VR_OPTIONS=wrench_far 2;wrench_stay 1' 'QUEST_SETTINGS={"view":"third"}' QUEST_STATE_TRACE=1
+run wrenchlead wrenchlead 3 $G=15,12 $H=15 $L=12 'QUEST_VR_OPTIONS=swing_anywhere 1;wrench_far 2;wrench_stay 1' QUEST_STATE_TRACE=1
+run wrenchdeath wrenchdeath 3 $G=15 $H=15 QUEST_SIM_KILL=2300 'QUEST_VR_OPTIONS=wrench_far 2;wrench_stay 1' QUEST_STATE_TRACE=1
+run wallrun-third wallrun 3 QUEST_STATE_TRACE=1 'QUEST_VR_OPTIONS=wall_moves 1' 'QUEST_SETTINGS={"view":"third"}'
+# All of it on against what it could take the hands or buttons from: ledges by hand, a pull up, the shimmy, swimming, the Heli-Pack, grinding.
+OPTS_ALL="swing_anywhere 1;wall_moves 1;swing_reach 2;wrench_far 3;wrench_stay 1"
+run on-ledge ledge 9 $N=500 $A=0.95,2.6 "QUEST_VR_OPTIONS=$OPTS_ALL"
+run on-ledgeearly ledgeearly 1 $N=501 $A=0.95,1.7,90 QUEST_SIM_GRIP=1 "QUEST_VR_OPTIONS=$OPTS_ALL"
+run on-ledgepull ledgepull 1 $N=501 $A=0.95,1.7,90 "QUEST_VR_OPTIONS=$OPTS_ALL"
+run on-ledgeshimmy ledgeshimmy 1 $N=501 $A=0.95,1.7,90 "QUEST_VR_OPTIONS=$OPTS_ALL"
+run on-ledgegame ledgegame 1 $N=501 $A=0.95,1.7,90 'QUEST_SETTINGS={"grab_ledges":false}' "QUEST_VR_OPTIONS=$OPTS_ALL"
+run on-ledgeakimbo ledgeakimbo 1 $G=15,10 $H=15 $L=10 $N=501 $A=0.95,1.7,90 "QUEST_VR_OPTIONS=$OPTS_ALL"
+run on-swim swim 1 $N=695 $A=2.0,0 QUEST_STATE_TRACE=1 "QUEST_VR_OPTIONS=$OPTS_ALL"
+run on-heli kerwanheli 3 $G=2 "QUEST_VR_OPTIONS=$OPTS_ALL"
+run on-hover anywherehover 3 $G=2,12 $H=12 QUEST_STATE_TRACE=1 "QUEST_VR_OPTIONS=$OPTS_ALL"
+run on-boardjump boardjump 5 $N=439 QUEST_STATE_TRACE=1 QUEST_BOARD_TWIST=1 "QUEST_VR_OPTIONS=$OPTS_ALL"
+run on-cablefire cablefire 3 $G=15,16 $H=15 $L=16 QUEST_SIM_RAIL=0,-1.3,0 QUEST_SIM_ALIGN=2620 QUEST_STATE_TRACE=1 "QUEST_VR_OPTIONS=$OPTS_ALL"
+run on-wrench wrench 1 $G=10 $N=511 "QUEST_VR_OPTIONS=$OPTS_ALL"
+run on-wrenchthrow wrenchthrow 1 $G=15 $H=15 "QUEST_VR_OPTIONS=$OPTS_ALL"
+run on-unequip unequip 1 $G=10 $H=10 "QUEST_VR_OPTIONS=$OPTS_ALL"
+run on-wrenchwall wrenchwall 1 "QUEST_VR_OPTIONS=$OPTS_ALL"
+run on-wrenchlong wrenchlong 1 $G=10 "QUEST_VR_OPTIONS=$OPTS_ALL"
+run on-armbuttons armbuttons 1 $G=15 $H=15 $N=511 "QUEST_VR_OPTIONS=button_moves 1;$OPTS_ALL" QUEST_STATE_TRACE=1
+run on-akimbolead akimbolead 1 $G=15,18 $H=15 $L=18 "QUEST_VR_OPTIONS=$OPTS_ALL"
 run anywhere-novalis anywhere 1 $G=12 $H=12 QUEST_STATE_TRACE=1 'QUEST_VR_OPTIONS=swing_anywhere 1'
 run anywhere-stall anywhere 1 $G=12 $H=12 QUEST_STATE_TRACE=1 QUEST_ANYWHERE_ANY_LEVEL=1 'QUEST_VR_OPTIONS=swing_anywhere 1'
 run swing-right-anywhere swing 3 $G=12 $H=12 $N=758 $A=10,1,180 QUEST_STATE_TRACE=1 'QUEST_VR_OPTIONS=swing_anywhere 1'

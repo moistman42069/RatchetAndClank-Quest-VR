@@ -100,7 +100,7 @@ public class LauncherTest {
         Updater.setAutomatic(app, true);
     }
 
-    /** What's new (0.1.13): on a version's first start, biggest first (Swingshot anywhere), once; Updates shows it again. */
+    /** What's new: on a version's first start, biggest first (0.1.14: PC VR), once; Updates shows it again. */
     @Test
     public void whatsNewShowsOnceAVersionBiggestFirst() throws Exception {
         installed("pal");
@@ -122,8 +122,8 @@ public class LauncherTest {
         }
         String text = words.toString();
         assertTrue(text.contains("What's new in " + BuildConfig.VERSION_NAME));
-        int anywhere = text.indexOf("Swingshot anywhere"), akimbo = text.indexOf("Akimbo is on for everyone");
-        assertTrue("Swingshot anywhere comes first", anywhere >= 0 && akimbo > anywhere);
+        int pc = text.indexOf("Now on PC VR too"), walls = text.indexOf("Wall run and jump");
+        assertTrue("PC VR comes first", pc >= 0 && walls > pc);
         box.measure(View.MeasureSpec.makeMeasureSpec(820, View.MeasureSpec.EXACTLY),
             View.MeasureSpec.makeMeasureSpec(700, View.MeasureSpec.AT_MOST));
         box.layout(0, 0, box.getMeasuredWidth(), box.getMeasuredHeight());

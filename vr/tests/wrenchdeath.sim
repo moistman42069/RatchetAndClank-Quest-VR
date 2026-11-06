@@ -1,0 +1,28 @@
+# A wrench waiting to be called when Ratchet dies (QUEST_VR_OPTIONS="wrench_far 2;wrench_stay 1", QUEST_SIM_KILL=3600, QUEST_SIM_GIVE=15
+# QUEST_SIM_HOLD=15, Kerwan's start). It is called ("his hands being wanted") or goes with the respawn; after it the hand has the wrench and it
+# throws and comes back as ever, with no swap lock left on.
+600 y 1
+606 y 0
+3250 right_grip 1
+3360 rh_z -0.07
+3361 rh_z -0.14
+3362 rh_z -0.21
+3363 rh_z -0.28
+3364 rh_z -0.35
+3364 right_grip 0
+3420 rh_z 0
+3500 shot resting
+4000 shot dying
+5400 shot back
+5500 right_grip 1
+5600 rh_z -0.07
+5601 rh_z -0.14
+5602 rh_z -0.21
+5603 rh_z -0.28
+5604 rh_z -0.35
+5604 right_grip 0
+5660 rh_z 0
+5800 right_grip 1
+5820 right_grip 0
+6100 shot caught
+6200 quit 0

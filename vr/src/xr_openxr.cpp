@@ -5,28 +5,58 @@
 // Quest 3 by the Halo CE Quest VR port's host_xr.c: the loader through the Java VM and activity,
 // the session on the game's EGL context, sustained-high performance levels at session begin, an
 // sRGB swapchain written without encoding (the game's picture is gamma-encoded already), and a
-// refresh rate above 72 given up when it is not held.
+// refresh rate above 72 given up when it is not held (only with Keep the refresh rate off, from 0.1.14).
+//
+// And on a Windows PC (0.1.14, the PC release): the same, on the game's desktop OpenGL context through
+// XR_KHR_opengl_enable, with the Khronos loader (openxr_loader.dll beside this library, as Rerac-vr's PC
+// release has it inside its exe) opened at run time, so that a PC without one still runs the simulated
+// headset's tests. Any runtime then: SteamVR (Index, Vive, Pico, PSVR2, DPVR, Steam Frame and every
+// other headset it drives), Meta's for Quest Link, or another. Controllers: suggested bindings for every
+// family OpenXR names (Rerac-vr's Touch, Index, Microsoft and simple, and more); SteamVR maps the rest
+// onto them. A default runtime with no OpenGL (Windows Mixed Reality's) gives way to SteamVR's, for this
+// game only.
+
+#if defined(__ANDROID__) || defined(_WIN32)
 
 #if defined(__ANDROID__)
-
 #include <EGL/egl.h>
 #include <GLES3/gl32.h>
 #include <dlfcn.h>
 #include <jni.h>
 #include <sched.h>
 #include <sys/syscall.h>
-#include <time.h>
 #include <unistd.h>
 
 #define XR_USE_PLATFORM_ANDROID
 #define XR_USE_GRAPHICS_API_OPENGL_ES
+#else
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#include <unknwn.h>  // IUnknown, which openxr_platform.h names for Windows
+
+#define XR_USE_PLATFORM_WIN32
+#define XR_USE_GRAPHICS_API_OPENGL
+#define XR_NO_PROTOTYPES  // every call is found at run time, in the loader opened then
+#endif
 #include <openxr/openxr.h>
 #include <openxr/openxr_platform.h>
 
 #include <algorithm>
+#include <chrono>
+#include <cctype>
+#include <cmath>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <string>
+#include <thread>
+#include <type_traits>
+#include <utility>
 #include <vector>
 
 #include "notice.h"
@@ -37,7 +67,100 @@
 #endif
 
 namespace quest {
+
+#if defined(_WIN32)
+// Set by the mod before make_headset (xr_sim.cpp's): the port's GL, whose calls past 1.1 Windows
+// does not export.
+extern void* (*sim_gl_proc)(const char*);
+#endif
+
 namespace {
+
+#if defined(_WIN32)
+// The few GL calls made here, taken from the port's GL.
+using GLint = int;
+using GLuint = unsigned int;
+using GLenum = unsigned int;
+using GLsizei = int;
+using GLubyte = unsigned char;
+constexpr GLenum GL_TEXTURE_2D = 0x0DE1, GL_RGBA = 0x1908, GL_RGBA8 = 0x8058, GL_SRGB8_ALPHA8 = 0x8C43;
+constexpr GLenum GL_UNSIGNED_BYTE = 0x1401, GL_NUM_EXTENSIONS = 0x821D, GL_EXTENSIONS = 0x1F03;
+constexpr GLenum GL_TEXTURE_BINDING_2D = 0x8069, GL_PIXEL_UNPACK_BUFFER = 0x88EC;
+constexpr GLenum GL_PIXEL_UNPACK_BUFFER_BINDING = 0x88EF, GL_UNPACK_ALIGNMENT = 0x0CF5;
+constexpr GLenum GL_MAJOR_VERSION = 0x821B, GL_MINOR_VERSION = 0x821C;
+constexpr GLenum GL_PIXEL_PACK_BUFFER = 0x88EB, GL_PIXEL_PACK_BUFFER_BINDING = 0x88ED, GL_PACK_ALIGNMENT = 0x0D05;
+
+struct GlCalls {
+    void(__stdcall* Flush)() = nullptr;
+    void(__stdcall* GetIntegerv)(GLenum, GLint*) = nullptr;
+    const GLubyte*(__stdcall* GetStringi)(GLenum, GLuint) = nullptr;
+    void(__stdcall* Disable)(GLenum) = nullptr;
+    void(__stdcall* PixelStorei)(GLenum, GLint) = nullptr;
+    void(__stdcall* BindTexture)(GLenum, GLuint) = nullptr;
+    void(__stdcall* BindBuffer)(GLenum, GLuint) = nullptr;
+    void(__stdcall* TexSubImage2D)(GLenum, GLint, GLint, GLint, GLsizei, GLsizei, GLenum, GLenum, const void*) = nullptr;
+};
+GlCalls g_gl;
+
+// Any function of this library: its address names the library to GetModuleHandleExW.
+void module_marker() {}
+
+bool load_gl(std::string& why) {
+    if (sim_gl_proc == nullptr) {
+        why = "the game gave no OpenGL";
+        return false;
+    }
+    const auto take = [](auto& slot, const char* name) {
+        slot = reinterpret_cast<std::remove_reference_t<decltype(slot)>>(sim_gl_proc(name));
+        return slot != nullptr;
+    };
+    if (!take(g_gl.Flush, "glFlush") || !take(g_gl.GetIntegerv, "glGetIntegerv") || !take(g_gl.GetStringi, "glGetStringi")
+        || !take(g_gl.Disable, "glDisable") || !take(g_gl.PixelStorei, "glPixelStorei")
+        || !take(g_gl.BindTexture, "glBindTexture") || !take(g_gl.BindBuffer, "glBindBuffer")
+        || !take(g_gl.TexSubImage2D, "glTexSubImage2D")) {
+        why = "the game's OpenGL lacks a call the headset needs";
+        return false;
+    }
+    return true;
+}
+
+void glFlush() { g_gl.Flush(); }
+void glGetIntegerv(GLenum name, GLint* out) { g_gl.GetIntegerv(name, out); }
+const GLubyte* glGetStringi(GLenum name, GLuint index) { return g_gl.GetStringi(name, index); }
+void glDisable(GLenum cap) { g_gl.Disable(cap); }
+void glPixelStorei(GLenum name, GLint value) { g_gl.PixelStorei(name, value); }
+void glBindTexture(GLenum target, GLuint texture) { g_gl.BindTexture(target, texture); }
+void glBindBuffer(GLenum target, GLuint buffer) { g_gl.BindBuffer(target, buffer); }
+void glTexSubImage2D(GLenum target, GLint level, GLint x, GLint y, GLsizei width, GLsizei height, GLenum format,
+                     GLenum type, const void* pixels) {
+    g_gl.TexSubImage2D(target, level, x, y, width, height, format, type, pixels);
+}
+
+// The OpenXR calls, found through the loader's xrGetInstanceProcAddr: the first three before there
+// is an instance, the rest once there is one.
+PFN_xrGetInstanceProcAddr xrGetInstanceProcAddr = nullptr;
+#define QUEST_XR_EARLY_CALLS(X) X(xrEnumerateInstanceExtensionProperties) X(xrCreateInstance)
+#define QUEST_XR_CALLS(X)                                                                                              \
+    X(xrDestroyInstance) X(xrResultToString) X(xrGetSystem) X(xrGetSystemProperties) X(xrCreateSession)                \
+    X(xrDestroySession) X(xrCreateReferenceSpace) X(xrEnumerateSwapchainFormats) X(xrCreateSwapchain)                  \
+    X(xrDestroySwapchain) X(xrEnumerateSwapchainImages) X(xrEnumerateViewConfigurationViews) X(xrStringToPath)         \
+    X(xrPathToString) X(xrCreateActionSet) X(xrCreateAction) X(xrSuggestInteractionProfileBindings)                    \
+    X(xrAttachSessionActionSets) X(xrCreateActionSpace) X(xrGetCurrentInteractionProfile) X(xrBeginSession)           \
+    X(xrEndSession) X(xrPollEvent) X(xrLocateViews) X(xrLocateSpace) X(xrGetActionStateFloat)                         \
+    X(xrGetActionStateVector2f) X(xrGetActionStateBoolean) X(xrSyncActions) X(xrAcquireSwapchainImage)                \
+    X(xrWaitSwapchainImage) X(xrReleaseSwapchainImage) X(xrWaitFrame) X(xrBeginFrame) X(xrEndFrame)                   \
+    X(xrApplyHapticFeedback) X(xrEnumerateBoundSourcesForAction)
+#define QUEST_XR_DECLARE(name) PFN_##name name = nullptr;
+QUEST_XR_EARLY_CALLS(QUEST_XR_DECLARE)
+QUEST_XR_CALLS(QUEST_XR_DECLARE)
+#undef QUEST_XR_DECLARE
+
+using SwapchainImage = XrSwapchainImageOpenGLKHR;
+constexpr XrStructureType kSwapchainImageType = XR_TYPE_SWAPCHAIN_IMAGE_OPENGL_KHR;
+#else
+using SwapchainImage = XrSwapchainImageOpenGLESKHR;
+constexpr XrStructureType kSwapchainImageType = XR_TYPE_SWAPCHAIN_IMAGE_OPENGL_ES_KHR;
+#endif
 
 constexpr const char* kRefreshExtension = "XR_FB_display_refresh_rate";
 constexpr int kInfo = 1;
@@ -47,9 +170,7 @@ constexpr int kPointerSize = 32;
 constexpr float kBeamWidth = 0.006f, kDotSize = 0.05f;  // metres
 
 double now_seconds() {
-    timespec t{};
-    clock_gettime(CLOCK_MONOTONIC, &t);
-    return static_cast<double>(t.tv_sec) + static_cast<double>(t.tv_nsec) * 1e-9;
+    return std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
 }
 
 Pose pose_of(const XrPosef& p) {
@@ -68,7 +189,7 @@ struct Swapchain {
     XrSwapchain handle = XR_NULL_HANDLE;
     int width = 0;
     int height = 0;
-    std::vector<XrSwapchainImageOpenGLESKHR> images;
+    std::vector<SwapchainImage> images;
     bool acquired = false;
     uint32_t index = 0;
 };
@@ -79,6 +200,11 @@ public:
 
     bool start(const XrSettings& settings, std::string& why) override {
         m_settings = settings;
+#if defined(_WIN32)
+        if (!load_gl(why)) {
+            return false;
+        }
+#endif
         if (!initialize_loader(why) || !create_instance(why) || !create_session(why)
             || !choose_format(why) || !create_targets(why) || !create_actions(why)) {
             return false;
@@ -92,8 +218,7 @@ public:
         poll_events();
 
         if (!m_running) {
-            timespec pause{0, 10 * 1000 * 1000};
-            nanosleep(&pause, nullptr);
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
             return false;
         }
 
@@ -232,6 +357,9 @@ public:
             }
         }
 
+#if defined(_WIN32)
+        test_shots();
+#endif
         release_targets();
 
         XrFrameEndInfo end{XR_TYPE_FRAME_END_INFO};
@@ -290,7 +418,11 @@ public:
             xrDestroySession(m_session);
             m_session = XR_NULL_HANDLE;
         }
+#if defined(_WIN32)
+        if (m_instance != XR_NULL_HANDLE && xrDestroyInstance != nullptr) {
+#else
         if (m_instance != XR_NULL_HANDLE) {
+#endif
             xrDestroyInstance(m_instance);
             m_instance = XR_NULL_HANDLE;
         }
@@ -305,7 +437,11 @@ private:
             return true;
         }
         char name[XR_MAX_RESULT_STRING_SIZE] = "unknown";
+#if defined(_WIN32)
+        if (m_instance != XR_NULL_HANDLE && xrResultToString != nullptr) {
+#else
         if (m_instance != XR_NULL_HANDLE) {
+#endif
             xrResultToString(m_instance, result, name);
         }
         m_log(kError, (std::string("[openxr] ") + what + ": " + name + " ("
@@ -321,6 +457,135 @@ private:
         return reinterpret_cast<Fn>(fn);
     }
 
+#if defined(_WIN32)
+    // The Khronos loader: beside this library first (the release puts it there), then where Windows looks.
+    bool open_loader(std::string& why) {
+        HMODULE self = nullptr;
+        wchar_t path[MAX_PATH] = L"";
+        GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                           reinterpret_cast<LPCWSTR>(&module_marker), &self);
+        const DWORD length = self != nullptr ? GetModuleFileNameW(self, path, MAX_PATH) : 0;
+        std::wstring beside(path, length);
+        beside = beside.substr(0, beside.find_last_of(L"\\/") + 1) + L"openxr_loader.dll";
+        m_loader = length > 0 ? LoadLibraryW(beside.c_str()) : nullptr;
+        if (m_loader == nullptr) {
+            m_loader = LoadLibraryW(L"openxr_loader.dll");
+        }
+        if (m_loader == nullptr) {
+            why = "openxr_loader.dll was not found beside quest_vr.dll";
+            return false;
+        }
+        xrGetInstanceProcAddr =
+            reinterpret_cast<PFN_xrGetInstanceProcAddr>(GetProcAddress(m_loader, "xrGetInstanceProcAddr"));
+        bool found = xrGetInstanceProcAddr != nullptr;
+#define QUEST_XR_FIND(name)                                                                                            \
+    found = found && XR_SUCCEEDED(xrGetInstanceProcAddr(XR_NULL_HANDLE, #name,                                        \
+                                                        reinterpret_cast<PFN_xrVoidFunction*>(&name)));
+        QUEST_XR_EARLY_CALLS(QUEST_XR_FIND)
+#undef QUEST_XR_FIND
+        if (!found) {
+            why = "openxr_loader.dll is not the OpenXR loader";
+            return false;
+        }
+        return true;
+    }
+
+    // Once there is an instance: the rest of the calls.
+    bool find_calls(std::string& why) {
+        bool found = true;
+#define QUEST_XR_FIND(name)                                                                                            \
+    found = found && XR_SUCCEEDED(xrGetInstanceProcAddr(m_instance, #name, reinterpret_cast<PFN_xrVoidFunction*>(&name)));
+        QUEST_XR_CALLS(QUEST_XR_FIND)
+#undef QUEST_XR_FIND
+        if (!found) {
+            why = "the OpenXR runtime lacks a core call";
+        }
+        return found;
+    }
+
+    static std::string registry_text(const char* value) {
+        char text[1024] = "";
+        DWORD size = sizeof text;
+        if (RegGetValueA(HKEY_LOCAL_MACHINE, "SOFTWARE\\Khronos\\OpenXR\\1", value, RRF_RT_REG_SZ, nullptr, text, &size)
+            != ERROR_SUCCESS) {
+            return {};
+        }
+        return text;
+    }
+
+    // SteamVR's runtime manifest, from the runtimes Windows lists, or where Steam puts it.
+    static std::string steamvr_runtime() {
+        HKEY key = nullptr;
+        std::string found;
+        if (RegOpenKeyExA(HKEY_LOCAL_MACHINE, "SOFTWARE\\Khronos\\OpenXR\\1\\AvailableRuntimes", 0, KEY_READ, &key)
+            == ERROR_SUCCESS) {
+            char name[1024];
+            for (DWORD i = 0;; ++i) {
+                DWORD size = sizeof name;
+                if (RegEnumValueA(key, i, name, &size, nullptr, nullptr, nullptr, nullptr) != ERROR_SUCCESS) {
+                    break;
+                }
+                std::string path(name, size);
+                std::string lower = path;
+                std::transform(lower.begin(), lower.end(), lower.begin(), [](unsigned char c) { return std::tolower(c); });
+                if (lower.find("steamxr") != std::string::npos && GetFileAttributesA(path.c_str()) != INVALID_FILE_ATTRIBUTES) {
+                    found = path;
+                    break;
+                }
+            }
+            RegCloseKey(key);
+        }
+        const char* fallback = "C:\\Program Files (x86)\\Steam\\steamapps\\common\\SteamVR\\steamxr_win64.json";
+        if (found.empty() && GetFileAttributesA(fallback) != INVALID_FILE_ATTRIBUTES) {
+            found = fallback;
+        }
+        return found;
+    }
+
+    std::vector<XrExtensionProperties> runtime_extensions() {
+        uint32_t count = 0;
+        std::vector<XrExtensionProperties> available;
+        if (XR_SUCCEEDED(xrEnumerateInstanceExtensionProperties(nullptr, 0, &count, nullptr))) {
+            available.resize(count, XrExtensionProperties{XR_TYPE_EXTENSION_PROPERTIES});
+            xrEnumerateInstanceExtensionProperties(nullptr, count, &count, available.data());
+            available.resize(count);
+        }
+        return available;
+    }
+
+    static bool listed(const std::vector<XrExtensionProperties>& available, const char* name) {
+        return std::any_of(available.begin(), available.end(),
+                           [&](const auto& e) { return std::strcmp(e.extensionName, name) == 0; });
+    }
+
+    // The player's own runtime when it has OpenGL; when it has none (Windows Mixed Reality's) or none is set,
+    // SteamVR's, for this game only (XR_RUNTIME_JSON in this process): Windows' setting is not touched. A
+    // runtime the player set in XR_RUNTIME_JSON themselves is theirs.
+    bool initialize_loader(std::string& why) {
+        if (!open_loader(why)) {
+            return false;
+        }
+        const std::string active = registry_text("ActiveRuntime");
+        const bool chosen = std::getenv("XR_RUNTIME_JSON") != nullptr;
+        info("[openxr] the PC's OpenXR runtime: " + (chosen ? std::string(std::getenv("XR_RUNTIME_JSON")) + " (XR_RUNTIME_JSON)"
+                                                            : active.empty() ? std::string("none set") : active));
+        if (listed(runtime_extensions(), XR_KHR_OPENGL_ENABLE_EXTENSION_NAME) || chosen) {
+            return true;
+        }
+        const std::string steamvr = steamvr_runtime();
+        if (steamvr.empty() || steamvr == active) {
+            why = active.empty() ? "no OpenXR runtime is set on this PC: start SteamVR (or your headset's PC app) once"
+                                 : "the PC's OpenXR runtime has no OpenGL, and SteamVR is not installed";
+            return false;
+        }
+        warn("[openxr] that runtime has no OpenGL: SteamVR's is used for this game (" + steamvr + ")");
+        FreeLibrary(m_loader);
+        m_loader = nullptr;
+        _putenv_s("XR_RUNTIME_JSON", steamvr.c_str());
+        SetEnvironmentVariableA("XR_RUNTIME_JSON", steamvr.c_str());
+        return open_loader(why);
+    }
+#else
     // SDL's own library holds the activity; it is loaded by Java, so it is opened by name.
     bool initialize_loader(std::string& why) {
         void* sdl = dlopen("libSDL3.so", RTLD_NOW | RTLD_NOLOAD);
@@ -363,7 +628,62 @@ private:
         }
         return true;
     }
+#endif
 
+#if defined(_WIN32)
+    // The controller families named by extensions, each enabled where the runtime has it, for its bindings.
+    static constexpr const char* kControllerExtensions[] = {
+        "XR_META_touch_controller_plus", "XR_FB_touch_controller_pro", "XR_BD_controller_interaction",
+        "XR_HTC_vive_cosmos_controller_interaction", "XR_HTC_vive_focus3_controller_interaction",
+        "XR_EXT_hp_mixed_reality_controller", "XR_EXT_samsung_odyssey_controller",
+    };
+
+    bool create_instance(std::string& why) {
+        const std::vector<XrExtensionProperties> available = runtime_extensions();
+        if (!listed(available, XR_KHR_OPENGL_ENABLE_EXTENSION_NAME)) {
+            why = "the OpenXR runtime has no OpenGL support: make SteamVR the OpenXR runtime";
+            return false;
+        }
+        std::vector<const char*> extensions = {XR_KHR_OPENGL_ENABLE_EXTENSION_NAME};
+        m_refresh_extension = listed(available, kRefreshExtension);
+        m_performance_extension = listed(available, XR_EXT_PERFORMANCE_SETTINGS_EXTENSION_NAME);
+        if (m_refresh_extension) {
+            extensions.push_back(kRefreshExtension);
+        }
+        if (m_performance_extension) {
+            extensions.push_back(XR_EXT_PERFORMANCE_SETTINGS_EXTENSION_NAME);
+        }
+        for (const char* name : kControllerExtensions) {
+            if (listed(available, name)) {
+                extensions.push_back(name);
+                m_enabled.push_back(name);
+            }
+        }
+        XrInstanceCreateInfo create{XR_TYPE_INSTANCE_CREATE_INFO};
+        std::strncpy(create.applicationInfo.applicationName, "Ratchet & Clank VR", XR_MAX_APPLICATION_NAME_SIZE - 1);
+        create.applicationInfo.applicationVersion = 1;
+        std::strncpy(create.applicationInfo.engineName, "OpenRAC", XR_MAX_ENGINE_NAME_SIZE - 1);
+        create.applicationInfo.apiVersion = XR_API_VERSION_1_0;
+        create.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
+        create.enabledExtensionNames = extensions.data();
+        if (!check(xrCreateInstance(&create, &m_instance), "xrCreateInstance")) {
+            why = m_last_error;
+            return false;
+        }
+        if (!find_calls(why)) {
+            return false;
+        }
+        auto properties_fn = proc<PFN_xrGetInstanceProperties>("xrGetInstanceProperties");
+        XrInstanceProperties runtime{XR_TYPE_INSTANCE_PROPERTIES};
+        if (properties_fn != nullptr && XR_SUCCEEDED(properties_fn(m_instance, &runtime))) {
+            info(std::string("[openxr] runtime: ") + runtime.runtimeName + " "
+                 + std::to_string(XR_VERSION_MAJOR(runtime.runtimeVersion)) + "."
+                 + std::to_string(XR_VERSION_MINOR(runtime.runtimeVersion)) + "."
+                 + std::to_string(XR_VERSION_PATCH(runtime.runtimeVersion)));
+        }
+        return find_system(why);
+    }
+#else
     bool create_instance(std::string& why) {
         uint32_t count = 0;
         std::vector<XrExtensionProperties> available;
@@ -412,7 +732,11 @@ private:
             why = m_last_error;
             return false;
         }
+        return find_system(why);
+    }
+#endif
 
+    bool find_system(std::string& why) {
         XrSystemGetInfo system{XR_TYPE_SYSTEM_GET_INFO};
         system.formFactor = XR_FORM_FACTOR_HEAD_MOUNTED_DISPLAY;
         if (!check(xrGetSystem(m_instance, &system, &m_system), "xrGetSystem")) {
@@ -427,6 +751,28 @@ private:
     }
 
     bool create_session(std::string& why) {
+#if defined(_WIN32)
+        auto requirements_fn = proc<PFN_xrGetOpenGLGraphicsRequirementsKHR>("xrGetOpenGLGraphicsRequirementsKHR");
+        XrGraphicsRequirementsOpenGLKHR requirements{XR_TYPE_GRAPHICS_REQUIREMENTS_OPENGL_KHR};
+        if (requirements_fn == nullptr
+            || !check(requirements_fn(m_instance, m_system, &requirements), "xrGetOpenGLGraphicsRequirementsKHR")) {
+            why = "the runtime gave no OpenGL requirements";
+            return false;
+        }
+        GLint major = 0, minor = 0;
+        glGetIntegerv(GL_MAJOR_VERSION, &major);
+        glGetIntegerv(GL_MINOR_VERSION, &minor);
+        info("[openxr] the game's OpenGL " + std::to_string(major) + "." + std::to_string(minor) + "; the runtime asks "
+             + std::to_string(XR_VERSION_MAJOR(requirements.minApiVersionSupported)) + "."
+             + std::to_string(XR_VERSION_MINOR(requirements.minApiVersionSupported)) + " or later");
+        XrGraphicsBindingOpenGLWin32KHR binding{XR_TYPE_GRAPHICS_BINDING_OPENGL_WIN32_KHR};
+        binding.hDC = wglGetCurrentDC();
+        binding.hGLRC = wglGetCurrentContext();
+        if (binding.hDC == nullptr || binding.hGLRC == nullptr) {
+            why = "no OpenGL context is current";
+            return false;
+        }
+#else
         auto requirements_fn =
             proc<PFN_xrGetOpenGLESGraphicsRequirementsKHR>("xrGetOpenGLESGraphicsRequirementsKHR");
         XrGraphicsRequirementsOpenGLESKHR requirements{XR_TYPE_GRAPHICS_REQUIREMENTS_OPENGL_ES_KHR};
@@ -454,6 +800,7 @@ private:
         binding.display = display;
         binding.config = configs > 0 ? config : nullptr;
         binding.context = context;
+#endif
         XrSessionCreateInfo create{XR_TYPE_SESSION_CREATE_INFO};
         create.next = &binding;
         create.systemId = m_system;
@@ -489,7 +836,14 @@ private:
         }
         std::vector<int64_t> formats(count);
         xrEnumerateSwapchainFormats(m_session, count, &count, formats.data());
+#if defined(_WIN32)
+        // Desktop OpenGL from 3.0 has the switch (GL_FRAMEBUFFER_SRGB, off unless turned on).
+        GLint major = 0;
+        glGetIntegerv(GL_MAJOR_VERSION, &major);
+        m_srgb_control = major >= 3 || has_gl_extension("GL_ARB_framebuffer_sRGB");
+#else
         m_srgb_control = has_gl_extension("GL_EXT_sRGB_write_control");
+#endif
         const auto offered = [&](int64_t format) {
             return std::find(formats.begin(), formats.end(), format) != formats.end();
         };
@@ -544,7 +898,7 @@ private:
         chain.height = height;
         uint32_t count = 0;
         xrEnumerateSwapchainImages(chain.handle, 0, &count, nullptr);
-        chain.images.assign(count, XrSwapchainImageOpenGLESKHR{XR_TYPE_SWAPCHAIN_IMAGE_OPENGL_ES_KHR});
+        chain.images.assign(count, SwapchainImage{kSwapchainImageType});
         if (!check(xrEnumerateSwapchainImages(
                        chain.handle, count, &count,
                        reinterpret_cast<XrSwapchainImageBaseHeader*>(chain.images.data())),
@@ -636,6 +990,12 @@ private:
         m_thumb_right = make_action(XR_ACTION_TYPE_BOOLEAN_INPUT, "thumb_right", "Right thumb", false);
         m_haptic = make_action(XR_ACTION_TYPE_VIBRATION_OUTPUT, "haptic", "Vibration", true);
 
+#if defined(_WIN32)
+        if (!suggest_every_controller()) {
+            why = "the runtime took no controller's bindings";
+            return false;
+        }
+#else
         const std::vector<XrActionSuggestedBinding> touch = {
             {m_grip, path("/user/hand/left/input/grip/pose")},
             {m_grip, path("/user/hand/right/input/grip/pose")},
@@ -676,6 +1036,7 @@ private:
             why = m_last_error;
             return false;
         }
+#endif
 
         XrSessionActionSetsAttachInfo attach{XR_TYPE_SESSION_ACTION_SETS_ATTACH_INFO};
         attach.countActionSets = 1;
@@ -704,6 +1065,213 @@ private:
         return true;
     }
 
+#if defined(_WIN32)
+    using Binding = std::pair<XrAction, const char*>;
+
+    // One controller family's bindings; when the runtime will not take its touch sensors' paths, again
+    // without them. Not every runtime knows every family: those it refuses are only noted.
+    bool suggest(const char* profile, const char* extension, const std::vector<Binding>& bindings,
+                 const std::vector<Binding>& touches) {
+        if (extension != nullptr
+            && std::find_if(m_enabled.begin(), m_enabled.end(), [&](const std::string& e) { return e == extension; })
+                   == m_enabled.end()) {
+            return false;
+        }
+        const auto send = [&](bool with_touches) {
+            std::vector<XrActionSuggestedBinding> list;
+            for (const Binding& b : bindings) {
+                list.push_back({b.first, path(b.second)});
+            }
+            if (with_touches) {
+                for (const Binding& b : touches) {
+                    list.push_back({b.first, path(b.second)});
+                }
+            }
+            XrInteractionProfileSuggestedBinding suggested{XR_TYPE_INTERACTION_PROFILE_SUGGESTED_BINDING};
+            suggested.interactionProfile = path(profile);
+            suggested.suggestedBindings = list.data();
+            suggested.countSuggestedBindings = static_cast<uint32_t>(list.size());
+            return xrSuggestInteractionProfileBindings(m_instance, &suggested);
+        };
+        XrResult result = send(true);
+        if (XR_FAILED(result) && !touches.empty()) {
+            result = send(false);
+        }
+        if (XR_FAILED(result)) {
+            warn(std::string("[openxr] bindings not taken for ") + profile + " (" + std::to_string(static_cast<int>(result))
+                 + ")");
+            return false;
+        }
+        return true;
+    }
+
+    // Every controller family OpenXR names (Rerac-vr suggests Touch, Index, Microsoft's and the simple one).
+    // Where one lacks a button the game wants, the nearest it has: a Vive wand's or Windows Mixed Reality
+    // controller's touchpad press is A and X, its menu button B and Y. SteamVR maps controllers it knows
+    // otherwise (PSVR2 Sense, Steam Frame, DPVR, Pico over streaming) onto these, and its own binding page
+    // can change any of it.
+    bool suggest_every_controller() {
+        const std::vector<Binding> poses = {
+            {m_grip, "/user/hand/left/input/grip/pose"},   {m_grip, "/user/hand/right/input/grip/pose"},
+            {m_aim, "/user/hand/left/input/aim/pose"},     {m_aim, "/user/hand/right/input/aim/pose"},
+            {m_haptic, "/user/hand/left/output/haptic"},   {m_haptic, "/user/hand/right/output/haptic"},
+        };
+        const auto join = [](std::vector<Binding> a, const std::vector<Binding>& b) {
+            a.insert(a.end(), b.begin(), b.end());
+            return a;
+        };
+        const std::vector<Binding> sticks = join(poses, {
+            {m_move, "/user/hand/left/input/thumbstick"},
+            {m_look, "/user/hand/right/input/thumbstick"},
+            {m_click_left, "/user/hand/left/input/thumbstick/click"},
+            {m_click_right, "/user/hand/right/input/thumbstick/click"},
+            {m_trigger_left, "/user/hand/left/input/trigger/value"},
+            {m_trigger_right, "/user/hand/right/input/trigger/value"},
+        });
+        const std::vector<Binding> abxy = {
+            {m_a, "/user/hand/right/input/a/click"}, {m_b, "/user/hand/right/input/b/click"},
+            {m_x, "/user/hand/left/input/x/click"},  {m_y, "/user/hand/left/input/y/click"},
+        };
+        const std::vector<Binding> squeeze_value = {
+            {m_squeeze_left, "/user/hand/left/input/squeeze/value"},
+            {m_squeeze_right, "/user/hand/right/input/squeeze/value"},
+        };
+        const std::vector<Binding> squeeze_click = {
+            {m_squeeze_left, "/user/hand/left/input/squeeze/click"},
+            {m_squeeze_right, "/user/hand/right/input/squeeze/click"},
+        };
+        const std::vector<Binding> menu = {{m_menu, "/user/hand/left/input/menu/click"}};
+        const std::vector<Binding> touch_like = join(join(join(sticks, abxy), squeeze_value), menu);
+        const std::vector<Binding> touch_sensors = {
+            {m_first_left, "/user/hand/left/input/trigger/touch"},
+            {m_first_right, "/user/hand/right/input/trigger/touch"},
+            {m_thumb_left, "/user/hand/left/input/x/touch"},
+            {m_thumb_left, "/user/hand/left/input/y/touch"},
+            {m_thumb_left, "/user/hand/left/input/thumbstick/touch"},
+            {m_thumb_left, "/user/hand/left/input/thumbrest/touch"},
+            {m_thumb_right, "/user/hand/right/input/a/touch"},
+            {m_thumb_right, "/user/hand/right/input/b/touch"},
+            {m_thumb_right, "/user/hand/right/input/thumbstick/touch"},
+            {m_thumb_right, "/user/hand/right/input/thumbrest/touch"},
+        };
+        // The Index: its a and b are A and B on the right, X and Y on the left; a firm squeeze of the left
+        // touchpad is the menu button (recentre).
+        const std::vector<Binding> index = join(join(sticks, squeeze_value), {
+            {m_a, "/user/hand/right/input/a/click"},
+            {m_b, "/user/hand/right/input/b/click"},
+            {m_x, "/user/hand/left/input/a/click"},
+            {m_y, "/user/hand/left/input/b/click"},
+            {m_menu, "/user/hand/left/input/trackpad/force"},
+        });
+        const std::vector<Binding> index_sensors = {
+            {m_first_left, "/user/hand/left/input/trigger/touch"},
+            {m_first_right, "/user/hand/right/input/trigger/touch"},
+            {m_thumb_left, "/user/hand/left/input/a/touch"},
+            {m_thumb_left, "/user/hand/left/input/b/touch"},
+            {m_thumb_left, "/user/hand/left/input/thumbstick/touch"},
+            {m_thumb_left, "/user/hand/left/input/trackpad/touch"},
+            {m_thumb_right, "/user/hand/right/input/a/touch"},
+            {m_thumb_right, "/user/hand/right/input/b/touch"},
+            {m_thumb_right, "/user/hand/right/input/thumbstick/touch"},
+            {m_thumb_right, "/user/hand/right/input/trackpad/touch"},
+        };
+        const std::vector<Binding> pico_sensors = {
+            {m_first_left, "/user/hand/left/input/trigger/touch"},
+            {m_first_right, "/user/hand/right/input/trigger/touch"},
+            {m_thumb_left, "/user/hand/left/input/x/touch"},
+            {m_thumb_left, "/user/hand/left/input/y/touch"},
+            {m_thumb_left, "/user/hand/left/input/thumbstick/touch"},
+            {m_thumb_right, "/user/hand/right/input/a/touch"},
+            {m_thumb_right, "/user/hand/right/input/b/touch"},
+            {m_thumb_right, "/user/hand/right/input/thumbstick/touch"},
+        };
+        const std::vector<Binding> stick_sensors = {
+            {m_thumb_left, "/user/hand/left/input/thumbstick/touch"},
+            {m_thumb_right, "/user/hand/right/input/thumbstick/touch"},
+        };
+        const std::vector<Binding> focus3_sensors = join(stick_sensors, {
+            {m_first_left, "/user/hand/left/input/trigger/touch"},
+            {m_first_right, "/user/hand/right/input/trigger/touch"},
+            {m_thumb_left, "/user/hand/left/input/thumbrest/touch"},
+            {m_thumb_right, "/user/hand/right/input/thumbrest/touch"},
+        });
+        // Windows Mixed Reality and the Odyssey: sticks, and a touchpad for the buttons they lack.
+        const std::vector<Binding> mixed = join(join(sticks, squeeze_click), {
+            {m_a, "/user/hand/right/input/trackpad/click"},
+            {m_b, "/user/hand/right/input/menu/click"},
+            {m_x, "/user/hand/left/input/trackpad/click"},
+            {m_y, "/user/hand/left/input/menu/click"},
+        });
+        const std::vector<Binding> pad_sensors = {
+            {m_thumb_left, "/user/hand/left/input/trackpad/touch"},
+            {m_thumb_right, "/user/hand/right/input/trackpad/touch"},
+        };
+        // The Vive wand: its touchpads are the sticks, pressed for A and X.
+        const std::vector<Binding> wand = join(join(poses, squeeze_click), {
+            {m_move, "/user/hand/left/input/trackpad"},
+            {m_look, "/user/hand/right/input/trackpad"},
+            {m_trigger_left, "/user/hand/left/input/trigger/value"},
+            {m_trigger_right, "/user/hand/right/input/trigger/value"},
+            {m_a, "/user/hand/right/input/trackpad/click"},
+            {m_b, "/user/hand/right/input/menu/click"},
+            {m_x, "/user/hand/left/input/trackpad/click"},
+            {m_y, "/user/hand/left/input/menu/click"},
+        });
+        const std::vector<Binding> simple = join(poses, {
+            {m_trigger_left, "/user/hand/left/input/select/click"},
+            {m_trigger_right, "/user/hand/right/input/select/click"},
+            {m_y, "/user/hand/left/input/menu/click"},
+            {m_a, "/user/hand/right/input/menu/click"},
+        });
+        int taken = 0;
+        taken += suggest("/interaction_profiles/oculus/touch_controller", nullptr, touch_like, touch_sensors);
+        taken += suggest("/interaction_profiles/meta/touch_controller_plus", "XR_META_touch_controller_plus", touch_like,
+                         touch_sensors);
+        taken += suggest("/interaction_profiles/facebook/touch_controller_pro", "XR_FB_touch_controller_pro", touch_like,
+                         touch_sensors);
+        taken += suggest("/interaction_profiles/valve/index_controller", nullptr, index, index_sensors);
+        taken += suggest("/interaction_profiles/bytedance/pico4_controller", "XR_BD_controller_interaction", touch_like,
+                         pico_sensors);
+        taken += suggest("/interaction_profiles/bytedance/pico_neo3_controller", "XR_BD_controller_interaction",
+                         touch_like, pico_sensors);
+        taken += suggest("/interaction_profiles/htc/vive_cosmos_controller", "XR_HTC_vive_cosmos_controller_interaction",
+                         join(join(join(sticks, abxy), squeeze_click), menu), stick_sensors);
+        taken += suggest("/interaction_profiles/htc/vive_focus3_controller", "XR_HTC_vive_focus3_controller_interaction",
+                         join(join(join(sticks, abxy), squeeze_click), menu), focus3_sensors);
+        taken += suggest("/interaction_profiles/hp/mixed_reality_controller", "XR_EXT_hp_mixed_reality_controller",
+                         touch_like, {});
+        taken += suggest("/interaction_profiles/microsoft/motion_controller", nullptr, mixed, pad_sensors);
+        taken += suggest("/interaction_profiles/samsung/odyssey_controller", "XR_EXT_samsung_odyssey_controller", mixed,
+                         pad_sensors);
+        taken += suggest("/interaction_profiles/htc/vive_controller", nullptr, wand, pad_sensors);
+        taken += suggest("/interaction_profiles/khr/simple_controller", nullptr, simple, {});
+        // Which of the controller families that need an extension this runtime offered: the others' bindings
+        // were not suggested.
+        std::string families;
+        for (const std::string& name : m_enabled) {
+            for (const char* controller : kControllerExtensions) {
+                if (name == controller) {
+                    families += " " + name;
+                }
+            }
+        }
+        info("[openxr] controller bindings suggested for " + std::to_string(taken)
+             + " families (controller extensions the runtime has:" + (families.empty() ? std::string(" none") : families)
+             + ")");
+        return taken > 0;
+    }
+
+    // Whether the bound controller senses a finger on its trigger and a thumb on it, per hand: a controller
+    // without (a Vive wand, Windows Mixed Reality's) has the finger on the trigger when it is pressed and the
+    // thumb resting on the controller.
+    bool bound(XrAction action) {
+        XrBoundSourcesForActionEnumerateInfo get{XR_TYPE_BOUND_SOURCES_FOR_ACTION_ENUMERATE_INFO};
+        get.action = action;
+        uint32_t count = 0;
+        return XR_SUCCEEDED(xrEnumerateBoundSourcesForAction(m_session, &get, 0, &count, nullptr)) && count > 0;
+    }
+#endif
+
     // Which controller each hand is bound as, when that changes: the log's first word on input.
     void log_profiles() {
         for (int hand = 0; hand < 2; ++hand) {
@@ -719,6 +1287,12 @@ private:
                 }
                 m_bound[hand] = true;
             }
+#if defined(_WIN32)
+            m_first_sensed[hand] = m_bound[hand] && bound(hand == kLeft ? m_first_left : m_first_right);
+            m_thumb_sensed[hand] = m_bound[hand] && bound(hand == kLeft ? m_thumb_left : m_thumb_right);
+            name += std::string(", touch sensors: finger ") + (m_first_sensed[hand] ? "yes" : "no") + ", thumb "
+                    + (m_thumb_sensed[hand] ? "yes" : "no");
+#endif
             info(std::string("[openxr] ") + (hand == kLeft ? "left" : "right") + " hand: " + name);
         }
     }
@@ -735,6 +1309,7 @@ private:
                 info("[openxr] performance levels: CPU and GPU sustained high");
             }
         }
+#if defined(__ANDROID__)
         if (m_thread_extension) {
             auto set_thread = proc<PFN_xrSetAndroidApplicationThreadKHR>("xrSetAndroidApplicationThreadKHR");
             if (set_thread != nullptr) {
@@ -742,6 +1317,7 @@ private:
                            static_cast<uint32_t>(syscall(SYS_gettid)));
             }
         }
+#endif
         set_refresh(m_settings.refresh_hz);
     }
 
@@ -766,13 +1342,22 @@ private:
         info("[openxr] refresh rates offered: " + listed);
 
         float chosen = 0;
+        float lowest = 0;
         for (float rate : rates) {
             if (rate <= hertz + 0.5f && rate > chosen) {
                 chosen = rate;
             }
+            if (lowest <= 0.0f || rate < lowest) {
+                lowest = rate;
+            }
         }
-        if (hertz <= 0.0f || chosen <= 0.0f) {
+        if (hertz <= 0.0f || lowest <= 0.0f) {
             return;
+        }
+        if (chosen <= 0.0f) {
+            // Below all the headset has (a PC headset without 72 Hz, say): the nearest it has.
+            chosen = lowest;
+            info("[openxr] " + std::to_string(static_cast<int>(hertz)) + " Hz is not offered: the nearest it has");
         }
         if (check(request(m_session, chosen), "xrRequestDisplayRefreshRateFB")) {
             m_refresh_rate = chosen;
@@ -957,6 +1542,16 @@ private:
         c.right_first_touch = read_bool(m_first_right);
         c.left_thumb_touch = read_bool(m_thumb_left);
         c.right_thumb_touch = read_bool(m_thumb_right);
+#if defined(_WIN32)
+        if (!m_first_sensed[kLeft]) {
+            c.left_first_touch = c.left_trigger > 0.05f;
+        }
+        if (!m_first_sensed[kRight]) {
+            c.right_first_touch = c.right_trigger > 0.05f;
+        }
+        c.left_thumb_touch = c.left_thumb_touch || !m_thumb_sensed[kLeft];
+        c.right_thumb_touch = c.right_thumb_touch || !m_thumb_sensed[kRight];
+#endif
     }
 
     // The pointer's picture, a soft white spot both quads use: filled once, the first time a menu
@@ -1050,6 +1645,55 @@ private:
         return true;
     }
 
+#if defined(_WIN32)
+    // A test's proof of what goes to the runtime (QUEST_PC_SHOTS=<folder>, vr/tests/pcvr_null.ps1 -Play, where the
+    // headset is not there to look through): the left eye and the panel as they are in the swapchain, every 15
+    // seconds or so, as .ppm files. Only with that set.
+    void test_shots() {
+        static const char* const folder = std::getenv("QUEST_PC_SHOTS");
+        static int frames = 0;
+        if (folder == nullptr || ++frames % 900 != 0 || sim_gl_proc == nullptr) {
+            return;
+        }
+        const auto get_image = reinterpret_cast<void(__stdcall*)(GLenum, GLint, GLenum, GLenum, void*)>(
+            sim_gl_proc("glGetTexImage"));
+        if (get_image == nullptr) {
+            return;
+        }
+        GLint texture = 0, pack_buffer = 0, alignment = 0;
+        glGetIntegerv(GL_TEXTURE_BINDING_2D, &texture);
+        glGetIntegerv(GL_PIXEL_PACK_BUFFER_BINDING, &pack_buffer);
+        glGetIntegerv(GL_PACK_ALIGNMENT, &alignment);
+        glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+        glPixelStorei(GL_PACK_ALIGNMENT, 1);
+        for (const auto& [target, name] : {std::pair{kTargetLeftEye, "eye"}, std::pair{kTargetPanel, "panel"}}) {
+            const Swapchain& chain = m_targets[target];
+            if (!chain.acquired) {
+                continue;
+            }
+            std::vector<unsigned char> rgba(static_cast<size_t>(chain.width) * chain.height * 4);
+            glBindTexture(GL_TEXTURE_2D, chain.images[chain.index].image);
+            get_image(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, rgba.data());
+            const std::string path = std::string(folder) + "\\" + name + "-" + std::to_string(frames) + ".ppm";
+            if (std::FILE* file = std::fopen(path.c_str(), "wb")) {
+                std::fprintf(file, "P6\n%d %d\n255\n", chain.width, chain.height);
+                std::vector<unsigned char> row(static_cast<size_t>(chain.width) * 3);
+                for (int y = chain.height - 1; y >= 0; --y) {
+                    const unsigned char* from = &rgba[static_cast<size_t>(y) * chain.width * 4];
+                    for (int x = 0; x < chain.width; ++x) {
+                        std::memcpy(&row[static_cast<size_t>(x) * 3], from + static_cast<size_t>(x) * 4, 3);
+                    }
+                    std::fwrite(row.data(), 1, row.size(), file);
+                }
+                std::fclose(file);
+            }
+        }
+        glBindTexture(GL_TEXTURE_2D, static_cast<GLuint>(texture));
+        glPixelStorei(GL_PACK_ALIGNMENT, alignment);
+        glBindBuffer(GL_PIXEL_PACK_BUFFER, static_cast<GLuint>(pack_buffer));
+    }
+#endif
+
     void release_targets() {
         for (Swapchain& chain : m_targets) {
             if (chain.acquired) {
@@ -1079,13 +1723,30 @@ private:
                       rate, seconds, out.frame_seconds * 1000.0,
                       m_frames > 0 ? m_wait_seconds / m_frames * 1000.0 : 0.0);
         info(line);
+        // Keep the refresh rate (on by default from 0.1.14, the owner's wish: smooth wherever the game keeps up) leaves
+        // the chosen rate alone; off, a rate above 72 not held for two spells in a row goes back to 72.
         if (m_refresh_rate > 72.5f && m_focused) {
             m_refresh_misses = rate < m_refresh_rate * 0.9f ? m_refresh_misses + 1 : 0;
-            if (m_refresh_misses >= 2) {
-                warn("[openxr] " + std::to_string(static_cast<int>(m_refresh_rate))
-                     + " Hz not held: back to 72 Hz");
+            if (m_refresh_misses >= 2 && m_settings.keep_refresh) {
+                if (!m_refresh_kept_told) {
+                    m_refresh_kept_told = true;
+                    info("[openxr] " + std::to_string(static_cast<int>(m_refresh_rate))
+                         + " Hz not held here: kept, as Keep the refresh rate asks");
+                }
+                m_refresh_misses = 0;
+            } else if (m_refresh_misses >= 2) {
+                const float held_not = m_refresh_rate;
                 m_refresh_misses = 0;
                 set_refresh(72.0f);
+                if (m_refresh_rate < held_not) {
+                    warn("[openxr] " + std::to_string(static_cast<int>(held_not)) + " Hz not held: back to "
+                         + std::to_string(static_cast<int>(m_refresh_rate)) + " Hz");
+                } else {
+                    // A headset with nothing lower: asked once, and left at it.
+                    warn("[openxr] " + std::to_string(static_cast<int>(held_not))
+                         + " Hz not held, and the headset has nothing lower");
+                    m_refresh_rate = 0;
+                }
             }
         }
         m_frames = 0;
@@ -1096,8 +1757,10 @@ private:
     void (*m_log)(int, const char*);
     XrSettings m_settings;
     std::string m_last_error;
+#if defined(__ANDROID__)
     JavaVM* m_vm = nullptr;
     jobject m_activity = nullptr;
+#endif
 
     XrInstance m_instance = XR_NULL_HANDLE;
     XrSystemId m_system = XR_NULL_SYSTEM_ID;
@@ -1129,8 +1792,14 @@ private:
     bool m_refresh_extension = false;
     bool m_performance_extension = false;
     bool m_thread_extension = false;
+#if defined(_WIN32)
+    HMODULE m_loader = nullptr;
+    std::vector<std::string> m_enabled;  // the controller families' extensions the runtime has
+    bool m_first_sensed[2]{}, m_thumb_sensed[2]{};
+#endif
     float m_refresh_rate = 0;
     int m_refresh_misses = 0;
+    bool m_refresh_kept_told = false;
 
     XrActionSet m_set = XR_NULL_HANDLE;
     XrPath m_hand_path[2] = {XR_NULL_PATH, XR_NULL_PATH};
@@ -1155,8 +1824,13 @@ private:
 
 }  // namespace
 
+#if defined(__ANDROID__)
 Headset* make_headset(void (*log)(int, const char*)) { return new OpenXr(log); }
+#else
+// The PC: xr_sim.cpp's make_headset gives this when no test script is set.
+Headset* make_openxr_headset(void (*log)(int, const char*)) { return new OpenXr(log); }
+#endif
 
 }  // namespace quest
 
-#endif  // __ANDROID__
+#endif  // __ANDROID__ || _WIN32

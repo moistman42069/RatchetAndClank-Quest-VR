@@ -1,0 +1,17 @@
+# Swingshot anywhere, the fling (QUEST_VR_OPTIONS="swing_anywhere 1", QUEST_SIM_GIVE=12 QUEST_SIM_HOLD=12, at Kerwan's start, a
+# tunnel). A slow hand in a zip: [vr-swing] "a fling out of the
+# zip" must not show: the same zip as anywherefling.sim with the hand moved back slowly, about 0.3 m/s, gives a plain pull to its end.
+600 y 1
+606 y 0
+3000 shot before
+3400 hand_pitch 40
+3500 right_trigger 1
+3560 shot in-zip
+3562 rh_z 0.01
+3566 rh_z 0.02
+3570 rh_z 0.03
+3574 rh_z 0.04
+3575 shot still-zipping
+3600 right_trigger 0
+3700 rh_z 0
+4150 quit 0

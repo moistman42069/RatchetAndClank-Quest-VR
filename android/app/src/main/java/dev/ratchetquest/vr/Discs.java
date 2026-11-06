@@ -39,11 +39,14 @@ final class Discs {
     /** The one game this app plays, in the words the player's own copy is listed under. */
     static final String TITLE = "Ratchet & Clank (2002, PlayStation 2)";
 
-    static final String REQUIREMENT =
+    /** Which disc, in the words both launchers use; the PC's launcher (pc/launcher) is built from this file too. */
+    static final String WHICH =
         "You need your own disc image of " + TITLE + " as an .iso file.\n\nExactly one of these two:\n\n"
         + "•  " + PAL.line() + "\n\n•  " + NTSC.line() + "\n\n"
         + "Nothing else works: not Greatest Hits or Platinum releases, not other regions or languages, "
-        + "and not the sequels. No game files come with this app.\n\n"
+        + "and not the sequels. No game files come with this app.";
+
+    static final String REQUIREMENT = WHICH + "\n\n"
         + "Put the .iso in the headset's Download folder (or anywhere the file picker can see) before you "
         + "choose it. Setting up needs about 6 GB free, and the disc is checked before anything is kept.";
 

@@ -1,0 +1,18 @@
+# Wall run and jump, up the wall (QUEST_VR_OPTIONS="wall_moves 1", at Kerwan's start, a tunnel). Looking at the side wall, he walks
+# to it, and a jump with the stick still pushed into the wall: [vr-wall] "a run up the wall"; his height goes well past a jump's.
+# Then, the stick let go, "on the wall"; the jump button with the head looking up the tunnel: "a wall jump" from up there.
+600 y 1
+606 y 0
+3000 shot before
+3100 head_yaw 75
+3110 left_y 1
+3320 a 1
+3330 a 0
+3380 shot running-up
+3480 left_y 0
+3500 shot on-it
+3560 head_yaw 0
+3570 a 1
+3576 a 0
+3590 shot leapt
+3900 quit 0

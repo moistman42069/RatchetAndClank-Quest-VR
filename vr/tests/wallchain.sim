@@ -1,0 +1,26 @@
+# Wall run and jump, chained with zips (QUEST_VR_OPTIONS="swing_anywhere 1\nwall_moves 1", QUEST_SIM_GIVE=12 QUEST_SIM_HOLD=12, at Kerwan's
+# start, a tunnel). A zip to the side wall, "on the wall"; a leap across, looking up the tunnel; in the air, a zip at the far wall with
+# the stick along it: "a pull to", "a wall run" at speed, no landing between; the same wall again gives no second leap until a hook.
+600 y 1
+606 y 0
+3000 shot before
+3400 hand_yaw 75
+3410 hand_pitch 22
+3420 head_yaw 75
+3500 right_trigger 1
+3590 right_trigger 0
+3620 head_yaw -40
+3630 a 1
+3636 a 0
+3640 hand_yaw -60
+3645 hand_pitch 15
+3650 right_trigger 1
+3700 left_x 1
+3760 shot zip-two
+3790 right_trigger 0
+3820 shot run-two
+3900 left_x 0
+3910 a 1
+3916 a 0
+3930 shot leap-two
+4300 quit 0

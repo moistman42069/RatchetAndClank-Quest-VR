@@ -1,0 +1,55 @@
+# The wrench that stays out until called (QUEST_VR_OPTIONS="wrench_far 2;wrench_stay 1", QUEST_SIM_GIVE=15 QUEST_SIM_HOLD=15, Kerwan's start).
+# The first throw stops where it lands: "[vr-wrench] at rest", its whirl let go, and "called back by the grip" brings it in with the whirl,
+# a growing buzz and a thump. The second waits for the trigger. The third rests through a jump, the ring opened and its page turned (the
+# trigger is the ring's there, no call), and an item picked: "called back by a change of item", caught, and the item taken.
+600 y 1
+606 y 0
+3200 shot ahead
+3250 right_grip 1
+3300 shot wrench
+3360 rh_z -0.07
+3361 rh_z -0.14
+3362 rh_z -0.21
+3363 rh_z -0.28
+3364 rh_z -0.35
+3364 right_grip 0
+3420 rh_z 0
+3500 shot resting
+3700 shot resting-later
+3800 right_grip 1
+3830 shot coming
+3990 shot caught-grip
+4040 right_grip 0
+4060 right_grip 1
+4120 rh_z -0.07
+4121 rh_z -0.14
+4122 rh_z -0.21
+4123 rh_z -0.28
+4124 rh_z -0.35
+4124 right_grip 0
+4180 rh_z 0
+4400 right_trigger 1
+4410 right_trigger 0
+4700 shot caught-trigger
+4760 right_grip 1
+4820 rh_z -0.07
+4821 rh_z -0.14
+4822 rh_z -0.21
+4823 rh_z -0.28
+4824 rh_z -0.35
+4824 right_grip 0
+4880 rh_z 0
+4950 a 1
+4956 a 0
+5100 right_click 1
+5130 shot ring
+5140 right_trigger 1
+5146 right_trigger 0
+5180 right_trigger 1
+5186 right_trigger 0
+5200 rh_x 0.17
+5240 shot picked
+5250 right_click 0
+5260 rh_x 0
+5600 shot after-pick
+5700 quit 0

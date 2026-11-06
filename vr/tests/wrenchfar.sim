@@ -1,0 +1,23 @@
+# The wrench thrown far (QUEST_VR_OPTIONS="wrench_far N", QUEST_SIM_GIVE=15 QUEST_SIM_HOLD=15, Kerwan's start, QUEST_WRENCH_TRACE=1). The same
+# throw as wrenchthrow.sim; "[vr-wrench] it turned N units" gives how far it went, about twice, four and eight times the game's with
+# Far, Very far and Super far, or a clank on a wall on the way. It comes back by itself and is caught, and "a slow release" puts it away.
+600 y 1
+606 y 0
+3200 shot ahead
+3250 right_grip 1
+3300 shot wrench
+3360 rh_z -0.07
+3361 rh_z -0.14
+3362 rh_z -0.21
+3363 rh_z -0.28
+3364 rh_z -0.35
+3364 right_grip 0
+3390 shot out
+3420 rh_z 0
+3440 shot far
+3560 shot back
+4000 shot caught
+4100 right_grip 1
+4200 right_grip 0
+4300 shot put-away
+4400 quit 0

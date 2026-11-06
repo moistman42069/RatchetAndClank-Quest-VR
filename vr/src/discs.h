@@ -156,6 +156,8 @@ typedef struct quest_disc {
     /* The pause menu's map screen, its update by name (DrawMapScreen): Cross its missions page, Circle the shown
      * planet's infobot, L1 and R1 the planet before and after. */
     const char* menu_map;
+    /* A voice slot released (release_voice_slot, sound_KillChannel): the wrench's whirl, while it rests. */
+    const char* voice_release;
 } quest_disc;
 
 /* turn_step is the game's g_frame_time (0.02 s a tick on PAL, 1/60 on NTSC-U), frame_scale its
@@ -169,7 +171,7 @@ static const quest_disc k_quest_discs[] = {
      "func_L00_002EBE88", "func_L00_002EBEE0", "func_0012E558", "func_00216F28",
      0x001E6518u, 0x00187140u, 0x0018CE00u, 0x0013E600u, 0x0029BED8u, 404u, 0x00222B80u, 0x0015F7F8u, "func_00200198",
      "func_L00_0023B750", 0x0015FA44u, "func_001FFDA0", 0x0018EE00u, 0x00161000u, "func_001F4868", "func_001F7EF8",
-     0x0015EEB0u, 0x001C43B0u, "func_L00_002618D8", "func_L00_00261848", 0x001B7A60u, 0x00199C60u, 0x0015F544u, "func_0021CE60"},
+     0x0015EEB0u, 0x001C43B0u, "func_L00_002618D8", "func_L00_00261848", 0x001B7A60u, 0x00199C60u, 0x0015F544u, "func_0021CE60", "func_0022EAB0"},
     {"ntsc", 0x0013F350u, 0x0015ED64u, 0x0015ED6Cu, 0x0015F5C4u, 0x00166DD8u, 0x00166E00u, 0x00179AC0u, 0x001E7C10u, 0x0013D428u, 0x0013D4C0u, 0x001619A0u, 0x00173E40u, "func_L00_001EFC70", 0x0017DAC0u, 0x00141EA0u, 0x0013C940u,
      {0x001DF050u, 0x001DF3F0u, 0x001DF790u}, 0x0018D440u, 0x0015F460u, 0x001C3150u, 0x001D5BF0u, "FUN_0021abf8", "FUN_0021b1c8", 0x0015ED98u, "FUN_0022da68", "FUN_L00_002a8028", "FUN_0020d580", "FUN_0021b858", "FUN_00220e28", "FUN_002212b8", "FUN_0021cb30",
      "FUN_0021d4a8", "FUN_00221930", "FUN_0021e890", "FUN_002239e0", "FUN_00219fa0", 0x001DDE28u, 0x0013DD58u, 0x0013DD40u,
@@ -178,7 +180,7 @@ static const quest_disc k_quest_discs[] = {
      "FUN_L00_002ea9d8", "FUN_L00_002eaa30", "FUN_0012e418", "music_unpause",
      0x001E6218u, 0x00187040u, 0x0018CD00u, 0x0013E500u, 0x0029AB70u, 404u, 0x002223F8u, 0x0015F718u, "FUN_001ff960",
      "FUN_L00_0023adb8", 0x0015F96Cu, "FUN_001ff570", 0x0018ED00u, 0x00160F00u, "FUN_001f44b8", "FUN_001f7d30",
-     0x0015EDB0u, 0x001C40B0u, "FUN_L00_00260860", "FUN_L00_002607d0", 0x001B76E0u, 0x00199B60u, 0x0015F444u, "FUN_0021be60"},
+     0x0015EDB0u, 0x001C40B0u, "FUN_L00_00260860", "FUN_L00_002607d0", 0x001B76E0u, 0x00199B60u, 0x0015F444u, "FUN_0021be60", "FUN_0022d798"},
 };
 
 #endif /* QUEST_DISCS_H */

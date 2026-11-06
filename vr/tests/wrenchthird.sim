@@ -1,0 +1,25 @@
+# The wrench set to stay in third person (QUEST_SETTINGS={"view":"third"}, QUEST_VR_OPTIONS="wrench_far 2;wrench_stay 1", QUEST_SIM_GIVE=15
+# QUEST_SIM_HOLD=15, Kerwan's start). There is no throw by hand there: the left trigger (the crouch, R1) and the right grip (Square) are the
+# game's Comet Strike. "at rest" and then a fresh squeeze of the grip: "called back by the grip" (with no hands to change items with, it was
+# left out until the ring was pressed). Caught, no stuck state; the same throw then called by the trigger.
+600 y 1
+606 y 0
+3200 shot ahead
+3300 left_trigger 1
+3330 right_grip 1
+3350 shot comet
+3360 right_grip 0
+3380 left_trigger 0
+3500 shot resting
+3700 right_grip 1
+3720 right_grip 0
+3760 shot coming
+4000 shot caught
+4100 left_trigger 1
+4130 right_grip 1
+4160 right_grip 0
+4180 left_trigger 0
+4400 right_trigger 1
+4410 right_trigger 0
+4700 shot caught-trigger
+4800 quit 0

@@ -68,6 +68,7 @@ using namespace quest;
 // In the hero (seen in game code; lock-strafe's offsets).
 constexpr uint32_t kHeroMoveYaw = 0x180u;
 constexpr uint32_t kHeroFacing = 0x98u;
+constexpr uint32_t kHeroStickX = 0x1D20u, kHeroStickY = 0x1D24u;   // the stick as the hero reads it, -1 to 1
 constexpr uint32_t kHeroVelocityZ = 0xE8u, kHeroStateTimer = 0x198u;  // motion.velocity's z, per tick
 constexpr uint32_t kHeroState = 0x2084u;
 constexpr uint32_t kHeroFrameMode = 0x20B3u;
@@ -170,6 +171,10 @@ struct VrOptions {
     // Swingshot anywhere (VR Controls, off: the owner's ask from 0.1.13, a tester's idea): where the game has no target
     // in reach, the Swingshot pulls him to whatever wall or ground it is aimed at.
     bool swing_anywhere = false;
+    bool wall_moves = false;   // Wall run and jump (More controls, by Swingshot anywhere; off to start, as it is)
+    int swing_reach = 0;       // Swingshot reach: 0 the game's, 1 twice it, 2 no limit
+    int wrench_far = 0;        // Wrench throw distance: 0 the game's, then 2, 4 and 8 times it
+    bool wrench_stay = false;  // Wrench comes back: by itself, or (true) when you call it
     // Ledge shimmy (More controls): false, the hands reached along the ledge take him that way (the owner's start from
     // 0.1.13, a tester's ask: "leaning your hands to the right moves you right"); true, Rerac-vr's pull, the hands drawn
     // the other way, as 0.1.12 had it.
@@ -202,7 +207,10 @@ struct VrOptions {
     // pose, the menus' ray; below 0 down), and drawn this percent of the game's size; Ratchet's hands and
     // forearms (and a glove, which is the hand) this percent of theirs.
     int gun_angle = 0;
-    int empty_hand_angle = 0;  // Empty hand angle: a hand with nothing in it, turned this many degrees up from the controller's grip
+    // Empty hand angle: a hand with nothing in it, turned this many degrees up from the controller's grip. 65 down from
+    // 0.1.14 (the owner's pick on a Quest 3); 0 was the start before, and a file of then holding 0 moves to it once.
+    int empty_hand_angle = -65;
+    bool empty_hand_chosen = false;  // the row was set on the page: a file of 0.1.13's or before has no word of it
     int gun_size = 100;
     int hand_size = 100;
     bool follow_hands = true;  // Items match hand size: what the hands hold is drawn at the Hand size too
@@ -295,6 +303,16 @@ bool s_panel_shown = false;
 bool s_panel_is_hud = false;
 bool s_panel_is_monitor = false;
 bool s_world_eyes = false;  // the last frame drawn showed the world in the eyes, not a picture of the game
+// The eyes' picture as the port last drew it: in which place (the level, -1 the title) and how long it has stood since.
+// On a frame with no world the port draws no eye and gives its last picture again, which the headset shows where it was
+// taken (finish_frame's eyes_kept): right for a repeated frame, wrong for an old one. Not shown (0.1.14, the owner's
+// video of 0.1.13): drawn in another place (the save select's picture held into a level's first scene, 18 frames on
+// PC) or standing a quarter second (the copyright lines after the intro movie, 2.7 s, warped by the headset's
+// reprojection as the head moved). The title shows the game's own picture on its panel instead.
+int s_eyes_place = -100;
+double s_eyes_kept_seconds = 0;
+bool s_eyes_stale = false;
+constexpr double kEyesKeptMost = 0.25;
 
 // The turn and walk read from the frame, for the pad.
 float s_aim_yaw = 0;
@@ -780,6 +798,27 @@ void sim_give() {
         std::snprintf(text, sizeof text, "[sim] hero state 0x%X at tick %llu (%.1f %.1f %.1f)", state_was, static_cast<unsigned long long>(s_tick), now.x, now.y, now.z);
         log_line(1, text);
     }
+    // QUEST_WALK_TRACE: each tick his step along and across his facing, his facing and move yaw, while the stick is
+    // pushed and a second after.
+    static int walk_ticks = 0;
+    static Vec3 walk_was;
+    if (s_have_hero && std::getenv("QUEST_WALK_TRACE") != nullptr) {
+        const Vec3 now = read_vec(s_disc->hero + 0x80u);
+        const bool pushed = std::hypot(s_frame.controls.left_x, s_frame.controls.left_y) > 0.1f;
+        walk_ticks = pushed ? 60 : std::max(walk_ticks - 1, 0);
+        if (walk_ticks > 0) {
+            const float facing = get_float(s_disc->hero + kHeroFacing);
+            const Vec3 step = now - walk_was;
+            char text[200];
+            std::snprintf(text, sizeof text, "[sim] walk tick %llu: state 0x%X, ahead %+.3f across %+.3f, facing %.2f move %.2f aim %.2f, stick %.2f %.2f (his %.2f %.2f)",
+                          static_cast<unsigned long long>(s_tick), ref<int32_t>(s_disc->hero + kHeroState),
+                          step.x * std::cos(facing) + step.y * std::sin(facing), -step.x * std::sin(facing) + step.y * std::cos(facing),
+                          facing, get_float(s_disc->hero + kHeroMoveYaw), s_aim_yaw, s_frame.controls.left_x, s_frame.controls.left_y,
+                          get_float(s_disc->hero + kHeroStickX), get_float(s_disc->hero + kHeroStickY));
+            log_line(1, text);
+        }
+        walk_was = now;
+    }
     // The bolts as the game counts them: what a broken crate or a purchase did.
     static int32_t bolts_was = -1;
     if (done && s_have_hero && ref<int32_t>(s_disc->bolts) != bolts_was) {
@@ -1104,6 +1143,8 @@ void swing_wrench();
 void akimbo_tick();
 void note_angle_item();
 void swing_anywhere_tick();
+void swing_far_tick();
+void wall_tick();
 int game_ticks(float n);
 bool airborne();
 gaddr kept_right_moby();
@@ -1398,6 +1439,8 @@ void on_tick() {
     akimbo_tick();
     note_angle_item();
     swing_anywhere_tick();
+    swing_far_tick();
+    wall_tick();
     watch_ship();
     fist_tick();
     giant_missiles();
@@ -1687,11 +1730,11 @@ void on_pad(int port, std::uint8_t* report, int size) {
     context.punch = context.punch || socket_pressed();
     context.puzzle = !context.in_menu && in_puzzle();
     context.left_weapon = !context.in_menu && s_left_moby != 0 && s_off_side == kLeft;
-    // Physical crouch, on foot in first person: the head crouches and the left grip is the hand's own, for its fingers
-    // (the owner's ask); the left trigger is R1 still, for the long and high jumps and the packs. Not with Akimbo's gun
-    // in the left hand, where the trigger is that gun's and the grip the only R1 left.
-    context.grip_crouch = !(s_vr.physical_crouch && s_steers && s_have_hero && hero_on_foot() && !in_ship() && s_manned == 0
-                            && !context.left_weapon);
+    // On foot in first person the left grip is the hand's own, for its fingers and ledges (the owner's ask), with
+    // Physical crouch on (the head crouches) or off (from 0.1.14: the grip and the trigger both crouched, the owner's
+    // notes); the left trigger is R1 still, crouch, the long and high jumps and the packs. Not with Akimbo's gun in the
+    // left hand, where the trigger is that gun's and the grip the only R1 left.
+    context.grip_crouch = !(s_steers && s_have_hero && hero_on_foot() && !in_ship() && s_manned == 0 && !context.left_weapon);
     context.left_ring = !context.in_menu && s_left_ring;
     context.skip_held = s_skip_held;
     context.view_held = s_view_held;
@@ -1792,6 +1835,51 @@ void turn_to_heading(Original original, int32_t mode, float accel, float damping
     turn_toward(original, s_aim_yaw, mode, accel, damping, limit);
 }
 
+// The way he last went by the stick, kept through the run's last tick and its stop (0.1.14, the owner's notes on
+// 0.1.13: "when i walk backwards, ratchet slides forward a bit"). With the stick let go the game's move yaw falls back
+// to his facing, and the run's last tick and the stop after it (state 3) carry what speed is left along that: after a
+// strafe back or aside he slid forward, about a metre. They carry it the way he was going instead, which after a run
+// ahead is the same as before. Only while he steers, on his feet, and only from a strafe this tick or the last.
+constexpr int32_t kHeroStateStop = 0x03;
+constexpr float kCarryStick = 0.05f;  // the hero's stick off its rest (the game reads it as 0 or from about 0.3): he goes where it says
+float s_carry_yaw = 0.0f;
+uint64_t s_carry_tick = 0;
+bool s_carry = false;
+
+float carried_angle(float angle) {
+    if (!s_steers || !s_have_hero) {
+        s_carry = false;
+        return angle;
+    }
+    rac1_strafe_input in;
+    read_input(&in);
+    const bool on_foot = in.playing && in.vehicle_mode == 0 && in.frame_mode == 0;
+    const bool running = in.state == RAC1_STRAFE_STATE_RUN || in.state == RAC1_STRAFE_STATE_RUN_ALT;
+    const float stick = std::hypot(get_float(s_disc->hero + kHeroStickX), get_float(s_disc->hero + kHeroStickY));
+    if (!on_foot || !(running || in.state == kHeroStateStop) || (s_carry && s_tick > s_carry_tick + 1)) {
+        s_carry = false;
+    }
+    if (on_foot && running && stick >= kCarryStick) {
+        s_carry = true;
+        s_carry_yaw = angle;
+        s_carry_tick = s_tick;
+        return angle;
+    }
+    if (s_carry && stick < kCarryStick) {
+        static bool told = false;
+        if (!told && std::abs(wrap_angle(angle - s_carry_yaw)) > 0.5f) {
+            told = true;
+            char line[120];
+            std::snprintf(line, sizeof line, "[vr-move] the stick let go: what speed is left goes on at yaw %.2f, not %.2f (state 0x%X)",
+                          s_carry_yaw, angle, in.state);
+            log_line(1, line);
+        }
+        s_carry_tick = s_tick;
+        return s_carry_yaw;
+    }
+    return angle;
+}
+
 template <class Original>
 void set_planar_velocity(Original original, float angle) {
     if (!(angle <= RAC1_STRAFE_PI)) {
@@ -1799,7 +1887,7 @@ void set_planar_velocity(Original original, float angle) {
         const int kind = body_faces_heading(&stick_steered) && stick_steered ? RAC1_STRAFE_LOCKED : strafe_kind();
         angle = rac1_strafe_planar_angle(kind, angle, get_float(s_disc->hero + kHeroMoveYaw));
     }
-    original(angle);
+    original(carried_angle(angle));
 }
 
 void give_room_step();
@@ -2511,10 +2599,16 @@ Mount mount_in(gaddr moby, HandFrame& hand, int side, int32_t item, bool main) {
                                                  anchor_now(1.0f)));
     const bool pointing = held_pointing(oclass, item);
     hand = oclass == kWrenchClass ? grip : aim;
-    // What the grip holds is drawn turned by its own angle (the Swingshot's housing), its use where the controller points.
+    // What the grip holds is drawn turned by its own angle, its use where the controller points. The Swingshot's housing, at
+    // the fist, lies along the way the hook flies: along the grip's forward, which on the Quest's controllers runs up the handle
+    // far above that ray, it stood up off the wrist with its back to the eyes, the hook leaving it at an angle (a tester's two
+    // videos, 0.1.13; the owner's "interesting hand alignment"). Its own angle is on top of that.
     const int turn = pointing ? 0 : item_angle(item);
-    const HandFrame drawn = turn == 0 ? grip
-                                      : hand_in_world(in_frame(s_rig, turned_up(s_frame.hand_grip[side], turn), anchor_now(1.0f)));
+    const Pose held_by = oclass == kSwingshotClass ? Pose{s_frame.hand_grip[side].position, pointing_pose(side).orientation}
+                                                   : s_frame.hand_grip[side];
+    const HandFrame drawn = turn == 0 && oclass != kSwingshotClass
+                                ? grip
+                                : hand_in_world(in_frame(s_rig, turned_up(held_by, turn), anchor_now(1.0f)));
     Mount mount = mount_item(pointing ? aim : drawn, oclass, item, scale, class_joint(oclass, moby), side == kLeft,
                              static_cast<float>(s_vr.gun_size) / 100.0f, static_cast<float>(s_vr.hand_size) / 100.0f,
                              s_vr.mirror_guns, s_vr.follow_hands);
@@ -3013,25 +3107,46 @@ void carry_pilot(gaddr gun, const Mount& mount) {
 // the game's size beside a housing at the Hand size, its claws were out of all proportion to the wrist (a tester's Swingshot).
 constexpr int16_t kSwingHookClass = 209;
 constexpr uint8_t kSwingIdleStates = 1;  // the housing's states 0 and 1: the hook is home
+constexpr uint32_t kSwingItemHook = 0x14u;  // the housing's pvars: its own hook (rerac's SwingItem)
 
+// Each housing has its own hook, in its pvars. This took the first class 209 in the level's list for both, so with a
+// Swingshot in each hand one hook was carried by the wrong hand and the other by neither (a tester's two videos, 0.1.13).
 gaddr swing_hook(gaddr item) {
-    static gaddr known = 0;
-    if (known != 0 && s_mod->moby_slot_of(known) >= 0 && ref<int16_t>(known + kMobyOclass) == kSwingHookClass
-        && ref<uint8_t>(known + kMobyState) < 0x80) {
-        return known;
+    const gaddr vars = ref<gaddr>(item + kMobyPvars);
+    const gaddr hook = in_ram(vars) ? ref<gaddr>(vars + kSwingItemHook) : 0;
+    return hook != 0 && hook != item && s_mod->moby_slot_of(hook) >= 0 && ref<int16_t>(hook + kMobyOclass) == kSwingHookClass
+                   && ref<uint8_t>(hook + kMobyState) < 0x80
+               ? hook
+               : 0;
+}
+
+// While the left hand leads, the right's housing is kept aside and its update does not run: a hook of its still out when
+// the lead began hung in the air where it was, all through the left hand's swing, and he flew off and left it or flew
+// through it (a tester's "the hook part lagging behind": a right zip, then a left swing). It comes home here as the
+// update brings it (rerac's item states 6 and 7: 80 units a second), and the housing is idle again.
+void hook_home_while_kept(gaddr item, const Mount& mount) {
+    if (ref<int16_t>(item + kMobyOclass) != kSwingshotClass || ref<uint8_t>(item + kMobyState) <= kSwingIdleStates) {
+        return;
     }
-    known = 0;
-    const int item_slot = s_mod->moby_slot_of(item);
-    if (item_slot < 0) {
-        return 0;
+    const gaddr hook = swing_hook(item);
+    if (hook == 0) {
+        ref<uint8_t>(item + kMobyState) = 1;
+        return;
     }
-    for (const openrac_moby& m : s_mod->moby_list()) {
-        if (m.oclass == kSwingHookClass) {
-            known = item + (static_cast<gaddr>(m.slot) - static_cast<gaddr>(item_slot)) * 0x100u;
-            break;
-        }
+    constexpr float kHookBack = 80.0f;  // units a second
+    const Vec3 at = read_vec(hook + kMobyPosition);
+    const Vec3 way = mount.muzzle - at;
+    const float left = length(way);
+    const float step = kHookBack * static_cast<float>(s_frame.frame_seconds);
+    const bool home = !(left > step);
+    const Vec3 to = home ? mount.muzzle : at + way * (step / left);
+    put_float(hook + kMobyPosition, to.x);
+    put_float(hook + kMobyPosition + 4u, to.y);
+    put_float(hook + kMobyPosition + 8u, to.z);
+    sphere_at(hook, to);
+    if (home) {
+        ref<uint8_t>(item + kMobyState) = 1;
     }
-    return known;
 }
 
 void carry_hook(gaddr item, const Mount& mount) {
@@ -3041,6 +3156,16 @@ void carry_hook(gaddr item, const Mount& mount) {
     const gaddr hook = swing_hook(item);
     if (hook == 0) {
         return;
+    }
+    {
+        static gaddr told[2] = {};
+        gaddr& was_told = told[item == s_left_moby ? 1 : 0];
+        if (was_told != hook) {
+            was_told = hook;
+            char line[100];
+            std::snprintf(line, sizeof line, "[vr-swing] the %s hand's Swingshot 0x%X has its hook 0x%X", item == s_left_moby ? "left" : "right", item, hook);
+            log_line(1, line);
+        }
     }
     if (ref<uint8_t>(item + kMobyState) <= kSwingIdleStates) {
         const Vec3 at = read_vec(item + kMobyPosition);
@@ -3120,6 +3245,38 @@ constexpr float kAnywhereStill = 20.0f;   // ticks (60 a second) unmoving in the
 constexpr float kAnywhereLongest = 300.0f;  // ticks: the hook's flight and the pull over 30 units take under 3 s
 int s_anywhere_ticks = 0, s_anywhere_still = 0, s_anywhere_loose = 0;
 Vec3 s_anywhere_was;
+Vec3 s_anywhere_normal;       // the way the surface of the last pull's point faces (Wall run and jump)
+float s_anywhere_far = 0.0f;  // ticks more for the watchdog: a Swingshot reach past the game's
+constexpr float kAnywhereNoLimit = 2000.0f;  // units, Swingshot reach's No limit: more than any level is across
+
+// Swingshot reach (More controls): how far the hook goes, Normal the game's own.
+float anywhere_reach(bool swing) {
+    const float game = swing ? kAnywhereSwingReach : kAnywhereReach;
+    return s_vr.swing_reach == 2 ? kAnywhereNoLimit : s_vr.swing_reach == 1 ? game * 2.0f : game;
+}
+
+// A far line, a piece at a time: the game's finds nothing at all once it leaves its world, 0 to 1024 on each axis (collision_query's
+// in_world), and is not asked for more than a few dozen units in the game itself.
+bool far_line_hit(Vec3 from, Vec3 way, float reach, Vec3& hit, Vec3& normal) {
+    constexpr float kPiece = 64.0f, kWorldEdge = 1023.9f, kOverlap = 0.05f;
+    float left = reach;
+    const float at[] = {from.x, from.y, from.z}, go[] = {way.x, way.y, way.z};
+    for (int k = 0; k < 3; ++k) {
+        if (go[k] > 1e-5f) {
+            left = std::min(left, (kWorldEdge - at[k]) / go[k]);
+        } else if (go[k] < -1e-5f) {
+            left = std::min(left, (0.1f - at[k]) / go[k]);
+        }
+    }
+    for (float done = 0.0f; done < left; done += kPiece) {
+        const Vec3 a = from + way * std::max(done - kOverlap, 0.0f);
+        const Vec3 b = from + way * std::min(done + kPiece, left);
+        if (line_hit(a, b, hit, normal, kPiece + 1.0f, reach + 3.0f)) {
+            return true;
+        }
+    }
+    return false;
+}
 float tick_seconds();
 
 // The stand-in's record, in its own pvars (rerac's swingshot.rs Record, 0x40 bytes): a swing (kind 1) or a pull (0),
@@ -3170,6 +3327,123 @@ constexpr float kLeanLeast = 0.03f, kLeanMost = 0.15f;                 // metres
 constexpr float kLeanPush = 0.21f;                                     // the game's stick push: 0.21·dt a tick
 Vec3 neck_of(const Pose& head);
 
+// Testers' 0.1.13 list, for a Swingshot anywhere chain in the air. Only with the mod's stand-in, so a target of the game's is
+// the game's. Rerac's swingshot.rs is where each number comes from.
+// - A zip fired in the air catches at once. The game's fire (0x24, phys_fire) stops him dead (vel = 0) and lets him drop until
+//   the hook has flown to the point, at 24 or 48 units a second, after bringing back the last hook at 80, which a swing's hook
+//   does not (it arrives in 5 to 7 ticks, whatever the way): he reached the floor first, and "the right zip one only works once
+//   in a chain. You can only use it again after touching the ground." Here the hook out turns round, it flies at
+//   kAnywhereAirHook, his way is carried by the game's own momentum while it does (what phys_fire keeps), and the pull starts
+//   at the speed he has, not from nothing.
+// - The hook does not cancel the hover ("the hookshot cancels the hover"): fired from the Heli-Pack's glide or the
+//   Thruster-Pack's hover he stays up while the hook flies, and after the hook, going no faster than kHoverAgain, the hover is
+//   back: the Thruster's by itself, the Heli-Pack's as it is at any time, by the jump button still held.
+constexpr uint32_t kHeroDisplacement = 0x100u;   // 0x13f450: what he moved last tick
+constexpr uint32_t kHeroEffective = 0x110u;      // 0x13f460: his speed, a tick
+constexpr uint32_t kHeroEffectiveV = 0x120u;     // 0x13f470: its upright part
+constexpr uint32_t kHeroMomentum = 0x150u;       // 0x13f4a0: carried, whatever the state's own velocity
+constexpr uint32_t kHeroLockout = 0x1C4u;        // 0x13f514: no glide, jump or air control while it counts
+constexpr uint32_t kHeroNoVelClamp = 0x1CCu;     // 0x13f51c: ticks without the speed limit and the capsule's walls
+constexpr uint32_t kHeroPullSpeed = 0x960u;      // 0x13fcb0
+constexpr uint32_t kHeroSwingFirst = 0x9BEu;     // 0x13fd0e: the first swing's extra weight and kick
+constexpr uint32_t kPadHeldWord = 0x1C0u, kPadGameHeldWord = 0x1A0u, kPadHeldCross = 0x40u;
+constexpr float kAnywhereAirHook = 150.0f;       // units a second, added to the game's flight
+constexpr float kHoverAgain = 8.0f;              // units a second: a glide's entry brakes him to 4.5
+bool s_anywhere_air = false;                     // the pull given was given in the air
+int32_t s_hover_was = 0;                         // the hover he fired from: back to it after the hook
+
+bool anywhere_set_state(int32_t state) {
+    using SetState = int (*)(int, int);
+    void* set_state = s_mod->api().function_called(0, s_disc->vendor_close, s_disc->vendor_close_size, s_disc->hero_set_state);
+    if (set_state == nullptr) {
+        return false;
+    }
+    reinterpret_cast<SetState>(set_state)(state, 1);
+    return true;
+}
+
+void anywhere_fling(int32_t now, bool pull_ours);
+
+// A chain's zip, as the hook is out (0x24) and as it holds (0x25): above.
+void anywhere_chain(int32_t before, int32_t now, bool pull_ours) {
+    const gaddr hero = s_disc->hero;
+    const float ts = tick_seconds();
+    const gaddr target = ref<gaddr>(hero + kHeroPullTarget);
+    const bool ours = s_anywhere_on && s_anywhere_air && s_anywhere_moby != 0 && target == s_anywhere_moby;
+    if (now == kStatePullFire && ours) {
+        const gaddr item = hand_moby();
+        const gaddr hook = item != 0 && ref<int16_t>(item + kMobyOclass) == kSwingshotClass ? swing_hook(item) : 0;
+        if (hook != 0) {
+            const uint8_t state = ref<uint8_t>(item + kMobyState);
+            if (state == 6 || state == 7) {
+                ref<uint8_t>(item + kMobyState) = 2;  // the last hook, on its way back: it turns round where it is
+            } else if (state == 2) {
+                const Vec3 at = read_vec(hook + kMobyPosition);
+                const Vec3 way = read_vec(target + kMobyPosition) - at;
+                const float left = length(way);
+                const float step = std::min(kAnywhereAirHook * ts, left - 0.01f);
+                if (step > 0.0f) {
+                    const Vec3 to = at + way * (step / left);
+                    put_float(hook + kMobyPosition, to.x);
+                    put_float(hook + kMobyPosition + 4u, to.y);
+                    put_float(hook + kMobyPosition + 8u, to.z);
+                }
+            }
+        }
+    }
+    if (before == kStatePullFire && now != kStatePullFire) {
+        // Momentum was only for the hook's flight: nothing later is to find it.
+        put_float(hero + kHeroMomentum, 0.0f);
+        put_float(hero + kHeroMomentum + 4u, 0.0f);
+        put_float(hero + kHeroMomentum + 8u, 0.0f);
+        if (now == 0x25 && pull_ours && s_anywhere_air) {
+            put_float(hero + kHeroPullSpeed, std::min(length(read_vec(hero + kHeroEffective)), 27.0f * ts));
+        }
+    }
+}
+
+// The hover he fired from, above.
+void anywhere_hover(int32_t before, int32_t now) {
+    const gaddr hero = s_disc->hero;
+    const bool hook_state = now == kStatePullFire || now == 0x25 || now == 0x26 || now == kStateSwing;
+    constexpr int32_t kGlide = 8, kHover = 0x81;
+    static float hover_z = 0.0f;
+    if (hook_state && (before == kGlide || before == kHover)) {
+        s_hover_was = before;
+        hover_z = get_float(hero + 0x88u);
+    }
+    if (s_hover_was == 0) {
+        return;
+    }
+    if (now == kStatePullFire) {
+        // The fire's gravity counts from what he falls at: not at all, and he stays at the height he hovered at.
+        put_float(hero + kHeroEffectiveV + 8u, 0.0f);
+        if (airborne() && get_float(hero + 0x88u) < hover_z) {
+            put_float(hero + 0x88u, hover_z);
+        }
+        return;
+    }
+    if (hook_state) {
+        return;
+    }
+    if (now != 6 && now != kStateSwingFall) {
+        s_hover_was = 0;  // the ground, the hover again by the game's own way, or anything else
+        return;
+    }
+    const bool cross = (ref<uint32_t>(s_disc->pad_state + kPadHeldWord) & kPadHeldCross) != 0;
+    const float speed = length(read_vec(hero + kHeroEffective)) / tick_seconds();
+    if (speed > kHoverAgain) {
+        if (cross) {
+            ref<int32_t>(hero + kHeroLockout) = std::max(ref<int32_t>(hero + kHeroLockout), 2);  // the game's glide waits too
+        }
+        return;
+    }
+    if (s_hover_was == kHover && airborne() && anywhere_set_state(kHover)) {
+        log_line(1, "[vr-swing] after the hook, the Thruster-Pack's hover again");
+    }
+    s_hover_was = 0;
+}
+
 void anywhere_feel() {
     constexpr uint32_t kHooked = 0x99Cu;  // 0x13fcec, kHeroSwingHooked below
     static int32_t was = -1;
@@ -3181,6 +3455,7 @@ void anywhere_feel() {
     if (!s_vr.swing_anywhere || phase_now() != OPENRAC_PLAY_PLAYING) {
         leaning = false;
         pull_ours = false;
+        s_hover_was = 0;
         return;
     }
     // Whose pull, taken each tick of it (the let-go's tick may have cleared the target): the mod's stand-in, or a
@@ -3188,12 +3463,15 @@ void anywhere_feel() {
     if (now == 0x25) {
         pull_ours = s_anywhere_on && s_anywhere_moby != 0 && ref<gaddr>(hero + kHeroPullTarget) == s_anywhere_moby;
     }
+    anywhere_chain(before, now, pull_ours);
+    anywhere_hover(before, now);
+    anywhere_fling(now, pull_ours);
     const float ts = tick_seconds();
     const float dt2 = ts * ts;
     const bool fire_held = (ref<uint32_t>(s_disc->pad_state + 0x1C0u) & 0x20u) != 0;
     if (before == 0x25 && now == 6 && !fire_held && !pull_ours) {
         log_line(1, "[vr-swing] let go mid-zip at a target of the game's: its own fall, as the game has it");
-    } else if (before == 0x25 && now == 6 && !fire_held) {
+    } else if (before == 0x25 && now == 6 && !fire_held && get_float(hero + kHeroAirDecay) > 8.0f * dt2) {
         const float decay = get_float(hero + kHeroAirDecay);
         const Vec3 v = read_vec(hero + kHeroMotionVelocity) * (1.0f / ts);
         char line[200];
@@ -3311,7 +3589,7 @@ void swing_anywhere_tick() {
         s_anywhere_was = at;
         const char* stalled = !playing                                                     ? nullptr
                               : pulling && s_anywhere_still > game_ticks(kAnywhereStill)   ? "the pull stopped moving"
-                              : pulling && s_anywhere_ticks > game_ticks(kAnywhereLongest) ? "the pull ran too long"
+                              : pulling && s_anywhere_ticks > game_ticks(kAnywhereLongest + s_anywhere_far) ? "the pull ran too long"
                               : swinging && s_anywhere_loose > game_ticks(kAnywhereLetGo)  ? "the swing outlasted the fire let go"
                                                                                            : nullptr;
         if (stalled != nullptr) {
@@ -3354,17 +3632,27 @@ void swing_anywhere_tick() {
         armed = false;  // the game's own target took it
         return;
     }
-    if (ref<uint8_t>(hero + kHeroPullUsable) != 0 || ref<uint8_t>(hero + kHeroSwingUsable) != 0 || !anywhere_can_fire(hero)) {
-        return;
-    }
-    armed = false;  // one try a hold, whatever it finds
+    // What the game would take is the game's. A flag of the mod's own, left by its last stand-in until the game's next search,
+    // is not: it held back the next zip with no word said.
     static uint64_t told = 0;
+    static const char* told_what = nullptr;
     const auto tell = [&](const char* what) {
-        if (s_tick > told + 30) {
+        if (what != told_what || s_tick > told + 150) {
             told = s_tick;
+            told_what = what;
             log_line(1, (std::string("[vr-swing] anywhere: ") + what).c_str());
         }
     };
+    if ((ref<uint8_t>(hero + kHeroPullUsable) != 0 && ref<gaddr>(hero + kHeroPullTarget) != s_anywhere_moby)
+        || (ref<uint8_t>(hero + kHeroSwingUsable) != 0 && ref<gaddr>(hero + kHeroSwingTarget) != s_anywhere_moby)) {
+        return;
+    }
+    if (!anywhere_can_fire(hero)) {
+        tell(ref<int16_t>(hero + kHeroRefireLock) != 0 ? "not yet: the game's wait after a swing" : "not in this state: the game's fire has none here");
+        return;
+    }
+    // Tried while the fire is held, until a point is found (armed goes off with the state above and the fire below): aimed at
+    // nothing or too near, swinging the hand onto a wall still fires, as the game's fire does when a target comes into view.
 #if !defined(__ANDROID__)
     static const bool any_level = std::getenv("QUEST_ANYWHERE_ANY_LEVEL") != nullptr;  // the PC test of the watchdog
 #else
@@ -3375,16 +3663,20 @@ void swing_anywhere_tick() {
         return;
     }
     const int side = hand_side();
-    const bool swing = side == kLeft;  // the left hand's Swingshot swings, the right's pulls
+    bool swing = side == kLeft;  // the left hand's Swingshot swings, the right's pulls
     const HandFrame aim = hand_in_world(in_frame(s_rig, held_pose(side, moby, kItemSwingshot), anchor_now(1.0f)));
-    const float reach = swing ? kAnywhereSwingReach : kAnywhereReach;
+    const float reach = anywhere_reach(swing);
     Vec3 hit, normal;
-    if (!line_hit(aim.at, aim.at + aim.forward * reach, hit, normal, reach + 1.0f, reach + 3.0f)) {
-        tell(swing ? "nothing within 16 units of the aim to swing from" : "nothing within 30 units of the aim");
+    if (!far_line_hit(aim.at, aim.forward, reach, hit, normal)) {
+        tell(swing ? "nothing within the reach of the aim to swing from" : "nothing within the reach of the aim");
         return;
     }
     const Vec3 out = length(normal) > 0.5f && dot(normal, aim.forward) < 0.0f ? normal : aim.forward * -1.0f;
     const Vec3 target = hit + out * kAnywhereOut;
+    // A rope hundreds of units long is no swing: he only falls along it, under the level's floor. Past twice the game's swing, the left hand zips too.
+    if (swing && length(target - s_hero_after) > kAnywhereSwingReach * 2.0f) {
+        swing = false;
+    }
     const Vec3 feet = s_hero_after + Vec3{0, 0, 0.5f};
     if (length(target - s_hero_after) < (swing ? kAnywhereSwingNearest : kAnywhereNearest)) {
         tell(swing ? "too near to swing from" : "too near to pull to");
@@ -3394,8 +3686,9 @@ void swing_anywhere_tick() {
         tell("a swing needs a point above his head");
         return;
     }
-    Vec3 blocked;
-    if (line_blocked(feet, target, blocked, reach + 2.0f, reach + 3.0f)) {
+    Vec3 blocked, blocked_normal;
+    const float to_target = length(target - feet);
+    if (far_line_hit(feet, (target - feet) * (1.0f / std::max(to_target, 1e-3f)), to_target, blocked, blocked_normal)) {
         tell("his way there is blocked");
         return;
     }
@@ -3449,6 +3742,12 @@ void swing_anywhere_tick() {
         tell("its target has no record to write");
         return;
     }
+    armed = false;  // this hold has its shot
+    told_what = nullptr;
+    s_anywhere_air = airborne();
+    s_anywhere_normal = out;
+    s_anywhere_far = std::max(length(target - s_hero_after) - kAnywhereReach, 0.0f) * 6.0f;
+    const Vec3 moving = read_vec(hero + kHeroEffective);
     if (swing) {
         ref<gaddr>(hero + kHeroSwingTarget) = stand_in;
         ref<int16_t>(hero + kHeroSwingUsable) = 1;
@@ -3459,6 +3758,12 @@ void swing_anywhere_tick() {
         ref<int32_t>(hero + kHeroPullMode) = 0;
         put_float(hero + kHeroPullLength, kAnywhereRope);
         reinterpret_cast<SetState>(set_state)(kStatePullFire, 1);
+        if (s_anywhere_air) {
+            // His way goes on as the hook flies (phys_fire keeps nothing but this).
+            put_float(hero + kHeroMomentum, moving.x);
+            put_float(hero + kHeroMomentum + 4u, moving.y);
+            put_float(hero + kHeroMomentum + 8u, 0.0f);
+        }
     }
     s_anywhere_on = true;
     s_anywhere_state = ref<int32_t>(hero + kHeroState);
@@ -3502,6 +3807,132 @@ bool throws_by_hand() {
 
 // The second item is a glove, in hand `side`.
 bool off_glove(int side) { return s_left_moby != 0 && s_off_side == side && glove_item(s_off_item); }
+
+// The fling (a tester on 0.1.13: "If I could fling myself at the end of a swing with pulling the controller the opposite way
+// Id be able to loop de loop", and of a zip at a tree, "fling myself just before hitting it and jump over"). With Swingshot
+// anywhere on, on a rope of the mod's stand-in: the hand that fired it yanked hard, he is thrown the opposite way. In a swing
+// along the rope, as far as the hand's speed says, and a yank that would brake him does nothing; in a zip, a yank back lets go of
+// the rope, thrown on and up, as a let-go keeps its speed. The game holds him to a capsule's radius a tick (phys's "velocity
+// clamp": 22 units a second on PAL) and a loop on the disc's 7-unit rope needs 33 at the bottom: while the way ahead is clear,
+// and only then, the limit (and the capsule's walls with it, no_vel_clamp) is off a tick at a time.
+constexpr float kFlingLeast = 2.5f, kFlingMost = 6.0f;           // metres a second of the hand
+constexpr float kFlingWeakest = 10.0f, kFlingStrongest = 24.0f;  // units a second it adds
+constexpr float kFlingTop = 45.0f;                               // units a second he may be thrown to
+constexpr float kFlingZipUp = 13.0f;                             // units a second up, over a tree (27 u/s² brings it back in 3 units)
+constexpr float kFlingWait = 8.0f, kFlingRest = 30.0f;           // ticks into the rope first, and between flings (at 60 a second)
+constexpr float kFlingFast = 150.0f;                             // ticks a fling may outrun the game's limit
+constexpr float kGameSpeedLimit = 0.38f;                         // about the limit, units a tick
+constexpr uint32_t kFlingHeroAt = 0x80u;                         // motion.pos
+int s_fling_rest = 0, s_fling_fast = 0;
+
+void anywhere_fling(int32_t now, bool pull_ours) {
+    const gaddr hero = s_disc->hero;
+    const float ts = tick_seconds();
+    const float dt2 = ts * ts;
+    if (s_fling_rest > 0) {
+        --s_fling_rest;
+    }
+    if (s_fling_fast > 0) {
+        --s_fling_fast;
+        const Vec3 v = read_vec(hero + kHeroMotionVelocity);
+        const float tick_speed = length(v);
+        if (now != kStateSwing && now != kStateSwingFall && now != 6) {
+            s_fling_fast = 0;
+        } else if (tick_speed > kGameSpeedLimit && ref<int32_t>(hero + kHeroNoVelClamp) < 2) {
+            const Vec3 way = v * (1.0f / tick_speed);
+            Vec3 side = cross(way, Vec3{0, 0, 1});
+            side = length(side) > 0.2f ? side * (1.0f / length(side)) : Vec3{1, 0, 0};
+            const Vec3 up = cross(side, way);
+            const Vec3 middle = read_vec(hero + kFlingHeroAt) + Vec3{0, 0, 0.6f};
+            const float reach = tick_speed * 6.0f + 1.5f;
+            bool clear = true;
+            for (const Vec3 off : {Vec3{}, side * 0.6f, side * -0.6f, up * 0.7f, up * -0.7f}) {
+                Vec3 point;
+                if (line_blocked(middle + off, middle + off + way * reach, point, reach + 1.0f, reach + 3.0f)) {
+                    clear = false;
+                    break;
+                }
+            }
+            if (clear) {
+                ref<int32_t>(hero + kHeroNoVelClamp) = 2;
+            }
+        }
+    }
+    const gaddr on = ref<gaddr>(hero + kHeroSwingOn);
+    const bool swinging = now == kStateSwing && s_anywhere_on && on != 0 && on == s_anywhere_moby && ref<int16_t>(hero + 0x99Cu) != 0;
+    const bool pulling = now == 0x25 && pull_ours;
+    const int side = hand_side();
+    if ((!swinging && !pulling) || s_fling_rest > 0 || !s_have_frame || !s_frame.hand_valid[side]
+        || ref<int32_t>(hero + kHeroStateTimer) < game_ticks(kFlingWait)) {
+        return;
+    }
+    const Vec3 hand = side == kLeft ? s_left_velocity : s_hand_velocity;
+    const float hand_speed = length(hand);
+    if (hand_speed < kFlingLeast || hand_speed > 30.0f) {  // more is the tracking jumping
+        return;
+    }
+    const Vec3 push = frame_to_world(rotate(yaw_quat(s_rig.yaw), hand * (-1.0f / hand_speed)));
+    const float share = std::min((hand_speed - kFlingLeast) / (kFlingMost - kFlingLeast), 1.0f);
+    const float strength = kFlingWeakest + (kFlingStrongest - kFlingWeakest) * share;
+    const Vec3 at = read_vec(hero + kFlingHeroAt);
+    Vec3 v = read_vec(hero + kHeroMotionVelocity) * (1.0f / ts);
+    const float was_going = length(v);
+    if (swinging) {
+        Vec3 out = at - read_vec(on + kMobyPosition);
+        if (length(out) < 0.5f) {
+            return;
+        }
+        out = out * (1.0f / length(out));
+        Vec3 along = push - out * dot(push, out);
+        if (length(along) < 0.25f) {
+            return;  // along the rope: nothing to throw him on
+        }
+        along = along * (1.0f / length(along));
+        if (was_going > 5.0f && dot(along, v * (1.0f / was_going)) < -0.2f) {
+            return;  // it would brake him
+        }
+        v = v + along * strength;
+        const gaddr pv = ref<gaddr>(on + kMobyPvars);
+        if (pv != 0 && readable(pv, 0x40u)) {
+            put_float(pv + 0x0Cu, kFlingTop * ts);  // the swing's own cap: not back at 22 at once
+        }
+        ref<int16_t>(hero + kHeroSwingFirst) = 0;
+    } else {
+        const gaddr target = ref<gaddr>(hero + kHeroPullTarget);
+        if (target == 0 || !readable(target + kMobyPosition, 12u)) {
+            return;
+        }
+        Vec3 to = read_vec(target + kMobyPosition) - at;
+        to = length(to) > 0.1f ? to * (1.0f / length(to)) : Vec3{};
+        if (dot(push, to) < 0.2f) {
+            return;  // only thrown on the way he goes: a yank back
+        }
+        if (!anywhere_set_state(6)) {
+            return;
+        }
+        v = v + push * strength + Vec3{0, 0, kFlingZipUp};
+        put_float(hero + kHeroAirDecay, 7.0f * dt2);
+        put_float(hero + kHeroAirGravity, 27.0f * dt2);
+    }
+    const float speed = length(v);
+    if (speed > kFlingTop) {
+        v = v * (kFlingTop / speed);
+    }
+    const Vec3 tick_v = v * ts;
+    put_float(hero + kHeroMotionVelocity, tick_v.x);
+    put_float(hero + kHeroMotionVelocity + 4u, tick_v.y);
+    put_float(hero + kHeroMotionVelocity + 8u, tick_v.z);
+    put_float(hero + kHeroDisplacement, tick_v.x);
+    put_float(hero + kHeroDisplacement + 4u, tick_v.y);
+    put_float(hero + kHeroDisplacement + 8u, tick_v.z);
+    s_fling_rest = game_ticks(kFlingRest);
+    s_fling_fast = game_ticks(kFlingFast);
+    buzz(static_cast<Hand>(side), {0.7f, 0.08f, 90.0f});
+    char line[220];
+    std::snprintf(line, sizeof line, "[vr-swing] a fling out of the %s, the %s hand at %.1f m/s: from %.1f to %.1f units a second, toward (%.2f %.2f %.2f)",
+                  swinging ? "swing" : "zip", side == kLeft ? "left" : "right", hand_speed, was_going, length(v), v.x / length(v), v.y / length(v), v.z / length(v));
+    log_line(1, line);
+}
 
 // One hand's path over the last 80 ms, and its velocity.
 void track_hand(std::deque<std::pair<double, Vec3>>& path, Vec3& velocity, int side, double now) {
@@ -3845,6 +4276,792 @@ void hero_sound(int sound) {
     }
 }
 
+// Swingshot reach past the game's (More controls: Normal, Longer, No limit; a tester: "can ypu please extend the hookshot
+// distance?"). The aim's own line and the watchdog take it in swing_anywhere_tick; here, what a far shot needs of the game:
+// - The game's own targets, with Swingshot anywhere off (with it on, where the hand aims is the shot, and a far target in his
+//   facing would take the trigger from it): their reach, the record's +0x20, 0 being 30 for a pull and 16 for a swing. Put back
+//   as it was with the option or Swingshot anywhere changed.
+// - The hook's flight, 24 units a second on the ground: a far hook gets there in about kFarHookSeconds.
+// - The pull, 27 units a second: a far pull goes faster while the way ahead is clear (the game's limit and the capsule off a tick
+//   at a time, as for a fling), and comes down its own stopping curve, so the last of it is the game's own.
+constexpr int kPullTargetClass = 758, kSwingTargetClass = 803;  // rerac's swingshot.rs
+constexpr float kFarHookSeconds = 0.6f;
+constexpr float kFarPullTop = 70.0f;      // units a second
+constexpr float kFarPullStop = 42.0f;     // units a second a second: the game's stopping (phys_pull, substate 1)
+constexpr float kFarPullRise = 120.0f;    // units a second a second
+
+// Nothing in his way for a while at this speed a tick: five lines, his middle and about him.
+bool way_clear(Vec3 tick_velocity, Vec3 at) {
+    const float tick_speed = length(tick_velocity);
+    if (tick_speed <= 0.0f) {
+        return false;
+    }
+    const Vec3 way = tick_velocity * (1.0f / tick_speed);
+    Vec3 side = cross(way, Vec3{0, 0, 1});
+    side = length(side) > 0.2f ? side * (1.0f / length(side)) : Vec3{1, 0, 0};
+    const Vec3 up = cross(side, way);
+    const Vec3 middle = at + Vec3{0, 0, 0.6f};
+    const float reach = tick_speed * 6.0f + 1.5f;
+    for (const Vec3 off : {Vec3{}, side * 0.6f, side * -0.6f, up * 0.7f, up * -0.7f}) {
+        Vec3 point;
+        if (line_blocked(middle + off, middle + off + way * reach, point, reach + 1.0f, reach + 3.0f)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+void swing_reach_targets() {
+    static std::vector<std::pair<gaddr, float>> changed;  // each target's record, and its reach as the disc had it
+    static int level = -2, applied = 0;
+    const int want = s_vr.swing_anywhere ? 0 : s_vr.swing_reach;
+    if (s_mod->loaded_level() != level) {
+        level = s_mod->loaded_level();
+        changed.clear();  // gone with its level
+        applied = 0;
+    }
+    if (!s_have_hero || (want == applied && (want == 0 || s_tick % 60u != 0u))) {
+        return;
+    }
+    if (want != applied) {
+        for (const std::pair<gaddr, float>& one : changed) {
+            if (readable(one.first, 0x40u)) {
+                put_float(one.first + 0x20u, one.second);
+            }
+        }
+        changed.clear();
+        applied = want;
+    }
+    const gaddr body = ref<gaddr>(s_disc->hero + kHeroBody);
+    const int body_slot = body != 0 ? s_mod->moby_slot_of(body) : -1;
+    if (want == 0 || body_slot < 0) {
+        return;
+    }
+    for (const openrac_moby& m : s_mod->moby_list()) {
+        if (m.oclass != kPullTargetClass && m.oclass != kSwingTargetClass) {
+            continue;
+        }
+        const gaddr at = body + static_cast<gaddr>(m.slot - body_slot) * 0x100u;
+        const gaddr record = s_mod->moby_slot_of(at) == m.slot ? ref<gaddr>(at + kMobyPvars) : 0;
+        if (record == 0 || !readable(record, 0x40u)
+            || std::any_of(changed.begin(), changed.end(), [&](const std::pair<gaddr, float>& one) { return one.first == record; })) {
+            continue;
+        }
+        const float was = get_float(record + 0x20u);
+        const float game = was != 0.0f ? was : m.oclass == kPullTargetClass ? kAnywhereReach : kAnywhereSwingReach;
+        put_float(record + 0x20u, want == 2 ? kAnywhereNoLimit : game * 2.0f);
+        changed.emplace_back(record, was);
+    }
+}
+
+void swing_far_tick() {
+    swing_reach_targets();
+    if (s_vr.swing_reach == 0 || !s_have_hero || phase_now() != OPENRAC_PLAY_PLAYING) {
+        return;
+    }
+    const gaddr hero = s_disc->hero;
+    const int32_t now = ref<int32_t>(hero + kHeroState);
+    if (now != kStatePullFire && now != 0x25) {
+        return;
+    }
+    const gaddr target = ref<gaddr>(hero + kHeroPullTarget);
+    if (target == 0 || !readable(target + kMobyPosition, 12u)) {
+        return;
+    }
+    const float ts = tick_seconds();
+    const Vec3 at = read_vec(hero + kFlingHeroAt);
+    const Vec3 to = read_vec(target + kMobyPosition);
+    const float away = length(to - at);
+    if (away <= kAnywhereReach || away > kAnywhereNoLimit * 2.0f) {
+        return;
+    }
+    if (now == kStatePullFire) {
+        const gaddr item = hand_moby();
+        const gaddr hook = item != 0 && ref<int16_t>(item + kMobyOclass) == kSwingshotClass ? swing_hook(item) : 0;
+        if (hook != 0 && ref<uint8_t>(item + kMobyState) == 2) {
+            const Vec3 hook_at = read_vec(hook + kMobyPosition);
+            const Vec3 way = to - hook_at;
+            const float left = length(way);
+            const float step = std::min(away / kFarHookSeconds * ts, left - 0.01f);
+            if (step > 0.0f) {
+                const Vec3 moved = hook_at + way * (step / left);
+                put_float(hook + kMobyPosition, moved.x);
+                put_float(hook + kMobyPosition + 4u, moved.y);
+                put_float(hook + kMobyPosition + 8u, moved.z);
+            }
+        }
+        return;
+    }
+    const float wanted = std::min({kFarPullTop, 27.0f + (away - kAnywhereReach) * 0.6f, 0.95f * std::sqrt(2.0f * kFarPullStop * std::max(away - 2.0f, 0.0f))});
+    if (wanted <= 27.0f) {
+        return;
+    }
+    const float going = get_float(hero + kHeroPullSpeed) / ts;
+    const float speed = std::min(wanted, going + kFarPullRise * ts);
+    if (speed <= 27.0f || !way_clear((to - at) * (speed * ts / away), at)) {
+        return;
+    }
+    put_float(hero + kHeroPullSpeed, speed * ts);
+    ref<int32_t>(hero + kHeroNoVelClamp) = 2;
+}
+
+// Wall run and wall jump (More controls, Wall run and jump, by Swingshot anywhere; off to start, as it is). A tester on 0.1.13:
+// "Im zipping to walls and just kinda hitting them then falling straight down. If you could add your halo wall jump and run
+// mechanic..."; the owner: Halo CE's parkour (vr_parkour.c) to help, not to copy, and a wall jump that really leaps where you look.
+// In the air, in the fall or a jump, by a wall steeper than about 63 degrees:
+// - Along it: the stick along the wall, or his own speed along it, runs him along the wall, level for most of the run and then
+//   sinking into a fall. What he met the wall with goes into the run (a head-on zip at 27 becomes a run at 16), the stick
+//   brakes and turns him, and the run follows the wall round bends and inside corners. The stick away from the wall drops him off.
+// - Up it: the stick into the wall (with Gaze, looking at it and pushing forward) runs him up it, once a wall; over the top
+//   he comes down on it, if the game's own ledge grab does not take him first.
+// - On it: a zip that ends at a wall, or a hard landing against one, holds him there a second, sliding after (the zip used to
+//   stop short of the wall and let him drop), for the stick, the jump button or the next hook.
+// - Off it: the jump button in the air by a wall, running on it or not, or just past it (kWallSeenKept), or pressed just before
+//   he reaches one (kWallPressKept), leaps him where the HEAD looks. Where Halo CE's leap could go astray, this one cannot: the
+//   level way is the look's alone, turned only as far as it must be to leave the wall; his speed is kept and goes that way, with
+//   more height as he looks up; his air control is off (the game's lockout) until the stick has been let go or really moved, so
+//   a stick held along the wall the run went has no say; the same wall does not take him back. Each wall gives one jump until he
+//   lands or fires a hook, so walls and hooks chain and one wall cannot be climbed for ever.
+// All in the game's own fall state 6, whose physics take a velocity as it is (Rerac-vr's air.rs); the capsule and the game's speed
+// limit stay on, so nothing here can carry him through a wall.
+constexpr float kWallSteepest = 0.45f;     // the most of a wall's facing that may be upright or down
+constexpr float kWallMeet = 1.05f, kWallKeep = 1.6f, kWallRunsAt = 0.75f;  // units from his middle: met, kept, and where he runs (capsule 0.4)
+constexpr float kWallHeightLeast = 0.7f;   // above the ground, to take a wall
+constexpr float kWallFastestFall = 30.0f, kWallFallNoStick = 10.0f;  // units a second: past this he is not caught; with the stick left alone
+constexpr float kWallRunLeast = 10.0f, kWallRunMost = 24.0f;  // along it, units a second
+constexpr float kWallRunTicks = 120.0f, kWallRunLevel = 0.6f; // the run's length (at 60 a second), and how much of it is level
+constexpr float kWallClimbLeast = 9.0f, kWallClimbMost = 15.0f, kWallClimbFade = 18.0f;  // up it, units a second and a second a second
+constexpr float kWallHoldTicks = 90.0f, kWallHoldMost = 150.0f, kWallSlide = 5.0f;       // on it: held, then sliding at this
+constexpr float kWallLongest = 300.0f;      // ticks: the most one wall holds him, runs and all
+constexpr float kWallPressKept = 8.0f, kWallSeenKept = 8.0f;  // ticks: the press before a wall, the wall behind him
+constexpr float kWallAfterLeap = 8.0f, kWallRunGap = 8.0f;       // ticks: no wall taken after a leap; a gap in the wall run over
+constexpr float kWallCatch = 120.0f;                          // units a second a second: a fall caught
+constexpr float kLeapAlong = 13.0f, kLeapTop = 30.0f, kLeapUp = 10.5f;  // units a second (10.5 up: 2 units high)
+constexpr float kLeapAway = 0.35f;         // the least of its way that leaves the wall
+constexpr float kLeapGravity = 27.0f, kLeapDecay = 2.0f;      // units a second a second, a fall's being 24 and 7
+constexpr float kLeapHold = 14.0f;         // ticks with no air control, whatever the stick
+void approach_toward(float& value, float target, float step) {
+    value = value < target ? std::min(value + step, target) : std::max(value - step, target);
+}
+enum WallMode { kWallNone, kWallAlong, kWallUp, kWallOn };
+struct WallRun {
+    WallMode mode = kWallNone;
+    Vec3 normal, way;          // the wall's level facing, and along it
+    float speed = 0.0f, vz = 0.0f, met = 0.0f, distance = 0.0f;  // along it, up, what he met it with, how far it is
+    int ticks = 0, lost = 0, blocked = 0, smooth = 0, total = 0, corner_at = -1000;
+    Vec3 stuck_way, before_corner;  // the way something stopped this run; the way he went before the last corner
+    bool climbed = false;      // this wall has been run up
+    bool used = false, jumped = false;  // the wall last left has given its run, and its jump, until he lands or fires
+    Vec3 used_normal, used_at;
+    int press_age = 1000, wall_age = 1000, since_leap = 1000, since_hook = 1000;
+    bool press_in_air = false, cross_was = false;
+    Vec3 wall_normal;          // the last wall seen
+    Vec3 recent[6];            // his last speeds: a wall stops him before it is seen
+    int recent_at = 0;
+    bool leap = false, leap_stick_on = false, leap_cross = false;
+    int leap_ticks = 0;
+    Vec3 leap_way, leap_stick, leap_from;
+};
+WallRun s_on_walls;
+
+Vec3 stick_in_world() {
+    const float sx = s_frame.controls.left_x, sy = s_frame.controls.left_y, yaw = s_aim_yaw;
+    return Vec3{std::cos(yaw), std::sin(yaw), 0} * sy + Vec3{std::sin(yaw), -std::cos(yaw), 0} * sx;
+}
+
+// Where the head looks, in the world, whatever Direction says the stick follows.
+Vec3 head_look() { return frame_to_world(rotate(yaw_quat(s_rig.yaw), rotate(s_frame.head.orientation, Vec3{0, 0, -1}))); }
+
+Vec3 level_unit(Vec3 v, Vec3 otherwise) {
+    const float size = std::hypot(v.x, v.y);
+    return size > 1e-4f ? Vec3{v.x / size, v.y / size, 0.0f} : otherwise;
+}
+
+// One line out from him to a wall that may be run on: its level facing and how far.
+bool wall_line(Vec3 from, Vec3 way, float reach, Vec3& normal, float& away) {
+    Vec3 point, n;
+    if (!line_hit(from, from + way * reach, point, n) || length(n) < 0.5f) {
+        return false;
+    }
+    if (dot(n, way) > 0.0f) {
+        n = n * -1.0f;
+    }
+    if (std::fabs(n.z) > kWallSteepest) {
+        return false;
+    }
+    normal = level_unit(n, way * -1.0f);
+    away = length(point - from);
+    return true;
+}
+
+// The nearest wall about him: eight ways at his chest; if asked, at his knee and over his head as well.
+bool wall_around(Vec3 at, float reach, bool thorough, Vec3& normal, float& away) {
+    static const float kUp[] = {0.9f, 0.35f, 1.5f};
+    bool found = false;
+    away = reach + 1.0f;
+    for (int level = 0; level < (thorough ? 3 : 1) && !found; ++level) {
+        for (int i = 0; i < 8; ++i) {
+            const float a = static_cast<float>(i) * kPi * 0.25f;
+            Vec3 n;
+            float d = 0.0f;
+            if (wall_line(at + Vec3{0, 0, kUp[level]}, Vec3{std::cos(a), std::sin(a), 0}, reach, n, d) && d < away) {
+                normal = n;
+                away = d;
+                found = true;
+            }
+        }
+    }
+    return found;
+}
+
+// The wall left a moment ago: another near it is the same wall unless it faces another way.
+bool wall_used(Vec3 normal, Vec3 at, bool for_jump) {
+    const WallRun& w = s_on_walls;
+    return (for_jump ? w.jumped : w.used) && dot(normal, w.used_normal) > 0.85f && length(at - w.used_at) < 12.0f;
+}
+
+void wall_buzz(float strength, float seconds) {
+    buzz(kLeft, {strength, seconds, 80.0f});
+    buzz(kRight, {strength, seconds, 80.0f});
+}
+
+// A run over: his speed goes on as a plain fall.
+void wall_end(const char* why, Vec3 at, Vec3 push = {}) {
+    WallRun& w = s_on_walls;
+    const gaddr hero = s_disc->hero;
+    const float ts = tick_seconds();
+    char line[160];
+    std::snprintf(line, sizeof line, "[vr-wall] off the wall after %d ticks: %s, at (%.1f %.1f %.1f)", w.ticks, why, at.x, at.y, at.z);
+    log_line(1, line);
+    put_float(hero + kHeroAirGravity, 24.0f * ts * ts);
+    put_float(hero + kHeroAirDecay, 7.0f * ts * ts);
+    if (length(push) > 0.0f) {
+        const Vec3 v = read_vec(hero + kHeroMotionVelocity) + push * ts;
+        put_float(hero + kHeroMotionVelocity, v.x);
+        put_float(hero + kHeroMotionVelocity + 4u, v.y);
+        put_float(hero + kHeroMotionVelocity + 8u, v.z);
+    }
+    w.used = true;
+    w.used_normal = w.normal;
+    w.used_at = at;
+    w.wall_normal = w.normal;
+    w.wall_age = 0;
+    w.mode = kWallNone;
+}
+
+// He has met a wall: which of the three, by the stick and what he met it with. False: none, he goes on as he was.
+bool wall_start(Vec3 normal, float away, Vec3 met, Vec3 at, int32_t now, bool arrival) {
+    WallRun& w = s_on_walls;
+    const gaddr hero = s_disc->hero;
+    const Vec3 stick = stick_in_world();
+    const float pushed = length(stick);
+    const float toward = -dot(met, normal);
+    const Vec3 level{met.x, met.y, 0.0f};
+    const Vec3 along_v = level - normal * dot(level, normal);
+    const float along = length(along_v);
+    const float stick_in = -dot(stick, normal);
+    const Vec3 stick_along = stick + normal * stick_in;
+    if (dot(met, normal) > 3.0f && stick_in < 0.3f * pushed) {
+        return false;  // on the way off it
+    }
+    WallMode mode = kWallNone;
+    Vec3 way;
+    if (pushed > 0.5f && stick_in > 0.7f * pushed && !w.climbed) {
+        mode = kWallUp;
+    } else if (pushed > 0.5f && length(stick_along) > 0.35f && stick_in > -0.25f * pushed) {
+        mode = kWallAlong;
+        way = stick_along * (1.0f / length(stick_along));
+    } else if (pushed <= 0.5f && along >= 5.0f && (!arrival || along >= toward * 0.5f)) {
+        mode = kWallAlong;
+        way = along_v * (1.0f / along);
+    } else if (arrival || toward >= 6.0f) {
+        mode = kWallOn;
+    }
+    if (mode == kWallNone || (now != 6 && !anywhere_set_state(6))) {
+        return false;
+    }
+    w.mode = mode;
+    w.normal = normal;
+    w.way = way;
+    w.distance = away;
+    w.met = std::max(toward, 0.0f);
+    w.ticks = 0;
+    w.lost = 0;
+    w.blocked = 0;
+    w.total = 0;
+    w.corner_at = -1000;
+    w.stuck_way = Vec3{};
+    w.vz = met.z;
+    w.speed = 0.0f;
+    if (mode == kWallAlong) {
+        const float carried = dot(level, way);
+        w.speed = std::clamp(std::max(carried, 0.0f) + w.met * 0.6f, kWallRunLeast, kWallRunMost);
+    } else if (mode == kWallUp) {
+        w.vz = std::clamp(std::max(met.z, kWallClimbLeast + w.met * 0.3f), kWallClimbLeast, kWallClimbMost);
+        w.climbed = true;
+    }
+    ref<int16_t>(hero + kHeroRefireLock) = 0;
+    w.leap = false;
+    s_hover_was = 0;  // a wall now: no hover coming back to pull him off it
+    wall_buzz(0.35f, 0.05f);
+    char line[200];
+    std::snprintf(line, sizeof line, "[vr-wall] %s, met at %.1f units a second (%.1f along, %.1f into it, %.1f up), the wall facing (%.2f %.2f), at (%.1f %.1f %.1f)",
+                  mode == kWallAlong ? "a wall run" : mode == kWallUp ? "a run up the wall" : "on the wall", length(met), along, toward, met.z, normal.x,
+                  normal.y, at.x, at.y, at.z);
+    log_line(1, line);
+    return true;
+}
+
+// A tick on the wall.
+void wall_move(Vec3 at) {
+    WallRun& w = s_on_walls;
+    const gaddr hero = s_disc->hero;
+    const float ts = tick_seconds();
+    static const float kUp[] = {0.9f, 0.35f, 1.5f};
+    Vec3 n;
+    float d = 0.0f;
+    bool seen = false;
+    for (const float up : kUp) {
+        if (wall_line(at + Vec3{0, 0, up}, w.normal * -1.0f, kWallKeep, n, d)) {
+            seen = true;
+            break;
+        }
+    }
+    Vec3 along{-w.normal.y, w.normal.x, 0.0f};
+    if (!seen) {  // round a bend, the way he goes first
+        const Vec3 ahead = w.mode == kWallAlong ? w.way : along;
+        for (const float sign : {1.0f, -1.0f}) {
+            if (wall_line(at + Vec3{0, 0, 0.9f}, level_unit(ahead * (0.7f * sign) - w.normal, ahead), kWallKeep, n, d)) {
+                seen = true;
+                break;
+            }
+        }
+    }
+    if (seen) {
+        w.lost = 0;
+        w.distance = d;
+        const Vec3 mixed = w.normal * 0.6f + n * 0.4f;
+        w.normal = dot(w.normal, n) > 0.17f ? level_unit(mixed, n) : n;
+        along = Vec3{-w.normal.y, w.normal.x, 0.0f};
+    } else if (++w.lost > game_ticks(kWallRunGap)) {
+        wall_end(w.mode == kWallUp ? "the wall ended above him" : "the wall ended", at);
+        return;
+    }
+    if (++w.total > game_ticks(kWallLongest)) {
+        wall_end("as long as a wall holds him", at);  // whatever the stick has asked for: a wall is no place to stay
+        return;
+    }
+    const Vec3 stick = stick_in_world();
+    const float pushed = length(stick);
+    const float stick_out = dot(stick, w.normal);
+    if (pushed > 0.5f && stick_out > 0.8f * pushed) {
+        wall_end("the stick took him off", at, w.normal * 5.0f);
+        return;
+    }
+    const float stick_along = dot(stick, along);
+    ++w.ticks;
+    if (w.mode == kWallUp) {
+        Vec3 unused;
+        float unused_d = 0.0f;
+        if (seen && !wall_line(at + Vec3{0, 0, 1.5f}, w.normal * -1.0f, kWallKeep, unused, unused_d)) {
+            // His head is over the top: up and onto it, the wall's top under him.
+            w.vz = std::max(w.vz, 7.0f);
+            const Vec3 onto = w.normal * -7.0f;
+            put_float(hero + kHeroMotionVelocity, onto.x * ts);
+            put_float(hero + kHeroMotionVelocity + 4u, onto.y * ts);
+            put_float(hero + kHeroMotionVelocity + 8u, w.vz * ts);
+            ref<int32_t>(hero + kHeroLockout) = game_ticks(10.0f);
+            wall_end("over the top", at);
+            return;
+        }
+        w.vz -= kWallClimbFade * ts;
+        if (w.vz <= 1.0f || pushed < 0.3f || -stick_out < 0.3f * pushed) {
+            w.mode = kWallOn;
+            w.ticks = game_ticks(kWallHoldTicks * 0.5f);
+        }
+    } else if (w.mode == kWallOn) {
+        if (pushed > 0.5f && std::fabs(stick_along) > 0.35f && -stick_out < 0.7f * pushed
+            && dot(along * (stick_along > 0.0f ? 1.0f : -1.0f), w.stuck_way) < 0.5f) {
+            w.mode = kWallAlong;
+            w.way = along * (stick_along > 0.0f ? 1.0f : -1.0f);
+            w.speed = std::clamp(w.met * 0.6f, kWallRunLeast, kWallRunMost);
+            w.ticks = 0;
+            log_line(1, "[vr-wall] from on the wall, a wall run");
+        } else if (pushed > 0.5f && -stick_out > 0.7f * pushed && !w.climbed) {
+            w.mode = kWallUp;
+            w.climbed = true;
+            w.vz = std::clamp(kWallClimbLeast + w.met * 0.3f, kWallClimbLeast, kWallClimbMost);
+            w.ticks = 0;
+            log_line(1, "[vr-wall] from on the wall, a run up it");
+        } else if (w.ticks < game_ticks(kWallHoldTicks)) {
+            approach_toward(w.vz, 0.0f, kWallCatch * ts);
+        } else if (w.ticks < game_ticks(kWallHoldMost)) {
+            approach_toward(w.vz, -kWallSlide, 10.0f * ts);
+        } else {
+            wall_end("he slid off", at);
+            return;
+        }
+    }
+    if (w.mode == kWallAlong) {
+        w.way = dot(w.way, along) >= 0.0f ? along : along * -1.0f;
+        // An inside corner ahead: the next wall is the one he runs on, the same way round.
+        Vec3 next;
+        float next_d = 0.0f;
+        if (wall_line(at + Vec3{0, 0, 0.9f}, w.way, 0.8f + w.speed * ts * 3.0f, next, next_d) && dot(next, w.normal) < 0.8f) {
+            const Vec3 was = w.way, was_normal = w.normal;
+            const Vec3 next_along{-next.y, next.x, 0.0f};
+            const Vec3 next_way = dot(was + was_normal, next_along) >= 0.0f ? next_along : next_along * -1.0f;
+            if (w.total - w.corner_at < game_ticks(30.0f) && dot(next_way, w.before_corner) < -0.5f) {
+                // Back the way he came, in a small alcove: no running to and fro in it. Held there.
+                log_line(1, "[vr-wall] a corner back the way he came: held on the wall");
+                w.stuck_way = was;
+                w.speed = 0.0f;
+            } else {
+                w.before_corner = was;
+                w.corner_at = w.total;
+                w.normal = next;
+                along = next_along;
+                w.way = next_way;
+                w.speed *= 0.6f + 0.4f * std::max(dot(was, w.way), 0.0f);
+                w.smooth = game_ticks(8.0f);
+                wall_buzz(0.2f, 0.03f);
+                log_line(1, "[vr-wall] round a corner, on the next wall");
+            }
+        }
+        const float wanted = dot(stick, w.way);
+        if (std::fabs(stick_along) > 0.35f && wanted < 0.0f) {
+            w.speed -= 60.0f * ts;  // the stick the other way: brakes him, and turns him
+            if (w.speed < 0.0f) {
+                w.speed = -w.speed;
+                w.way = w.way * -1.0f;
+            }
+        } else if (wanted > 0.35f) {
+            w.speed = w.speed < kWallRunLeast ? std::min(w.speed + 30.0f * ts, kWallRunLeast) : std::max(w.speed - 3.0f * ts, kWallRunLeast);
+        } else {
+            w.speed -= 4.0f * ts;
+        }
+        const float share = static_cast<float>(w.ticks) / static_cast<float>(game_ticks(kWallRunTicks));
+        if (share >= 1.0f) {
+            wall_end("the run ran out", at);
+            return;
+        }
+        // Something the wall line does not see stops him, a step or a rock: held there, and the stick along does not run him into it again.
+        const float made = dot(read_vec(hero + kHeroEffective) * (1.0f / ts), w.way);
+        w.blocked = w.ticks > game_ticks(6.0f) && made < w.speed * 0.4f ? w.blocked + 1 : 0;
+        if (w.blocked > game_ticks(6.0f)) {
+            char line[120];
+            std::snprintf(line, sizeof line, "[vr-wall] something in his way at (%.1f %.1f %.1f): held on the wall", at.x, at.y, at.z);
+            log_line(1, line);
+            w.stuck_way = w.way;
+            w.speed = 0.0f;
+        }
+        if (w.speed < 3.0f) {
+            w.mode = kWallOn;
+            w.ticks = game_ticks(kWallHoldTicks * 0.5f);
+        }
+        if (w.vz > 0.0f) {
+            w.vz = std::max(w.vz - kWallClimbFade * ts, 0.0f);
+        } else if (share < kWallRunLevel) {
+            approach_toward(w.vz, 0.0f, kWallCatch * ts);
+        } else {
+            w.vz -= kLeapGravity * ts * (share - kWallRunLevel) / (1.0f - kWallRunLevel);
+        }
+        if (w.ticks % game_ticks(16.0f) == 0) {
+            buzz((w.ticks / game_ticks(16.0f)) % 2 == 0 ? kLeft : kRight, {0.15f, 0.03f, 60.0f});
+        }
+    }
+    const float in = seen && w.distance > kWallRunsAt ? std::min((w.distance - kWallRunsAt) / ts * 0.2f, 6.0f) : 0.0f;
+    Vec3 v = w.normal * -in;
+    if (w.mode == kWallAlong) {
+        v = v + w.way * w.speed;
+    }
+    if (w.smooth > 0) {
+        --w.smooth;
+    }
+    if (w.ticks < game_ticks(6.0f) || w.smooth > 0) {  // into the run, and round a corner, smoothly: the view is his
+        const Vec3 old = read_vec(hero + kHeroMotionVelocity) * (1.0f / ts);
+        v.x = old.x + (v.x - old.x) * 0.45f;
+        v.y = old.y + (v.y - old.y) * 0.45f;
+    }
+    put_float(hero + kHeroMotionVelocity, v.x * ts);
+    put_float(hero + kHeroMotionVelocity + 4u, v.y * ts);
+    put_float(hero + kHeroMotionVelocity + 8u, w.vz * ts);
+    put_float(hero + kHeroAirGravity, 0.0f);
+    ref<int32_t>(hero + kHeroLockout) = std::max(ref<int32_t>(hero + kHeroLockout), 2);
+    ref<int32_t>(hero + kHeroStateTimer) = 0;  // a run is no long fall: no hard landing after it
+}
+
+// The way a leap goes, for a look at this wall: the look's, turned only as far as it must be to leave the wall, the same
+// along the wall whatever else. Straight at the wall it is straight off it.
+Vec3 leap_way_from(Vec3 way, Vec3 normal) {
+    const float away = dot(way, normal);
+    return away >= kLeapAway ? way : level_unit(way - normal * away + normal * kLeapAway, normal);
+}
+
+// The jump button by a wall: off it, where the head looks.
+bool wall_leap(Vec3 normal, Vec3 met, Vec3 at, int32_t now) {
+    WallRun& w = s_on_walls;
+    const gaddr hero = s_disc->hero;
+    const float ts = tick_seconds();
+    const float dt2 = ts * ts;
+    const Vec3 look = head_look();
+    const float look_level = std::hypot(look.x, look.y);
+    Vec3 way = leap_way_from(look_level > 0.15f ? Vec3{look.x / look_level, look.y / look_level, 0.0f} : normal, normal);
+    // A second wall where it would go, in a corner: off that too, as far as both allow.
+    Vec3 second;
+    float second_d = 0.0f;
+    if (wall_line(at + Vec3{0, 0, 0.9f}, way, 1.2f, second, second_d) && dot(second, normal) < 0.95f) {
+        way = leap_way_from(way, second);
+        if (dot(way, normal) < 0.1f) {
+            way = level_unit(normal + second, normal);
+        }
+    }
+    const float carried = std::max({std::hypot(met.x, met.y), w.mode == kWallAlong ? w.speed : 0.0f, w.mode != kWallNone ? w.met * 0.6f : 0.0f});
+    const float speed = std::clamp(carried, kLeapAlong, kLeapTop);
+    // Looking up trades way for height, and down, height for way.
+    const float along = speed * (look.z > 0.0f ? 1.0f - 0.6f * (1.0f - look_level) : 1.0f);
+    const float up = look.z > 0.0f ? kLeapUp + std::min(speed, 20.0f) * look.z * 0.75f : kLeapUp * (1.0f + look.z * 0.7f);
+    if (now != 6 && !anywhere_set_state(6)) {
+        return false;
+    }
+    const Vec3 v = way * along + Vec3{0, 0, up};
+    for (const uint32_t field : {kHeroMotionVelocity, kHeroDisplacement}) {
+        put_float(hero + field, v.x * ts);
+        put_float(hero + field + 4u, v.y * ts);
+        put_float(hero + field + 8u, v.z * ts);
+    }
+    put_float(hero + kHeroAirGravity, kLeapGravity * dt2);
+    put_float(hero + kHeroAirDecay, kLeapDecay * dt2);
+    ref<int32_t>(hero + kHeroLockout) = game_ticks(kLeapHold);
+    ref<int32_t>(hero + kHeroStateTimer) = 0;
+    ref<int16_t>(hero + kHeroRefireLock) = 0;
+    const Vec3 stick = stick_in_world();
+    w.mode = kWallNone;
+    w.leap = true;
+    w.leap_way = way;
+    w.leap_from = at;
+    w.leap_ticks = 0;
+    w.leap_stick = stick;
+    w.leap_stick_on = length(stick) > 0.3f;
+    w.leap_cross = true;
+    w.since_leap = 0;
+    w.press_age = 1000;
+    w.used = true;
+    w.jumped = true;
+    w.used_normal = normal;
+    w.used_at = at;
+    hero_sound(kSoundSwing);
+    wall_buzz(0.5f, 0.06f);
+    char line[260];
+    std::snprintf(line, sizeof line, "[vr-wall] a wall jump: the look (%.2f %.2f %.2f), the wall facing (%.2f %.2f), the way (%.2f %.2f), %.1f along and %.1f up, at (%.1f %.1f %.1f), from state 0x%X",
+                  look.x, look.y, look.z, normal.x, normal.y, way.x, way.y, along, up, at.x, at.y, at.z, now);
+    log_line(1, line);
+    return true;
+}
+
+// A zip of the mod's at a wall: it reaches the wall, where the game's stops short (2.4 units off), and at speed if the stick asks.
+void wall_pull(Vec3 at) {
+    const gaddr hero = s_disc->hero;
+    const float ts = tick_seconds();
+    const gaddr target = ref<gaddr>(hero + kHeroPullTarget);
+    if (!s_anywhere_on || target == 0 || target != s_anywhere_moby || !readable(target + kMobyPosition, 12u)
+        || std::fabs(s_anywhere_normal.z) > kWallSteepest) {
+        return;
+    }
+    const Vec3 to = read_vec(target + kMobyPosition) - at;  // the stand-in sits off the wall, so the wall itself is looked for
+    const float away = length(to);
+    const float going = get_float(hero + kHeroPullSpeed) / ts;
+    const Vec3 way = level_unit(to, s_anywhere_normal * -1.0f);
+    const Vec3 into = level_unit(s_anywhere_normal * -1.0f, way);
+    const Vec3 chest = at + Vec3{0, 0, 0.9f}, knee = at + Vec3{0, 0, 0.35f};
+    const float reach = kWallMeet + going * ts * 2.0f;
+    constexpr float kWallNearHook = 4.0f, kWallAtHook = 1.0f;
+    Vec3 n;
+    float d = 0.0f;
+    bool there = false;
+    if (ref<int32_t>(hero + kHeroStateTimer) > game_ticks(2.0f)) {
+        // A wall in his way, whichever, or near the hook the wall it is on. At the hook whatever the lines say: the wall hooked is a wall.
+        there = (away > 0.01f && wall_line(chest, to * (1.0f / away), reach, n, d))
+                || (away < kWallNearHook && (wall_line(chest, into, std::max(reach, kWallKeep), n, d) || wall_line(knee, into, std::max(reach, kWallKeep), n, d)));
+        if (!there && std::hypot(to.x, to.y) < kWallAtHook) {
+            there = true;
+            if (!wall_around(at, kWallKeep, true, n, d)) {
+                n = into * -1.0f;
+                d = kWallRunsAt;
+            }
+        }
+    }
+    if (there) {
+        if (wall_start(n, d, way * going + Vec3{0, 0, get_float(hero + kHeroEffective + 8u) / ts}, at, 0x25, true)) {
+            return;
+        }
+    }
+    if (length(stick_in_world()) > 0.5f) {
+        ref<int32_t>(hero + 0x2088u) = 0;  // the game's stopping waits: he reaches the wall going as he goes
+        put_float(hero + kHeroPullSpeed, std::max(get_float(hero + kHeroPullSpeed), 27.0f * ts));
+    } else {
+        put_float(hero + kHeroPullSpeed, std::max(get_float(hero + kHeroPullSpeed), 8.0f * ts));
+    }
+}
+
+void wall_tick() {
+    WallRun& w = s_on_walls;
+    static int level = -2;
+    static int32_t was = -1;
+    if (!s_vr.wall_moves || s_mod->loaded_level() != level) {
+        if (w.mode != kWallNone && s_have_hero) {
+            put_float(s_disc->hero + kHeroAirGravity, 24.0f * tick_seconds() * tick_seconds());
+        }
+        level = s_mod->loaded_level();
+        w = WallRun{};
+        return;
+    }
+    if (!s_have_hero || !s_have_frame || phase_now() != OPENRAC_PLAY_PLAYING) {
+        return;
+    }
+    const gaddr hero = s_disc->hero;
+    const float ts = tick_seconds();
+    const int32_t now = ref<int32_t>(hero + kHeroState);
+    was = now;
+    const Vec3 at = read_vec(hero + kFlingHeroAt);
+    if (!s_steers || !hero_on_foot()) {  // third person, Clank, a seat, a disguise
+        if (w.mode != kWallNone) {
+            wall_end("no longer first person on foot", at);
+        }
+        w.leap = false;
+        return;
+    }
+    const Vec3 going = read_vec(hero + kHeroEffective) * (1.0f / ts);
+#if !defined(__ANDROID__)
+    // PC test aid (QUEST_WALL_TRACE=1): a line a tick about a wall, a leap or a pull: how smooth it is.
+    static const bool wall_trace = std::getenv("QUEST_WALL_TRACE") != nullptr;
+    if (wall_trace && (w.mode != kWallNone || w.leap || now == 0x25)) {
+        const Vec3 asked = read_vec(hero + kHeroMotionVelocity) * (1.0f / ts);
+        char line[200];
+        std::snprintf(line, sizeof line, "[vr-wall] trace st %X mode %d at (%.2f %.2f %.2f) going (%.1f %.1f %.1f) asked (%.1f %.1f %.1f) d %.2f timer %d pull %.1f sub %d",
+                      now, static_cast<int>(w.mode), at.x, at.y, at.z, going.x, going.y, going.z, asked.x, asked.y, asked.z, w.distance,
+                      ref<int32_t>(hero + kHeroStateTimer), get_float(hero + kHeroPullSpeed) / ts, ref<int32_t>(hero + 0x2088u));
+        log_line(1, line);
+    }
+#endif
+    w.recent[w.recent_at++ % 6] = going;
+    Vec3 met = going;
+    for (const Vec3& one : w.recent) {
+        if (length(one) > length(met)) {
+            met = one;
+        }
+    }
+    const bool cross = (ref<uint32_t>(s_disc->pad_state + kPadGameHeldWord) & kPadHeldCross) != 0;  // the word the game's own locks mask: no leap in its scenes
+    const bool pressed = cross && !w.cross_was;
+    w.cross_was = cross;
+    const bool up_high = airborne();
+    if (pressed) {
+        w.press_age = 0;
+        w.press_in_air = up_high;
+    } else if (w.press_age < 1000) {
+        ++w.press_age;
+    }
+    w.since_leap = std::min(w.since_leap + 1, 1000);
+    w.since_hook = std::min(w.since_hook + 1, 1000);
+    w.wall_age = std::min(w.wall_age + 1, 1000);
+    const bool hook = now == kStatePullFire || now == 0x25 || now == 0x26 || now == kStateSwing;
+    if (hook) {
+        w.since_hook = 0;
+        w.used = w.jumped = w.climbed = false;
+        w.leap = false;
+    }
+    if (!up_high && now != 0x25) {
+        if (w.mode != kWallNone) {
+            wall_end("on the ground", at);
+        }
+        if (w.leap) {
+            const Vec3 flown{at.x - w.leap_from.x, at.y - w.leap_from.y, 0.0f};
+            const float size = length(flown);
+            char line[160];
+            std::snprintf(line, sizeof line, "[vr-wall] the wall jump came down %.1f units on, %.1f degrees off its way, the stick %s", size,
+                          size > 0.1f ? std::acos(std::clamp(dot(flown, w.leap_way) / size, -1.0f, 1.0f)) * 180.0f / kPi : 0.0f,
+                          w.leap_stick_on ? "as it was" : "let go or moved");
+            log_line(1, line);
+            ref<int32_t>(hero + kHeroLockout) = 0;  // straight on with the stick
+            w.leap = false;
+        }
+        w.used = w.jumped = w.climbed = false;
+        w.press_age = 1000;
+        return;
+    }
+    if (w.mode != kWallNone && now != 6) {
+        char line[100];
+        std::snprintf(line, sizeof line, "[vr-wall] state 0x%X took him off the wall", now);
+        log_line(1, line);
+        w.mode = kWallNone;
+    }
+    // The fall, the jumps (plain, running, flip, double; the packs'; the game's own wall jump), the fall after a swing.
+    const bool flying = now == 6 || now == 7 || now == 9 || now == 0xA || now == 0xB || now == 0xD || now == 0xE || now == 0xF || now == 0x10
+                        || now == 0x11 || now == kStateSwingFall;
+    constexpr int32_t kGlide = 8, kHover = 0x81;
+    if (w.press_age <= game_ticks(kWallPressKept) && w.press_in_air
+        && (w.mode != kWallNone || flying || now == kGlide || now == kHover || now == 0x25 || now == kStateSwing)) {
+        Vec3 n;
+        float d = 0.0f;
+        bool have = false;
+        if (w.mode != kWallNone) {
+            n = w.normal;
+            have = !wall_used(n, at, true);
+        } else if (wall_around(at, kWallMeet, true, n, d) && !wall_used(n, at, true)) {
+            have = true;
+        } else if (w.wall_age <= game_ticks(kWallSeenKept) && !wall_used(w.wall_normal, at, true)) {
+            n = w.wall_normal;
+            have = true;
+        }
+        if (have && wall_leap(n, met, at, now)) {
+            return;
+        }
+    }
+    if (w.leap) {
+        if (now != 6) {
+            w.leap = false;
+        } else {
+            ++w.leap_ticks;
+            const Vec3 stick = stick_in_world();
+            const float pushed = length(stick);
+            if (w.leap_stick_on && (pushed < 0.2f || dot(stick, w.leap_stick) < 0.76f * pushed * length(w.leap_stick))) {
+                w.leap_stick_on = false;
+            }
+            w.leap_cross = w.leap_cross && cross;
+            if (w.leap_ticks < game_ticks(kLeapHold) || w.leap_stick_on || (w.leap_cross && length(going) > kHoverAgain)) {
+                ref<int32_t>(hero + kHeroLockout) = std::max(ref<int32_t>(hero + kHeroLockout), 2);
+            }
+        }
+    }
+    if (now == 0x25) {
+        wall_pull(at);
+        return;
+    }
+    if (w.mode != kWallNone) {
+        wall_move(at);
+        return;
+    }
+    if (!flying) {
+        return;
+    }
+    const float pushed = length(stick_in_world());
+    if (pushed < 0.3f && length(going) < 3.0f) {
+        return;
+    }
+    Vec3 n;
+    float d = 0.0f;
+    if (!wall_around(at, kWallMeet, pushed > 0.3f, n, d)) {
+        return;
+    }
+    w.wall_normal = n;
+    w.wall_age = 0;
+    if (get_float(hero + kHeroGroundDistance) >= kWallHeightLeast && w.since_leap >= game_ticks(kWallAfterLeap) && !wall_used(n, at, false)
+        && s_fling_rest <= game_ticks(kFlingRest) - game_ticks(kWallAfterLeap) && met.z > -kWallFastestFall
+        && (pushed > 0.5f || w.since_hook < game_ticks(30.0f) || met.z > -kWallFallNoStick)) {
+        wall_start(n, d, met, at, now, w.since_hook < game_ticks(30.0f));
+    }
+}
+
 // The wrench against the world (Rerac-vr's embodied.rs): a real stroke into a wall gives the game's wall
 // sound and sparks, a knock in the hand that grows with the blow, and a short recoil of the wrench. Only
 // a new stroke counts: it must come away from the wall first, so pressing on it does nothing.
@@ -4130,6 +5347,217 @@ bool throw_wrench(gaddr wrench, Vec3 velocity) {
     return true;
 }
 
+// A far throw, one that stays, and the catch (a player's ask: "Wrench throw distance adjuster so we can throw it super far ... with
+// an arch & and an option for it to stay there and be physically called back to your hand. There's a whirling sound effect and
+// controller vibration feedback for the catch like Kratos' Axe"). Both options are on the Moves page, at the game's own to start.
+// - Wrench throw distance (Normal, Far, Very far, Super far: 1, 2, 4, 8 times): the game's out-and-back, faster and slowing less so
+//   that it turns that much further on, and past Normal it falls a little as it goes, so it arcs. Any throw, by hand or the game's own.
+// - Wrench comes back: By itself as the game has it, or When you call it: it flies on, arcing, until it meets something, and rests
+//   there, its whirl stopped. A fresh squeeze of the right grip, or the trigger, calls it: the game's own whirl starts (its update
+//   starts it going out: a tick out with no speed, and it turns), and it comes in about a second to the hand, hitting what it meets
+//   and gathering bolts as the game's return does, the hand buzzing harder as it nears. Held closed as it arrives, the grip catches it;
+//   open, it is put away as ever. Whatever needs his hands (a ledge, a swing, water, a seat), a change of item or six seconds' flight
+//   with nothing met calls it by itself, so it can never be lost and nothing waits on it.
+// - The catch has a thump in the hand, always; harder after a call, or a far throw.
+constexpr float kWrenchFarTop = 40.0f;       // units a second: a 0.4 sphere at 50 a second steps past what it should hit
+constexpr float kWrenchArcFar = 6.0f;        // units a second a second, a far throw's fall
+constexpr float kWrenchArcStay = 14.0f;      // the same for one that stays, at Normal: level from the chest, about the game's reach
+constexpr float kWrenchSlowGrowth = 170.0f;  // the game's: its slowing grows by this, dt cubed, a tick
+constexpr float kWrenchCallSeconds = 0.9f;   // the call's speed: across the distance in this, and its own growing speed on top
+constexpr float kWrenchFlightMost = 360.0f;  // ticks (at 60 a second) going out, for one that stays
+constexpr uint32_t kHeroWrenchWhirl = 0x221Cu;  // 0x14156c, the whirl's voice slot
+
+struct WrenchFlight {
+    bool out = false;      // seen going out
+    bool rest = false;     // resting, until called
+    bool called = false;   // called, or coming back after a far throw: it buzzes as it nears
+    bool stays = false;    // the option as it was at the throw
+    float slowing = 1.0f;  // the game's growth of the slowing, times this
+    float arc = 0.0f;      // units a second a second
+    float from = 0.0f;     // how far it was when it turned
+    int ticks = 0;
+    Vec3 thrown_at;
+};
+WrenchFlight s_wrench_flight;
+
+bool wrench_resting() { return s_wrench_flight.rest; }
+bool wrench_can_be_called() { return s_wrench_flight.rest || (s_wrench_flight.out && s_wrench_flight.stays && !s_wrench_flight.called); }
+
+void wrench_whirl_off() {
+    using Release = void (*)(int);
+    static const auto release = reinterpret_cast<Release>(s_mod->api().function(s_disc->voice_release));
+    const gaddr at = s_disc->hero + kHeroWrenchWhirl;
+    const int32_t voice = ref<int32_t>(at);
+    if (release != nullptr && voice != -1) {
+        release(voice);
+        ref<int32_t>(at) = -1;
+    }
+    char line[100];
+    std::snprintf(line, sizeof line, "[vr-wrench] its whirl: voice %d, %s", voice, release != nullptr ? "let go" : "NO RELEASE FUNCTION");
+    log_line(1, line);
+}
+
+// Akimbo's left Swingshot or Walloper takes the hand slot for its use, the right hand's item kept aside with no update of its own.
+// A wrench that waits to be called, or is flying set to stay, stops where it is for that, its whirl off, and waits on through it:
+// it is no hook, nothing hangs from it, and it can be called when the lead ends. True while it is left out there.
+bool wrench_left_out(gaddr moby) { return ref<int16_t>(moby + kMobyOclass) == kWrenchClass && s_wrench_flight.rest; }
+
+void wrench_stop_for_lead(gaddr moby) {
+    if (ref<int16_t>(moby + kMobyOclass) != kWrenchClass || !wrench_flying(moby) || !wrench_can_be_called()) {
+        return;
+    }
+    if (!s_wrench_flight.rest) {
+        s_wrench_flight.rest = true;
+        ref<uint8_t>(moby + kMobyState) = kWrenchBack;
+        wrench_whirl_off();
+    }
+    log_line(1, "[vr-wrench] left where it is while the left hand leads");
+}
+
+// It turns for the hand. What called it says why, in the log.
+void wrench_call(gaddr wrench, const char* why) {
+    WrenchFlight& w = s_wrench_flight;
+    const gaddr vars = ref<gaddr>(wrench + kMobyPvars);
+    if (!in_ram(vars)) {
+        return;
+    }
+    w.rest = false;
+    w.called = true;
+    // A tick out with no speed: the game's update starts the whirl if it is off, and turns it.
+    put_float(vars + kWrenchSpeed, 0.0f);
+    put_float(vars + kWrenchSlowing, 0.0f);
+    ref<uint8_t>(wrench + kMobyState) = kWrenchOut;
+    const Vec3 at = read_vec(wrench + kMobyPosition);
+    char line[120];
+    std::snprintf(line, sizeof line, "[vr-wrench] called back by %s, %.1f units away", why, length(at - read_vec(s_disc->hero + 0x80u)));
+    log_line(1, line);
+}
+
+// Before the wrench's update: true when it has none this tick, resting.
+bool wrench_flight_before(gaddr wrench) {
+    WrenchFlight& w = s_wrench_flight;
+    const uint8_t state = ref<uint8_t>(wrench + kMobyState);
+    if (state != kWrenchOut && state != kWrenchBack) {
+        if (w.out) {
+            w = WrenchFlight{};
+        }
+        return false;
+    }
+    const gaddr vars = ref<gaddr>(wrench + kMobyPvars);
+    if (!in_ram(vars)) {
+        return false;
+    }
+    if (state == kWrenchOut && !w.out) {
+        const float ts = tick_seconds();
+        const float times = static_cast<float>(1 << s_vr.wrench_far);
+        const float first = get_float(vars + kWrenchSpeed);
+        const float speed = std::min(first * std::sqrt(times), std::max(kWrenchFarTop * ts, first));
+        w = WrenchFlight{};
+        w.out = true;
+        w.stays = s_vr.wrench_stay;
+        w.thrown_at = read_vec(wrench + kMobyPosition);
+        // At `first` and the game's slowing it goes D = 2/3 first n, n = sqrt(2 first / a), and stops; at this speed, n1 ticks
+        // bring it to times D, and the slowing that does it is a1 = 2 speed / n1 squared.
+        const float a = kWrenchSlowGrowth * ts * ts * ts;
+        const float ticks_before = std::sqrt(2.0f * first / a);
+        const float ticks_now = 3.0f * times * (2.0f / 3.0f * first * ticks_before) / (2.0f * speed);
+        w.slowing = (2.0f * speed / (ticks_now * ticks_now)) / a;
+        w.arc = w.stays ? kWrenchArcStay * (speed / first) * (speed / first) / times : times > 1.0f ? kWrenchArcFar : 0.0f;
+        put_float(vars + kWrenchSpeed, speed);
+        if (times > 1.0f || w.stays) {
+            char line[140];
+            std::snprintf(line, sizeof line, "[vr-wrench] the throw: %.1f units a second, %.0f times the game's distance, it %s", speed / ts, times,
+                          w.stays ? "stays where it lands, until called" : "comes back by itself");
+            log_line(1, line);
+        }
+    }
+    if (w.rest) {
+        // The game's own flight holds the slot the same way; and what would call it.
+        const gaddr hero = s_disc->hero;
+        ref<uint8_t>(hero + kHeroSlot0 + kSlotSwapLock) = 2;
+        const int32_t group = ref<int32_t>(hero + 0x208Cu);
+        const int32_t pending = ref<int32_t>(hero + kHeroPendingItem);
+        const bool busy = group != 0 && group != 1 && group != 2 && group != 4 && group != 5 && group != 6;
+        // The ring: the game's opening refuses it while the wrench is out, which is a moment in the game and no time limit here.
+        const bool ring = s_have_frame && s_frame.controls.right_click;
+        if (busy || ring || (pending > 0 && pending != kWrenchItem)) {
+            wrench_call(wrench, busy ? "his hands being wanted" : ring ? "the press for the ring" : "a change of item");
+        }
+        return w.rest;
+    }
+    return false;
+}
+
+// After it: the slowing it may have, its arc, a rest, the buzz coming in and the catch.
+void wrench_flight_after(gaddr wrench, uint8_t was, float slowing_was) {
+    WrenchFlight& w = s_wrench_flight;
+    const uint8_t state = ref<uint8_t>(wrench + kMobyState);
+    const gaddr vars = ref<gaddr>(wrench + kMobyPvars);
+    if (!in_ram(vars)) {
+        return;
+    }
+    const float ts = tick_seconds();
+    if (was == kWrenchBack && state == 0) {
+        const bool strong = w.called || s_vr.wrench_far > 0;
+        buzz(kRight, {strong ? 1.0f : 0.7f, 0.09f, 60.0f});
+        buzz_later(0.1f, kRight, {strong ? 0.45f : 0.25f, 0.05f, 45.0f});
+        log_line(1, strong ? "[vr-wrench] caught, a thump in the hand" : "[vr-wrench] caught");
+        w = WrenchFlight{};
+        return;
+    }
+    if (was == kWrenchOut && state == kWrenchOut && !w.called) {
+        ++w.ticks;
+        if (w.stays) {
+            put_float(vars + kWrenchSlowing, 0.0f);  // it goes on until it meets something
+            if (w.ticks > game_ticks(kWrenchFlightMost)) {
+                wrench_call(wrench, "six seconds with nothing met");
+                return;
+            }
+        } else {
+            put_float(vars + kWrenchSlowing, slowing_was + (get_float(vars + kWrenchSlowing) - slowing_was) * w.slowing);
+        }
+        if (w.arc > 0.0f) {
+            Vec3 v = read_vec(vars + kWrenchDirection) * get_float(vars + kWrenchSpeed);
+            v.z -= w.arc * ts * ts;
+            const float speed = length(v);
+            if (speed > 1e-5f) {
+                const Vec3 dir = v * (1.0f / speed);
+                for (uint32_t i = 0; i < 3u; ++i) {
+                    put_float(vars + kWrenchDirection + 4u * i, (&dir.x)[i]);
+                }
+                put_float(vars + kWrenchSpeed, std::min(speed, kWrenchFarTop * ts));
+            }
+        }
+    }
+    if (was == kWrenchOut && state == kWrenchBack) {
+        const Vec3 at = read_vec(wrench + kMobyPosition);
+        w.from = length(at - read_vec(s_disc->hero + 0x80u));
+        if (w.stays && !w.called) {
+            w.rest = true;
+            wrench_whirl_off();
+            buzz(kRight, {0.2f, 0.03f, 90.0f});
+            char line[120];
+            std::snprintf(line, sizeof line, "[vr-wrench] at rest %.1f units from the throw, at (%.1f %.1f %.1f): waiting to be called",
+                          length(at - w.thrown_at), at.x, at.y, at.z);
+            log_line(1, line);
+            return;
+        }
+        if (w.called) {
+            put_float(vars + kWrenchSlowing, 0.0f);
+            put_float(vars + kWrenchSpeed, std::max(w.from / kWrenchCallSeconds, 6.0f) * ts);
+        } else if (s_vr.wrench_far > 0) {
+            w.called = true;  // it buzzes coming in too
+            char line[100];
+            std::snprintf(line, sizeof line, "[vr-wrench] it turned %.1f units from the throw", length(at - w.thrown_at));
+            log_line(1, line);
+        }
+    }
+    if (state == kWrenchBack && w.called && w.from > 0.0f && ++w.ticks % game_ticks(6.0f) == 0) {
+        const float away = length(read_vec(wrench + kMobyPosition) - read_vec(s_disc->hero + 0x80u));
+        buzz(kRight, {0.08f + 0.5f * std::clamp(1.0f - away / w.from, 0.0f, 1.0f), 0.04f, 110.0f});
+    }
+}
+
 // The wrench's update: coming back, it comes to the player's hand.
 template <class Original>
 void wrench_update(Original original, uint32_t moby) {
@@ -4141,7 +5569,18 @@ void wrench_update(Original original, uint32_t moby) {
         put_float(s_disc->hero + kHeroHandPoint + 4u, hand.at.y);
         put_float(s_disc->hero + kHeroHandPoint + 8u, hand.at.z);
     }
+    if (moby != hand_moby()) {
+        original(moby);
+        return;
+    }
+    if (wrench_flight_before(moby)) {
+        return;
+    }
+    const uint8_t was = ref<uint8_t>(moby + kMobyState);
+    const gaddr vars = ref<gaddr>(moby + kMobyPvars);
+    const float slowing_was = in_ram(vars) ? get_float(vars + kWrenchSlowing) : 0.0f;
     original(moby);
+    wrench_flight_after(moby, was, slowing_was);
 }
 
 // ---- The Walloper's punch ----
@@ -4311,7 +5750,21 @@ void change_items() {
     // Hanging on, the game has put the hand's item away and a change of item would let go of the ledge:
     // the free hand's gun needs none (akimbo_tick).
     // While the left hand leads, the hand slot is its: nothing is changed.
-    if (!s_steers || !s_have_frame || !hero_on_foot() || hanging_on() || s_leading) {
+    const bool hands_free = s_have_hero && s_have_frame && hero_on_foot() && !hanging_on() && !s_leading;
+    // The wrench waiting to be called (or flying, set to stay): a fresh squeeze of the right grip, or the trigger, calls it, in first
+    // person or third (where the game's throw, the crouch and the grip, leaves it out as well). A grip closing on a ledge is the ledge's,
+    // and one on the left gun's foregrip is no grip here. While it is out nothing else takes these.
+    if (hands_free && ref<int32_t>(s_disc->hero + kHeroSlot0 + kSlotItem) == kWrenchItem && wrench_can_be_called()
+        && ((grip && !s_grip_was && !right_on_ledge()) || (trigger && !s_trigger_was))) {
+        const gaddr called = hand_moby();
+        if (called != 0 && wrench_flying(called)) {
+            wrench_call(called, grip && !s_grip_was ? "the grip" : "the trigger");
+        }
+        s_grip_was = grip;
+        s_trigger_was = trigger;
+        return;
+    }
+    if (!s_steers || !hands_free) {
         s_grip_was = grip;
         s_trigger_was = trigger;
         s_trigger_back = false;
@@ -4349,7 +5802,7 @@ void change_items() {
         // down. The trigger brings the last one back, below.
         static uint8_t state_was = 0;
         const uint8_t state = wrench != 0 ? ref<uint8_t>(wrench + kMobyState) : 0;
-        const bool let_go = !grip && s_grip_was;
+        const bool let_go = !grip && s_grip_was && state == 0;
         const bool caught = !grip && state_was == kWrenchBack && state == 0;
         state_was = state;
         if (let_go || caught) {
@@ -6679,8 +8132,6 @@ void vibration_tick() {
 // centre. Each turret's update reads the stick and turns itself: the hand's turn is made first and
 // the update then gets no stick and no speed to add, so all it does besides stays the game's.
 
-constexpr uint32_t kHeroStickX = 0x1D20u;
-constexpr uint32_t kHeroStickY = 0x1D24u;
 constexpr uint8_t kHovenManned = 4;
 constexpr uint8_t kCannonManned = 5;
 constexpr uint8_t kCommandManned = 1;
@@ -7148,6 +8599,34 @@ Vec3 made_joint(gaddr body, int joint) {
     return read_vec(skeleton + 0x40u * static_cast<uint32_t>(joint) + 0x30u) * -1.0f;
 }
 
+// The thumb (0.1.14; in 0.1.13 both its joints curled into the palm alike, which folded it under the hand on a button
+// and hooked its tip: the owner's video). As made it stands out nearly square to the fingers (Ratchet's: 70 degrees from
+// them, in the plane of the hand's top and its fingers). It comes in toward them in that plane, a little when lifted
+// (still a thumbs-up over a fist), most of the way on a button or the stick, along the hand's top as it lies on the
+// controller; and curls toward the palm, the tip half as much as the root.
+constexpr float kThumbInLifted = 0.35f, kThumbInOn = 1.0f;      // radians toward the fingers
+constexpr float kThumbFlexLifted = 0.12f, kThumbFlexOn = 0.50f;  // radians toward the palm, at the root
+
+struct ThumbLay {
+    Vec3 along;          // the root bone, as made, turned in (the model's axes: x up, y along the fingers, z the palm's side)
+    Quat in;             // that turn, about the palm's normal
+    float flex = 0.0f;   // radians at the root
+};
+
+// `on`: 0 lifted off the controller, 1 on it.
+ThumbLay thumb_lay(gaddr body, const BodyArms& shape, int side, float on) {
+    const Vec3 d = made_joint(body, shape.thumb[side] + 1) - made_joint(body, shape.thumb[side]);
+    // The fingers run along -y in the right hand's model and +y in the left's, mirrored; the thumb comes in toward them.
+    const float fingers_y = made_joint(body, shape.fingers[side]).y - made_joint(body, shape.palm[side]).y;
+    const float in = (kThumbInLifted + (kThumbInOn - kThumbInLifted) * on) * (fingers_y < 0.0f ? -1.0f : 1.0f)
+                     * (d.x < 0.0f ? -1.0f : 1.0f);
+    ThumbLay lay;
+    lay.along = {d.x * std::cos(in) - d.y * std::sin(in), d.x * std::sin(in) + d.y * std::cos(in), 0.0f};
+    lay.in = Quat{0.0f, 0.0f, std::sin(in * 0.5f), std::cos(in * 0.5f)};
+    lay.flex = kThumbFlexLifted + (kThumbFlexOn - kThumbFlexLifted) * on;
+    return lay;
+}
+
 // A finger on the hand, ready to be tried at any curl.
 struct FingerLine {
     Vec3 root, along, toward;
@@ -7178,9 +8657,10 @@ FingerLine finger_line(gaddr body, const BodyArms& shape, int side, int finger, 
     line.length[line.bones - 1] = bone * 0.8f * size;  // the last bone has no joint at its end
     line.toward = palm_normal;
     if (thumb) {
-        const Vec3 d = made_joint(body, joint + 1) - start;
-        const float l = std::max(length(d), 1.0f);
-        line.along = hand.up * (d.x / l) + hand.forward * (std::fabs(d.y) / l);
+        // Tried as it lies now (thumb_lay): come in toward the fingers.
+        const ThumbLay lay = thumb_lay(body, shape, side, std::clamp(s_fingers[side].thumb / kThumbDown, 0.0f, 1.0f));
+        const float l = std::max(std::sqrt(lay.along.x * lay.along.x + lay.along.y * lay.along.y), 1.0f);
+        line.along = hand.up * (lay.along.x / l) + hand.forward * (std::fabs(lay.along.y) / l);
         line.bend = kThumbBend;
     } else {
         line.along = hand.forward;
@@ -7266,13 +8746,15 @@ void touch_fingers(int side, const BodyArms& shape, gaddr body, const HandFrame&
 void tracked_fingers(openrac_moby_arm& arm, const BodyArms& shape, int side, const HandFrame& hand) {
     const gaddr body = ref<gaddr>(s_disc->hero + kHeroBody);
     touch_fingers(side, shape, body, hand);
-    static int told_class = -1;
-    if (ref<int16_t>(body + kMobyOclass) != told_class) {
-        told_class = ref<int16_t>(body + kMobyOclass);
+    static int told_class[2] = {-1, -1};
+    if (ref<int16_t>(body + kMobyOclass) != told_class[side]) {
+        told_class[side] = ref<int16_t>(body + kMobyOclass);
         const Vec3 palm = made_joint(body, shape.palm[side]), knuckle = made_joint(body, shape.fingers[side]);
-        char text[140];
-        std::snprintf(text, sizeof text, "[vr-hand] tracked fingers on class %d: palm (%.0f %.0f %.0f), first knuckle (%.0f %.0f %.0f)", told_class, palm.x, palm.y,
-                      palm.z, knuckle.x, knuckle.y, knuckle.z);
+        const Vec3 thumb = made_joint(body, shape.thumb[side]), thumb_next = made_joint(body, shape.thumb[side] + 1);
+        char text[220];
+        std::snprintf(text, sizeof text, "[vr-hand] tracked fingers on class %d: palm (%.0f %.0f %.0f), first knuckle (%.0f %.0f %.0f), thumb (%.0f %.0f %.0f) "
+                      "to (%.0f %.0f %.0f), side %d", told_class[side], palm.x, palm.y, palm.z, knuckle.x, knuckle.y, knuckle.z, thumb.x, thumb.y,
+                      thumb.z, thumb_next.x, thumb_next.y, thumb_next.z, side);
         log_line(1, text);
     }
     const FingerFeel& feel = s_fingers[side];
@@ -7290,13 +8772,19 @@ void tracked_fingers(openrac_moby_arm& arm, const BodyArms& shape, int side, con
             bend_joint(shape.fingers[side] + f * each + i, Vec3{1.0f, 0.0f, 0.0f}, half);
         }
     }
-    // The thumb goes over the palm: about the line square to it in the palm's plane.
+    // The thumb as it lies (thumb_lay): the root turned in toward the fingers, then curled toward the palm about the line
+    // square to it in the hand's plane; the tip, which turns with the root, curled half as much. What the world asks
+    // (feel.offset) curls both on or opens them, as the fingers.
     const Vec3 d = made_joint(body, shape.thumb[side] + 1) - made_joint(body, shape.thumb[side]);
     const float l = std::max(std::sqrt(d.x * d.x + d.y * d.y), 1.0f);
-    const float thumb = std::clamp(feel.thumb + feel.offset[fingers], kFingerBackMost, 1.0f);
-    for (int i = 0; i < kThumbJoints; ++i) {
-        bend_joint(shape.thumb[side] + i, Vec3{d.y / l, -d.x / l, 0.0f}, 0.5f * kThumbBend * thumb);
-    }
+    const ThumbLay lay = thumb_lay(body, shape, side, std::clamp(feel.thumb / kThumbDown, 0.0f, 1.0f));
+    const float world = kThumbBend * feel.offset[fingers];
+    const float root = std::clamp(lay.flex + world, kThumbBend * kFingerBackMost, kThumbBend);
+    const float tip = std::clamp(0.5f * lay.flex + world, kThumbBend * kFingerBackMost, kThumbBend);
+    const float s = std::sin(0.5f * root);
+    const Quat curl{lay.along.y / l * s, -lay.along.x / l * s, 0.0f, std::cos(0.5f * root)};
+    add_curl(arm, shape.thumb[side], curl * lay.in, true);
+    bend_joint(shape.thumb[side] + 1, Vec3{d.y / l, -d.x / l, 0.0f}, 0.5f * tip);
 }
 
 // A hand on what it holds keeps the game's hold; its first finger and thumb lift off with the player's.
@@ -9163,7 +10651,12 @@ void run_left_gun(void (*update)(gaddr)) {
     ref<uint8_t>(hero + kHeroArmOut) = fire ? 1 : 0;
     ref<uint8_t>(hero + kHeroArmRaised) = fire ? 1 : 0;
     ref<int32_t>(hero + kHeroArmTimer) = s_left_arm_ticks;
-    if (hanging_on() || wrench_on_bolt()) {
+    // The right hand's Swingshot pulling or swinging keeps that hand busy, not this one (Rerac-vr's off_hand.rs busy): a
+    // second Swingshot's update read his state as its own, and its hook flew off to the same point, ropeless of any use,
+    // whichever hand had fired (a tester's two videos, 0.1.13).
+    const int32_t his_state = ref<int32_t>(hero + kHeroState);
+    const bool hook_busy = his_state == 0x24 || his_state == 0x25 || his_state == 0x26 || his_state == 0x2C || his_state == 0x2D;
+    if (hanging_on() || wrench_on_bolt() || hook_busy) {
         ref<int32_t>(hero + kHeroState) = 0;
         ref<int32_t>(hero + kHeroMode) = 0;
         for (const uint32_t flag : kHeroNoItemFlags) {
@@ -9258,6 +10751,7 @@ void start_lead() {
     if (const gaddr right = kept_right_moby()) {
         s_lead_kept_flags = ref<uint16_t>(right + kMobyMode);
         ref<uint16_t>(right + kMobyMode) = static_cast<uint16_t>(s_lead_kept_flags | kMobyNotRun);
+        wrench_stop_for_lead(right);
     }
     char line[120];
     std::snprintf(line, sizeof line, "[vr-akimbo] the left hand leads: item %d (the hand's saved item %d, request %d)",
@@ -9578,11 +11072,13 @@ void place_left_gun() {
     // While the left hand leads, the right hand's item kept aside stays in it.
     if (s_leading) {
         const gaddr right = kept_right_moby();
-        if (right != 0 && s_have_frame && s_frame.hand_valid[kRight]) {
+        if (right != 0 && s_have_frame && s_frame.hand_valid[kRight] && !wrench_left_out(right)) {
             int32_t item = 0;
             std::memcpy(&item, s_left_slot + kSlotItem, sizeof item);
             HandFrame hand;
             const Mount mount = mount_in(right, hand, kRight, item, false);
+            hook_home_while_kept(right, mount);
+            carry_hook(right, mount);
             put_mount(right, mount, own_scale(right));
             put_float(right, mount.position.x * 1024.0f);
             put_float(right + 4u, mount.position.y * 1024.0f);
@@ -9599,6 +11095,7 @@ void place_left_gun() {
     const Mount mount = hand_mount(s_left_moby, hand);
     carry_held(s_left_moby, s_off_item, mount);
     carry_pilot(s_left_moby, mount);
+    carry_hook(s_left_moby, mount);
     put_mount(s_left_moby, mount, own_scale(s_left_moby));
     s_left_active = false;
     centre_held_decoy(s_left_moby, hand.at, s_off_side, s_off_item);
@@ -10129,9 +11626,16 @@ void trace_input(const FrameInfo& frame) {
     missing = frame.focused && !(left && right) ? missing + 1 : 0;
     const char* text = nullptr;
     if (missing > 216) {
+#if defined(__ANDROID__)
         text = !left && !right ? "CONTROLLERS NOT FOUND  CHECK THEIR BATTERIES"
                : !left         ? "LEFT CONTROLLER NOT FOUND  CHECK ITS BATTERY"
                                : "RIGHT CONTROLLER NOT FOUND  CHECK ITS BATTERY";
+#else
+        // A PC's headset can have them turned off, unpaired or out of its trackers' sight.
+        text = !left && !right ? "CONTROLLERS NOT FOUND  CHECK THEY ARE ON"
+               : !left         ? "LEFT CONTROLLER NOT FOUND  CHECK IT IS ON"
+                               : "RIGHT CONTROLLER NOT FOUND  CHECK IT IS ON";
+#endif
     }
     if (text != said) {
         said = text;
@@ -10223,6 +11727,15 @@ int views_begin(void*, openrac_view* views, int max) {
     s_have_frame = true;
 
     const int phase = picture ? OPENRAC_PLAY_SCENE : phase_now();
+#if defined(_WIN32)
+    // A test under a headset with no controllers (vr/tests/pcvr_null.ps1 -Play, the null driver): Y now and then skips
+    // the title's movies and any scene, until play.
+    static const bool tap_to_play = std::getenv("QUEST_PC_TAP_TO_PLAY") != nullptr;
+    if (tap_to_play && phase != OPENRAC_PLAY_PLAYING) {
+        static int tap_frames = 0;
+        s_frame.controls.y = ++tap_frames % 300 < 6;
+    }
+#endif
     const bool changed = phase != s_last_phase;
     if (changed) {
         // A new place or a scene starts looking where it looks: where Ratchet faces, or along the
@@ -10376,6 +11889,44 @@ void views_end(void*, const openrac_view* views, int count) {
         }
         eyes_kept = eyes_kept || (views[i].kind == OPENRAC_VIEW_WORLD && views[i].drawn == 0);
     }
+    // An old picture of the eyes is not shown (s_eyes_place above).
+    const int place = s_mod->loaded_level();
+    const bool was_stale = s_eyes_stale;
+    s_eyes_stale = false;
+    if (eyes && !eyes_kept) {
+        s_eyes_place = place;
+        s_eyes_kept_seconds = 0;
+    } else if (eyes) {
+        s_eyes_kept_seconds += s_frame.frame_seconds;
+        s_eyes_stale = s_eyes_place != place || s_eyes_kept_seconds > kEyesKeptMost;
+        if (s_eyes_stale && !was_stale) {
+            char line[150];
+            std::snprintf(line, sizeof line, "[vr-view] the eyes' last picture is %s: not shown until they are drawn again%s",
+                          s_eyes_place != place ? "of another place" : "old", s_title_world ? ", the title on its panel" : "");
+            log_line(1, line);
+        }
+        eyes = !s_eyes_stale;
+    }
+#if !defined(__ANDROID__)
+    // PC test aid (QUEST_VIEW_TRACE=1): a line at each change of what the frame shows.
+    static const bool view_trace = std::getenv("QUEST_VIEW_TRACE") != nullptr;
+    if (view_trace) {
+        static int was = -1;
+        static uint64_t frame_number = 0;
+        ++frame_number;
+        const int now = phase_now() | (s_picture ? 0x10 : 0) | (s_title_world ? 0x20 : 0) | (s_world_eyes ? 0x40 : 0)
+                        | (eyes ? 0x100 : 0) | (eyes_kept ? 0x200 : 0) | (panel ? 0x400 : 0) | (s_eyes_stale ? 0x800 : 0);
+        if (now != was) {
+            was = now;
+            char line[180];
+            std::snprintf(line, sizeof line, "[vr-view] frame %llu tick %llu: phase %d picture %d title %d world eyes %d, eyes %d kept %d stale %d panel %d",
+                          static_cast<unsigned long long>(frame_number), static_cast<unsigned long long>(s_tick), now & 0xF,
+                          (now >> 4) & 1, (now >> 5) & 1, (now >> 6) & 1, eyes ? 1 : 0, eyes_kept ? 1 : 0, s_eyes_stale ? 1 : 0,
+                          panel ? 1 : 0);
+            log_line(1, line);
+        }
+    }
+#endif
 
     PanelLayer layer;
     layer.visible = panel;
@@ -10422,10 +11973,11 @@ void views_end(void*, const openrac_view* views, int count) {
 #if !defined(__ANDROID__)
         // PC test aid (QUEST_SHOP_PANEL=1): the whole of it, for the test's shots.
         static const bool whole = std::getenv("QUEST_SHOP_PANEL") != nullptr;
-        layer.visible = layer.visible && ((!s_world_menu && !s_title_world) || whole);
-        layer.blend = layer.blend || ((s_world_menu || s_title_world) && whole);
+        layer.visible = layer.visible && ((!s_world_menu && !s_title_world) || whole || (s_title_world && s_eyes_stale));
+        layer.blend = layer.blend || ((s_world_menu || s_title_world) && whole && !s_eyes_stale);
 #else
-        layer.visible = layer.visible && !s_world_menu && !s_title_world;  // shown by parts, in the world
+        // Shown by parts, in the world; the title whole (the window's picture) while the eyes have no picture of it.
+        layer.visible = layer.visible && ((!s_world_menu && !s_title_world) || (s_title_world && s_eyes_stale));
 #endif
     }
     s_headset->finish_frame(eyes, eyes_kept, layer);
@@ -12084,6 +13636,7 @@ openrac::UiPage s_body_page;
 openrac::UiPage s_controls_page;
 // More controls, opened from VR Controls' last row: Swingshot anywhere and the launcher's switches one page cannot hold.
 openrac::UiPage s_more_controls_page;
+openrac::UiPage s_moves_page;
 const openrac::UiPage* s_rows_page = &s_vr_page;  // the one last shown
 
 // VR Options' Cheats row is there in a level only: the title's list has no window, and eight rows fill its frame.
@@ -12093,7 +13646,8 @@ enum BodyRow { kRowBodyShown, kRowBodyParts, kRowBodyTail, kRowArmsBend, kRowLeg
 enum ControlsRow { kRowTurning, kRowSnapAngle, kRowSmoothSpeed, kRowPhysicalCrouch, kRowCrouchDrop, kRowFirstSwitch };
 // After the first kFirstPageSwitches of the launcher's switches: More controls (kRowMoreControls), whose page is
 // Swingshot anywhere and then the other switches.
-enum MoreControlsRow { kRowSwingAnywhere, kRowLedgeShimmy, kRowHideBars, kRowMenuHand, kRowArmMoves, kRowMoreFirstSwitch };
+enum MovesRow { kRowSwingAnywhere, kRowWallMoves, kRowSwingReach, kRowWrenchFar, kRowWrenchStay };
+enum MoreControlsRow { kRowMoves, kRowLedgeShimmy, kRowHideBars, kRowMenuHand, kRowArmMoves, kRowMoreFirstSwitch };
 enum HandsRow { kRowGunAngle, kRowGunSize, kRowHandSize, kRowEmptyHandAngle, kRowFollowHands, kRowMirrorGuns, kRowLeftAmmo, kRowHudSize, kRowHudHeight,
                 kRowFingers, kRowFingersWorld, kRowItemAngle };
 enum CheatsRow { kRowInvincible, kRowInfiniteAmmo, kRowInfiniteBolts, kRowBigHeads, kRowContrails, kRowGiveWeapons, kRowGiveGadgets,
@@ -12106,6 +13660,7 @@ const char* rows_page_name() {
            : s_rows_page == &s_body_page     ? "VR Body"
            : s_rows_page == &s_controls_page ? "VR Controls"
            : s_rows_page == &s_more_controls_page ? "More controls"
+           : s_rows_page == &s_moves_page ? "Moves"
                                              : "VR Options";
 }
 
@@ -12339,10 +13894,22 @@ void show_controls_page() {
     set_rows(s_controls_page, content);
 }
 
+// Moves (More controls' first row): how far the Swingshot and the wrench go, and the walls. Each at the game's own to start.
+void show_moves_page() {
+    openrac::UiContent content;
+    content.title = "Moves";
+    content.items.push_back(openrac::UiItem::choice_of("Swingshot anywhere", {"Off", "On"}, s_vr.swing_anywhere ? 1u : 0u));
+    content.items.push_back(openrac::UiItem::choice_of("Wall run and jump", {"Off", "On"}, s_vr.wall_moves ? 1u : 0u));
+    content.items.push_back(openrac::UiItem::choice_of("Swingshot reach", {"Normal", "Longer", "No limit"}, static_cast<std::uint32_t>(s_vr.swing_reach)));
+    content.items.push_back(openrac::UiItem::choice_of("Wrench throw distance", {"Normal", "Far", "Very far", "Super far"}, static_cast<std::uint32_t>(s_vr.wrench_far)));
+    content.items.push_back(openrac::UiItem::choice_of("Wrench comes back", {"By itself", "When you call it"}, s_vr.wrench_stay ? 1u : 0u));
+    set_rows(s_moves_page, content);
+}
+
 void show_more_controls_page() {
     openrac::UiContent content;
     content.title = "More controls";
-    content.items.push_back(openrac::UiItem::choice_of("Swingshot anywhere", {"Off", "On"}, s_vr.swing_anywhere ? 1u : 0u));
+    content.items.push_back(openrac::UiItem::button("Moves"));
     content.items.push_back(openrac::UiItem::choice_of("Ledge shimmy", {"Reach", "Pull"}, s_vr.shimmy_pull ? 1u : 0u));
     content.items.push_back(openrac::UiItem::choice_of("Hide black bars", {"On", "Off"}, s_vr.hide_bars ? 0u : 1u));
     content.items.push_back(openrac::UiItem::choice_of("Menu pointer", {"Both hands", "Right hand", "Left hand"},
@@ -12446,14 +14013,14 @@ void save_vr_options() {
          << (s_vr.camera_flip ? 1 : 0) << "\ndirection_body " << (s_vr.direction_body ? 1 : 0) << "\nbody " << s_vr.body
          << "\nakimbo " << (s_vr.akimbo ? 1 : 0) << "\nakimbo_chosen " << (s_vr.akimbo_chosen ? 1 : 0) << "\nseated " << (s_vr.seated ? 1 : 0) << "\nfirst_person "
          << (s_options.first_person ? 1 : 0) << "\nlauncher_first " << (s_launcher_first ? 1 : 0) << "\ngun_angle "
-         << s_vr.gun_angle << "\nempty_hand_angle " << s_vr.empty_hand_angle << "\ngun_size " << s_vr.gun_size << "\nhand_size " << s_vr.hand_size << "\nfollow_hands "
+         << s_vr.gun_angle << "\nempty_hand_angle " << s_vr.empty_hand_angle << "\nempty_hand_chosen " << (s_vr.empty_hand_chosen ? 1 : 0) << "\ngun_size " << s_vr.gun_size << "\nhand_size " << s_vr.hand_size << "\nfollow_hands "
          << (s_vr.follow_hands ? 1 : 0) << "\nmirror_guns " << (s_vr.mirror_guns ? 1 : 0) << "\nleft_ammo "
          << (s_vr.left_ammo ? 1 : 0) << "\nhud_size " << s_vr.hud_size << "\nlauncher_hud " << s_launcher_hud << "\nhud_height "
          << s_vr.hud_height << "\ncheat_invincible " << (s_cheats.invincible ? 1 : 0) << "\ncheat_ammo " << (s_cheats.ammo ? 1 : 0)
          << "\ncheat_bolts " << (s_cheats.bolts ? 1 : 0) << "\ncheat_big_heads " << (s_cheats.big_heads ? 1 : 0)
          << "\ncheat_contrails " << (s_cheats.contrails ? 1 : 0) << "\nfingers_tracked " << (s_vr.fingers_tracked ? 1 : 0) << "\nfingers_world "
          << (s_vr.fingers_world ? 1 : 0) << "\nphysical_crouch " << (s_vr.physical_crouch ? 1 : 0) << "\ncrouch_drop " << s_vr.crouch_drop
-         << "\nswing_anywhere " << (s_vr.swing_anywhere ? 1 : 0) << "\nshimmy_pull " << (s_vr.shimmy_pull ? 1 : 0) << "\nhide_bars " << (s_vr.hide_bars ? 1 : 0) << "\nmenu_hand " << s_vr.menu_hand
+         << "\nswing_anywhere " << (s_vr.swing_anywhere ? 1 : 0) << "\nwall_moves " << (s_vr.wall_moves ? 1 : 0) << "\nswing_reach " << s_vr.swing_reach << "\nwrench_far " << s_vr.wrench_far << "\nwrench_stay " << (s_vr.wrench_stay ? 1 : 0) << "\nshimmy_pull " << (s_vr.shimmy_pull ? 1 : 0) << "\nhide_bars " << (s_vr.hide_bars ? 1 : 0) << "\nmenu_hand " << s_vr.menu_hand
          << "\nbutton_moves " << (s_vr.button_moves ? 1 : 0)
          << "\nbody_parts " << s_vr.body_parts << "\nbody_parts_chosen " << (s_vr.parts_chosen ? 1 : 0) << "\nbody_tail " << (s_vr.body_tail ? 1 : 0)
          << "\narms_bend " << (s_vr.arms_bend ? 1 : 0) << "\nlegs_bend " << (s_vr.legs_bend ? 1 : 0) << "\nbody_follows " << (s_vr.body_follows ? 1 : 0)
@@ -12479,6 +14046,7 @@ void load_vr_options() {
     int value = 0;
     int first_person = -1, launcher_first = -1, hud_size = -1, launcher_hud = -1;
     bool body_read = false, parts_read = false, chosen_read = false, akimbo_read = false, akimbo_chosen_read = false;
+    bool empty_hand_read = false, empty_hand_chosen_read = false;
     // The launcher's play options as they are now, before what was changed in a level is laid over them.
     s_launcher_smooth = s_options.turn.smooth;
     s_launcher_snap = snap_degrees_now();
@@ -12527,6 +14095,14 @@ void load_vr_options() {
             body_read = true;
         } else if (key == "physical_crouch") {
             s_vr.physical_crouch = value != 0;
+        } else if (key == "wrench_far") {
+            s_vr.wrench_far = value >= 0 && value <= 3 ? value : 0;
+        } else if (key == "wrench_stay") {
+            s_vr.wrench_stay = value != 0;
+        } else if (key == "wall_moves") {
+            s_vr.wall_moves = value != 0;
+        } else if (key == "swing_reach") {
+            s_vr.swing_reach = value >= 0 && value <= 2 ? value : 0;
         } else if (key == "swing_anywhere") {
             s_vr.swing_anywhere = value != 0;
         } else if (key == "shimmy_pull") {
@@ -12552,7 +14128,11 @@ void load_vr_options() {
         } else if (key == "gun_angle") {
             s_vr.gun_angle = gun_angle_of(value);
         } else if (key == "empty_hand_angle") {
+            empty_hand_read = true;
             s_vr.empty_hand_angle = empty_hand_angle_of(value);
+        } else if (key == "empty_hand_chosen") {
+            empty_hand_chosen_read = true;
+            s_vr.empty_hand_chosen = value != 0;
         } else if (key.rfind("item_angle_", 0) == 0) {
             const int item = std::atoi(key.c_str() + 11);
             if (item_angle_takes(item)) {
@@ -12643,6 +14223,16 @@ void load_vr_options() {
             s_vr.akimbo_chosen = true;
         }
     }
+    // Empty hand angle starts at 65 down from 0.1.14 (the owner's pick). A file of 0.1.13's or before, with no word of
+    // the row being set: its 0 was the start then and becomes 65 down, once; any other angle there was chosen and stays.
+    if (empty_hand_read && !empty_hand_chosen_read) {
+        if (s_vr.empty_hand_angle == 0) {
+            s_vr.empty_hand_angle = -kEmptyHandDownMax;
+            log_line(1, "[vr-hand] Empty hand angle: 0 was the start before 0.1.14, 65 down is now");
+        } else {
+            s_vr.empty_hand_chosen = true;
+        }
+    }
     for (int i = 0; i < kControlSwitchCount; ++i) {
         if (saved_switch[i] >= 0 && switch_was[i] == (s_launcher_switch[i] ? 1 : 0)) {
             s_options.*kControlSwitches[i].on = saved_switch[i] != 0;
@@ -12681,6 +14271,7 @@ void hands_page_event(const openrac::UiEvent& event) {
             s_vr.hand_size = hand_size_of(event.value() * kHandSizeStep + kHandSizeMin);
         } else if (event.item() == kRowEmptyHandAngle) {
             s_vr.empty_hand_angle = empty_hand_angle_of(event.value() * kGunAngleStep - kEmptyHandDownMax);
+            s_vr.empty_hand_chosen = true;
         } else if (event.item() == kRowFollowHands) {
             s_vr.follow_hands = event.value() == 0;
         } else if (event.item() == kRowMirrorGuns) {
@@ -12814,6 +14405,10 @@ void log_controls() {
         line += std::string(", ") + row.key + (s_options.*row.on ? " on" : " off");
     }
     line += s_vr.swing_anywhere ? ", swing_anywhere on" : ", swing_anywhere off";
+    line += s_vr.wall_moves ? ", wall_moves on" : ", wall_moves off";
+    line += ", wrench_far " + std::to_string(1 << s_vr.wrench_far);
+    line += s_vr.wrench_stay ? ", wrench_stay on" : ", wrench_stay off";
+    line += s_vr.swing_reach == 2 ? ", swing_reach no limit" : s_vr.swing_reach == 1 ? ", swing_reach longer" : ", swing_reach normal";
     line += s_vr.shimmy_pull ? ", ledge shimmy pull" : ", ledge shimmy reach";
     line += s_vr.hide_bars ? ", black bars hidden" : ", black bars the game's";
     line += s_vr.menu_hand == kMenuRightHand ? ", menu pointer right" : s_vr.menu_hand == kMenuLeftHand ? ", menu pointer left" : ", menu pointer both";
@@ -12850,18 +14445,49 @@ void controls_page_event(const openrac::UiEvent& event) {
     }
 }
 
+void moves_page_event(const openrac::UiEvent& event) {
+    if (event.kind() == OPENRAC_UI_SHOW) {
+        s_rows_page = &s_moves_page;
+        show_moves_page();
+    } else if (event.kind() == OPENRAC_UI_BACK) {
+        s_more_controls_page.open();  // back to More controls, where it was opened
+    } else if (event.kind() == OPENRAC_UI_CHANGE) {
+        const int value = event.value();
+        if (event.item() == kRowSwingAnywhere) {
+            s_vr.swing_anywhere = value == 1;
+            log_line(1, s_vr.swing_anywhere ? "[vr-swing] Swingshot anywhere: on" : "[vr-swing] Swingshot anywhere: off");
+        } else if (event.item() == kRowWallMoves) {
+            s_vr.wall_moves = value == 1;
+            log_line(1, s_vr.wall_moves ? "[vr-wall] Wall run and jump: on" : "[vr-wall] Wall run and jump: off");
+        } else if (event.item() == kRowSwingReach) {
+            s_vr.swing_reach = value >= 0 && value <= 2 ? value : 0;
+            log_line(1, s_vr.swing_reach == 2   ? "[vr-swing] Swingshot reach: no limit"
+                        : s_vr.swing_reach == 1 ? "[vr-swing] Swingshot reach: longer, twice the game's"
+                                                : "[vr-swing] Swingshot reach: normal, the game's");
+        } else if (event.item() == kRowWrenchFar) {
+            s_vr.wrench_far = value >= 0 && value <= 3 ? value : 0;
+            log_line(1, (std::string("[vr-wrench] Wrench throw distance: ") + std::to_string(1 << s_vr.wrench_far) + " times the game's").c_str());
+        } else if (event.item() == kRowWrenchStay) {
+            s_vr.wrench_stay = value == 1;
+            log_line(1, s_vr.wrench_stay ? "[vr-wrench] Wrench comes back: when you call it" : "[vr-wrench] Wrench comes back: by itself");
+        }
+        log_controls();
+        save_vr_options();
+        show_moves_page();
+    }
+}
+
 void more_controls_page_event(const openrac::UiEvent& event) {
     if (event.kind() == OPENRAC_UI_SHOW) {
         s_rows_page = &s_more_controls_page;
         show_more_controls_page();
     } else if (event.kind() == OPENRAC_UI_BACK) {
         s_controls_page.open();  // back to VR Controls, where it was opened
+    } else if (event.kind() == OPENRAC_UI_CHOOSE && event.item() == kRowMoves) {
+        log_line(1, s_moves_page.open() ? "[vr-rig] the Moves page opened" : "[vr-rig] the port did not open the Moves page");
     } else if (event.kind() == OPENRAC_UI_CHANGE) {
         const int value = event.value();
-        if (event.item() == kRowSwingAnywhere) {
-            s_vr.swing_anywhere = value == 1;
-            log_line(1, s_vr.swing_anywhere ? "[vr-swing] Swingshot anywhere: on" : "[vr-swing] Swingshot anywhere: off");
-        } else if (event.item() == kRowHideBars) {
+        if (event.item() == kRowHideBars) {
             s_vr.hide_bars = value == 0;
             log_line(1, s_vr.hide_bars ? "[vr-view] Hide black bars: on" : "[vr-view] Hide black bars: off, the game's own");
         } else if (event.item() == kRowMenuHand) {
@@ -12974,6 +14600,7 @@ void load(openrac::Mod& mod) {
     s_options.wall_feel = mod.setting<bool>("wall_feel");
     s_options.sparkles_in_world = mod.setting<bool>("sparkles_in_world");
     s_xr.refresh_hz = static_cast<float>(mod.setting<std::int64_t>("refresh_hz"));
+    s_xr.keep_refresh = mod.setting<bool>("keep_refresh");
     s_xr.resolution = static_cast<float>(mod.setting<double>("resolution"));
     s_rig.scale = s_options.world_scale;
     s_launcher_hud = hud_size_of(static_cast<int>(std::lround(s_options.hud_scale * 100.0f)));
@@ -12998,7 +14625,7 @@ void load(openrac::Mod& mod) {
             {s_options.room_scale, "Walk around your room"}, {s_options.swim_strokes, "Swim with your arms"},
             {s_options.solid_hands, "World collision"}, {s_options.wall_feel, "Vibrate when your hands meet the world"},
             {s_options.sparkles_in_world, "Sparkles on the bolts"}, {s_options.glyphs, "Controller buttons in hints"},
-            {s_options.haptics, "Vibration"},
+            {s_options.haptics, "Vibration"}, {s_xr.keep_refresh, "Keep the refresh rate"},
         };
         std::string off;
         for (const Switch& s : switches) {
@@ -13030,6 +14657,7 @@ void load(openrac::Mod& mod) {
                                     OPENRAC_UI_OWN_BACK);
         s_body_page = mod.ui_page([](const openrac::UiPage&, const openrac::UiEvent& event) { body_page_event(event); }, OPENRAC_UI_OWN_BACK);
         s_controls_page = mod.ui_page([](const openrac::UiPage&, const openrac::UiEvent& event) { controls_page_event(event); }, OPENRAC_UI_OWN_BACK);
+        s_moves_page = mod.ui_page([](const openrac::UiPage&, const openrac::UiEvent& event) { moves_page_event(event); }, OPENRAC_UI_OWN_BACK);
         s_more_controls_page = mod.ui_page([](const openrac::UiPage&, const openrac::UiEvent& event) { more_controls_page_event(event); },
                                            OPENRAC_UI_OWN_BACK);
     }
@@ -13194,4 +14822,4 @@ void load(openrac::Mod& mod) {
 
 }  // namespace
 
-OPENRAC_MOD_CPP("quest-vr", "0.1.13", load)
+OPENRAC_MOD_CPP("quest-vr", "0.1.14", load)

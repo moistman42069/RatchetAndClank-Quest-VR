@@ -144,11 +144,81 @@ it worked (the log is in Download/RatchetQuestVR). PC-proven features are in STA
     a fall by a ledge caught it with the hands doing nothing; at a bolt the grip seated the wrench (the turn is not
     logged on Buttons); in the water no arm stroke was taken. Not run on PC: swimming with the left stick on Buttons,
     so say whether it does. Back to **For real**: the swings, punches, throws, ledges and strokes work by hand again.
+- **The owner's notes and video of 0.1.13 (0.1.14).** PC-run with a simulated headset only.
+  - **Keep the refresh rate (Graphics, On):** set 120 Hz and play somewhere heavy (Kerwan's city, Rilgar): the
+    headset stays at 120 (`[openxr] 120 Hz not held here: kept, as Keep the refresh rate asks` once, where 0.1.13 said
+    it went back to 72). Say how smooth it is where the game keeps up and where it does not. Then **Off**: after twenty
+    seconds below the rate it goes to 72 as before. The `[vr-perf] ... frames/s` lines each ten seconds say how
+    many the game drew.
+  - **The left grip with Physical crouch off:** on foot in first person, squeeze it standing, walking and in the air:
+    no crouch, no packs, the hand closes. The left trigger crouches, long-jumps and works the packs. With Akimbo's gun
+    in the left hand, in third person and on the hoverboard, the grip crouches as before. Ledges and the two-handed hold
+    still take the grip.
+  - **Empty hand angle 65 down:** after the update from 0.1.13, with the row never set, VR Hands says 65 down
+    (`[vr-hand] Empty hand angle: 0 was the start before 0.1.14, 65 down is now` once). An angle you had set stays.
+  - **The thumb:** rest it on A or B, then on the stick, then lift it: on a button it lies along the top of the hand,
+    not folded under it; lifted it stands up a little. Say whether it now looks right, in the video if you can.
+  - **Walking backwards:** pull the stick straight back for a few steps and let go: he stops where he is, with no
+    slide forward (`[vr-move] the stick let go: what speed is left goes on at yaw ...`). The same walking aside. Running
+    forward and letting go: as before.
+  - **The start of the game:** after the intro movie the copyright lines show on the title's panel, steady as you move
+    your head, with no warp. Load a save into a level that starts with a scene: no flash of the save select as it
+    begins (`[vr-view] the eyes' last picture is of another place` at most once there).
+- **PC VR (0.1.14), with a real headset.** Run on SteamVR's null driver only (a headset that is not there, 60 frames
+  a second). Each run's log is in Downloads\RatchetQuestVR.
+  - **It opens in the headset:** `[openxr] runtime:` names your PC VR software, `[openxr] system:` your headset, and
+    `[openxr] left hand:` / `right hand:` name your controllers (`/interaction_profiles/...`), not `(none)`. With
+    Windows Mixed Reality as the PC's runtime the game takes SteamVR's (`that runtime has no OpenGL: SteamVR's is used`).
+  - **The buttons:** each one does what the launcher's Controls tab says for your controllers (Touch, Index, Vive,
+    Cosmos, WMR, Pico). PlayStation VR2, Steam Frame and DPVR through SteamVR: say which binding SteamVR chose, and what
+    any button does that it should not.
+  - **The frame rate:** the `[vr-perf] ... frames/s` lines against your headset's rate, and Eye resolution and
+    the headset software's own resolution setting.
+  - **The launcher:** set-up from your .iso, Play in VR and Play in 2D, a mod switched on, the What's new box, and the
+    log written in Downloads\RatchetQuestVR as the game ends.
+- **Moves (0.1.14: VR Controls, More controls, Moves; testers' and a player's asks).** PC-run with a simulated headset
+  only; nothing here has been felt. The numbers are guesses to be tuned by feel: say what is too fast, too slow, too
+  long or too sudden. Everything starts as it was (`[vr-rig] the Moves page opened`).
+  - **Wall run and jump, Off:** a zip at a wall drops him as in 0.1.13, a jump along a wall is a plain jump, no
+    `[vr-wall]` line anywhere.
+  - **On, a zip at a wall (Swingshot anywhere on):** he stops on the wall, no stick touched, and stays up a second and a
+    half before sliding (`[vr-wall] on the wall`). Looking across or back, A: he leaps exactly where you look
+    (`a wall jump: the look ...`; on landing `came down ... degrees off its way` should be a degree or two, unless you
+    steered). Try it with the stick still held along the wall: the same.
+  - **On, a run:** jump beside a wall with the stick along it (`a wall run`): level for over a second, then sinking. Into
+    a corner (`round a corner`). Against a rock (`something in his way ... held on the wall`). Say whether the view feels
+    smooth or sick. Stick straight away: off. **Up:** look at the wall, stick forward, jump (`a run up the wall`).
+  - **What it must not take:** a jump from the ground beside a wall is a jump; a double jump away from walls is one; a
+    ledge still takes a hand (a grip near the edge during a run: `state 0x18 took him off the wall`) and a climb still
+    climbs; A in water, on a rail or hanging is what it was; the Heli-Pack's glide away from walls is what it was.
+  - **Swingshot reach:** Normal: nothing past 30 units (16 swinging). **Longer:** twice that, with the game's own
+    targets too, Swingshot anywhere off. **No limit:** aim across a level (Kerwan's start, out of the tunnel's far
+    mouth at a tower): the hook is there in well under a second, the rope drawn all the way, and he flies at up to 70
+    units a second (`a pull to ... units away`). Say if the speed is too much, and whether he ever passed through
+    anything. The left hand past 32 units zips (`a pull to ... by the left hand`).
+  - **Wrench throw distance:** Far, Very far, Super far (`[vr-wrench] it turned N units from the throw`: 2, 4 and 8 times
+    Normal's, unless it hits something first). It comes back and is caught as ever.
+  - **Wrench comes back, When you call it:** it stays out (`at rest`, `its whirl: voice N, let go`: the whirl should stop),
+    your hand empty. A fresh right grip or the trigger calls it (`called back by the grip`): you should **hear the
+    whirl start** and feel the buzz grow, then **the thump** at the catch (`caught, a thump in the hand`), with the grip
+    closed it stays in your hand, open it is put away. Press for the ring with it out: it comes back (`the press for
+    the ring`), then the ring opens on the next press. Grab a ledge, swim or board a seat with it out: it comes back
+    by itself. Arm moves on Buttons with it out: the grip calls it, and the next squeeze swings. Third person (crouch and
+    the right grip throw it): the grip or the trigger calls it. With Akimbo's left Swingshot, fire it with the wrench out
+    (`left where it is while the left hand leads`): the wrench stays put, and the grip calls it when the swing is done.
+- **The tester's notes and videos of Swingshot anywhere (0.1.14).** PC-run with a simulated headset only.
+  - **The fling:** on a swing, at the end, yank the hand that fired back the other way: thrown on (`a fling`). On a zip the
+    same: off it and up. A slow hand: nothing. Is the yank's strength right? A full loop has not been run.
+  - **The zip chain:** fire again in the air, hand after hand or the same hand: each is taken, no landing needed.
+  - **The hover:** in the Heli-Pack's glide, fire: he stays up while the hook flies, and with jump held the glide comes
+    back. The same with the Thruster-Pack, which has not been run.
+  - **The Swingshot in the hand:** with one in each hand the hooks are each at their own hand, no lag, none hanging in
+    the air; firing one leaves the other. Hold the controller as you like: the housing lies along where the hook goes.
 - **The owner's list (0.1.13).** PC-run with a simulated headset only.
-  - **More controls (VR Controls' last row):** it opens a page of its own: Swingshot anywhere, Ledge shimmy, Hide
+  - **More controls (VR Controls' last row):** it opens a page of its own: Moves (a button, 0.1.14), Ledge shimmy, Hide
     black bars, Menu pointer, Arm moves, then Two-handed weapons to Sparkles on the bolts, each reachable (`[vr-rig] the More
     controls page opened`; no log line says a page has more rows than the port's). B goes back to VR Controls.
-  - **Swingshot anywhere (testers' ideas, More controls' first row, Off to start):** first with it **Off**: the Swingshot
+  - **Swingshot anywhere (testers' ideas, the Moves page's first row since 0.1.14, Off to start):** first with it **Off**: the Swingshot
     is the game's at Kerwan's yellow and green targets, and aimed at a plain wall nothing happens. Switch it **On**
     (`[vr-swing] Swingshot anywhere: on`). Where no target is near, with the Swingshot in the right hand, aim at a wall or the ground 5 to 30 units off
     and hold the trigger: the hook flies, holds and zips you there (`[vr-swing] anywhere: a pull to`). Let go midway:
@@ -159,7 +229,7 @@ it worked (the log is in Download/RatchetQuestVR). PC-proven features are in STA
     his head`). Where the way is blocked he drops, as at a game target. Near a game target, the game's own move
     comes first. On Novalis nothing happens (`Novalis has no Swingshot pull`). Say how it feels, and whether you were
     ever held in place (the log's `the pull stopped moving` or `the swing outlasted the fire let go`).
-  - **What's new:** the first launch after the update shows the What's new box, Swingshot anywhere first; Got it closes
+  - **What's new:** the first launch after the update shows the What's new box, PC VR first; Got it closes
     it, the next launch does not show it, and What's new on the Updates card shows it again.
   - **Everything is the start:** a new install, and a settings file from 0.1.12 that never changed Body parts, shows
     the whole body (`[vr-body] Body parts: arms with hands was the start before 0.1.13, everything is now` once for the

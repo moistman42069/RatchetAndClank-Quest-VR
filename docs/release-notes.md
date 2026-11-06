@@ -1,6 +1,53 @@
-**A test build of Ratchet & Clank in standalone VR on Meta Quest.** It is a Quest port of [npiriou's Rerac-vr](https://github.com/npiriou/Rerac-vr), running on [OpenRAC](https://github.com/OpenRAC/OpenRAC)'s native port of the PS2 game. You need your own disc image. No game files are included.
+**A test build of Ratchet & Clank in VR: standalone on Meta Quest, and now on PC VR.** It is a Quest port of [npiriou's Rerac-vr](https://github.com/npiriou/Rerac-vr), running on [OpenRAC](https://github.com/OpenRAC/OpenRAC)'s native port of the PS2 game. You need your own disc image. No game files are included.
 
 > **This is a test build, and we need your logs.** **Expect bugs.** Every log helps, including from runs that worked: **Send your log** below says how.
+
+## New in 0.1.14
+
+**Now on PC VR too.** Beside the APK, this release has `RatchetQuestVR-0.1.14-windows.zip`: the Quest version on a Windows PC, with the same launcher (`RatchetClankVR.exe`: Play, Graphics, VR, Game, Controls, Logs and Credits, the disc check and set-up, the mods, the updates), the same options and the same game. **Install on PC** below says how. Rerac-vr is the original PC VR mod, and the one this port follows; this is for players who want the Quest version's launcher, options and mods on a PC.
+
+- **Any OpenXR PC VR software:** SteamVR, Meta Horizon Link (Link and Air Link), Virtual Desktop, Pico Connect, Windows Mixed Reality and others. If the one set as your PC's OpenXR runtime cannot draw this game (it needs OpenGL, which Windows Mixed Reality's lacks), the game uses SteamVR's instead, by itself, when SteamVR is installed; Windows' setting is not changed.
+- **Your controllers, by themselves:** the game gives its bindings for Touch (Quest, Rift S, Quest Pro, Touch Plus), Index, Vive and Vive Cosmos, Vive Focus 3, Pico 4 and Neo 3, HP Reverb G2 and Windows Mixed Reality, so each runtime puts them on your controllers. Others, such as **PlayStation VR2**, the **Steam Frame** and **DPVR** headsets, come through SteamVR, which maps them to one of those (change it in SteamVR's **Manage controller bindings** if you like). The launcher's **Controls** tab says what each button is on each, and your log names the controllers it got (`[openxr] left hand:`).
+- **Untested on real PC headsets.** It has run on SteamVR's simulated headset only, which has no controllers: there it started, drew the title's menus and drew Kerwan, and nothing was played. Please send a log, with your headset and PC VR software, whatever happens.
+
+**Moves: a new page** (in play: VR Options, VR Controls, More controls, **Moves**, its first row). **Swingshot anywhere** has moved here, beside what goes with it. Everything on it starts as it was: **Off**, **Normal**, **By itself**.
+
+- **Wall run and jump** (new, **Off** to start; first person, on foot; a tester: "Im zipping to walls and just kinda hitting them then falling straight down"). In the air by a wall:
+  - **Along it:** the stick along the wall, or his own speed along it, runs him along the wall, level for most of two seconds and then sinking into a fall. What he met it with goes into the run (a zip with the stick pushed becomes a fast run); the stick the other way brakes and turns him; the run follows bends and goes round inside corners. The stick straight away drops him off.
+  - **Up it:** the stick into the wall runs him up it, once a wall, and over the top if it ends.
+  - **On it:** a zip of Swingshot anywhere that ends at a wall holds him there for a second and a half, then he slides, and is off at two and a half seconds: time for the stick, the jump button or the next hook.
+  - **Off it:** the jump button in the air by a wall, running on it or not, just past it, or pressed just before he reaches it, leaps him **where your head looks**: the level way is your look's, turned only as far as it must be to leave the wall. His speed is kept and goes that way; looking up trades way for height. His air control is off until you let go of the stick or really move it, so a stick still held along the wall has no say. Each wall gives one run and one jump until he lands or fires a hook, so walls and hooks chain and one wall cannot be climbed for ever. A jump from the ground beside a wall is still a jump.
+- **Swingshot reach** (new, **Normal** to start; the same tester: "can ypu please extend the hookshot distance?"): **Normal** is the game's, **Longer** is twice that, **No limit** reaches any surface you can aim at, right across a level. A far hook gets there in well under a second, and a far zip goes up to 70 units a second while the way is clear, then comes down to the game's own arrival. A left hand's shot past 32 units zips instead of swinging: on a rope that long he would only fall. With Swingshot anywhere off it is how far the game's own targets can be hooked from.
+- **Wrench throw distance** (new, **Normal** to start; a player's ask, "throwing really far with an arch"): **Far**, **Very far** and **Super far** go 2, 4 and 8 times as far, in an arc. It works on any throw, by hand or the game's own.
+- **Wrench comes back** (new, **By itself** to start; the same player, "physically called back to your hand"): **When you call it**, it flies on, arcing, until it meets something, and stays there with its whirl stopped. A fresh squeeze of the right grip, or the trigger, calls it: the game's own whirl starts and it comes in about a second, your hand buzzing harder as it nears. It comes by itself if you press for the ring (the game opens no ring while the wrench is out), change item, grab a ledge or need your hands some other way, or after six seconds' flight with nothing met, so it can never be lost. Third person calls it the same way. Akimbo's left Swingshot or Walloper leaves it where it is until they are done.
+- **A thump when you catch the wrench**, always on: harder after a call or a far throw.
+
+**From a tester's notes and videos of Swingshot anywhere on 0.1.13**
+
+- **The fling.** Yank the hand that fired, hard, **away from where you want to go**: on a swing it throws you on, on a zip it leaps you off. A slow hand does nothing. Off with Swingshot anywhere.
+- **Zips chain in the air.** The right zip only worked once in a chain: the next one was refused until he landed.
+- **The hook no longer cancels the Heli-Pack's glide.** He stays up while it flies, and with jump held the glide comes back. **Not run: the Thruster-Pack's hover.**
+- **A press aimed at nothing keeps trying** while you hold it, instead of being lost.
+- **Each hand's Swingshot has its own hook.** With one in each hand they shared one: the hook lagged behind or hung in the air, and firing one fired the other. Always on.
+- **The Swingshot lies along your aim,** however you hold the controller: the housing and the way the hook goes now agree. Always on. **If you set a Swingshot angle before (VR Hands), put it back to Default.**
+
+**From the owner's notes and video of 0.1.13 on a Quest 3**
+
+- **Keep the refresh rate** (new, Graphics, **On** to start). The headset stays at the rate you chose, such as 120 Hz, so wherever the game keeps up it is that smooth. In 0.1.13, where the game could not hold the rate for twenty seconds the headset dropped to 72 Hz for the rest of the run. **Off** brings that back. The game also no longer holds its frames to the window's refresh rate: the headset paces them (on a PC with a 60 Hz monitor, a 90 Hz headset got 60).
+- **The left grip only closes your hand**, on foot in first person, with **Physical crouch** on *or off*: in 0.1.13, with it off, the grip and the trigger both crouched. The **left trigger** crouches and works the packs (and lowering your head, with Physical crouch on). With **Akimbo**'s gun in the left hand (whose trigger fires it), in third person and in vehicles, the grip still crouches.
+- **Empty hand angle starts at 65 down** (VR Hands), the owner's pick. A settings file still at 0.1.13's start, 0, moves to 65 down once; an angle you set yourself stays. **Gun angle** is unchanged.
+- **The thumb lies along the controller.** On a button or the stick it comes in along the top of the hand; lifted, it stands up a little, a thumbs-up over a fist. In 0.1.13 both its joints curled into the palm alike, which folded it under the hand with its tip hooked.
+- **No slide forward after walking backwards.** Letting go of the stick after walking backwards or aside, Ratchet slid about a metre forward: the game carries what speed is left along his facing. It now goes the way he was going, as it already did after walking forward.
+- **No warped pictures at the start.** After the intro movie, the copyright lines stood still in front of you and warped as you moved your head (the game draws them once and holds them); and as a level's first scene began, the save select's picture showed for a moment. A picture held for more than a quarter second, or from another place, is no longer shown: the title's lines are on its panel.
+- **Anti-aliasing** says it is cheap "for the graphics chip", the Quest's or the PC's.
+
+**Tested for 0.1.14 on PC only** (the PAL disc and a simulated headset; none of it has run on a Quest, a real PC headset or the US disc):
+- **The PC release:** the packaged launcher's 177 self-checks pass. Through real OpenXR on SteamVR's simulated headset, the exe started on OpenGL 4.6 and drew the title's menus, and the game drawn from the same build, started directly, drew Kerwan in first person with no errors. That headset has no controllers, so nothing was played through it, and its head is not where a player's is: the view in Kerwan was up against his boot, most likely for that reason.
+- **Wall run and jump:** a zip at a wall held him there, then he slid. Leaps went the way the look asked, turned only as far as they had to be to leave the wall, and landed 0.0 degrees off that way, with the stick still held along the wall too. He ran up a wall, turned a corner smoothly, and chained a corner run, a zip in the air and another run with no stuck state. Off, the wall moves do nothing.
+- **Swingshot reach:** No limit hooked a building 370 units away across Kerwan and pulled him there at up to 70 units a second, in about 7 seconds. Longer took one of the game's own targets from 45 units, and Normal refused it. A left hand's shot from 370 units zipped.
+- **The wrench:** Far and Super far turned 9.6 and 38 units out. **When you call it:** thrown by hand or by the game's own throw, it rested at what it met, and came back to the grip, the trigger or the press for the ring; in third person, to the grip and the trigger. Ratchet dying called it, and it threw normally after he came back. Akimbo's left Swingshot left it where it was, and it could be called afterwards. Normal and By itself flew as before, with the thump on the catch.
+- **Everything on at once:** ledges, the game's own ledges, swimming, the Heli-Pack, the hoverboard, the wrench swing and Arm moves on Buttons ran with no wall move taking over and no errors, the ledge and wrench runs' lines matching the same runs with it off.
+- **Not shown:** the feel of any of it, a ledge grabbed during a wall run (from the code it should work, and the headset checklist asks for it), a long stick-held run along a long straight wall, a full loop of the swing, the Thruster-Pack's hover. The whirl and the thump were logged, not heard or felt.
 
 ## New in 0.1.13
 
@@ -202,8 +249,8 @@ More on screen costs some frame rate: if a planet got less smooth, tell us which
 
 ## What you need
 
-- **Meta Quest 3 or 3S** in Developer Mode. Quest 2 and Quest Pro may run it, slower; they are untested.
-- **About 6 GB free** on the headset.
+- **Quest:** a **Meta Quest 3 or 3S** in Developer Mode, and **about 6 GB free** on it. Quest 2 and Quest Pro may run it, slower; they are untested.
+- **PC:** **Windows 10 or 11**, 64-bit, a PC and graphics card that run PC VR, a PC VR headset and its PC VR software, and about 2 GB free beside your `.iso` (6 GB if the `.iso` is on another drive, as it is then copied).
 - **Your own `.iso` of exactly one of these discs.** Greatest Hits, Platinum, other regions and the sequels are not supported, and the launcher says exactly why a disc is refused.
 
 | Disc | Serial | Version | Size in bytes | SHA-1 |
@@ -216,25 +263,37 @@ More on screen costs some frame rate: if a planet got less smooth, tell us which
 ## Install
 
 1. Put your Quest in **Developer Mode** (in the Meta Horizon app on your phone).
-2. Get `RatchetQuestVR-0.1.13.apk` onto the headset and install it. Either:
+2. Get `RatchetQuestVR-0.1.14.apk` onto the headset and install it. Either:
    - download it in the Quest's browser (or email it to yourself and download it there) and open it from the **Files** app, or
-   - sideload it with SideQuest or `adb install -r RatchetQuestVR-0.1.13.apk`.
+   - sideload it with SideQuest or `adb install -r RatchetQuestVR-0.1.14.apk`.
 3. Open **Ratchet & Clank Quest VR** from your Library's **Unknown Sources**.
 4. Copy your `.iso` to the headset's **Download** folder and choose it in the launcher. The first set-up copies the disc and prepares the levels: **up to half an hour, once. Keep the headset on charge.**
 5. Press **PLAY IN VR**. **Play in 2D** puts the game on a big flat screen, played with the Touch controllers as a PlayStation pad: if VR fails, try it and tell us, as it separates a game problem from a VR problem.
 
 **Updating:** install a new APK over the old one, or use the launcher's Play tab, which checks this page every six hours (**Check now** to do it at once; you can switch it off). **Do not uninstall or clear the app's data:** your set-up and saves go with it.
 
+## Install on PC
+
+1. Download `RatchetQuestVR-0.1.14-windows.zip` and unzip it anywhere you can write: your Desktop, Documents or a games drive. Keep the `RatchetClankVR` folder together. Nothing is installed into Windows.
+2. Start your headset's PC VR software (SteamVR, Meta Horizon Link, Virtual Desktop, Pico Connect, ...).
+3. Open `RatchetClankVR.exe`. Windows may warn about an app from the internet it does not know: **More info**, then **Run anyway**.
+4. **Choose your .iso file** and wait for the set-up, once: it checks the disc, then prepares the levels.
+5. Press **PLAY IN VR**. **Play in 2D** puts the game on a big flat screen in the headset, played with your VR controllers as a PlayStation pad: if VR fails, try it and tell us, as it separates a game problem from a VR problem.
+
+Your set-up, saves and settings are in `%LOCALAPPDATA%\RatchetQuestVR`, and each run's log in `Downloads\RatchetQuestVR`. **Updating:** the launcher's Updates card downloads a newer release's zip, checks it against GitHub's SHA-256 and size, closes, puts it over its folder and opens again, keeping all of that. Or unzip a new release over the old folder yourself.
+
 ## Send your log
 
 1. Play, then **quit and open the launcher again.** That is what writes the run's log.
-2. In **Download/RatchetQuestVR** on the headset, the newest `run_<date>.txt` is your last run. The launcher's **Logs** tab shows a summary.
+2. In **Download/RatchetQuestVR** on the headset, the newest `run_<date>.txt` is your last run. The launcher's **Logs** tab shows a summary. **On PC** the launcher waits for the game and writes the log as it ends, in **Downloads\RatchetQuestVR**; the log also names your PC VR software and the controllers it bound.
 3. Attach it to a [**headset report**](https://github.com/moistman42069/RatchetAndClank-Quest-VR/issues/new?template=headset-report.yml). You can open that page in the Quest's browser, or plug the headset into a PC and copy the file from there. Or DM **@MeWhenINameMyself** on Discord.
 
 The log holds your headset's model and Android version, the game's own log, why VR stopped if it did, and the app's Android log. Tell us your headset, disc, planet, what you did, and any settings you changed. A video helps.
 
 **Most useful right now:**
 
+- **PC VR (new in 0.1.14):** any log at all, with your headset, its PC VR software and your controllers: whether the game opens in the headset, whether the buttons do what the Controls tab says, and how smooth it is.
+- **0.1.14's changes:** the refresh rate held at 90 or 120 Hz (and how smooth it is where the game cannot keep up); the left grip with Physical crouch off; the thumb on a button; walking backwards and stopping; the screens after the intro movie.
 - **0.1.13's changes:** whether an easy pull up a ledge climbs when you mean it, and only then; the left grip with Physical crouch; the whole body as the start (as Ratchet and as Clank); the shadow's fingers and head.
 - **With the US disc (NTSC-U):** buying the Heli-Pack from Big Al on Kerwan, loading a save, and any log from that disc.
 - **The Swingshot:** which way it faces, its size after swaps, any buzz that will not stop.
@@ -248,7 +307,7 @@ The log holds your headset's model and Android version, the game's own log, why 
 - If a bar in the headset says a controller is missing, tell us.
 - Anything that crashes, freezes or leaves you stuck: the log says why far more often than not.
 
-The full list of what to try is in [docs/HEADSET_CHECKLIST.md](https://github.com/moistman42069/RatchetAndClank-Quest-VR/blob/v0.1.13/docs/HEADSET_CHECKLIST.md).
+The full list of what to try is in [docs/HEADSET_CHECKLIST.md](https://github.com/moistman42069/RatchetAndClank-Quest-VR/blob/v0.1.14/docs/HEADSET_CHECKLIST.md).
 
 ## What is in it
 
@@ -293,7 +352,7 @@ In the game: pause, **Options**, **VR Options** (or **VR Options** on the title'
 
 **On a real Quest (a Quest 3):** on 0.1.2 both controllers bind, walking works, and the first level plays, at about 60 to 70 frames a second against the headset's 72 Hz. The launcher's update has worked from 0.1.2 to 0.1.3, and 0.1.4 starts after an update. Most of the game has yet to be played on one.
 
-**On PC, with the PAL disc and a simulated headset:** menus, saving and loading, vendors, weapons, wrench, ledges, swimming, cranks, turrets, Clank and Giant Clank, scenes, the hoverboard on Rilgar and Kalebo III, grind rails, Kerwan's cable, and flying the ships of Pokitaru and the fleet. The full table is in [docs/STATUS.md](https://github.com/moistman42069/RatchetAndClank-Quest-VR/blob/v0.1.13/docs/STATUS.md). A simulated headset proves that a feature runs, not how it feels: aim angles, comfort and haptics need real hands.
+**On PC, with the PAL disc and a simulated headset:** menus, saving and loading, vendors, weapons, wrench, ledges, swimming, cranks, turrets, Clank and Giant Clank, scenes, the hoverboard on Rilgar and Kalebo III, grind rails, Kerwan's cable, and flying the ships of Pokitaru and the fleet. The full table is in [docs/STATUS.md](https://github.com/moistman42069/RatchetAndClank-Quest-VR/blob/v0.1.14/docs/STATUS.md). A simulated headset proves that a feature runs, not how it feels: aim angles, comfort and haptics need real hands.
 
 **On a real Quest with the NTSC-U disc:** one tester's run on 0.1.5: the game started, the VR mod did not load (fixed in 0.1.6, checked against the disc's tables, not yet played).
 
@@ -329,4 +388,5 @@ This is free software under GPL-3.0-or-later, without any warranty. The source o
 
 | File | SHA-256 |
 | --- | --- |
-| `RatchetQuestVR-0.1.13.apk` (version code 14, 48 MB) | `01ebbad514e8eecb37bdbaf9fdbcd00a8fff292a1a033a4ea55960e9cfa62181` |
+| `RatchetQuestVR-0.1.14.apk` (version code 15, 48 MB) | `9509a874dc31327dd7f89dc430cd40fd30323a2d7556fc90d1e08bba4274f923` |
+| `RatchetQuestVR-0.1.14-windows.zip` (65 MB) | `2473a9a6edabaaa37c465e1db42273c071ba339c678da1415f8c405a15d662c6` |

@@ -1,0 +1,21 @@
+# Walking straight back (the owner's notes on 0.1.13: "when i walk backwards, ratchet slides forward a bit ... shouldnt
+# really happen when walking directly backwards"): from standing, the left stick pulled straight back for over two
+# seconds, then let go; a run forward and straight back without stopping, the stick then let back slowly; a strafe to
+# the right let go. QUEST_WALK_TRACE=1: each tick's step along his facing (ahead) and across it. What speed is left
+# after the stick is let go goes on the way he went: after the walk back "ahead" stays below 0 until he stands.
+600 y 1
+606 y 0
+3000 left_y -1
+3160 left_y 0
+3300 left_y 1
+3420 left_y -1
+3470 left_y -0.6
+3474 left_y -0.4
+3478 left_y -0.3
+3482 left_y -0.2
+3486 left_y -0.12
+3490 left_y -0.06
+3494 left_y 0
+3600 left_x 1
+3680 left_x 0
+3800 quit 0

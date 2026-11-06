@@ -1,0 +1,18 @@
+# Swingshot reach (QUEST_VR_OPTIONS="swing_anywhere 1\nswing_reach 2", QUEST_SIM_GIVE=12 QUEST_SIM_HOLD=12, at Kerwan's start, a
+# tunnel): the hand aimed out of the tunnel, past the game's 30 units: "a pull to" a surface far off, the hook there in well under a
+# second (its shot: the rope drawn all the way), the pull going faster than 27 while the way is clear, and coming down to the game's
+# own arrival. With swing_reach 0 the same aim says "nothing within the reach".
+600 y 1
+606 y 0
+3000 shot before
+3400 hand_yaw -9
+3410 hand_pitch 6
+3500 right_trigger 1
+3512 shot hook-going
+3530 shot hook-there
+3560 shot pulling
+3700 shot further
+3900 shot far-on
+4300 right_trigger 0
+4600 shot after
+4700 quit 0

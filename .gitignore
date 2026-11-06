@@ -4,3 +4,4 @@ android/.gradle/
 *.iso
 *.apk
 __pycache__/
+pc/build/

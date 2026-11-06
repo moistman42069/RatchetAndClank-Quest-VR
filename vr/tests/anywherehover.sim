@@ -1,0 +1,16 @@
+# Swingshot anywhere from a hover (QUEST_VR_OPTIONS="swing_anywhere 1", QUEST_SIM_GIVE=2,12 QUEST_SIM_HOLD=12, the Heli-Pack, at
+# Kerwan's start, a tunnel). A tester on 0.1.13: "the hookshot cancels the hover. Itd be fire if it didnt!!" Jump, hold it: state 8.
+# The right hand's zip fired from there: he stays up while the hook flies, and after it, the jump still held, state 8 again.
+600 y 1
+606 y 0
+3000 shot before
+3400 hand_pitch 40
+3440 a 1
+3445 a 0
+3452 a 1
+3500 right_trigger 1
+3520 shot hook-out
+3560 right_trigger 0
+3600 shot after
+3800 a 0
+4000 quit 0

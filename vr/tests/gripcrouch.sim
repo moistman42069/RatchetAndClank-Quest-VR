@@ -1,0 +1,13 @@
+# The left grip on foot (the owner's notes on 0.1.13: "with physical crouching off, both left grip and left trigger ...
+# crouch ... keep left grip clear ... regardless of physical crouch being on or off"): in first person the grip only
+# closes the left hand; the left trigger still crouches. QUEST_STATE_TRACE=1 logs the game's state (4 is its crouch).
+# regress.sh runs it with Physical crouch off and on.
+600 y 1
+606 y 0
+2400 left_grip 1
+2520 shot grip
+2600 left_grip 0
+2700 left_trigger 1
+2820 shot trigger
+2900 left_trigger 0
+3000 quit 0

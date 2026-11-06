@@ -1,0 +1,33 @@
+# Wall run and jump, with no hook at all (QUEST_VR_OPTIONS="wall_moves 1", at Kerwan's start, a tunnel). He walks to the side wall and
+# jumps with the stick along it: [vr-wall] "a wall run". The stick STILL held along the wall, the head turned to look across and
+# back, the jump button: "a wall jump", and "came down ... degrees off its way" is small though the stick never let go: the
+# owner's report of Halo CE was of leaps turned back along the wall by a stick held so. Then a look straight at the wall: straight off it.
+600 y 1
+606 y 0
+3000 shot before
+3100 head_yaw 75
+3110 left_y 1
+3300 left_y 0
+3310 head_yaw 0
+3320 left_y 1
+3330 a 1
+3340 a 0
+3400 shot running
+3460 head_yaw 140
+3470 a 1
+3476 a 0
+3490 shot leapt
+3800 left_y 0
+3820 head_yaw 75
+3830 left_y 1
+3960 left_y 0
+3970 head_yaw 0
+3980 left_y 1
+3990 a 1
+4000 a 0
+4050 left_y 0
+4060 head_yaw 75
+4066 a 1
+4072 a 0
+4090 shot off-straight
+4400 quit 0

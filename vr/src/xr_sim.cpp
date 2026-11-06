@@ -403,7 +403,20 @@ private:
 
 }  // namespace
 
-Headset* make_headset(void (*log)(int, const char*)) { return new Sim(log); }
+#if defined(_WIN32)
+Headset* make_openxr_headset(void (*log)(int, const char*));
+#endif
+
+// A test (QUEST_SIM_SCRIPT, or QUEST_SIM=1 to stand still) gets this headset; on Windows a player's game gets
+// the real one through OpenXR (xr_openxr.cpp, the PC release's).
+Headset* make_headset(void (*log)(int, const char*)) {
+#if defined(_WIN32)
+    if (std::getenv("QUEST_SIM_SCRIPT") == nullptr && std::getenv("QUEST_SIM") == nullptr) {
+        return make_openxr_headset(log);
+    }
+#endif
+    return new Sim(log);
+}
 
 }  // namespace quest
 

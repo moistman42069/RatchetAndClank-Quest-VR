@@ -1,0 +1,44 @@
+# The thumb with Fingers tracked (the owner's video of 0.1.13: "the thumb angle is a bit goofy/bent"): an empty hand
+# before the eyes, the thumb off the controller then on it, seen from the head and from the side: the right hand open
+# (the wrench put away first), then the left in a fist (its grip is free with Physical crouch on) beside it.
+600 y 1
+606 y 0
+2900 right_grip 1
+2960 right_grip 0
+3100 rh_x -0.17
+3101 rh_y 0.22
+3102 rh_z -0.12
+3103 lh_x 0.4
+3200 shot open-off
+3210 right_thumb_touch 1
+3260 shot open-on
+3270 right_thumb_touch 0
+3280 view_free 1
+3281 view_x 0.36
+3282 view_y -0.1
+3283 view_z -0.44
+3284 view_yaw 90
+3340 shot side-open-off
+3350 right_thumb_touch 1
+3400 shot side-open-on
+3410 right_thumb_touch 0
+3411 view_free 0
+3412 rh_x 0.3
+3413 lh_x 0.17
+3414 lh_y 0.22
+3415 lh_z -0.12
+3416 left_grip 1
+3417 left_first_touch 1
+3480 shot fist-off
+3490 left_thumb_touch 1
+3540 shot fist-on
+3550 left_thumb_touch 0
+3551 view_free 1
+3552 view_x -0.36
+3553 view_y -0.1
+3554 view_z -0.44
+3555 view_yaw -90
+3610 shot side-fist-off
+3620 left_thumb_touch 1
+3670 shot side-fist-on
+3680 quit 0

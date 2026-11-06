@@ -1,0 +1,19 @@
+# The first screens (the owner's video of 0.1.13: "frame warping in the first screen of the game, like a credits area"):
+# after the intro movie (Y skips it) the copyright lines, then the title's space scene with its logo. Each is seen with
+# the head ahead, turned 30 degrees left and moved 20 cm right: what stands in the room stays where it is.
+500 y 1
+506 y 0
+560 shot c-ahead
+600 head_yaw 30
+620 shot c-left
+640 head_yaw 0
+640 head_x 0.2
+660 shot c-right
+680 head_x 0
+900 shot t-ahead
+910 head_yaw 30
+930 shot t-left
+940 head_yaw 0
+940 head_x 0.2
+960 shot t-right
+1000 quit 0

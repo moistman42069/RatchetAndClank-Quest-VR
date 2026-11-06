@@ -1,0 +1,17 @@
+# Swingshot reach with a swing (QUEST_VR_OPTIONS="swing_anywhere 1;swing_reach 2", QUEST_SIM_GIVE=15,12 QUEST_SIM_HOLD=15 QUEST_SIM_LEFT=12, at
+# Kerwan's start, a tunnel): the left hand aimed out of the far mouth at a building: "a swing from" it, hundreds of units off. The rope must
+# draw, his swing stay sane (no flight off at speed, no state stuck), and a let go leave him a plain fall.
+600 y 1
+606 y 0
+3000 shot before
+3300 hand_yaw -9
+3310 hand_pitch 6
+3400 left_trigger 1
+3430 shot up-1
+3500 shot up-2
+3700 shot up-3
+4000 shot up-4
+4300 left_trigger 0
+4330 shot let-go
+4600 shot after
+4700 quit 0

@@ -7504,6 +7504,96 @@ index 414d1251cf2575cd83be2af79135b8014f39c974..c0e3513584bb09733c0fd7f71ea79e5c
  };
  
  const openrac_script_binding* openrac_game_script_binding(void) {
+diff --git a/port/platform/window.cpp b/port/platform/window.cpp
+index 6ba5daabfd52164ba5119744efb1d1656c38bd50..eeae7eb6c34a796682339d7623821e6e5e4fb980 100644
+--- a/port/platform/window.cpp
++++ b/port/platform/window.cpp
+@@ -13,6 +13,7 @@
+ #include <optional>
+ #include <string>
+ #include <string_view>
++#include <utility>
+ #include <vector>
+ 
+ #include <SDL3/SDL.h>
+@@ -527,12 +528,21 @@ std::unique_ptr<Window> Window::open(const WindowConfig& asked, std::string& err
+ #endif
+     }
+     const bool es = config.gl_api == GlApi::ES;
+-    const int major = es ? kGlesMajor : kGlMajor;
+-    const int minor = es ? kGlesMinor : kGlMinor;
++    int major = es ? kGlesMajor : kGlMajor;
++    int minor = es ? kGlesMinor : kGlMinor;
+     const char* api_name = es ? "OpenGL ES" : "OpenGL";
+-    // Context attributes must be set before the window exists. The same request everywhere: 4.1
+-    // core is the most macOS gives, and Mesa and Windows' drivers give a core context of that
+-    // version or a later one that runs it.
++    // What is asked for, in order. The game needs 4.1 core, the most macOS gives, and Mesa gives a
++    // core context of that version or a later one that runs it. Windows' drivers can give exactly
++    // what is asked for (NVIDIA's 4.1 for 4.1), and a PC VR runtime can want more of the context
++    // the game hands it (SteamVR says 4.3): there the newest first, 4.1 as ever if none is there.
++    std::vector<std::pair<int, int>> versions;
++#if defined(_WIN32)
++    if (!es) {
++        versions = {{4, 6}, {4, 3}};
++    }
++#endif
++    versions.emplace_back(major, minor);
++    // Context attributes must be set before the window exists.
+     const auto set_attributes = [&] {
+         SDL_GL_ResetAttributes();
+         SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, major);
+@@ -598,23 +608,36 @@ std::unique_ptr<Window> Window::open(const WindowConfig& asked, std::string& err
+     // accelerated pixel formats); where the system cannot promise that, the context is made
+     // without the condition and its strings say below what it is.
+     SDL_GLContext context = nullptr;
+-    for (const int accelerated : {1, -1}) {
+-        if (accelerated > 0) {
+-            SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, 1);
+-        } else {
+-            // Back to "either": SDL has no call that clears one attribute.
+-            set_attributes();
+-        }
+-        window->m_window = SDL_CreateWindow(config.title.c_str(), config.width, config.height, flags);
++    for (const auto& [asked_major, asked_minor] : versions) {
++        major = asked_major;
++        minor = asked_minor;
++        set_attributes();
+         if (window->m_window != nullptr) {
+-            context = SDL_GL_CreateContext(window->m_window);
+-            if (context != nullptr) {
+-                break;
+-            }
++            // The last request's, kept for the message box of a last request that failed.
++            SDL_DestroyWindow(window->m_window);
++            window->m_window = nullptr;
++        }
++        for (const int accelerated : {1, -1}) {
+             if (accelerated > 0) {
+-                SDL_DestroyWindow(window->m_window);
+-                window->m_window = nullptr;
++                SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, 1);
++            } else {
++                // Back to "either": SDL has no call that clears one attribute.
++                set_attributes();
+             }
++            window->m_window = SDL_CreateWindow(config.title.c_str(), config.width, config.height, flags);
++            if (window->m_window != nullptr) {
++                context = SDL_GL_CreateContext(window->m_window);
++                if (context != nullptr) {
++                    break;
++                }
++                if (accelerated > 0) {
++                    SDL_DestroyWindow(window->m_window);
++                    window->m_window = nullptr;
++                }
++            }
++        }
++        if (context != nullptr) {
++            break;
+         }
+     }
+     if (window->m_window == nullptr) {
 diff --git a/port/renderer/direct.cpp b/port/renderer/direct.cpp
 index 5199b3127edd1dcf8e3cdc84b2ff891e62ba46bd..ca9baad75e96f9033139ce01f783eec4245f16d2 100644
 --- a/port/renderer/direct.cpp

@@ -1,0 +1,19 @@
+# The Swingshot in the hand, as the controller's own tilt has it (QUEST_SIM_GIVE=12 QUEST_SIM_HOLD=12, with QUEST_SIM_GRIP_TILT=50,
+# the Quest's grip far above its aim ray, and QUEST_SIM_LEFT=12): the housing lies along the way the hook flies, its nose ahead of
+# the fist, its hook on its nose, with the glove under it. A tester's 0.1.13 videos had its back to the eyes and it stood up off
+# the wrist. Shots at the hand held out, looked at from beside, and pointed up.
+600 y 1
+606 y 0
+3000 shot ahead
+3010 view_free 1
+3011 view_x 0.9
+3012 view_y 0.2
+3013 view_z -0.4
+3014 view_yaw 70
+3030 shot beside
+3040 view_free 0
+3050 hand_pitch 35
+3070 shot up
+3080 hand_pitch -25
+3100 shot down
+3110 quit 0

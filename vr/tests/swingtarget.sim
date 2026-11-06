@@ -1,0 +1,12 @@
+# Swingshot reach at the game's own targets, Swingshot anywhere off (QUEST_VR_OPTIONS="swing_reach 1", QUEST_SIM_GIVE=12
+# QUEST_SIM_HOLD=12, QUEST_SIM_NEAR=758 QUEST_SIM_NEAR_AT=45,6,0: 45 units from Kerwan's first pull target, past the game's 30, facing
+# it, in the air, for there is no ground there). The trigger held from before he falls: with swing_reach 1 hero state 0x24 then 0x25,
+# the pull; with swing_reach 0, as the game has it, he falls.
+600 y 1
+606 y 0
+2300 right_trigger 1
+2340 shot before
+2400 shot hook
+2600 shot pulling
+2900 right_trigger 0
+3000 quit 0
