@@ -237,7 +237,7 @@ def package(ver: str) -> Path:
     texts = folder / "texts"
     texts.mkdir()
     assets = ROOT / "android/app/src/main/assets"
-    for name in ("whats_new.txt", "controls.txt"):
+    for name in ("whats_new.txt", "controls.txt", "menus.txt"):
         shutil.copy2(assets / name, texts / name)
     shutil.copy2(PC / "launcher/texts/pc_controls.txt", texts / "pc_controls.txt")
     shutil.copy2(ROOT / "CREDITS.txt", texts / "credits.txt")

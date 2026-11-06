@@ -271,7 +271,7 @@ final class PcSelfTest {
         check(paths.python().isFile(), "the release has the tools' Python");
         check(new File(paths.root(), "tools/extractor.py").isFile() && new File(paths.root(), "editor/extract.py").isFile(),
             "the release has the set-up's tools");
-        for (String name : new String[] {"whats_new.txt", "controls.txt", "pc_controls.txt", "credits.txt",
+        for (String name : new String[] {"whats_new.txt", "controls.txt", "menus.txt", "pc_controls.txt", "credits.txt",
                 "third_party_notices.txt"}) {
             check(new File(paths.texts(), name).isFile(), "the release has " + name);
         }

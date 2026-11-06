@@ -634,6 +634,14 @@ public class LauncherTest {
             button(activity, tabs[i]).performClick();
             shot(activity, String.format("0%d-%s", i + 2, tabs[i].toLowerCase()));
         }
+        button(activity, "VR").performClick();
+        assertTrue("the VR tab says what is only in the game", allText(activity).contains("Looking for Moves"));
+        button(activity, "Controls").performClick();
+        String controls = allText(activity);
+        for (String words : new String[] {"Menus, and where every option is", "Hold your hand on the bottom row",
+                                          "Wall run and jump", "Swingshot reach", "Wrench comes back", "Touch controllers"}) {
+            assertTrue("the Controls tab shows " + words, controls.contains(words));
+        }
         button(activity, "Game").performClick();
         String game = allText(activity);
         for (String words : new String[] {"Skip any movie", "Game volume", "Cheats", "OpenRAC's mods"}) {

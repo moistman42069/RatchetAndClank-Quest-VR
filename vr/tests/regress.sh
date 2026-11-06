@@ -74,7 +74,7 @@ run emptyhand-down emptyhand 3 'QUEST_VR_OPTIONS=empty_hand_angle -65' KEEP=1
 run emptyhand-old emptyhand 3 'QUEST_VR_OPTIONS=empty_hand_angle 0'
 run emptyhand-zero emptyhand 3 'QUEST_VR_OPTIONS=empty_hand_angle 0;empty_hand_chosen 1'
 run emptyhand-oldchosen emptyhand 3 'QUEST_VR_OPTIONS=empty_hand_angle -30'
-# 0.1.14: the thumb on and off the controller, from the head and the side (KEEP=1: look at it), at the start and at 0.
+# 0.1.15: the thumb on and off the controller, from around each hand and before the eyes (KEEP=1: look at it), at the start and at 0.
 run thumb thumb 3 KEEP=1
 run thumb-zero thumb 3 'QUEST_VR_OPTIONS=empty_hand_angle 0;empty_hand_chosen 1' KEEP=1
 # 0.1.14: walking straight back does not slide him ahead as the stick is let go ("[vr-move] the stick let go", ahead
@@ -157,6 +157,8 @@ run anywhere-novalis anywhere 1 $G=12 $H=12 QUEST_STATE_TRACE=1 'QUEST_VR_OPTION
 run anywhere-stall anywhere 1 $G=12 $H=12 QUEST_STATE_TRACE=1 QUEST_ANYWHERE_ANY_LEVEL=1 'QUEST_VR_OPTIONS=swing_anywhere 1'
 run swing-right-anywhere swing 3 $G=12 $H=12 $N=758 $A=10,1,180 QUEST_STATE_TRACE=1 'QUEST_VR_OPTIONS=swing_anywhere 1'
 run anywherepage anywherepage 1 KEEP=1
+# 0.1.15: the way to Moves by the hand, and a page of eight rows moved on and back by the beam (KEEP=1: look at it).
+run menuscroll menuscroll 1 KEEP=1
 run throw throw 1 $G=10,17,20,25 $H=10
 run throw-doom throw 1 $G=20 $H=20
 run glovehold glovehold 1 $G=10 $H=10

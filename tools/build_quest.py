@@ -264,7 +264,7 @@ def verify_apk(apk: Path) -> None:
         "openrac-rac1-pal", "openrac-rac1-ntsc", "openrac-rac1-pal-cli", "openrac-rac1-ntsc-cli",
         "openrac-python", "python3.13", "SDL3", "c++_shared", "openxr_loader", "quest_vr", *BUNDLED_MODS.values())]
     wanted += [f"assets/{name}" for name in (
-        "openrac.zip", "openrac-mod.json", "credits.txt", "controls.txt", "whats_new.txt", "third_party_notices.txt")]
+        "openrac.zip", "openrac-mod.json", "credits.txt", "controls.txt", "menus.txt", "whats_new.txt", "third_party_notices.txt")]
     wanted += [f"assets/mods/{mod_id}/openrac-mod.json" for mod_id in BUNDLED_MODS]
     missing = [name for name in wanted if name not in names]
     if missing:

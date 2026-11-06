@@ -8599,31 +8599,50 @@ Vec3 made_joint(gaddr body, int joint) {
     return read_vec(skeleton + 0x40u * static_cast<uint32_t>(joint) + 0x30u) * -1.0f;
 }
 
-// The thumb (0.1.14; in 0.1.13 both its joints curled into the palm alike, which folded it under the hand on a button
-// and hooked its tip: the owner's video). As made it stands out nearly square to the fingers (Ratchet's: 70 degrees from
-// them, in the plane of the hand's top and its fingers). It comes in toward them in that plane, a little when lifted
-// (still a thumbs-up over a fist), most of the way on a button or the stick, along the hand's top as it lies on the
-// controller; and curls toward the palm, the tip half as much as the root.
-constexpr float kThumbInLifted = 0.35f, kThumbInOn = 1.0f;      // radians toward the fingers
-constexpr float kThumbFlexLifted = 0.12f, kThumbFlexOn = 0.50f;  // radians toward the palm, at the root
+// The thumb. As made it stands out nearly square to the fingers (Ratchet's: 70 degrees from them, flat in the plane of
+// the hand's top and its fingers). It lies by the fingers' closing and by whether the player's thumb is on the
+// controller: comes in toward the fingers in that plane, and curls toward the palm.
+//
+// 0.1.14 turned it the wrong way, away from the fingers toward the wrist (the owner's video of 2026-11-06): a joint's quat
+// turns what hangs from it by the quat's conjugate (the game's matrices take row vectors; the fingers' and the game's own
+// fist's signs say the same), so a turn worked out with rotate() goes to the joint conjugated, and the last turn wanted
+// comes first in the product.
+struct ThumbPose {
+    float lifted, on;  // radians, the player's thumb off the controller and on it
+};
+struct ThumbPoses {
+    ThumbPose in_open, in_fist;      // toward the fingers
+    ThumbPose flex_open, flex_fist;  // the root, toward the palm
+    ThumbPose tip_open, tip_fist;    // the tip, on top of the root's
+};
+constexpr ThumbPoses kThumb = {{0.40f, 0.70f}, {0.10f, 0.85f}, {0.25f, 0.45f}, {0.05f, 0.90f}, {0.20f, 0.35f}, {0.00f, 0.70f}};
+constexpr float kThumbFlexMost = 1.2f;
 
 struct ThumbLay {
-    Vec3 along;          // the root bone, as made, turned in (the model's axes: x up, y along the fingers, z the palm's side)
-    Quat in;             // that turn, about the palm's normal
+    Vec3 along;          // the root bone, as made, turned in (the model's axes: x up, y along the fingers, -z out of the palm)
+    Quat in;             // that turn, as the joint takes it
     float flex = 0.0f;   // radians at the root
+    float tip = 0.0f;    // radians at the tip
 };
 
-// `on`: 0 lifted off the controller, 1 on it.
-ThumbLay thumb_lay(gaddr body, const BodyArms& shape, int side, float on) {
+ThumbLay thumb_lay(gaddr body, const BodyArms& shape, int side) {
+    const FingerFeel& feel = s_fingers[side];
+    const float on = std::clamp(feel.thumb / kThumbDown, 0.0f, 1.0f);
+    const float closed = std::clamp((feel.rest - kFingerRelaxed) / (1.0f - kFingerRelaxed), 0.0f, 1.0f);
+    const auto now = [&](ThumbPose open, ThumbPose fist) {
+        const float a = open.lifted + (open.on - open.lifted) * on;
+        const float b = fist.lifted + (fist.on - fist.lifted) * on;
+        return a + (b - a) * closed;
+    };
     const Vec3 d = made_joint(body, shape.thumb[side] + 1) - made_joint(body, shape.thumb[side]);
     // The fingers run along -y in the right hand's model and +y in the left's, mirrored; the thumb comes in toward them.
     const float fingers_y = made_joint(body, shape.fingers[side]).y - made_joint(body, shape.palm[side]).y;
-    const float in = (kThumbInLifted + (kThumbInOn - kThumbInLifted) * on) * (fingers_y < 0.0f ? -1.0f : 1.0f)
-                     * (d.x < 0.0f ? -1.0f : 1.0f);
+    const float in = now(kThumb.in_open, kThumb.in_fist) * (fingers_y < 0.0f ? -1.0f : 1.0f) * (d.x < 0.0f ? -1.0f : 1.0f);
     ThumbLay lay;
     lay.along = {d.x * std::cos(in) - d.y * std::sin(in), d.x * std::sin(in) + d.y * std::cos(in), 0.0f};
-    lay.in = Quat{0.0f, 0.0f, std::sin(in * 0.5f), std::cos(in * 0.5f)};
-    lay.flex = kThumbFlexLifted + (kThumbFlexOn - kThumbFlexLifted) * on;
+    lay.in = Quat{0.0f, 0.0f, -std::sin(in * 0.5f), std::cos(in * 0.5f)};
+    lay.flex = now(kThumb.flex_open, kThumb.flex_fist);
+    lay.tip = now(kThumb.tip_open, kThumb.tip_fist);
     return lay;
 }
 
@@ -8658,7 +8677,7 @@ FingerLine finger_line(gaddr body, const BodyArms& shape, int side, int finger, 
     line.toward = palm_normal;
     if (thumb) {
         // Tried as it lies now (thumb_lay): come in toward the fingers.
-        const ThumbLay lay = thumb_lay(body, shape, side, std::clamp(s_fingers[side].thumb / kThumbDown, 0.0f, 1.0f));
+        const ThumbLay lay = thumb_lay(body, shape, side);
         const float l = std::max(std::sqrt(lay.along.x * lay.along.x + lay.along.y * lay.along.y), 1.0f);
         line.along = hand.up * (lay.along.x / l) + hand.forward * (std::fabs(lay.along.y) / l);
         line.bend = kThumbBend;
@@ -8773,17 +8792,17 @@ void tracked_fingers(openrac_moby_arm& arm, const BodyArms& shape, int side, con
         }
     }
     // The thumb as it lies (thumb_lay): the root turned in toward the fingers, then curled toward the palm about the line
-    // square to it in the hand's plane; the tip, which turns with the root, curled half as much. What the world asks
+    // square to it in the hand's plane; the tip, which turns with the root, curled on from there. What the world asks
     // (feel.offset) curls both on or opens them, as the fingers.
     const Vec3 d = made_joint(body, shape.thumb[side] + 1) - made_joint(body, shape.thumb[side]);
     const float l = std::max(std::sqrt(d.x * d.x + d.y * d.y), 1.0f);
-    const ThumbLay lay = thumb_lay(body, shape, side, std::clamp(feel.thumb / kThumbDown, 0.0f, 1.0f));
+    const ThumbLay lay = thumb_lay(body, shape, side);
     const float world = kThumbBend * feel.offset[fingers];
-    const float root = std::clamp(lay.flex + world, kThumbBend * kFingerBackMost, kThumbBend);
-    const float tip = std::clamp(0.5f * lay.flex + world, kThumbBend * kFingerBackMost, kThumbBend);
+    const float root = std::clamp(lay.flex + world, kThumbBend * kFingerBackMost, kThumbFlexMost);
+    const float tip = std::clamp(lay.tip + world, kThumbBend * kFingerBackMost, kThumbFlexMost);
     const float s = std::sin(0.5f * root);
     const Quat curl{lay.along.y / l * s, -lay.along.x / l * s, 0.0f, std::cos(0.5f * root)};
-    add_curl(arm, shape.thumb[side], curl * lay.in, true);
+    add_curl(arm, shape.thumb[side], lay.in * curl, true);
     bend_joint(shape.thumb[side] + 1, Vec3{d.y / l, -d.x / l, 0.0f}, 0.5f * tip);
 }
 
@@ -14822,4 +14841,4 @@ void load(openrac::Mod& mod) {
 
 }  // namespace
 
-OPENRAC_MOD_CPP("quest-vr", "0.1.14", load)
+OPENRAC_MOD_CPP("quest-vr", "0.1.15", load)

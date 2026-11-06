@@ -1,0 +1,52 @@
+Options are in two places: these tabs, before you play, and the pause menu, in the game.
+Many are only in the game, and that includes all the newest ones.
+
+THE WAY TO THE NEW MOVES (Wall run and jump, Swingshot reach, the wrench's distance)
+1. In a level, press Y to pause. Pick Options. Pick VR Options.
+2. Hold your hand on the bottom row until VR Controls shows at the bottom. Pick it.
+3. Hold your hand on the bottom row until More controls shows at the bottom. Pick it.
+4. Pick Moves, the first row.
+
+IN A MENU
+
+POINT         Point your hand at a row, and that row lights up
+PICK, CHANGE  Pull the trigger or press A
+GO BACK       B
+MORE ROWS     A page shows eight rows at a time, and nothing on it says there are more.
+              Hold your hand on the bottom row and the list moves on, a row at a time. Hold
+              it on the top row to move back up. The sticks do not move the list while your
+              hand points at the page
+LEFT HAND     Pull its trigger to point with it, and again to pick. The right trigger brings
+              the right hand back. Menu pointer (More controls) can keep it to one hand
+
+WHERE EVERY OPTION IS IN THE GAME (Y, then Options, then:)
+
+VR OPTIONS    Helmet, Boots, Camera flip, Direction, Player body, Akimbo, Play position, View,
+              Cutscenes. Further down, in a level only: Cheats, VR Body, VR Controls
+
+VR HANDS      Gun angle, Gun size, Hand size, Empty hand angle, Items match hand size, Mirror
+              left-hand guns, Left gun ammo, HUD size, HUD height, Fingers, Fingers bend around
+              the world, and the angle of the weapon you last held
+
+VR OPTIONS, CHEATS
+              Invincible, Infinite ammo, Infinite bolts, Big heads, Trippy contrails, Give all
+              weapons, Give all gadgets, Unlock all planets
+
+VR OPTIONS, VR BODY
+              Player body, Body parts, Tail, Arms bend to your hands, Legs bend, Body turns with
+              your head, Body height, Body forward, Arm length, View height
+
+VR OPTIONS, VR CONTROLS
+              Turning, Snap angle, Smooth turn speed, Physical crouch, Crouch when head drops,
+              Vibration, Aim with the right hand, Grab ledges with your hands, Swim with your
+              arms, Swing the wrench for real, Throw by hand. Last: More controls
+
+VR OPTIONS, VR CONTROLS, MORE CONTROLS
+              Moves, Ledge shimmy, Hide black bars, Menu pointer, Arm moves, Two-handed weapons,
+              World collision, World vibration, Walk around your room, Sparkles on the bolts
+
+VR OPTIONS, VR CONTROLS, MORE CONTROLS, MOVES
+              Swingshot anywhere, Wall run and jump, Swingshot reach (how far the hook goes),
+              Wrench throw distance, Wrench comes back
+
+The game's own Save, Load, Sound, Video, Camera and Subtitles are in the Options list too.

@@ -156,8 +156,12 @@ it worked (the log is in Download/RatchetQuestVR). PC-proven features are in STA
     still take the grip.
   - **Empty hand angle 65 down:** after the update from 0.1.13, with the row never set, VR Hands says 65 down
     (`[vr-hand] Empty hand angle: 0 was the start before 0.1.14, 65 down is now` once). An angle you had set stays.
-  - **The thumb:** rest it on A or B, then on the stick, then lift it: on a button it lies along the top of the hand,
-    not folded under it; lifted it stands up a little. Say whether it now looks right, in the video if you can.
+  - **Finding the options (0.1.15):** with no help, try the Controls tab's Menus section: in a level, Y, Options, VR Options, hold on the bottom row until VR Controls shows, the same for More controls, then Moves. Say if any step is not as it says.
+  - **The thumb (0.1.15, after 0.1.14 turned it back toward the wrist):** hold an empty hand up and look at it from the
+    palm and the back. Lifted off the controller it rests open beside the hand, pointing up toward the fingers' ends, never
+    back toward the wrist. On A or B, the stick or the thumb rest it comes in along the fingers, and it moves as yours does.
+    The left hand closed: lifted is a thumbs-up, on the controller it folds over the fingers. Say whether it looks right,
+    in a video if you can.
   - **Walking backwards:** pull the stick straight back for a few steps and let go: he stops where he is, with no
     slide forward (`[vr-move] the stick let go: what speed is left goes on at yaw ...`). The same walking aside. Running
     forward and letting go: as before.

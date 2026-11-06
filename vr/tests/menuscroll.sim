@@ -1,0 +1,50 @@
+# The way to Moves by the hand, as a player goes (the right hand is there, so the sticks do not move the cursor, tried at
+# the end): pause, Options, VR Options. A page shows eight rows and nothing says there are more: the beam held on the
+# bottom row moves the window on, to Cheats, VR Body and VR Controls. The trigger opens VR Controls; held at the bottom
+# again, to More controls; the trigger opens it; its first row is Moves; the trigger opens it. B goes back to More
+# controls; the beam at the bottom moves the window down and at the top moves it back up. The [vr-pointer] lines say the
+# row and the window's first item. The steps the README and the launcher's Controls tab give.
+600 y 1
+606 y 0
+3000 y 1
+3006 y 0
+3120 hand_pitch 0
+3140 hand_pitch 28
+3200 hand_pitch -5.4
+3240 right_trigger 1
+3246 right_trigger 0
+3340 hand_pitch 10.4
+3400 right_trigger 1
+3406 right_trigger 0
+3500 shot vr-top
+3520 hand_pitch 1.5
+3800 shot vr-bottom
+3820 right_trigger 1
+3826 right_trigger 0
+3900 shot controls-top
+4300 shot controls-bottom
+4320 right_trigger 1
+4326 right_trigger 0
+4400 hand_pitch 21
+4480 shot more-top
+4500 right_trigger 1
+4506 right_trigger 0
+4600 shot moves
+4620 b 1
+4626 b 0
+4700 shot more-back
+4720 hand_pitch 1.5
+5000 shot more-bottom
+5020 hand_pitch 21
+5300 shot more-up
+5320 hand_pitch 6
+5360 left_y -1
+5372 left_y 0
+5400 left_y -1
+5412 left_y 0
+5440 right_y -1
+5452 right_y 0
+5480 right_y -1
+5492 right_y 0
+5540 shot sticks
+5600 quit 0

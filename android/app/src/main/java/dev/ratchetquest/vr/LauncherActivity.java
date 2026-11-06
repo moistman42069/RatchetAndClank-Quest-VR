@@ -250,7 +250,7 @@ public final class LauncherActivity extends Activity {
         switch (index) {
             case 0: showPlay(); break;
             case 1: showChoices(Config.GRAPHICS); break;
-            case 2: showChoices(Config.VR); break;
+            case 2: showInGameOptions(); showChoices(Config.VR); break;
             case 3: showGame(); break;
             case 4: showControls(); break;
             case 5: showLogs(); break;
@@ -569,7 +569,7 @@ public final class LauncherActivity extends Activity {
         showChoices(Config.GAME);
         LinearLayout cheats = card();
         cheats.addView(text("Cheats", 16, Artwork.INK, true));
-        cheats.addView(text("In the game: pause, VR Options, Cheats. Invincible, infinite ammo, infinite bolts, every "
+        cheats.addView(text("In the game: pause, Options, VR Options, then Cheats, further down its list. Invincible, infinite ammo, infinite bolts, every "
             + "weapon, every gadget, every planet, and the game's own big heads and trippy contrails, without beating "
             + "the game first. All off until you turn them on, and on until you turn them off; a save keeps what they "
             + "gave you.", 13, Artwork.MUTED, false));
@@ -729,7 +729,20 @@ public final class LauncherActivity extends Activity {
         return field;
     }
 
+    /** The VR tab's first card: what is not on it (a player could not find the Moves page here, 0.1.15). */
+    private void showInGameOptions() {
+        LinearLayout card = card();
+        card.addView(text("Looking for Moves, VR Hands, VR Body or Cheats?", 16, Artwork.INK, true));
+        card.addView(text("They are in the game, not here. In a level, press Y, then Options, then VR Options. The "
+            + "Controls tab says how the menus work and where every option is.", 13, Artwork.MUTED, false));
+        page.addView(card);
+    }
+
     private void showControls() {
+        LinearLayout menus = card();
+        menus.addView(text("Menus, and where every option is", 18, Artwork.ORANGE, true));
+        menus.addView(text(readAsset("menus.txt"), 15, Artwork.INK, false));
+        page.addView(menus);
         LinearLayout card = card();
         card.addView(text("Touch controllers", 18, Artwork.ORANGE, true));
         card.addView(text(readAsset("controls.txt"), 15, Artwork.INK, false));

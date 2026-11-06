@@ -292,7 +292,7 @@ public final class PcLauncher {
         switch (index) {
             case 0: showPlay(); break;
             case 1: showChoices(Options.GRAPHICS); break;
-            case 2: showChoices(Options.VR); break;
+            case 2: showInGameOptions(); showChoices(Options.VR); break;
             case 3: showGame(); break;
             case 4: showControls(); break;
             case 5: showLogs(); break;
@@ -666,7 +666,7 @@ public final class PcLauncher {
         showChoices(Options.GAME);
         Card cheats = card();
         cheats.add(text("Cheats", 16, PcArtwork.INK, true));
-        cheats.add(text("In the game: pause, VR Options, Cheats. Invincible, infinite ammo, infinite bolts, every "
+        cheats.add(text("In the game: pause, Options, VR Options, then Cheats, further down its list. Invincible, infinite ammo, infinite bolts, every "
             + "weapon, every gadget, every planet, and the game's own big heads and trippy contrails, without beating "
             + "the game first. All off until you turn them on, and on until you turn them off; a save keeps what they "
             + "gave you.", 13, PcArtwork.MUTED, false));
@@ -804,7 +804,20 @@ public final class PcLauncher {
 
     // ---- Controls, Logs, Credits ----
 
+    /** The VR tab's first card: what is not on it (a player could not find the Moves page here, 0.1.15). */
+    private void showInGameOptions() {
+        Card card = card();
+        card.add(text("Looking for Moves, VR Hands, VR Body or Cheats?", 16, PcArtwork.INK, true));
+        card.add(text("They are in the game, not here. In a level, press Y, then Options, then VR Options. The "
+            + "Controls tab says how the menus work and where every option is.", 13, PcArtwork.MUTED, false));
+        page.add(card);
+    }
+
     private void showControls() {
+        Card menus = card();
+        menus.add(text("Menus, and where every option is", 18, PcArtwork.ORANGE, true));
+        menus.add(text(readText("menus.txt"), 15, PcArtwork.INK, false));
+        page.add(menus);
         Card card = card();
         card.add(text("Touch controllers", 18, PcArtwork.ORANGE, true));
         card.add(text(readText("controls.txt"), 15, PcArtwork.INK, false));

@@ -1,3 +1,22 @@
+FIXED THAT DARN THUMB!
+
+    Sorry about that one. 0.1.14 turned your thumb the wrong way, back toward your wrist, and it got out because
+    we did not test it thoroughly enough before the release. Our apologies for the hiccup.
+
+    It now moves like a thumb. Lifted off the controller, it rests open beside your hand. On a button, the stick
+    or the thumb rest, it comes in along your fingers. Close your hand and a lifted thumb is a thumbs-up, and a
+    thumb on the controller folds over your fingers. Both hands, on Quest and on PC.
+
+    We looked at it on a PC from all around each hand, with a simulated headset. Tell us how it looks in yours.
+
+CAN'T FIND THE NEW OPTIONS?
+
+    They are in the game, not in this launcher. In a level, press Y, then Options, VR Options, VR Controls, More
+    controls, Moves. A page shows eight rows at a time and nothing says there are more: hold your hand on the
+    bottom row and the list moves on. The Controls tab now has a Menus section with where every option is.
+
+What 0.1.14 brought, in case you missed it:
+
 1.  Now on PC VR too. The release has a Windows download beside this APK: the same launcher, options and game,
     as RatchetClankVR.exe, for SteamVR, Meta Horizon Link, Virtual Desktop, Pico Connect, Windows Mixed
     Reality and other PC VR software. Touch, Index, Vive, Pico, WMR and Cosmos controllers are known by name;
@@ -38,11 +57,8 @@
 9.  Empty hand angle starts at 65 down. If yours was at the old start, 0, it moves to 65 down once; an angle
     you set yourself stays.
 
-10. The thumb lies along the controller on a button or the stick, instead of folding under the hand with its
-    tip hooked.
-
-11. Walking backwards, Ratchet no longer slides forward when you let go of the stick. Walking aside, he no
+10. Walking backwards, Ratchet no longer slides forward when you let go of the stick. Walking aside, he no
     longer slides ahead either.
 
-12. No warped picture at the start: the copyright lines after the intro movie, and the save select's picture
+11. No warped picture at the start: the copyright lines after the intro movie, and the save select's picture
     as a level's first scene begins, are no longer held in front of you as you move your head.
