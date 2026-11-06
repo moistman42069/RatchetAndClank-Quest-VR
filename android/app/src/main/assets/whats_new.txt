@@ -9,11 +9,12 @@ FIXED THAT DARN THUMB!
 
     We looked at it on a PC from all around each hand, with a simulated headset. Tell us how it looks in yours.
 
-CAN'T FIND THE NEW OPTIONS?
+CAN'T FIND THE NEW OPTIONS? LONG MENUS NOW TELL YOU THERE IS MORE.
 
     They are in the game, not in this launcher. In a level, press Y, then Options, VR Options, VR Controls, More
-    controls, Moves. A page shows eight rows at a time and nothing says there are more: hold your hand on the
-    bottom row and the list moves on. The Controls tab now has a Menus section with where every option is.
+    controls, Moves. A page shows eight rows at a time, and the box under the list now says where the rest are:
+    More below, More up/down or More above. Hold your hand on the bottom row and the list moves on, on the top
+    row and it moves back. The Controls tab has a Menus section with where every option is.
 
 What 0.1.14 brought, in case you missed it:
 

@@ -12,7 +12,8 @@ IN A MENU
 POINT         Point your hand at a row, and that row lights up
 PICK, CHANGE  Pull the trigger or press A
 GO BACK       B
-MORE ROWS     A page shows eight rows at a time, and nothing on it says there are more.
+MORE ROWS     A page shows eight rows at a time. The box under the list says where the rest
+              are: More below, More up/down or More above.
               Hold your hand on the bottom row and the list moves on, a row at a time. Hold
               it on the top row to move back up. The sticks do not move the list while your
               hand points at the page

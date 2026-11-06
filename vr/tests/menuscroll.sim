@@ -18,6 +18,7 @@
 3406 right_trigger 0
 3500 shot vr-top
 3520 hand_pitch 1.5
+3536 shot vr-middle
 3800 shot vr-bottom
 3820 right_trigger 1
 3826 right_trigger 0
@@ -47,4 +48,16 @@
 5480 right_y -1
 5492 right_y 0
 5540 shot sticks
-5600 quit 0
+5560 b 1
+5566 b 0
+5640 b 1
+5646 b 0
+5720 b 1
+5726 b 0
+5800 hand_pitch 13.7
+5860 right_trigger 1
+5866 right_trigger 0
+5940 shot video-top
+5960 hand_pitch 1.5
+6200 shot video-bottom
+6300 quit 0

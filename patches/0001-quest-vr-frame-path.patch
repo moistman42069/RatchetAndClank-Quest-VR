@@ -2178,7 +2178,7 @@ index 67e3ab3bf448dad32e2b9001630d212b61e442fd..d406980a5f23a93c89d3a0f289c7468b
      api.camera_position = api_camera_position;
      api.moby_run = api_moby_run;
 diff --git a/port/game/common/mod_ui.cpp b/port/game/common/mod_ui.cpp
-index 6506bf3f4542e9a0c685356def77ce99e7475865..36a8f68182f26808995ce6712adac0b2f8d800bf 100644
+index 6506bf3f4542e9a0c685356def77ce99e7475865..4d82dacd21ce2017eec89537ace8b65e9f2fe3e0 100644
 --- a/port/game/common/mod_ui.cpp
 +++ b/port/game/common/mod_ui.cpp
 @@ -69,6 +69,7 @@ constexpr gaddr kListUp = 0x38;
@@ -2239,6 +2239,34 @@ index 6506bf3f4542e9a0c685356def77ce99e7475865..36a8f68182f26808995ce6712adac0b2
      if ((pressed & (kUp | kDown)) != 0 && !p->items.empty()) {
          const int to = step_cursor(*p, (pressed & kUp) != 0 ? -1 : 1);
  
+@@ -1447,11 +1455,13 @@ namespace pause {
+ 
+ constexpr int kRows = options_menu::kPauseRowsShown;
+ // The texts' ids, past the main menu pages' (kTextFirst + kTexts) and below the port's Exit's
+-// (0x7D80, exit_menu.cpp): the items' labels, the page's title, its rows' labels, then their values.
++// (0x7D80, exit_menu.cpp): the items' labels, the page's title, its rows' labels, then their values,
++// then the hint box's line saying the page has more rows than it shows.
+ constexpr int kItemText = 0x7D00;
+ constexpr int kTitleText = kItemText + OPENRAC_UI_PAUSE_ITEMS_MAX;
+ constexpr int kRowText = kTitleText + 1;
+-constexpr int kAllTexts = kRowText + 2 * kRows - kItemText;
++constexpr int kMoreText = kRowText + 2 * kRows;
++constexpr int kAllTexts = kMoreText + 1 - kItemText;
+ static_assert(kTextFirst + kTexts <= kItemText && kItemText + kAllTexts <= 0x7D80);
+ // The row widget's list: its cursor (its rows at +0x34); a row's bytes and its int's value at rest.
+ constexpr gaddr kCursorAt = 0x38;
+@@ -1549,6 +1559,11 @@ void fill(const options_menu::PauseRows& rows, const mods::UiPage& page) {
+         put(kRowText + kRows + i, at < all.size() ? all[at].value : "");
+     }
+     GREF(std::int32_t, rows.title + 0x34) = kTitleText;
++    if (rows.more != 0) {
++        const char* more = options_menu::pause_more_line(p.top, static_cast<int>(all.size()));
++        put(kMoreText, more != nullptr ? more : "");
++        GREF(std::int16_t, rows.more) = more != nullptr ? static_cast<std::int16_t>(kMoreText) : std::int16_t{0};
++    }
+     // What the page shows, logged (verbose) each time it changes.
+     std::string shown = p.asking ? p.question : page.title;
+     for (int i = 0; i < count; ++i) {
 diff --git a/port/game/common/mods.cpp b/port/game/common/mods.cpp
 index 3968d0ca4b1499c24d4eb60ef244a90c261a46bc..baf7b0b0e6ad90f6d63f982431b509e1000272ed 100644
 --- a/port/game/common/mods.cpp
@@ -2397,7 +2425,7 @@ index 9d18d8270fa9d506afd3ce449ab16cfdbaeb2138..98e39eec54a13adc7c90e84d50768595
  // callbacks run.
  void tick_boundary(std::uint32_t tick);
 diff --git a/port/game/common/options_menu.cpp b/port/game/common/options_menu.cpp
-index 7d45901f33e2f19df8566d527ec8c8654c8352ce..d5f9c15f3e7c3d83147c02d2e87330528dade774 100644
+index 7d45901f33e2f19df8566d527ec8c8654c8352ce..9597e70e3e6b7be35f45fcf2af277de6512b8cf7 100644
 --- a/port/game/common/options_menu.cpp
 +++ b/port/game/common/options_menu.cpp
 @@ -329,7 +329,8 @@ std::string value_of(int row) {
@@ -2427,8 +2455,12 @@ index 7d45901f33e2f19df8566d527ec8c8654c8352ce..d5f9c15f3e7c3d83147c02d2e8733052
          case kVSync:
              s.vsync = stepped_enum(s.vsync, by);
              break;
-@@ -650,7 +656,7 @@ constexpr int kTextVideo = kTextFirst + 2 * kShown;
- constexpr int kPauseTexts = 3;
+@@ -647,10 +653,10 @@ bool update(const openrac_front_end& fe) {
+ 
+ // The pause menu's Video item, its page's title and its hint (pause_page below).
+ constexpr int kTextVideo = kTextFirst + 2 * kShown;
+-constexpr int kPauseTexts = 3;
++constexpr int kPauseTexts = 4;  // and the hint box's line saying more rows
  gaddr pause_texts = 0;
  // The pause menu's Video page's rows: kPauseRows labels, then as many values.
 -constexpr int kPauseRows = 5;
@@ -2436,7 +2468,31 @@ index 7d45901f33e2f19df8566d527ec8c8654c8352ce..d5f9c15f3e7c3d83147c02d2e8733052
  constexpr int kPauseRowText = kTextVideo + kPauseTexts;
  gaddr pause_rows_text = 0;
  
-@@ -768,7 +774,7 @@ Rows make_rows(gaddr camera, gaddr sound, int title_text, int row_text) {
+@@ -693,16 +699,20 @@ constexpr gaddr kChoiceBytes = 0x18;
+ constexpr gaddr kTitleBytes = 0x58;          // the Camera page's title box: +0x34 its text
+ constexpr int kShownHere = page::kPauseRows;  // the rows shown at once
+ static_assert(kShownHere == kPauseRowsShown);
++// The hint box under the rows (Toggle, Exit): the page's screen 4, a text list, +0x34 its items.
++constexpr gaddr kHintScreen = 0x44 + 4 * 4;
++constexpr gaddr kHintBytes = 0x48;
++constexpr int kHintLinesMost = 4;
+ 
+ // A page of rows made from the Camera page: the page, its list widget, its rows and their ints, its
+-// title box.
++// title box, its hint box's spare line.
+ struct Rows {
+-    gaddr page = 0, list = 0, rows = 0, values = 0, title = 0;
++    gaddr page = 0, list = 0, rows = 0, values = 0, title = 0, more = 0;
+ };
+ 
+ struct Made {
+     gaddr items_for = 0;  // the game's Options items these were made from
+-    gaddr items = 0, page = 0, list = 0, rows = 0, values = 0;
++    gaddr items = 0, page = 0, list = 0, rows = 0, values = 0, more = 0;
+     std::vector<Rows> mods;  // the mods' items' pages, in their order
+     int extra = 1;           // the items after Sound: Video's and the mods'
+ 
+@@ -768,7 +778,7 @@ Rows make_rows(gaddr camera, gaddr sound, int title_text, int row_text) {
      std::memcpy(G(r.page), G(camera_page), kPageBytes);
      std::memcpy(G(r.list), G(camera_list), kScreenBytes);
      if (sound != 0) {
@@ -2445,16 +2501,92 @@ index 7d45901f33e2f19df8566d527ec8c8654c8352ce..d5f9c15f3e7c3d83147c02d2e8733052
          // (the Camera page's hold three). The title's stays the Camera page's.
          const gaddr sound_page = GREF(std::uint32_t, sound + 4);
          std::memcpy(G(r.page + 4), G(sound_page + 4), 4 * 4);
+@@ -800,6 +810,28 @@ Rows make_rows(gaddr camera, gaddr sound, int title_text, int row_text) {
+     }
+     GREF(std::uint32_t, r.list + 0x34) = r.rows;
+     GREF(std::int32_t, r.list + 0x38) = 0;
++    // The hint box with a line more, hidden until the rows are more than the window shows: nothing
++    // on the rows themselves says so.
++    const gaddr camera_hint = GREF(std::uint32_t, r.page + kHintScreen);
++    const gaddr hints = camera_hint != 0 ? GREF(std::uint32_t, camera_hint + 0x34) : 0;
++    if (hints >= 0x100000u && hints < 0x2000000u && (hints & 3) == 0) {
++        gaddr lines = 0;
++        while (lines < kHintLinesMost && GREF(std::int16_t, hints + page::kItemBytes * lines) != 0) {
++            ++lines;
++        }
++        if (lines > 0) {
++            const gaddr hint = openrac_guest_static(kHintBytes);
++            const gaddr items = openrac_guest_static(page::kItemBytes * (lines + 2));
++            std::memcpy(G(hint), G(camera_hint), kHintBytes);
++            std::memset(G(items), 0, page::kItemBytes * (lines + 2));
++            std::memcpy(G(items), G(hints), page::kItemBytes * lines);
++            r.more = items + page::kItemBytes * lines;
++            std::memcpy(G(r.more), G(hints), page::kItemBytes);  // a hint's kind of item
++            GREF(std::int16_t, r.more) = 0;
++            GREF(std::uint32_t, hint + 0x34) = items;
++            GREF(std::uint32_t, r.page + kHintScreen) = hint;
++        }
++    }
+     return r;
+ }
+ 
+@@ -820,6 +852,7 @@ void make(gaddr items) {
+     page::put_text(page::pause_texts + 2 * page::kTextBytes, "Change the display, picture and frame rate");
+     const Rows video = make_rows(camera, sound, page::kTextVideo + 1, page::kPauseRowText);
+     m.page = video.page;
++    m.more = video.more;
+     m.list = video.list;
+     m.rows = video.rows;
+     m.values = video.values;
+@@ -972,6 +1005,11 @@ bool update(gaddr page_menu, gaddr pad) {
+         page::put_text(page::pause_rows_text + page::kTextBytes * static_cast<gaddr>(i), label(m.top + i));
+         page::put_text(page::pause_rows_text + page::kTextBytes * static_cast<gaddr>(kShownHere + i), value_of(m.top + i));
+     }
++    if (m.more != 0) {
++        const char* more = pause_more_line(m.top, row_count());
++        page::put_text(page::pause_texts + 3 * page::kTextBytes, more != nullptr ? more : "");
++        GREF(std::int16_t, m.more) = more != nullptr ? static_cast<std::int16_t>(page::kTextVideo + 3) : std::int16_t{0};
++    }
+     if (changed) {
+         settings::save();
+     }
+@@ -1052,7 +1090,7 @@ PauseRows pause_rows(int index) {
+         return {};
+     }
+     const pause_page::Rows& r = pause_page::m.mods[static_cast<std::size_t>(index)];
+-    return {r.page, r.list, r.rows, r.values, r.title};
++    return {r.page, r.list, r.rows, r.values, r.title, r.more};
+ }
+ 
+ std::uint32_t options_items() {
 diff --git a/port/game/common/options_menu.h b/port/game/common/options_menu.h
-index 14c859d6200f9c33a7816d2fbef72dce258c40e1..302dc09ef85beb97d980fd61bd22b0dd6daec8d5 100644
+index 14c859d6200f9c33a7816d2fbef72dce258c40e1..5ee1f2e3c23b8cf2dbfdaec72282fadfcac1b1e0 100644
 --- a/port/game/common/options_menu.h
 +++ b/port/game/common/options_menu.h
-@@ -64,7 +64,7 @@ struct PauseRows {
-     std::uint32_t page = 0, list = 0, rows = 0, values = 0, title = 0;
+@@ -59,12 +59,23 @@ bool update(int loaded_overlay);
+ // page's items in each level program, as the Video page: item `index`'s page, its list widget, its
+ // kPauseRowsShown rows (0x18 bytes each: the label's text id, the address of an int the widget keeps at
+ // 1 and steps on Cross, three value text ids; a 0 label ends them), their ints, its title box (+0x34
+-// the title's text id). All 0 before the Options page was seen. mod_ui.cpp fills them.
++// the title's text id), and the hint box's spare line (an item whose first two bytes are its text id, 0
++// hiding it; 0 when the page has no such box). All 0 before the Options page was seen. mod_ui.cpp fills
++// them.
+ struct PauseRows {
+-    std::uint32_t page = 0, list = 0, rows = 0, values = 0, title = 0;
++    std::uint32_t page = 0, list = 0, rows = 0, values = 0, title = 0, more = 0;
  };
  
 -constexpr int kPauseRowsShown = 5;
 +constexpr int kPauseRowsShown = 8;
++
++// What the hint box's spare line says for a window from row `top` of a page of `count` rows: which way
++// the rows it does not show are, nullptr when it shows them all.
++inline const char* pause_more_line(int top, int count) {
++    const bool above = top > 0;
++    const bool below = top + kPauseRowsShown < count;
++    return above && below ? "More up/down" : above ? "More above" : below ? "More below" : nullptr;
++}
++
  PauseRows pause_rows(int index);
  // Drops guest-memory addresses cached by the port's Video pages. A restored snapshot can replace
  // the guest allocations and level program those addresses referred to.

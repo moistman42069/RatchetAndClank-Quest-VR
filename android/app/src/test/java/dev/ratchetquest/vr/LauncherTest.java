@@ -638,7 +638,7 @@ public class LauncherTest {
         assertTrue("the VR tab says what is only in the game", allText(activity).contains("Looking for Moves"));
         button(activity, "Controls").performClick();
         String controls = allText(activity);
-        for (String words : new String[] {"Menus, and where every option is", "Hold your hand on the bottom row",
+        for (String words : new String[] {"Menus, and where every option is", "Hold your hand on the bottom row", "More up/down",
                                           "Wall run and jump", "Swingshot reach", "Wrench comes back", "Touch controllers"}) {
             assertTrue("the Controls tab shows " + words, controls.contains(words));
         }

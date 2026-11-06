@@ -157,6 +157,7 @@ it worked (the log is in Download/RatchetQuestVR). PC-proven features are in STA
   - **Empty hand angle 65 down:** after the update from 0.1.13, with the row never set, VR Hands says 65 down
     (`[vr-hand] Empty hand angle: 0 was the start before 0.1.14, 65 down is now` once). An angle you had set stays.
   - **Finding the options (0.1.15):** with no help, try the Controls tab's Menus section: in a level, Y, Options, VR Options, hold on the bottom row until VR Controls shows, the same for More controls, then Moves. Say if any step is not as it says.
+  - **More rows (0.1.16):** on VR Options, the box under the list has a third line under Toggle and Exit: More below at the top of the list, More up/down partway, More above at the bottom. Moves, a short page, has only two lines. Say if the three lines are hard to read in your headset.
   - **The thumb (0.1.15, after 0.1.14 turned it back toward the wrist):** hold an empty hand up and look at it from the
     palm and the back. Lifted off the controller it rests open beside the hand, pointing up toward the fingers' ends, never
     back toward the wrist. On A or B, the stick or the thumb rest it comes in along the fingers, and it moves as yours does.

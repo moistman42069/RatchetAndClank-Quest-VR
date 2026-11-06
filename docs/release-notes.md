@@ -2,19 +2,27 @@
 
 > **This is a test build, and we need your logs.** **Expect bugs.** Every log helps, including from runs that worked: **Send your log** below says how.
 
+## New in 0.1.16
+
+**Long menus now tell you there is more.** A page in the pause menu shows eight rows at a time, and until now nothing on it said there were others. The box under the list (with Toggle and Exit) now has a line that says where the rest are: **More below**, **More up/down** or **More above**. A page that shows all its rows, like **Moves**, has no such line. It is on every long page, **Video Options** too, on Quest and on PC. To get to the rest: hold your hand on the bottom row and the list moves on, on the top row and it moves back. No row moved, and no option changed.
+
+**Tested for 0.1.16 on PC only** (the PAL disc and a simulated headset, not yet on a Quest, a real PC headset or the US disc): pictures of long pages at their top, middle and bottom, of **Moves**, and of **Video Options**; and the whole way to **Moves** by the hand.
+
+Everything from 0.1.15 and 0.1.14, which came out just before this, is below, so you miss nothing.
+
 ## New in 0.1.15
 
 **FIXED THAT DARN THUMB!** Sorry about that one. 0.1.14 turned your thumb the wrong way, back toward your wrist, and it got out because we did not test it thoroughly enough before the release. Our apologies for the hiccup. Our old test pictures looked along the arm, from too far away to show it, and we did not catch it until the owner's video.
 
 - **It now moves like a thumb**, in both hands, on Quest and on PC, with **Fingers** on Tracked (VR Hands). Lifted off the controller, it rests open beside your hand. On a button, the stick or the thumb rest, it comes in along your fingers. Close your hand and a lifted thumb is a thumbs-up, and a thumb on the controller folds over your fingers.
 - **A hand on a weapon** keeps the game's own hold, and **Fingers** on Static is as it was.
-- **Can't find the new options?** A player could not, so the launcher's **Controls** tab now starts with a **Menus** section: how the menus work and where every option is. The options themselves have not moved. They are in the game, not the launcher: in a level, press **Y**, then **Options**, **VR Options**, **VR Controls**, **More controls**, **Moves**. A page shows eight rows at a time and nothing on it says there are more: hold your hand on the bottom row and the list moves on. VR Controls and More controls are both below the first eight rows.
+- **Can't find the new options?** A player could not, so the launcher's **Controls** tab now starts with a **Menus** section: how the menus work and where every option is. The options themselves have not moved. They are in the game, not the launcher: in a level, press **Y**, then **Options**, **VR Options**, **VR Controls**, **More controls**, **Moves**. A page shows eight rows at a time: hold your hand on the bottom row and the list moves on. VR Controls and More controls are both below the first eight rows.
 
 **Tested for 0.1.15 on PC only** (the PAL disc and a simulated headset, not yet on a Quest, a real PC headset or the US disc): pictures of each hand from its palm side, its back and above, and of both hands raised before the eyes, looked at for each state above; and the whole way to **Moves** by the hand, each page moved on and back as the Menus section says.
 
-## Also new: all of 0.1.14, which came out just before this, in case you missed it
+## Also new: all of 0.1.14, which came out just before 0.1.15, in case you missed it
 
-**Now on PC VR too.** Beside the APK, this release has `RatchetQuestVR-0.1.15-windows.zip`: the Quest version on a Windows PC, with the same launcher (`RatchetClankVR.exe`: Play, Graphics, VR, Game, Controls, Logs and Credits, the disc check and set-up, the mods, the updates), the same options and the same game. **Install on PC** below says how. Rerac-vr is the original PC VR mod, and the one this port follows; this is for players who want the Quest version's launcher, options and mods on a PC.
+**Now on PC VR too.** Beside the APK, this release has `RatchetQuestVR-0.1.16-windows.zip`: the Quest version on a Windows PC, with the same launcher (`RatchetClankVR.exe`: Play, Graphics, VR, Game, Controls, Logs and Credits, the disc check and set-up, the mods, the updates), the same options and the same game. **Install on PC** below says how. Rerac-vr is the original PC VR mod, and the one this port follows; this is for players who want the Quest version's launcher, options and mods on a PC.
 
 - **Any OpenXR PC VR software:** SteamVR, Meta Horizon Link (Link and Air Link), Virtual Desktop, Pico Connect, Windows Mixed Reality and others. If the one set as your PC's OpenXR runtime cannot draw this game (it needs OpenGL, which Windows Mixed Reality's lacks), the game uses SteamVR's instead, by itself, when SteamVR is installed; Windows' setting is not changed.
 - **Your controllers, by themselves:** the game gives its bindings for Touch (Quest, Rift S, Quest Pro, Touch Plus), Index, Vive and Vive Cosmos, Vive Focus 3, Pico 4 and Neo 3, HP Reverb G2 and Windows Mixed Reality, so each runtime puts them on your controllers. Others, such as **PlayStation VR2**, the **Steam Frame** and **DPVR** headsets, come through SteamVR, which maps them to one of those (change it in SteamVR's **Manage controller bindings** if you like). The launcher's **Controls** tab says what each button is on each, and your log names the controllers it got (`[openxr] left hand:`).
@@ -273,9 +281,9 @@ More on screen costs some frame rate: if a planet got less smooth, tell us which
 ## Install
 
 1. Put your Quest in **Developer Mode** (in the Meta Horizon app on your phone).
-2. Get `RatchetQuestVR-0.1.15.apk` onto the headset and install it. Either:
+2. Get `RatchetQuestVR-0.1.16.apk` onto the headset and install it. Either:
    - download it in the Quest's browser (or email it to yourself and download it there) and open it from the **Files** app, or
-   - sideload it with SideQuest or `adb install -r RatchetQuestVR-0.1.15.apk`.
+   - sideload it with SideQuest or `adb install -r RatchetQuestVR-0.1.16.apk`.
 3. Open **Ratchet & Clank Quest VR** from your Library's **Unknown Sources**.
 4. Copy your `.iso` to the headset's **Download** folder and choose it in the launcher. The first set-up copies the disc and prepares the levels: **up to half an hour, once. Keep the headset on charge.**
 5. Press **PLAY IN VR**. **Play in 2D** puts the game on a big flat screen, played with the Touch controllers as a PlayStation pad: if VR fails, try it and tell us, as it separates a game problem from a VR problem.
@@ -284,7 +292,7 @@ More on screen costs some frame rate: if a planet got less smooth, tell us which
 
 ## Install on PC
 
-1. Download `RatchetQuestVR-0.1.15-windows.zip` and unzip it anywhere you can write: your Desktop, Documents or a games drive. Keep the `RatchetClankVR` folder together. Nothing is installed into Windows.
+1. Download `RatchetQuestVR-0.1.16-windows.zip` and unzip it anywhere you can write: your Desktop, Documents or a games drive. Keep the `RatchetClankVR` folder together. Nothing is installed into Windows.
 2. Start your headset's PC VR software (SteamVR, Meta Horizon Link, Virtual Desktop, Pico Connect, ...).
 3. Open `RatchetClankVR.exe`. Windows may warn about an app from the internet it does not know: **More info**, then **Run anyway**.
 4. **Choose your .iso file** and wait for the set-up, once: it checks the disc, then prepares the levels.
@@ -318,7 +326,7 @@ The log holds your headset's model and Android version, the game's own log, why 
 - If a bar in the headset says a controller is missing, tell us.
 - Anything that crashes, freezes or leaves you stuck: the log says why far more often than not.
 
-The full list of what to try is in [docs/HEADSET_CHECKLIST.md](https://github.com/moistman42069/RatchetAndClank-Quest-VR/blob/v0.1.15/docs/HEADSET_CHECKLIST.md).
+The full list of what to try is in [docs/HEADSET_CHECKLIST.md](https://github.com/moistman42069/RatchetAndClank-Quest-VR/blob/v0.1.16/docs/HEADSET_CHECKLIST.md).
 
 ## What is in it
 
@@ -353,7 +361,7 @@ Rerac-vr's design, rebuilt on OpenRAC so that a headset can run it:
 | Left stick click | With Akimbo (on by default): the left hand's own quick select |
 | Left menu button | Recentre (the headset's own recentre too) |
 
-**Menus:** point with your right hand and pull the trigger or press A. B goes back. A page shows eight rows at a time: hold your hand on the bottom row and the list moves on, on the top row and it moves back. **Hoverboard:** left stick steers, left trigger boosts, right trigger shoots, A jumps, right stick for tricks. The whole list is in the launcher's **Controls** tab.
+**Menus:** point with your right hand and pull the trigger or press A. B goes back. A page shows eight rows at a time, and the box under the list says where the rest are: hold your hand on the bottom row and the list moves on, on the top row and it moves back. **Hoverboard:** left stick steers, left trigger boosts, right trigger shoots, A jumps, right stick for tricks. The whole list is in the launcher's **Controls** tab.
 
 ## VR Options
 
@@ -399,5 +407,5 @@ This is free software under GPL-3.0-or-later, without any warranty. The source o
 
 | File | SHA-256 |
 | --- | --- |
-| `RatchetQuestVR-0.1.15.apk` (version code 16, 48 MB) | `88696122faa0bba0ac50ade3f026bce6143153f4f1d284a27b6af0a956439e2f` |
-| `RatchetQuestVR-0.1.15-windows.zip` (65 MB) | `1c93737d3fc0ee9fb8d11a24d5d26a58033cf58049a2d69e2f84efdfb132a9e0` |
+| `RatchetQuestVR-0.1.16.apk` (version code 17, 48 MB) | `fb9239db1e34c4970708739a5493df59f336de298b83cae192126ef1d6f0ff5d` |
+| `RatchetQuestVR-0.1.16-windows.zip` (65 MB) | `b2b0181b1c82e5bea49b4941091e8d61b12e756305c6936b8fd56b3f5412ac67` |
