@@ -19,6 +19,49 @@ Rerac-vr runs on [ReRAC](https://github.com/re-rac/rerac), a Rust rewrite of the
 
 > **Experimental / WIP:** the game is OpenRAC's native port, not an emulator, with a VR mod of its own. Rerac-vr's features are in and have run on PC with the PAL disc and a simulated headset. 0.1.12 and 0.1.13 have been played on a Quest 3 by the owner (the PAL disc), and 0.1.12 by a tester (the NTSC-U disc), whose reports 0.1.13 and 0.1.14 work through, but much of the game, and every change in 0.1.14, has yet to run on a headset. **The PC VR build has run on SteamVR's simulated headset only**: no real PC headset or controller has played it yet. Expect bugs. [docs/STATUS.md](docs/STATUS.md) lists every feature and how far it has been tested; [docs/HEADSET_CHECKLIST.md](docs/HEADSET_CHECKLIST.md) what to try on the headset.
 
+## What this port adds
+
+Rerac-vr is where this port's VR design comes from. Everything below was added here, on top of it, and is not in [Rerac-vr](https://github.com/npiriou/Rerac-vr) as of its latest release, 0.1.5.
+
+**Moves** (VR Options, VR Controls, More controls, **Moves**; these all start off, or as the game has them)
+
+- **Swingshot anywhere:** where there is no target, the right hand zips you to any wall or ground you aim at, and the left (Akimbo) swings you from a point above your head. Let go of a zip to keep its speed, lean to push a swing, chain zips in the air, and yank the hand that fired to fling yourself off.
+- **Wall run and jump:** in the air by a wall, run along it or up it, or hold on where a zip ends. The jump button leaps you off where your head looks, with your speed going with you.
+- **Swingshot reach:** Normal, Longer, or No limit, which reaches any surface you can aim at, right across a level.
+- **Wrench throw distance:** up to 8 times as far as the game's, in an arc.
+- **Wrench comes back:** by itself, or **When you call it**: it stays where it lands until the grip or the trigger calls it, then comes whirling back with your hand buzzing harder as it nears. Every catch has a thump in the hand.
+
+**Your body and hands**
+
+- **A body that follows yours:** arms and legs that bend (**Arms bend to your hands**, **Legs bend**), a body that turns with your head, and **Body parts** to choose what you see, with its height, its position and the arms' length to fit you (**VR Body**).
+- **Fingers:** they follow your own on the controller, and bend around what they touch in the world.
+- **Physical crouch:** lower your head and Ratchet crouches.
+- **Vibration when your hands meet the world.**
+- **His shadow matches what you see:** each finger and the thumb, and his head turned as you turn yours.
+- **VR Hands:** **Gun angle**, an angle for each item, **Empty hand angle**, **Gun size**, **Hand size**, **Items match hand size**, **Mirror left-hand guns**, **Left gun ammo**, **HUD size** and **HUD height**.
+
+**More ways to play**
+
+- **Ledges:** climb by pulling yourself up with one hand or both, and shimmy the way you reach or with the left stick (**Ledge shimmy**).
+- **Arm moves on Buttons:** for hands and wrists that should not swing, the right grip swings the wrench and the trigger punches with the Walloper, as the game's own buttons do. Your hands still aim.
+- **Third person** from the game's camera, switched at any time in **VR Options**.
+- **Cutscenes in VR or on a screen,** as well as through Ratchet's eyes, with **X** to switch as one plays.
+- **Hide black bars:** no black bars in the game's short scenes during play.
+- **Menu pointer:** point in menus with either hand.
+- **Cheats** in **VR Options:** Invincible, Infinite ammo, Infinite bolts, Big heads, Trippy contrails, Give all weapons, Give all gadgets and Unlock all planets.
+
+**Where and how it runs**
+
+- **Standalone on Meta Quest,** with no PC, on OpenRAC's native port.
+- **Both discs:** PAL as well as NTSC-U. Rerac-vr takes the US disc.
+- **A launcher,** on Quest and PC: disc checks and set-up, settings, controls, logs and a **What's new** box.
+- **Updates in the launcher:** it checks a new version, installs it and keeps your set-up, saves and settings.
+- **Mods:** OpenRAC's mods on the launcher's **Game** tab, five built in and more from a file.
+- **Play in 2D:** the game on a big flat screen in the headset, with the controllers as a PlayStation pad.
+- **Keep the refresh rate** on the Quest: the rate you chose, such as 120 Hz, stays.
+
+Not all of this has been played on a headset yet, 0.1.14's **Moves** least of all: [docs/STATUS.md](docs/STATUS.md) says how far each has been tested.
+
 ## Downloads
 
 | Platform | Download |
