@@ -15,6 +15,8 @@
 #if !defined(__ANDROID__)
 
 #include <algorithm>
+#include <chrono>
+#include <cmath>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -22,6 +24,7 @@
 #include <map>
 #include <sstream>
 #include <string>
+#include <thread>
 #include <type_traits>
 #include <vector>
 
@@ -45,6 +48,9 @@ using GLsizei = int;
 constexpr GLenum kTexture2D = 0x0DE1, kRgba = 0x1908, kRgba8 = 0x8058, kUnsignedByte = 0x1401;
 constexpr GLenum kFramebuffer = 0x8D40, kColorAttachment0 = 0x8CE0, kLinear = 0x2601;
 constexpr GLenum kMinFilter = 0x2801, kMagFilter = 0x2800;
+// Smoother frames' motion and depth images, as the Quest's runtime has them.
+constexpr GLenum kRgba16f = 0x881A, kFloat = 0x1406, kNearest = 0x2600;
+constexpr GLenum kDepth24Stencil8 = 0x88F0, kDepthStencil = 0x84F9, kUnsignedInt248 = 0x84FA;
 
 #if defined(_WIN32)
 #define GLAPI __stdcall
@@ -166,6 +172,33 @@ public:
         make_target(kTargetLeftEye, eye, eye);
         make_target(kTargetRightEye, eye, eye);
         make_target(kTargetPanel, settings.panel_width, settings.panel_height);
+        // Smoother frames, as on the Quest when the launcher has it on: motion images a quarter of the eye's size.
+        // QUEST_SIM_SPACE_WARP=0 leaves them out.
+        const char* warp = std::getenv("QUEST_SIM_SPACE_WARP");
+        m_space_warp = settings.space_warp && !(warp != nullptr && std::string(warp) == "0");
+        if (m_space_warp) {
+            m_motion_width = eye / 4;
+            m_motion_height = eye / 4;
+            for (int side = 0; side < 2; ++side) {
+                m_gl.GenTextures(1, &m_motion[side]);
+                m_gl.BindTexture(kTexture2D, m_motion[side]);
+                m_gl.TexImage2D(kTexture2D, 0, static_cast<GLint>(kRgba16f), m_motion_width, m_motion_height, 0, kRgba, kFloat,
+                                nullptr);
+                m_gl.TexParameteri(kTexture2D, kMinFilter, static_cast<GLint>(kNearest));
+                m_gl.TexParameteri(kTexture2D, kMagFilter, static_cast<GLint>(kNearest));
+                m_gl.GenTextures(1, &m_motion_depth[side]);
+                m_gl.BindTexture(kTexture2D, m_motion_depth[side]);
+                m_gl.TexImage2D(kTexture2D, 0, static_cast<GLint>(kDepth24Stencil8), m_motion_width, m_motion_height, 0,
+                                kDepthStencil, kUnsignedInt248, nullptr);
+                m_gl.TexParameteri(kTexture2D, kMinFilter, static_cast<GLint>(kNearest));
+                m_gl.TexParameteri(kTexture2D, kMagFilter, static_cast<GLint>(kNearest));
+                m_gl.BindTexture(kTexture2D, 0);
+                m_gl.GenFramebuffers(1, &m_motion_fbo[side]);
+                m_gl.BindFramebuffer(kFramebuffer, m_motion_fbo[side]);
+                m_gl.FramebufferTexture2D(kFramebuffer, kColorAttachment0, kTexture2D, m_motion[side], 0);
+                m_gl.BindFramebuffer(kFramebuffer, 0);
+            }
+        }
 
         if (const char* path = std::getenv("QUEST_SIM_SCRIPT")) {
             std::ifstream script(path);
@@ -198,6 +231,14 @@ public:
     }
 
     bool begin_frame(FrameInfo& out) override {
+        // A real runtime's frame wait paces each frame, and a movie has no other pace (movie.cpp's headset_paces). So a frame asked for
+        // far too soon waits out a 60th here, which keeps a script's frame numbers in time through a movie. The game's own frames
+        // come at their 60 a second and do not wait.
+        using PaceClock = std::chrono::steady_clock;
+        if (PaceClock::now() - m_frame_asked < std::chrono::milliseconds(10)) {
+            std::this_thread::sleep_until(m_frame_asked + std::chrono::microseconds(16667));
+        }
+        m_frame_asked = PaceClock::now();
         out = FrameInfo{};
         ++m_frame;
         if (m_ready_frame < 0 && sim_ready) {
@@ -219,6 +260,7 @@ public:
         const Quat look = yaw * Quat{std::sin(pitch), 0, 0, std::cos(pitch)};
         const Vec3 head{number("head_x"), 1.7f + number("head_y"), number("head_z")};
         out.head = {head, look};
+        out.head_above_floor = head.y;
         // The Quest 3's eyes: 64 mm apart, each with about this field of view.
         const Vec3 half = rotate(look, {0.032f, 0, 0});
         out.eye[0] = {head - half, look};
@@ -285,18 +327,44 @@ public:
 
     unsigned acquire(Target target) override { return m_texture[target]; }
 
-    void finish_frame(bool eyes, bool, const PanelLayer& panel) override {
-        char line[160];
+    bool motion_target(int eye, MotionTarget& out) override {
+        if (!m_space_warp || eye < 0 || eye > 1) {
+            return false;
+        }
+        out = {m_motion[eye], m_motion_depth[eye], m_motion_width, m_motion_height};
+        return true;
+    }
+
+    void space_warp(const SpaceWarpFrame& warp) override {
+        m_warp = warp;
+        m_warp_set = true;
+        m_warp_frames += warp.drawn[0] && warp.drawn[1] ? 1 : 0;
+        ++m_warp_asked;
+    }
+
+    void finish_frame(bool eyes, bool eyes_kept, const PanelLayer& panel) override {
+        char line[200];
+        const bool warped = m_warp_set && eyes && !eyes_kept && m_warp.drawn[0] && m_warp.drawn[1];
+        m_warp_set = false;
         if (m_frame % 300 == 0) {
             std::snprintf(line, sizeof line, "[sim] frame %ld eyes %d panel %d (hud %d)", m_frame, eyes ? 1 : 0,
                           panel.visible ? 1 : 0, panel.follows_head ? 1 : 0);
             m_log(1, line);
+            if (m_space_warp) {
+                std::snprintf(line, sizeof line, "[sim] smoother frames: motion given %ld of %ld frames asked (depth %.1f to %.3f m)",
+                              m_warp_frames, m_warp_asked, m_warp.depth_zero, m_warp.depth_one);
+                m_log(1, line);
+                m_warp_frames = m_warp_asked = 0;
+            }
         }
         if (!m_shot.empty()) {
             const std::string base = m_out + "/" + m_shot;
             if (eyes) {
                 save(kTargetLeftEye, base + "-left.png", false);
                 save(kTargetRightEye, base + "-right.png", false);
+            }
+            if (m_space_warp) {
+                save_motion(base + "-motion.png", warped);
             }
             if (panel.visible) {
                 save(kTargetPanel, base + "-panel.png", panel.blend);
@@ -374,6 +442,40 @@ private:
         m_gl.BindFramebuffer(kFramebuffer, 0);
     }
 
+    // The left eye's motion as a picture (red right, green up, from grey; full at 0.05 of the picture a frame, a twentieth
+    // of its half-width), and its numbers in the log: the mean movement across and up, how much of it moves, the most.
+    void save_motion(const std::string& path, bool warped) {
+        const int w = m_motion_width, h = m_motion_height;
+        std::vector<float> motion(static_cast<std::size_t>(w) * h * 4);
+        m_gl.BindFramebuffer(kFramebuffer, m_motion_fbo[0]);
+        m_gl.ReadPixels(0, 0, w, h, kRgba, kFloat, motion.data());
+        m_gl.BindFramebuffer(kFramebuffer, 0);
+        std::vector<unsigned char> picture(static_cast<std::size_t>(w) * h * 4);
+        double sum_x = 0, sum_y = 0, sum_z = 0, most = 0;
+        long moving = 0;
+        const auto byte = [](float v) { return static_cast<unsigned char>(std::clamp(128.0f + v * 2560.0f, 0.0f, 255.0f)); };
+        for (std::size_t i = 0; i < static_cast<std::size_t>(w) * h; ++i) {
+            const float x = motion[i * 4], y = motion[i * 4 + 1], z = motion[i * 4 + 2];
+            sum_x += x;
+            sum_y += y;
+            sum_z += z;
+            const double size = std::sqrt(static_cast<double>(x) * x + static_cast<double>(y) * y);
+            most = std::max(most, size);
+            moving += size > 0.002 ? 1 : 0;
+            picture[i * 4] = byte(x);
+            picture[i * 4 + 1] = byte(y);
+            picture[i * 4 + 2] = byte(z * 10.0f);
+            picture[i * 4 + 3] = 255;
+        }
+        write_png(path, picture, w, h, false);
+        const double count = static_cast<double>(w) * h;
+        char line[240];
+        std::snprintf(line, sizeof line,
+                      "[sim] motion %s: given %d, mean across %.4f up %.4f depth %.5f, moving %.0f%%, most %.4f (of NDC, a frame)",
+                      m_shot.c_str(), warped ? 1 : 0, sum_x / count, sum_y / count, sum_z / count, 100.0 * moving / count, most);
+        m_log(1, line);
+    }
+
     void save(int target, const std::string& path, bool alpha) {
         std::vector<unsigned char> pixels(static_cast<std::size_t>(m_width[target]) * m_height[target] * 4);
         m_gl.BindFramebuffer(kFramebuffer, m_fbo[target]);
@@ -396,9 +498,17 @@ private:
     long m_frame = 0;
     long m_align = -1;        // QUEST_SIM_ALIGN, -1 without
     float m_grip_tilt = 0;    // QUEST_SIM_GRIP_TILT, radians
+    std::chrono::steady_clock::time_point m_frame_asked{};  // when begin_frame last ran
     long m_ready_frame = -1;  // the frame the set-up was done
     bool m_pointer_dot = false, m_pointer_beam = false;
     bool m_quit = false;
+    // Smoother frames.
+    bool m_space_warp = false;
+    int m_motion_width = 0, m_motion_height = 0;
+    GLuint m_motion[2]{}, m_motion_depth[2]{}, m_motion_fbo[2]{};
+    SpaceWarpFrame m_warp;
+    bool m_warp_set = false;
+    long m_warp_frames = 0, m_warp_asked = 0;
 };
 
 }  // namespace

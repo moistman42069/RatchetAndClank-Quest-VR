@@ -1,0 +1,23 @@
+# The Trespasser's help as it is picked up: the game's banner and its help text come up on the HUD's panel, and its voice with them
+# (a tester had neither, 0.1.15 on PC VR: the panel's text was vanishing). Run on Aridia without the tool, QUEST_SIM_NEAR=1005 with
+# QUEST_SIM_NEAR_AT=0.2,0: he takes it as he is put there, about frame 2340. The game's help starts two seconds after the first
+# direction pressed (help.c), so the stick is tapped as he lands on the level, in time.
+600 y 1
+606 y 0
+2140 left_y -0.8
+2150 left_y 0
+2180 left_y -0.8
+2190 left_y 0
+2500 shot a
+2650 shot b
+2800 shot c
+2950 shot d
+3100 shot e
+3250 shot f
+3400 shot g
+3550 shot h
+3700 shot i
+3900 shot j
+4100 shot k
+4300 shot l
+4500 quit 0

@@ -1,0 +1,21 @@
+# Clank's video (a tester's 0.1.15: "black box from video clank show ratchet sticks to your view only after video ends"):
+# Ratchet put by the crash on Veldin (QUEST_SIM_AT, where the log has it) starts the scene; the video is a movie in the
+# middle of it, not skipped here (QUEST_SKIP_ANY_MOVIE=false). Run with QUEST_VIEW_TRACE=1; the panel's shots are taken after
+# the movie's "played" line, with the HUD panel's own picture (rings-panel's way) beside each eye's.
+600 y 1
+606 y 0
+11000 shot before
+12000 shot during
+14000 shot a
+15000 shot b
+16000 shot c
+17000 shot d
+18000 shot e
+19000 shot f
+20000 shot g
+21000 shot h
+22000 shot i
+23000 shot j
+24000 shot k
+25000 shot l
+26000 quit 0

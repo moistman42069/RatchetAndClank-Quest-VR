@@ -1,0 +1,15 @@
+# The head's frames while the weapon wheel holds time slow: as many as ever, none long. No shots in it, which take time of their
+# own: the [vr-perf] lines with the wheel up set against those before it. The head turns all the while, as a head would.
+600 y 1
+606 y 0
+3000 head_yaw 5
+3300 head_yaw -5
+3600 head_yaw 5
+3700 right_click 1
+3900 head_yaw -5
+4200 head_yaw 5
+4500 head_yaw -5
+4800 head_yaw 5
+5100 head_yaw -5
+5400 right_click 0
+5900 quit 0

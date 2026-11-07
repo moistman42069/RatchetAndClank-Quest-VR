@@ -1,0 +1,67 @@
+# Smoother frames (Application SpaceWarp, the owner's ask, 0.1.17): the eyes' motion images, as the Quest's runtime
+# takes them beside each eye. Each shot saves the left eye's motion as <shot>-motion.png (red right, green up, from grey)
+# and logs its numbers ([sim] motion): standing still nearly nothing moves; turning the head left the level moves right
+# (across > 0) while the hands, which turn with the head, stay; a walk spreads out from the middle; the right hand raised
+# alone moves only it, up; a jump of the head is a cut (given 0); looking up moves the level down (up < 0).
+600 y 1
+606 y 0
+2900 shot still
+# The head turns left a degree a frame.
+3000 head_yaw 1
+3001 head_yaw 2
+3002 head_yaw 3
+3003 head_yaw 4
+3004 head_yaw 5
+3005 head_yaw 6
+3006 head_yaw 7
+3007 head_yaw 8
+3008 head_yaw 9
+3009 head_yaw 10
+3010 head_yaw 11
+3011 head_yaw 12
+3012 head_yaw 13
+3013 head_yaw 14
+3014 head_yaw 15
+3014 shot turning
+3015 head_yaw 16
+3016 head_yaw 17
+3017 head_yaw 18
+3018 head_yaw 19
+3019 head_yaw 20
+# A walk ahead.
+3100 left_y 1
+3160 shot walking
+3170 left_y 0
+# The right hand alone, up a centimetre a frame.
+3300 rh_y 0.01
+3301 rh_y 0.02
+3302 rh_y 0.03
+3303 rh_y 0.04
+3304 rh_y 0.05
+3305 rh_y 0.06
+3306 rh_y 0.07
+3307 rh_y 0.08
+3308 rh_y 0.09
+3309 rh_y 0.10
+3310 rh_y 0.11
+3310 shot hand
+3311 rh_y 0.12
+3312 rh_y 0.13
+# A jump of the head: a cut, no motion given.
+3400 head_yaw 80
+3400 shot cut
+# The head looks up a degree a frame.
+3500 head_pitch 1
+3501 head_pitch 2
+3502 head_pitch 3
+3503 head_pitch 4
+3504 head_pitch 5
+3505 head_pitch 6
+3506 head_pitch 7
+3507 head_pitch 8
+3508 head_pitch 9
+3509 head_pitch 10
+3510 head_pitch 11
+3510 shot looking-up
+3511 head_pitch 12
+3600 quit 0

@@ -26,7 +26,7 @@ run() { # name sim level|- [NAME=value...] [the sim's own arguments, such as --c
     echo "== $name ($sim, level $level, $*) in $((SECONDS - start)) s: $(head -1 "$OUTS/$name.run")"
     grep -a -c 'not loaded' "$log" | sed 's/^/mod not loaded lines: /'
     grep -a -i -E 'crash|exception|assert|fatal' "$log" | grep -a -v 'settings from' | head -3
-    grep -a -E '\[(vr-[a-z]+|sim)\]' "$log" | grep -a -v -E 'vr-perf|vr-state] (tick|phase)|vr-input|vr-glyphs|vr-body] hidden|sim] hittable|vr-hand] class|vr-aim] near the head|vr-aim] class .* (also holds|aimed by)|\[sim\] (frame|shot|pointer:)|haptic|vr-sound|centred text|not a list' \
+    grep -a -E '\[(vr-[a-z]+|sim)\]' "$log" | grep -a -v -E 'vr-perf|vr-state] (tick|phase)|vr-input|vr-glyphs|vr-body] hidden|sim] hittable|vr-hand] class|vr-aim] near the head|vr-aim] class .* (also holds|aimed by)|\[sim\] (frame|shot|pointer:|smoother frames)|haptic|vr-sound|centred text|not a list' \
       | sed 's/.*\[mod quest-vr\] //' | cut -c1-170 | awk '!seen[$0]++ || /^\[sim\] hero state/' | head -150
   } > "$OUTS/$name.txt"
   [ -n "$keep" ] || rm -f /c/RACQuest/pc/out/"$sim"/*.png
@@ -54,14 +54,28 @@ run akimboglove akimboglove 1 $G=15,10 $H=15 $L=10
 run akimbobox akimbobox 1 $G=16,10 $H=10 $L=16 QUEST_AMMO_TRACE=1 KEEP=1
 run akimboglove-decoy akimboglove 1 $G=15,25 $H=15 $L=25
 run akimbolead akimbolead 1 $G=15,18 $H=15 $L=18
-run akimboring akimboring 1 $G=15,16,19,21 $H=16 $L=0
+run akimboring akimboring 1 $G=15,16,19,21 $H=16 $L=0 'QUEST_VR_OPTIONS=wheel_reach 1'
 run hands-21 hands 1 $G=15,16,21 $H=21
 run hands-16 hands 1 $G=15,16,21 $H=16
 run inputs inputs 1 $G=15,16,21
-run quick quick 1 $G=10,15,16,11,13,9,18,19,20,17,21,23
+run quick quick 1 $G=10,15,16,11,13,9,18,19,20,17,21,23 'QUEST_VR_OPTIONS=wheel_reach 1'
 # 0.1.13: Akimbo on for everyone ([vr-options] says it). The ring as 0.1.12 had it, with Akimbo chosen off; a file of
 # 0.1.12's with Off (its start) switches on once, one with On stays on, Off chosen on the page stays off.
-run quick-akimbooff quick 1 $G=10,15,16,11,13,9,18,19,20,17,21,23 'QUEST_VR_OPTIONS=akimbo 0;akimbo_chosen 1'
+run quick-akimbooff quick 1 $G=10,15,16,11,13,9,18,19,20,17,21,23 'QUEST_VR_OPTIONS=akimbo 0;akimbo_chosen 1;wheel_reach 1'
+# 0.1.17: the weapon wheel. Wheel pick's Point (a turn of the hand goes round the icons, the default) and its slow motion (the
+# default, with sounds); the same with the slow motion's other settings; Reach by the same turns picks nothing; third person's
+# wheel slows too, its stick the game's.
+run wheelpoint wheelpoint 1 $G=10,15,16,11,13,9,18,19 KEEP=1
+run wheelcentre wheelcentre 1 $G=10,15,16,11,13,9,18,19 'QUEST_VR_OPTIONS=akimbo 0;akimbo_chosen 1' KEEP=1
+run wheelquiet wheelpoint 1 $G=10,15,16,11,13,9,18,19 'QUEST_VR_OPTIONS=wheel_slow 1'
+run wheeloff wheelpoint 1 $G=10,15,16,11,13,9,18,19 'QUEST_VR_OPTIONS=wheel_slow 2;wheel_reach 1'
+run wheelthird wheelpoint 1 $G=10,15,16,11,13,9,18,19 'QUEST_SETTINGS={"view":"third"}'
+# 0.1.17: Feet on the floor (VR Body, off to start): the view lifted to the head's real height over the floor.
+run feetfloor hands 1 $G=15,16,21 $H=21 'QUEST_VR_OPTIONS=feet_on_floor 1' KEEP=1
+# 0.1.17: the water from right beside it, where the owner stood: whole, whichever way the head turns.
+run waternear waternear 1 QUEST_SIM_AT=172.7,91.0,62.4,147 KEEP=1
+# 0.1.17: a video in the middle of a scene, not skipped, and what is on the HUD's panel after it (a tester's black box).
+run clankvideo clankvideo 0 QUEST_SKIP_ANY_MOVIE=false QUEST_VIEW_TRACE=1 QUEST_SIM_AT=165.67,272.68,29.23,-15 KEEP=1
 run akimbo-oldoff t2 1 'QUEST_VR_OPTIONS=akimbo 0;body 2'
 run akimbo-oldon t2 1 'QUEST_VR_OPTIONS=akimbo 1;body 2'
 run akimbo-chosenoff t2 1 'QUEST_VR_OPTIONS=akimbo 0;akimbo_chosen 1;body 2'
@@ -177,6 +191,10 @@ run walloperchain walloperchain 1 $G=18 $H=18 QUEST_STATE_TRACE=1
 run wrench wrench 1 $G=10 $N=511 KEEP=1
 run wrench70 wrench 1 $G=10 $N=511 'QUEST_VR_OPTIONS=hand_size 70' KEEP=1
 run wrenchthrow wrenchthrow 1 $G=15 $H=15
+# 0.1.17: the grip eased in a fast swing keeps the wrench (no throw), opened it throws; seated and standing (a tester on
+# 0.1.16, seated: "you can't do the wrench it jus disconnects").
+run wrenchease wrenchease 1 $G=15 $H=15
+run wrenchease-seated wrenchease 1 $G=15 $H=15 'QUEST_VR_OPTIONS=seated 1'
 run unequip unequip 1 $G=10 $H=10 KEEP=1
 run wrenchwall wrenchwall 1
 run hyper hyper 1
@@ -220,10 +238,21 @@ run crank crank 1 $N=280 $A=1.2,0
 run crankstick crankstick 1 $N=280 $A=1.2,0
 run crankleft crankleft 1 $G=15 $L=15 $N=280 $A=1.2,0
 run crankdeath crankdeath 1 $N=280 $A=1.2,0 QUEST_SIM_KILL=680
+# 0.1.17: seated the crank goes as standing (to 0.1.16 Seated lifted the view and the hands 45 cm over the bolt).
+run crank-seated crank 1 $N=280 $A=1.2,0 'QUEST_VR_OPTIONS=seated 1'
 run socket socket 2 $G=26 $H=26 $N=615 $A=2.2,0
-run puzzle puzzle 2 $G=26 $H=26 $N=615 $A=2.2,0
+run puzzle puzzle 2 $G=26 $H=26 $N=615 $A=2.2,0 KEEP=1
+# 0.1.17: the same in third person, the game's own way (a tester could not see the rings on PC VR): on the floor pad, the fire button.
+run puzzlethird puzzlethird 2 $G=26 $H=26 $N=615 $A=0.1,0 'QUEST_SETTINGS={"view":"third"}' KEEP=1
 run sockethydro sockethydro 5 $G=22 $H=22 $N=341 $A=1.3,0
 run swim swim 1 $N=695 $A=2.0,0 QUEST_STATE_TRACE=1
+# 0.1.17: the left trigger dives at the surface (a tester: "how do you dive?"); under, the head looks down and up with the stick.
+run dive dive 1 $N=695 $A=2.0,0 QUEST_STATE_TRACE=1 QUEST_SWIM_TRACE=1
+# 0.1.17: a tester on 0.1.16 could not dive at all. The hands pushed up edge-on dive, then a stroke looking down; seated
+# (to 0.1.16 Seated lifted the hands 45 cm, out of the water) and standing; the left trigger's dive in third person too.
+run divehands divehands 1 $N=695 $A=2.0,0 QUEST_STATE_TRACE=1 QUEST_SWIM_TRACE=1
+run divehands-seated divehands 1 $N=695 $A=2.0,0 QUEST_STATE_TRACE=1 QUEST_SWIM_TRACE=1 'QUEST_VR_OPTIONS=seated 1'
+run dive-third dive 1 $N=695 $A=2.0,0 QUEST_STATE_TRACE=1 QUEST_SWIM_TRACE=1 'QUEST_SETTINGS={"view":"third"}'
 run water water 1 $N=695 $A=10,0 KEEP=1
 # The body, the view, scenes, turrets, ships
 run body body 10
@@ -256,6 +285,8 @@ run landing landing 1 $G=10 $H=10 QUEST_SHIP_TRACE=1 KEEP=1
 # goes as the game's camera cuts; not fixed, the scene's own draw test)
 run aridia aridiascene 2 QUEST_SIM_AT=250.8,270.8,25.5,-20 QUEST_SHIP_TRACE=1 QUEST_SCENE_TRACE=1 KEEP=1
 run screen screen 1
+# 0.1.17: the left menu button held a second switches first and third person (a tester's ask); a tap only recentres.
+run viewhold viewhold 1 KEEP=1
 run t1 t1 1
 run t2 t2 1
 # How far the eyes see, the head turned from the game's camera: the ship must show in turned and turned2. QUEST_LOD=true,
@@ -271,6 +302,10 @@ run particles particles 1 $G=16 $H=16 QUEST_SIM_ALIGN=2620 OPENRAC_DRAW_COVERAGE
 run board board 5 $N=439 QUEST_STATE_TRACE=1 QUEST_BOARD_TRACE=1
 run board-kalebo board 16 $N=439 QUEST_STATE_TRACE=1 QUEST_BOARD_TRACE=1
 run boardjump boardjump 5 $N=439 QUEST_STATE_TRACE=1 QUEST_BOARD_TWIST=1
+# 0.1.17: Hoverboard view (Moves; a tester: "The board was not aligned and kept going sideways"): Ahead by default, the
+# trace's view along the board; Side-on, 0.1.16's, about 0.8 off it and swaying; seated as standing.
+run board-sideon board 5 $N=439 QUEST_STATE_TRACE=1 QUEST_BOARD_TRACE=1 'QUEST_VR_OPTIONS=board_side_on 1'
+run board-seated board 5 $N=439 QUEST_STATE_TRACE=1 QUEST_BOARD_TRACE=1 'QUEST_VR_OPTIONS=seated 1'
 run rail rail 14 $G=29 QUEST_SIM_RAIL=2,0.3,3 QUEST_SIM_ALIGN=2620 QUEST_STATE_TRACE=1 KEEP=1
 run cable cable 3 QUEST_SIM_RAIL=0,-1.3,0 QUEST_SIM_ALIGN=2620 QUEST_STATE_TRACE=1 KEEP=1
 # 0.1.13: the guns on a rail and on a cable, Akimbo's left too ([vr-akimbo] the left gun fired, [sim] item 15's rounds)
@@ -345,7 +380,26 @@ run worldmenu worldmenu 1 QUEST_POINTER_TRACE=1
 run worldmenuwall worldmenuwall 1 QUEST_PANEL_FAR=0
 run giant giant 15 QUEST_SIM_NEAR=1451 QUEST_SIM_NEAR_AT=0,0 QUEST_STATE_TRACE=1 KEEP=1
 run skipscene skipscene 1 QUEST_STATE_TRACE=1
-run tworings tworings 1 $G=15,16,19,21 $H=16 $L=15
-run tworings2 tworings2 1 $G=15,16,19,21 $H=16 $L=15
-run tworings3 tworings3 1 $G=10,15,16,11,13,9,18,19,20,17,21,23,14,24,25,12,22,26,27 $H=16 $L=15
+run tworings tworings 1 $G=15,16,19,21 $H=16 $L=15 'QUEST_VR_OPTIONS=wheel_reach 1'
+run tworings2 tworings2 1 $G=15,16,19,21 $H=16 $L=15 'QUEST_VR_OPTIONS=wheel_reach 1'
+run tworings3 tworings3 1 $G=10,15,16,11,13,9,18,19,20,17,21,23,14,24,25,12,22,26,27 $H=16 $L=15 'QUEST_VR_OPTIONS=wheel_reach 1'
+# 0.1.17: pointing at every slot of the left hand's wheel; the Trespasser's pickup with Help Desk forced on; Help Desk turned by the hand
+# through the real menu (on to start from 0.1.17, so the presses turn it off); a real new game from the title with Help Desk on
+# ("voice 1 text 1"); the title's scene staying behind the main menu and Load Game.
+run wheelleft wheelleft 1 $G=10,15,16,11,13,9,18,19 $H=16 $L=15 KEEP=1
+run trespickup trespickup 2 $N=1005 $A=0.2,0 QUEST_HELP_TRACE=3 KEEP=1
+run helpdeskon helpdeskon 1 QUEST_HELP_TRACE=1 QUEST_POINTER_TRACE=1 KEEP=1
+run newgamehelp newgamehelp - QUEST_HELP_TRACE=1
+run titleratchet titleratchet - --cards C:/RACQuest/pc/cards/regress-p17 KEEP=1
+# 0.1.17: Smoother frames (Application SpaceWarp, the owner's ask): the eyes' motion images ([sim] motion lines, the shots'
+# -motion.png): still nearly nothing, turning across, a walk spreading, the hand alone, a cut none, looking up down.
+run appsw appsw 1 KEEP=1
+# 0.1.17: World scale in VR Body (the owner's ask): stepped to 110 percent on the page and taken in play; from the file,
+# 120 kept while the launcher's is as it was, the launcher's own when it has changed since.
+run worldscale worldscale 1 KEEP=1
+run worldscale-saved hands 1 $G=15,16,21 $H=21 'QUEST_VR_OPTIONS=world_scale 120;launcher_world_scale 100'
+run worldscale-launcher hands 1 $G=15,16,21 $H=21 'QUEST_VR_OPTIONS=world_scale 120;launcher_world_scale 90'
+# 0.1.17: Seated, the head going down does not crouch him; standing it does (crouch.sim's own).
+run crouch crouch 1 QUEST_STATE_TRACE=1
+run crouch-seated crouch 1 QUEST_STATE_TRACE=1 'QUEST_VR_OPTIONS=seated 1'
 echo regress-done

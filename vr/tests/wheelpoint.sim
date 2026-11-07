@@ -1,0 +1,43 @@
+# Pointing at the wheel's weapons (Wheel pick: Point, the default; a tester's ask, 0.1.17) with its slow motion: the hand stays
+# where it is and only turns, the ray going round the wheel's eight icons in turn. [vr-ring] lines say each slot and item, and
+# the time slowing and coming back. Run with QUEST_SIM_GIVE of eight weapons or more.
+600 y 1
+606 y 0
+3000 shot before
+3100 right_click 1
+3160 shot open
+# The wheel's next page has more of them on it.
+3170 right_trigger 1
+3176 right_trigger 0
+# Top, then round to the right: the hand's yaw and pitch for each icon, from where the hand is (xr_sim's 0.2 right, 0.35 down),
+# the right hand's wheel being right of the middle.
+3200 hand_yaw -11.7
+3201 hand_pitch 23.5
+3260 shot top
+3280 hand_yaw -19.0
+3281 hand_pitch 20.4
+3340 shot topright
+3360 hand_yaw -21.9
+3361 hand_pitch 14.1
+3420 shot right
+3440 hand_yaw -19.0
+3441 hand_pitch 8.1
+3500 shot bottomright
+3520 hand_yaw -11.7
+3521 hand_pitch 5.6
+3580 shot bottom
+3600 hand_yaw -4.0
+3601 hand_pitch 8.5
+3660 shot bottomleft
+3680 hand_yaw -0.7
+3681 hand_pitch 15.2
+3740 shot left
+3760 hand_yaw -4.0
+3761 hand_pitch 21.4
+3820 shot topleft
+# Back to the icon on the right, and let go: that weapon comes out as time snaps back.
+3840 hand_yaw -21.9
+3841 hand_pitch 14.1
+3900 right_click 0
+3960 shot after
+4100 quit 0

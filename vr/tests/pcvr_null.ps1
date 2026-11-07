@@ -14,6 +14,8 @@
 # (Y is tapped until play, QUEST_PC_TAP_TO_PLAY), and saves what goes to the runtime every 15 seconds or so, the left
 # eye and the panel, as .ppm files in the run's folder (QUEST_PC_SHOTS). Give it some minutes; delete them after.
 param([string]$Name = "pcvr", [int]$Seconds = 60, [int]$Level = 3, [string]$Launcher = "", [switch]$Play,
+    [string]$Game = "C:\RACQuest\RatchetQuestVR\third_party\OpenRAC\port\build\release\openrac-rac1-pal.exe",
+    [string]$Package = "C:\RACQuest\b\vrpc\package\quest_vr",
       [string]$LauncherHome = "C:\RACQuest\pc\launcher-home", [string]$LauncherLogs = "C:\RACQuest\pc\launcher-logs")
 $ErrorActionPreference = "Stop"
 $settings = "C:\Program Files (x86)\Steam\config\steamvr.vrsettings"
@@ -26,8 +28,8 @@ if (Get-Process -Name vrserver, vrmonitor, vrcompositor -ErrorAction SilentlyCon
 if (-not (Test-Path $original)) { Copy-Item $settings $original }
 Copy-Item $settings $prerun -Force
 
-$game = "C:\RACQuest\RatchetQuestVR\third_party\OpenRAC\port\build\release\openrac-rac1-pal.exe"
-$package = "C:\RACQuest\b\vrpc\package\quest_vr"
+$game = $Game        # -Game and -Package: another build's, to compare
+$package = $Package
 $data = "C:\RACQuest\pc\data"
 $out = "C:\RACQuest\pc\out\$Name"
 $cards = "C:\RACQuest\pc\cards\pcvr"

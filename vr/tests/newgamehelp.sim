@@ -1,0 +1,44 @@
+# A real new game from the title, not a level jumped to: what the game's Help Desk voice and text options hold there (QUEST_HELP_TRACE=1
+# says). From 0.1.17 they are on (voice 1 text 1); up to 0.1.16 the mod turned them off, in a --level run too, which also passes
+# through the new-game step. Past the logos to the main menu, New Game, a new save on the test's card, the movies and the first scene
+# skipped.
+100 hand_pitch 45
+900 a 1
+906 a 0
+1500 a 1
+1506 a 0
+1900 a 1
+1906 a 0
+2300 a 1
+2306 a 0
+2700 a 1
+2706 a 0
+3100 shot saved
+3300 a 1
+3306 a 0
+3700 shot asked
+3900 y 1
+3906 y 0
+4300 shot one
+4400 y 1
+4406 y 0
+4800 shot two
+4900 y 1
+5150 y 0
+5400 shot three
+5500 y 1
+5750 y 0
+6000 shot four
+6100 y 1
+6350 y 0
+6600 shot five
+6700 y 1
+6950 y 0
+7200 shot six
+7400 left_y 1
+7600 left_y 0
+7800 shot seven
+8600 shot eight
+9400 shot nine
+10200 shot ten
+10800 quit 0

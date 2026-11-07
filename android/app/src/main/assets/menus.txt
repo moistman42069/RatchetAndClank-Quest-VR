@@ -35,7 +35,8 @@ VR OPTIONS, CHEATS
 
 VR OPTIONS, VR BODY
               Player body, Body parts, Tail, Arms bend to your hands, Legs bend, Body turns with
-              your head, Body height, Body forward, Arm length, View height
+              your head, Body height, Body forward, Arm length, View height, Feet on the floor,
+              World scale
 
 VR OPTIONS, VR CONTROLS
               Turning, Snap angle, Smooth turn speed, Physical crouch, Crouch when head drops,
@@ -44,10 +45,12 @@ VR OPTIONS, VR CONTROLS
 
 VR OPTIONS, VR CONTROLS, MORE CONTROLS
               Moves, Ledge shimmy, Hide black bars, Menu pointer, Arm moves, Two-handed weapons,
-              World collision, World vibration, Walk around your room, Sparkles on the bolts
+              World collision, World vibration, Walk around your room, Sparkles on the bolts,
+              Wheel slow motion, Wheel pick
 
 VR OPTIONS, VR CONTROLS, MORE CONTROLS, MOVES
               Swingshot anywhere, Wall run and jump, Swingshot reach (how far the hook goes),
-              Wrench throw distance, Wrench comes back
+              Wrench throw distance, Wrench comes back, Hoverboard view (Ahead or Side-on)
 
-The game's own Save, Load, Sound, Video, Camera and Subtitles are in the Options list too.
+The game's own HelpDesk (its tips in voice and text, on for a new game), Save, Load, Sound, Video, Camera and Subtitles
+are in the Options list too.

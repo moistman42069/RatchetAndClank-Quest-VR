@@ -1,0 +1,31 @@
+# The wrench held through a fast swing with the grip eased (a tester on 0.1.16, seated: "you can't do the wrench it jus
+# disconnects"). Up to 0.1.16 the wrench was held only while the grip was past 0.55: eased to 0.45 in a fast stroke it
+# was a let go, and at speed a throw ([vr-wrench] thrown), gone from the hand. From 0.1.17 once closed it holds until the
+# grip opens past 0.35. Run seated (QUEST_VR_OPTIONS=seated 1) and standing: no throw in the eased swing; a real let go
+# (the grip open in a fast stroke) still throws it.
+600 y 1
+606 y 0
+3200 shot ahead
+3250 right_grip 1
+3300 shot wrench
+# A swing: 35 cm forward in about 70 ms, the grip eased to 0.45 as it goes.
+3360 rh_z -0.07
+3361 rh_z -0.14
+3361 right_grip 0.45
+3362 rh_z -0.21
+3363 rh_z -0.28
+3364 rh_z -0.35
+3370 shot eased
+3420 rh_z 0
+3430 right_grip 1
+3460 shot held
+# The throw as wrenchthrow.sim's: the grip let go at the end of a fast stroke.
+3500 rh_z -0.07
+3501 rh_z -0.14
+3502 rh_z -0.21
+3503 rh_z -0.28
+3504 rh_z -0.35
+3504 right_grip 0
+3510 shot out
+3560 rh_z 0
+3700 quit 0

@@ -1,0 +1,22 @@
+# Water from right beside it (the owner's video of 0.1.16, Novalis's pond, standing on its edge): the head looking down and
+# round while the game's camera stays level. Before, the pond's tiles were sent only if inside that camera's view, so
+# the water came and went in big pieces. Run with QUEST_SIM_AT at the owner's place (regress.sh).
+600 y 1
+606 y 0
+3300 shot level
+3320 head_pitch -45
+3360 shot down
+3380 head_yaw 60
+3420 shot left
+3440 head_yaw -60
+3480 shot right
+3500 head_yaw 120
+3540 shot behind
+3560 head_yaw -120
+3600 shot behind2
+3620 head_yaw 0
+3622 head_pitch -80
+3660 shot feet
+3680 head_pitch 0
+3700 shot after
+3720 quit 0

@@ -157,6 +157,23 @@ it worked (the log is in Download/RatchetQuestVR). PC-proven features are in STA
   - **Empty hand angle 65 down:** after the update from 0.1.13, with the row never set, VR Hands says 65 down
     (`[vr-hand] Empty hand angle: 0 was the start before 0.1.14, 65 down is now` once). An angle you had set stays.
   - **Finding the options (0.1.15):** with no help, try the Controls tab's Menus section: in a level, Y, Options, VR Options, hold on the bottom row until VR Controls shows, the same for More controls, then Moves. Say if any step is not as it says.
+  - **Wheel slow motion (0.1.17, on to start):** hold the right stick click: time slows to a third with a whoosh and a drop in pitch, and your head stays smooth. Go round the weapons: a click each. Let go on another weapon: a chirp and a thump, and normal speed. A quick press beside someone to talk slows nothing. More controls, Wheel slow motion: try No sounds and Off. Say how it feels and sounds.
+  - **Wheel pick (0.1.17, Point to start):** with the wheel open, point at each weapon without moving your arm far: a beam and a dot, and the one under the dot lights up. Do the same with the left hand's ring. More controls, Wheel pick: Reach brings the old way back. Say whether picking is easier.
+  - **Feet on the floor (0.1.17, off to start):** VR Body, on. Stand straight and recentre: Ratchet's ground should be your real floor. Say how the hands feel.
+  - **HUD and rings on PC VR (0.1.17):** bolts, ammo and health numbers, help text, and the Trespasser's rings all show on SteamVR.
+  - **Vendor (0.1.17):** the bolt numbers at a vendor or an equipment box have no boxes behind the digits.
+  - **Water (0.1.17):** stand right by a pool (Novalis's by the start) and look about: it stays whole.
+  - **Title screen (0.1.17):** press Start, then move through the main menu, Load Game and Options: Ratchet, his ship and the crate stay in the scene behind the menu.
+  - **Help Desk (0.1.17, on for a new game):** start a new game: the game's tips should play in voice and text on Veldin. Later pick up the Trespasser: say whether you hear its tip and see its text. On a save from before, turn them on first (Y, Options, HelpDesk, Voice and Text).
+  - **View switch (0.1.17):** in play, hold the left menu button a second: third person (`[vr-rig] the view is third person now: the left menu button held`); again: first person. A short press only recentres. Try it on the hoverboard and at a bolt crank.
+  - **Dive (0.1.17):** in first person at the water's surface, pull the left trigger: he dives. Under the water look down and push the stick: he goes deeper; look up: he comes back up. Then stroke hard at the surface with the wrench out: he should not dive unless you push the water up with both hands. In third person the left trigger dives too.
+  - **Dive by hand (0.1.17, a seated tester could not dive at all):** at the surface, holding the controllers as you do, push both hands up quickly: he dives (`[vr-swim] dive: the hands pushed up`). Come back up, look well down and stroke: he dives (`a stroke looking down`). Swim along at the surface with ordinary strokes, looking ahead: he must not dive. Do it standing and seated (Play position: Seated).
+  - **Seated (0.1.17):** VR Options, Play position: Seated, sitting in a chair. Your eyes should be at Ratchet's, no higher (to 0.1.16 they were 45 cm above), and your hands where you hold them: in the water at the surface, at a bolt crank, at an enemy with the wrench. Lean forward in the chair: he does not crouch. The left trigger crouches.
+  - **Wrench through a swing (0.1.17, the same tester: "it jus disconnects"):** swing hard with your grip loosened a little: the wrench stays in your hand. Open your hand fully in a swing: it is thrown. Turn a bolt crank seated and standing.
+  - **Hoverboard view (0.1.17, Ahead to start):** ride the board on Rilgar: the view looks where the board goes and holds steady (`[vr-board] riding, ... the view ahead`). More controls, Moves, Hoverboard view: Side-on is 0.1.16's. Say which is better, standing and seated.
+  - **World scale in the game (0.1.17):** VR Body, World scale: step it to 120 and to 80 percent; the world grows and shrinks around you (`[vr-rig] the world's scale ... now`), and it is kept the next time you play.
+  - **Smoother frames (AppSW) (0.1.17, on to start, Quest only):** the log should say `[openxr] smoother frames (Application SpaceWarp): on, motion W x H an eye` and `[vr-view] smoother frames: the eyes' motion drawn`, and the frame statistics `smoother frames on N% of them`. At 72, 90 and 120 Hz: turn with the stick, walk, swing the wrench, watch an enemy move, and look at your hands. Say whether it is smoother than with it off (Graphics, Smoother frames (AppSW)), and whether anything smears, wobbles or doubles, most of all thin things at the edges.
+  - **Movies on PC VR (0.1.17):** the intro and the flying movies play smoothly, the sound in time. A black box after Clank's video on Veldin: say if you see it.
   - **More rows (0.1.16):** on VR Options, the box under the list has a third line under Toggle and Exit: More below at the top of the list, More up/down partway, More above at the bottom. Moves, a short page, has only two lines. Say if the three lines are hard to read in your headset.
   - **The thumb (0.1.15, after 0.1.14 turned it back toward the wrist):** hold an empty hand up and look at it from the
     palm and the back. Lifted off the controller it rests open beside the hand, pointing up toward the fingers' ends, never
@@ -293,7 +310,8 @@ it worked (the log is in Download/RatchetQuestVR). PC-proven features are in STA
   0.1.4, and about 57 on 0.1.6; 0.1.7's Max draw distance draws and runs more, so compare it on and off.
 - **Recentring.** Press the left controller's menu button: `[vr-rig] recentred: the left menu button`. Hold the
   headset's own button (the Meta button) to recentre: `[vr-rig] recentred: the headset's own recentre`. Either
-  puts the view back where Ratchet stands, facing where you look.
+  puts the view back where Ratchet stands, facing where you look. Holding the left menu button a second in play also
+  switches first and third person (0.1.17).
 - **Feel.** Every vibration is checked by log only on the PC: shots and each gun's own, a hit on you (two
   beats), bolts picked up (a light tap), the wrench's hits and its knock on walls, Hyper Strike's start and
   landing, ledge catches and the climb, the Walloper's lunge and hits, the Suck Cannon's gulp and its vacuum

@@ -1,0 +1,69 @@
+# Diving with the hands as they hold the controllers (a tester on 0.1.16, seated: "Diving isnt working for me. Can't get
+# below the water no matter what I try"). Run seated (QUEST_VR_OPTIONS=seated 1) and standing. Ratchet put in Novalis's
+# water treads it at the surface. The hands, edge-on to the water (no turn of the palms), pushed up quick: he dives
+# ([vr-swim] dive: the hands pushed up). Looking up with the stick he comes back up. At the surface, the head 50 degrees
+# down, a stroke back dives him again ([vr-swim] dive: a stroke looking down). QUEST_SWIM_TRACE=1: the hands' heights to
+# the water at the surface ([vr-swim] at the surface), which must be under it (below 0).
+600 y 1
+606 y 0
+3300 shot treading
+# The hands down, then up 2 cm a frame (1.2 m/s each), palms edge-on.
+3320 rh_y -0.40
+3320 lh_y -0.40
+3340 rh_y -0.38
+3340 lh_y -0.38
+3341 rh_y -0.36
+3341 lh_y -0.36
+3342 rh_y -0.34
+3342 lh_y -0.34
+3343 rh_y -0.32
+3343 lh_y -0.32
+3344 rh_y -0.30
+3344 lh_y -0.30
+3345 rh_y -0.28
+3345 lh_y -0.28
+3346 rh_y -0.26
+3346 lh_y -0.26
+3347 rh_y -0.24
+3347 lh_y -0.24
+3348 rh_y -0.22
+3348 lh_y -0.22
+3349 rh_y -0.20
+3349 lh_y -0.20
+3420 shot dived
+# Back where they were, under the water by now (the dive's tick, in the state trace, before 3350).
+3430 rh_y 0
+3430 lh_y 0
+# Up again: look up and push the stick.
+3440 head_pitch 40
+3460 left_y 1
+3640 left_y 0
+3650 head_pitch 0
+3700 shot surfaced
+# Looking down, a stroke back: both hands 3 cm a frame back (1.8 m/s each), down in the water first.
+3710 rh_y -0.30
+3710 lh_y -0.30
+3720 head_pitch -50
+3740 rh_z 0.03
+3740 lh_z 0.03
+3741 rh_z 0.06
+3741 lh_z 0.06
+3742 rh_z 0.09
+3742 lh_z 0.09
+3743 rh_z 0.12
+3743 lh_z 0.12
+3744 rh_z 0.15
+3744 lh_z 0.15
+3745 rh_z 0.18
+3745 lh_z 0.18
+3746 rh_z 0.21
+3746 lh_z 0.21
+3747 rh_z 0.24
+3747 lh_z 0.24
+3820 shot dived-again
+3830 rh_z 0
+3830 lh_z 0
+3830 head_pitch 0
+3850 rh_y 0
+3850 lh_y 0
+3900 quit 0

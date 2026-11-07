@@ -95,7 +95,8 @@ struct PadContext {
     bool ledge_press = false;        // the shove: Cross
     bool ledge_drop = false;         // both hands let go: R1, the game's drop
     bool ledge_stick = false;        // the hands pull along it: the stick toward head_yaw
-    bool dive = false;               // both hands pushed the water up: Square, the game's dive
+    bool dive = false;               // the hands pushed the water up, or stroked looking down: Square, the game's dive
+    bool surface = false;            // at the water's surface, either view: the left trigger dives (0.1.17)
     bool raw_stick = false;          // the stick steers a Visibomb missile: not turned by the head
     bool board = false;              // on the hoverboard: boost, tricks, and the stick steers it
     bool board_steers = false;       // on it and not spinning in a trick: the stick's x turns it about its own heading
@@ -326,8 +327,13 @@ public:
                     }
                 }
             } else {
-                set(out, (left_squeeze && !context.left_support && context.grip_crouch) || (left_fire && !context.left_weapon) || context.crouch,
+                // At the water's surface the left trigger, the crouch, dives: Square, the game's dive (a tester asked how
+                // to dive in first person, where Square is only a swing; 0.1.17), and in third person as well, where the
+                // right grip is Square too. The crouch does nothing there.
+                const bool dives = left_fire && !context.left_weapon && context.surface;
+                set(out, (left_squeeze && !context.left_support && context.grip_crouch) || (left_fire && !context.left_weapon && !dives) || context.crouch,
                     kPadR1);
+                set(out, dives, kPadSquare);
             }
         }
         set(out, c.y, kPadStart);

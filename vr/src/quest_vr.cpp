@@ -105,8 +105,12 @@ constexpr float kEyeClank = 0.63f;
 constexpr float kEyeGiant = 9.5f;
 constexpr float kGiantScale = kEyeGiant / 1.6f;  // his tracking space is his size
 constexpr uint8_t kBodyClank = 1, kBodyGiant = 2;
-// A sitting player's eyes below a standing one's, metres: the view lifted by it (the VR Options).
-constexpr float kSeatedLift = 0.45f;
+// Seated (VR Options' Play position) lifted the view 0.45 m up to 0.1.16, Rerac-vr's sitting player's eyes below a
+// standing one's. Here the recentre already puts the head, sitting or standing, at his eyes: the lift put the view and the
+// hands 45 cm over them, a seated player's hands out of the water at the surface (no stroke, no dive) and over a bolt (the
+// crank let go), a tester's report on 0.1.16. Seated lifts nothing from 0.1.17; it recentres when chosen, and the head
+// going down does not crouch him (a chair is no crouch: leaning forward was one).
+float s_floor_lift = 0.0f;  // Feet on the floor: metres, measured at each recentre
 // How fast the view's room offset closes on the body while the stick moves him, metres a second.
 constexpr float kCatchUp = 1.2f;
 
@@ -164,7 +168,7 @@ struct VrOptions {
     bool akimbo = true;          // a gun in each hand: on for everyone from 0.1.13 (the owner's ask; Rerac-vr's is off). The
                                  // left hand holds nothing until the left stick's ring gives it something.
     bool akimbo_chosen = false;  // Akimbo was set on the page: a file of 0.1.12's or before has no word of it
-    bool seated = false;         // the view lifted by a sitting player's drop
+    bool seated = false;         // a sitting player: the head going down does not crouch him (0.1.17; to 0.1.16 the view lifted)
     // Physical crouch (VR Controls): the player's own head this many centimetres down from standing crouches him.
     bool physical_crouch = true;
     int crouch_drop = 25;
@@ -175,6 +179,11 @@ struct VrOptions {
     int swing_reach = 0;       // Swingshot reach: 0 the game's, 1 twice it, 2 no limit
     int wrench_far = 0;        // Wrench throw distance: 0 the game's, then 2, 4 and 8 times it
     bool wrench_stay = false;  // Wrench comes back: by itself, or (true) when you call it
+    // Hoverboard view (Moves; a tester on 0.1.16: "The board was not aligned and kept going sideways couldnt find a good
+    // position"): false, Ahead, the view along where the board goes, by default from 0.1.17; true, Side-on, Rerac-vr's
+    // and 0.1.16's, along his chest as he stands on it, about 45 degrees off (board.sim's trace: the view 0.8 off the board) and
+    // swaying with his moves (follow_board).
+    bool board_side_on = false;
     // Ledge shimmy (More controls): false, the hands reached along the ledge take him that way (the owner's start from
     // 0.1.13, a tester's ask: "leaning your hands to the right moves you right"); true, Rerac-vr's pull, the hands drawn
     // the other way, as 0.1.12 had it.
@@ -192,6 +201,13 @@ struct VrOptions {
     // the game's fire; and Throw by hand, Grab ledges with your hands and Swim with your arms count as off, their own
     // settings kept for For real (button_moves; the readers: real_wrench, real_throws, real_ledges, real_swim).
     bool button_moves = false;
+    // Wheel slow motion (More controls, With sounds by default; a tester's ask for throwing and changing weapons in a
+    // fight, the owner's default, 0.1.17): 0 time slows while the weapon wheel is held up, with its sounds and the game's
+    // sound dropping in pitch (views_time_speed); 1 the same without any of the sound; 2 off, the wheel as the game has it.
+    int wheel_slow = 0;
+    // Wheel pick (More controls, Point by default; the same tester's ask, 0.1.17): false, the hand's ray at the weapon
+    // in the wheel picks it (wheel_pointer); true, the whole arm reached toward it, as it was to 0.1.16 (ring_of_hand).
+    bool wheel_reach = false;
     // VR Body: what of him Player body draws, and how it fits the player. Centimetres and percents.
     int body_parts = 0;          // BodyParts: kPartsAll, everything (the owner's start from 0.1.13; arms with hands before)
     bool parts_chosen = false;   // Body parts was set on the page: a file of 0.1.12's or before has no word of it
@@ -203,6 +219,11 @@ struct VrOptions {
     int body_forward = 0;
     int arm_length = 150;        // a game unit being a metre, about a grown player's arm
     int view_height = 0;
+    // Feet on the floor (VR Body, off by default; a tester: "my real legs below ground"): Ratchet's eyes are about 1.1 up,
+    // a grown player's half a metre higher, so standing the real floor lies under the game's ground. On, the view is
+    // lifted by that difference at each recentre (s_floor_lift), on a headset that knows its floor. Off to start: the
+    // lift moves the hands against everything the world asks them to reach.
+    bool feet_on_floor = false;
     // VR Hands: the guns' barrels turned this many degrees up from where the controller points (its aim
     // pose, the menus' ray; below 0 down), and drawn this percent of the game's size; Ratchet's hands and
     // forearms (and a glove, which is the hand) this percent of theirs.
@@ -237,6 +258,9 @@ static_assert(!VrOptions{}.button_moves, "Arm moves are for real by default");
 constexpr int kCrouchDropMin = 10, kCrouchDropMax = 60, kCrouchDropStep = 5;
 constexpr int kBodyOffsetMax = 30, kBodyOffsetStep = 5;
 constexpr int kViewHeightMax = 40, kViewHeightStep = 5;
+// World scale in VR Body (the owner, 0.1.17: "if we dont have a world scale option in the in game menu, then add that"):
+// the launcher's range, 70 to 150 percent by fives.
+constexpr int kWorldScaleMin = 70, kWorldScaleMax = 150, kWorldScaleStep = 5;
 constexpr int kArmLengthMin = 80, kArmLengthMax = 200, kArmLengthStep = 10;
 constexpr int kSnapMin = 15, kSnapMax = 90, kSnapStep = 5;
 constexpr int kSmoothMin = 30, kSmoothMax = 360, kSmoothStep = 10;
@@ -270,6 +294,8 @@ void set_scene_view(int view) {
 
 // The HUD Height (VR Hands), metres up.
 float hud_lift() { return static_cast<float>(s_vr.hud_height) / 100.0f; }
+// How far the view stands above his own eyes: Play position's, View height's and Feet on the floor's.
+float view_lift() { return static_cast<float>(s_vr.view_height) / 100.0f + s_floor_lift; }
 bool s_started = false;
 bool s_failed = false;
 std::string s_status_file;
@@ -314,6 +340,14 @@ double s_eyes_kept_seconds = 0;
 bool s_eyes_stale = false;
 constexpr double kEyesKeptMost = 0.25;
 
+// Smoother frames (Application SpaceWarp, from 0.1.17, the owner's ask): each eye's motion images this frame, which the
+// port draws (openrac_view_source.view_motion), and the rig's turn the frame before: a snap turn is a cut, not a motion.
+openrac_view_motion s_motion[2]{};
+bool s_motion_ready[2]{};
+float s_motion_yaw = 0;
+bool s_motion_said = false;
+constexpr float kMotionTurnMost = 10.0f * 3.14159265f / 180.0f;  // a frame's turn by the stick that is still a motion
+
 // The turn and walk read from the frame, for the pad.
 float s_aim_yaw = 0;
 float s_head_yaw = 0;
@@ -332,6 +366,12 @@ bool s_page_trigger = false;
 bool s_left_page_trigger = false;
 int s_ring_page = 0;
 uint64_t s_ring_seen = 0;  // the tick the ring last ran
+gaddr s_ring_object = 0;   // the ring it ran
+bool s_wheel_pointing[2]{};      // that hand's ray picks in its ring (wheel_pointer), each frame
+float s_wheel_stick[2][2]{};     // and what it points the ring's stick at: x, and y up
+unsigned s_wheel_cues = 0;       // sounds for views_time_speed to pass on
+int s_wheel_held[2]{};           // ticks each hand has held its ring up
+constexpr int kWheelTapTicks = 7;  // held this long, the click is not a tap
 SwingDetector s_swing;
 bool s_trigger_back = false;  // the trigger is taking the gun out, not firing it
 bool s_swinging = false;
@@ -819,6 +859,18 @@ void sim_give() {
         }
         walk_was = now;
     }
+    // QUEST_SWIM_TRACE: in the water (control mode 0x11 under, 0x12 at the surface), his place and pitch every 15 ticks.
+    if (s_have_hero && std::getenv("QUEST_SWIM_TRACE") != nullptr && s_tick % 15 == 0) {
+        const int32_t mode = ref<int32_t>(s_disc->hero + 0x208Cu);
+        if (mode == 0x11 || mode == 0x12) {
+            const Vec3 now = read_vec(s_disc->hero + 0x80u);
+            char text[160];
+            std::snprintf(text, sizeof text, "[sim] swim tick %llu: mode 0x%X state 0x%X at (%.2f %.2f %.2f), pitch %.2f",
+                          static_cast<unsigned long long>(s_tick), mode, ref<int32_t>(s_disc->hero + kHeroState), now.x, now.y, now.z,
+                          get_float(s_disc->hero + 0x94u));
+            log_line(1, text);
+        }
+    }
     // The bolts as the game counts them: what a broken crate or a purchase did.
     static int32_t bolts_was = -1;
     if (done && s_have_hero && ref<int32_t>(s_disc->bolts) != bolts_was) {
@@ -1163,6 +1215,7 @@ void giant_missiles();
 
 #if !defined(__ANDROID__)
 void ring_trace();
+void help_trace();
 #endif
 
 void paint_glyphs();
@@ -1451,6 +1504,7 @@ void on_tick() {
 #if !defined(__ANDROID__)
     sim_give();
     ring_trace();
+    help_trace();
     missile_diff_tick();
 #endif
 }
@@ -1629,6 +1683,8 @@ bool right_supports();
 bool left_on_ledge();
 void ledge_context(PadContext& context);
 bool dive_wanted();
+bool at_water_surface();
+bool in_water();
 bool socket_pressed();
 bool missile_flying();
 int32_t hero_mode();
@@ -1721,6 +1777,8 @@ void on_pad(int port, std::uint8_t* report, int size) {
     context.quick_select = s_quick_select;
     ledge_context(context);
     context.dive = dive_wanted();
+    // In third person too (0.1.17, a tester could not get under the water): there the right grip, Square, dives as well.
+    context.surface = !context.in_menu && !s_options.screen && at_water_surface();
     context.raw_stick = missile_flying();
     context.board = s_have_hero && !context.in_menu && hero_mode() == kModeBoard;
     // A trick's spin takes the stick as it is; so does a game's own camera.
@@ -4210,7 +4268,8 @@ void wrench_gesture() {
         s_slam_seen = true;
     }
     const float down = -slam.y;
-    if (airborne() && now >= s_slam_until && down > 1.6f
+    // Not in the water, where nothing is under him but no strike can be: its Square at the surface would dive (0.1.17).
+    if (airborne() && !in_water() && now >= s_slam_until && down > 1.6f
         && down > 0.8f * std::sqrt(slam.x * slam.x + slam.z * slam.z) && s_slam_from.y - at.y >= 0.08f) {
         s_slam_until = now + kSlamWait;
         s_strike_until = now + 0.3;
@@ -5742,8 +5801,13 @@ void punch_gesture() {
 
 void change_items() {
     const Controls& c = s_frame.controls;
-    // The right grip on the left hand's gun's foregrip takes no wrench.
-    const bool grip = c.right_grip > kTriggerOn && !right_supports();
+    // The right grip on the left hand's gun's foregrip takes no wrench. Once closed it holds until it opens past
+    // kTriggerOff, as the hand drawn holding the wrench does (wrench_put_down): a swing with the grip eased a little
+    // under kTriggerOn was a let go, and at speed a throw, the wrench gone from the hand (a tester on 0.1.16, seated:
+    // "you can't do the wrench it jus disconnects").
+    static bool squeezed = false;
+    squeezed = c.right_grip > (squeezed ? kTriggerOff : kTriggerOn);
+    const bool grip = squeezed && !right_supports();
     const bool trigger = c.right_trigger > kTriggerOn;
     // Only Ratchet's own body takes the wrench on the grip: as Clank, Giant Clank or the Hologuise the
     // grips close the hands, and a change of item would end the disguise.
@@ -6427,6 +6491,10 @@ constexpr float kStrokeGain = 0.65f, kStrokeMost = 3.5f;
 constexpr float kSwimDrag = 0.96f, kSwimPush = 0.12f;  // a 60th of a second's
 constexpr float kSwimMostSurface = 3.0f, kSwimMostUnder = 4.5f;
 constexpr float kDivePush = 0.8f;
+// The hands pushed up, whatever the palms: their speeds up summed (metres a second), and that much of all their travel.
+constexpr float kDiveLift = 1.4f, kDiveUpright = 0.65f;
+// A stroke looking down: the head 40 degrees down at least, the hands' push along the gaze (metres a second).
+constexpr float kDiveLook = 0.64f, kDiveStroke = 1.0f;
 
 Vec3 s_neck;
 bool s_neck_seen = false;
@@ -6534,6 +6602,8 @@ void sample_origin() {
 }
 
 bool dive_wanted() { return s_dive_ticks > 0; }
+bool at_water_surface() { return s_have_hero && hero_mode() == kModeSurface; }
+bool in_water() { return s_have_hero && (hero_mode() == kModeSurface || hero_mode() == kModeUnderwater); }
 
 void swim_tick() {
     s_dive_ticks = std::max(0, s_dive_ticks - 1);
@@ -6546,6 +6616,8 @@ void swim_tick() {
     const Quat turn = yaw_quat(s_rig.yaw);
     const float water = get_float(hero + kHeroWaterZ);
     Vec3 force;
+    Vec3 paddle;               // the hands' push on the water whatever the palms, world, metres a second
+    float lift = 0, travel = 0;
     for (int side = 0; side < 2; ++side) {
         if (!s_frame.hand_valid[side] || hand_at(side).z > water + 0.04f * s_rig.scale) {
             continue;
@@ -6555,9 +6627,13 @@ void swim_tick() {
         if (speed <= 0.0f) {
             continue;
         }
+        const Vec3 moved = frame_to_world(rotate(turn, v));
+        paddle = paddle - moved;
+        lift += std::max(moved.z, 0.0f);
+        travel += speed;
         // A broad palm pushes water; turned edge-on it recovers for nothing.
         const float drag = std::abs(dot(v * (1.0f / speed), rotate(s_frame.hand_grip[side].orientation, {1, 0, 0})));
-        force = force - frame_to_world(rotate(turn, v)) * (drag * kStrokeGain * s_rig.scale);
+        force = force - moved * (drag * kStrokeGain * s_rig.scale);
     }
     Vec3 gaze = frame_to_world(rotate(turn * s_frame.head.orientation, {0, 0, -1}));
     const float size = length(gaze);
@@ -6566,10 +6642,39 @@ void swim_tick() {
     if (length(stroke) > kStrokeMost) {
         stroke = stroke * (kStrokeMost / length(stroke));
     }
-    // Pushing the water up with both hands dives: the force before it is taken along the gaze.
-    if (mode == kModeSurface && force.z < -kDivePush) {
-        s_dive_ticks = 3;
+    // The dives at the surface (a tester, on 0.1.16: "Can't get below the water no matter what I try"; the push up counted
+    // only with the palms turned flat to the water, which a hand round a controller seldom is): pushing the water up with
+    // the palms flat, as before; the hands pushed up however they are turned, mostly up and quick; or a stroke with the
+    // head looking down. The left trigger dives too (pad.h).
+    if (mode == kModeSurface) {
+        const char* why = nullptr;
+        if (force.z < -kDivePush) {
+            why = "the palms pushed the water up";
+        } else if (lift >= kDiveLift && lift >= kDiveUpright * travel) {
+            why = "the hands pushed up";
+        } else if (gaze.z < -kDiveLook && dot(paddle, gaze) > kDiveStroke) {
+            why = "a stroke looking down";
+        }
+        if (why != nullptr) {
+            if (s_dive_ticks == 0) {
+                char line[160];
+                std::snprintf(line, sizeof line, "[vr-swim] dive: %s (push %.2f up, hands %.2f up of %.2f, gaze %.2f down, stroke %.2f)", why, -force.z,
+                              lift, travel, -gaze.z, dot(paddle, gaze));
+                log_line(1, line);
+            }
+            s_dive_ticks = 3;
+        }
     }
+#if !defined(__ANDROID__)
+    // PC test aid (QUEST_SWIM_TRACE=1): where the hands are against the water, at the surface every 15 ticks.
+    if (mode == kModeSurface && s_tick % 15 == 0 && std::getenv("QUEST_SWIM_TRACE") != nullptr) {
+        char line[160];
+        std::snprintf(line, sizeof line, "[vr-swim] at the surface: hands %.2f and %.2f to the water (him %.2f), gaze %.2f down, hands %.2f up of %.2f",
+                      s_frame.hand_valid[kLeft] ? hand_at(kLeft).z - water : 99.0f, s_frame.hand_valid[kRight] ? hand_at(kRight).z - water : 99.0f,
+                      s_hero_after.z - water, -gaze.z, lift, travel);
+        log_line(1, line);
+    }
+#endif
     const float tick = tick_seconds();
     const float sixtieths = tick * 60.0f;
     const bool surface = mode == kModeSurface;
@@ -6640,7 +6745,8 @@ void update_physical_crouch(float seconds) {
     s_stand_height = std::max(neck, s_stand_height - (s_ducking ? 0.0f : kStandSettle * seconds));
     const float drop = s_stand_height - neck;
     const float height = static_cast<float>(s_vr.crouch_drop) / 100.0f;
-    s_ducking = s_vr.physical_crouch && (drop >= height || (s_ducking && drop > std::max(height - kCrouchRise, 0.05f)));
+    // Seated, leaning forward is no crouch (0.1.17): the left trigger crouches.
+    s_ducking = s_vr.physical_crouch && !s_vr.seated && (drop >= height || (s_ducking && drop > std::max(height - kCrouchRise, 0.05f)));
     bool press = false;
     if (s_ducking && s_have_hero && s_steers && hero_on_foot() && !in_ship() && s_manned == 0 && !s_disguised
         && phase_now() == OPENRAC_PLAY_PLAYING) {
@@ -6671,6 +6777,9 @@ void update_eye_height(float seconds) {
         s_rig.scale = size;
         s_eye_height = body == kBodyGiant ? kEyeGiant : kEyeHeight;
         s_recentre_wanted = true;
+        char line[80];
+        std::snprintf(line, sizeof line, "[vr-rig] the world's scale %ld percent now", std::lround(size * 100.0f));
+        log_line(1, line);
     }
     if (body == kBodyClank) {
         target = kEyeClank;
@@ -9008,7 +9117,7 @@ void fit_body(openrac_moby_arm (&arms)[2], gaddr body, int slot, const BodyArms&
     Vec3 fit = neck_wanted - neck_now;
     const float scale = s_rig.scale;
     // Seated and View height lift the view alone: his feet are on the ground, and the body stays on them.
-    fit.z -= ((s_vr.seated ? kSeatedLift : 0.0f) + static_cast<float>(s_vr.view_height) / 100.0f) * scale;
+    fit.z -= view_lift() * scale;
     const float aside = std::sqrt(fit.x * fit.x + fit.y * fit.y);
     if (aside > kBodyMostAside * scale) {
         fit.x *= kBodyMostAside * scale / aside;
@@ -9277,7 +9386,18 @@ void ring_of_hand(int side, Update update) {
     // The hand's reach from where it was when the ring opened, in the head's view plane then (Rerac-vr's HandSelect):
     // past 6 cm it is a full stick's way, which the game's ring needs (over 0.9), until back within 3.5 cm.
     float stick_to_x = 0.0f, stick_to_y = 0.0f;
-    if (s_frame.hand_valid[side]) {
+    static uint64_t last_tick[2] = {0, 0};
+    s_wheel_held[side] = s_tick <= last_tick[side] + 1 ? s_wheel_held[side] + 1 : 0;
+    last_tick[side] = s_tick;
+    if (s_wheel_pointing[side]) {
+        // Or where its ray points, from the ring's middle (Wheel pick, wheel_pointer). Not at first: a tap of the click
+        // (talking, say) must pick nothing wherever the hand happens to point, and the ring leaves the game's keeping of
+        // the last pick only for a stick at rest. In that time the stick is let go, as the reach's is.
+        if (s_wheel_held[side] >= kWheelTapTicks) {
+            stick_to_x = s_wheel_stick[side][0];
+            stick_to_y = s_wheel_stick[side][1];
+        }
+    } else if (s_frame.hand_valid[side]) {
         const Vec3 reach = rotate(conjugate(s_pick_head[side]), s_frame.hand_grip[side].position - s_pick_from[side]);
         const float distance = std::sqrt(reach.x * reach.x + reach.y * reach.y);
         if (distance > kPickStart) {
@@ -9300,6 +9420,28 @@ void ring_of_hand(int side, Update update) {
     put_float(pad + kPadRingY, stick_y);
     ref<int32_t>(pad + kPadPressedRaw) = pressed;
     ref<int32_t>(pad + kPadMode) = 0;
+}
+
+// The slot a hand has come onto in its ring: felt, and heard with the slow motion's sounds. Not as it opens,
+// on the slot the game keeps from the last time.
+void ring_hover(int side, int32_t slot, int32_t item) {
+    static uint64_t last[2] = {0, 0};
+    static int32_t was[2] = {-1, -1};
+    const bool opened = s_tick > last[side] + 1;
+    last[side] = s_tick;
+    if (slot == was[side]) {
+        return;
+    }
+    was[side] = slot;
+    if (opened || slot < 0) {
+        return;
+    }
+    buzz(static_cast<Hand>(side), {0.18f, 0.02f, 160.0f});
+    s_wheel_cues |= OPENRAC_TIME_CUE_TICK;
+    if (!s_vr.akimbo) {
+        log_line(1, ("[vr-ring] the " + std::string(side == kLeft ? "left" : "right") + " hand on slot " + std::to_string(slot) + ", item "
+                     + std::to_string(item)).c_str());
+    }
 }
 
 template <typename Update>
@@ -9369,6 +9511,7 @@ void two_rings(Original original, gaddr ring) {
     }
     last = s_tick;
     s_ring_seen = s_tick;
+    s_ring_object = ring;
     const gaddr pad = s_disc->pad_state;
     const uint32_t held = ref<uint32_t>(pad + kPadAllHeld);
     const gaddr pending = s_disc->hero + kHeroPendingItem;
@@ -9423,6 +9566,7 @@ void two_rings(Original original, gaddr ring) {
             log_line(1, ("[vr-ring] the " + std::string(side == kLeft ? "left" : "right") + " hand on slot " + std::to_string(pick) + ", item "
                          + std::to_string(on)).c_str());
         }
+        ring_hover(side, pick, 0);
         if (last_fade || (!clicked && ref<uint8_t>(ring + kRingState) == 0)) {
             hand.alive = false;
             if (side == kLeft) {
@@ -9495,7 +9639,19 @@ int32_t ring_draw(Original original, gaddr ring) {
                 dim_left_ring_icons();
                 s_ring_dimming = true;
             }
+            // The middle of the ring says the lit weapon's ammo from the save's eight items by slot (draw_hud_item_selector_panel),
+            // which on a page after the player's own layout are other weapons': a wrong count, or none. The page's, for the draw.
+            const gaddr shown = level0(s_disc->quick_slots);
+            int32_t items[kRingSlots];
+            for (int slot = 0; slot < kRingSlots; ++slot) {
+                const gaddr item = s_disc->quick_items + 4u * static_cast<uint32_t>(slot);
+                items[slot] = ref<int32_t>(item);
+                ref<int32_t>(item) = ref<int32_t>(shown + static_cast<uint32_t>(slot) * kRingSlotBytes + kRingSlotItem);
+            }
             result = original(ring);
+            for (int slot = 0; slot < kRingSlots; ++slot) {
+                ref<int32_t>(s_disc->quick_items + 4u * static_cast<uint32_t>(slot)) = items[slot];
+            }
             s_ring_dimming = false;
         }
     }
@@ -9512,6 +9668,7 @@ void ring_update(Original original, gaddr ring) {
     }
     static uint64_t last = 0;
     s_ring_seen = s_tick;
+    s_ring_object = ring;
     const bool opened = s_tick > last + 1;
     last = s_tick;
     if ((opened && s_ring_page != 0) || s_page_wanted) {
@@ -9519,9 +9676,120 @@ void ring_update(Original original, gaddr ring) {
     }
     s_page_wanted = false;
     ring_by_hand([&] { original(ring); });
+    const int32_t slot = ref<int32_t>(ring + kRingPick);
+    ring_hover(s_left_ring ? kLeft : kRight, slot,
+               slot >= 0 && slot < kRingSlots ? ref<int32_t>(level0(s_disc->quick_slots) + static_cast<uint32_t>(slot) * kRingSlotBytes + kRingSlotItem) : 0);
+}
+
+// ---- The weapon wheel's slow motion ----
+//
+// Wheel slow motion (More controls, on by default; a tester's ask for changing weapons in a fight, 0.1.17). While the
+// wheel is held up the game runs at under a third of its speed: the port stretches its tick, and draws the frames
+// between ticks at the headset's own rate as ever, so the head and the view stay smooth and only the world slows. A
+// sharp whoosh falls as it slows, the game's sound drops an octave with it, a tick for each weapon the hand passes, a
+// thwip when a new one is chosen, and a punch as time snaps back (the port makes the sounds, program/sound.cpp).
+// A tap of the click, the game's own swap back, is too short to slow anything. Both views, either ring.
+constexpr float kWheelTime = 0.3f;      // the game's speed, enough to keep the ring and its hand answering
+constexpr float kWheelPitch = 0.5f;     // its sound's
+constexpr float kWheelSlowing = 0.14f;  // seconds to come to it
+constexpr float kWheelBack = 0.05f;     // and back
+
+enum WheelSlow { kWheelWithSounds, kWheelNoSounds, kWheelSlowOff, kWheelSlowCount };
+
+void views_time_speed(void*, openrac_time_speed* speed) {
+    using Clock = std::chrono::steady_clock;
+    static Clock::time_point last = Clock::now();
+    const Clock::time_point now = Clock::now();
+    const float seconds = std::min(std::chrono::duration<float>(now - last).count(), 0.25f);
+    last = now;
+    if (s_mod == nullptr || s_disc == nullptr) {
+        return;
+    }
+    const bool ran = s_ring_seen != 0 && s_ring_seen + 1 >= s_tick && phase_now() == OPENRAC_PLAY_PLAYING;
+    const bool held = ran && (ref<uint32_t>(s_disc->pad_state + kPadAllHeld) & kPadHeldTriangle) != 0;
+    static int held_ticks = 0;
+    held_ticks = held ? held_ticks + 1 : 0;
+    const bool slow = held_ticks >= kWheelTapTicks && s_vr.wheel_slow != kWheelSlowOff;
+    static bool slowed = false;
+    static int32_t item_then = 0;
+    const gaddr hero = s_disc->hero;
+    const int32_t item = s_have_hero ? ref<int32_t>(hero + kHeroSlot0 + kSlotItem) : 0;
+    unsigned cues = s_wheel_cues;
+    s_wheel_cues = 0;
+    if (!slowed) {
+        cues &= ~OPENRAC_TIME_CUE_TICK;
+    }
+    static Clock::time_point slowed_at;
+    static int slowed_ticks = 0;
+    slowed_ticks += slowed ? 1 : 0;
+    if (slow && !slowed) {
+        item_then = item;
+        slowed_at = now;
+        slowed_ticks = 0;
+        cues |= OPENRAC_TIME_CUE_SLOW;
+        buzz(s_left_ring ? kLeft : kRight, {0.30f, 0.09f, 90.0f});
+        log_line(1, "[vr-ring] time slows");
+    } else if (!slow && slowed) {
+        cues |= OPENRAC_TIME_CUE_BACK;
+        // The game takes the pick as the button is let go, the tick it is seen here.
+        const int32_t pending = s_have_hero ? ref<int32_t>(hero + kHeroPendingItem) : 0;
+        if ((pending > 0 && pending != item_then) || item != item_then || (s_left_ring_open && s_left_pick != 0)) {
+            cues |= OPENRAC_TIME_CUE_PICK;
+        }
+        buzz(s_left_ring_open ? kLeft : kRight, {0.60f, 0.07f, 70.0f});
+        char line[100];
+        std::snprintf(line, sizeof line, "[vr-ring] time comes back%s: %d ticks in %.2f s", (cues & OPENRAC_TIME_CUE_PICK) != 0u ? ", a new weapon" : "",
+                      slowed_ticks, std::chrono::duration<float>(now - slowed_at).count());
+        log_line(1, line);
+    }
+    slowed = slow;
+    static float time_now = 1.0f;
+    const float wanted = slow ? kWheelTime : 1.0f;
+    const float step = seconds * (1.0f - kWheelTime);
+    time_now = time_now > wanted ? std::max(wanted, time_now - step / kWheelSlowing) : std::min(wanted, time_now + step / kWheelBack);
+    speed->game = time_now;
+    if (s_vr.wheel_slow == kWheelWithSounds) {
+        speed->sound = 1.0f - (1.0f - time_now) * (1.0f - kWheelPitch) / (1.0f - kWheelTime);
+        speed->cues = cues;
+    }
 }
 
 #if !defined(__ANDROID__)
+// PC test aid (QUEST_HELP_TRACE=1, on Aridia, PAL): the game's help box as it changes: its state, what is pending, the
+// message up, the voice's stream asked for and playing, and the Help text and Help voice options.
+void help_trace() {
+    static const bool on = std::getenv("QUEST_HELP_TRACE") != nullptr;
+    if (!on || !s_have_hero) {
+        return;
+    }
+    const int level = s_mod->api().loaded_level();
+    // QUEST_HELP_TRACE=2: the game's Help Desk voice and text on; 3: and its help started, without a direction pressed.
+    const int force = std::atoi(std::getenv("QUEST_HELP_TRACE"));
+    if (force >= 2) {
+        ref<uint8_t>(s_mod->relocate(0x0015EF1Cu)) = 1;
+        ref<uint8_t>(s_mod->relocate(0x0015EF1Du)) = 1;
+    }
+    const gaddr box = level == 2 ? s_mod->relocate_level(2, 0x00179A90u) : 0;
+    if (force >= 3 && box != 0) {
+        ref<int32_t>(box + 0x30u) = 1;
+    }
+    const gaddr sound = s_mod->relocate(0x0014171Bu) + 0x100B5u;
+    const int values[] = {box != 0 ? ref<int32_t>(box) : -9, box != 0 ? ref<int32_t>(box + 0x20u) : -9, box != 0 ? ref<int32_t>(box + 0x24u) : -9, box != 0 ? ref<int32_t>(box + 0x28u) : -9,
+                          box != 0 ? ref<int32_t>(box + 0x30u) : -9, box != 0 ? std::min(ref<int32_t>(box + 0x34u), 1) : -9, ref<int32_t>(sound + 0x1Cu), ref<int16_t>(sound + 0x54u),
+                          ref<int16_t>(sound + 0x5Au), ref<uint8_t>(s_mod->relocate(0x0015EF1Cu)), ref<uint8_t>(s_mod->relocate(0x0015EF1Du)),
+                          ref<int32_t>(s_mod->relocate(0x0015F6E8u)), ref<int32_t>(s_mod->relocate(0x0013CBE0u)) & 0xF000};
+    static std::vector<int> was;
+    const std::vector<int> now(std::begin(values), std::end(values));
+    if (now != was) {
+        was = now;
+        char line[240];
+        std::snprintf(line, sizeof line, "[vr-help] tick %llu level %d: box state %d msg %d pending %d slot %d started %d delay %d; stream asked %d playing %d state %d; voice %d text %d; mode %d; held 0x%X",
+                      static_cast<unsigned long long>(s_tick), level, values[0], values[1], values[2], values[3], values[4], values[5], values[6], values[7], values[8],
+                      values[9], values[10], values[11], values[12]);
+        log_line(1, line);
+    }
+}
+
 // PC test aid (QUEST_RING_TRACE=1): each tick the stick is clicked, what the game's ring opening
 // tests (hero_items_and_hud.c): the hero's state, the slot's switch lock, the item locks, the
 // vehicle, the quick swap window, and the pad's held, pressed and lock words.
@@ -9919,9 +10187,10 @@ void board_tick() {
     if (std::getenv("QUEST_BOARD_TRACE") != nullptr && s_tick >= next) {
         next = s_tick + 30u;
         const Vec3 at = read_vec(s_disc->hero + kHeroPosition);
-        char line[140];
-        std::snprintf(line, sizeof line, "[vr-board] state 0x%X at (%.1f %.1f %.1f) yaw %.2f board %.2f camera %.2f", hero_state(), at.x, at.y, at.z,
-                      get_float(s_disc->hero + kHeroFacing), get_float(s_disc->hero + kHeroBoardYaw), camera_yaw());
+        char line[160];
+        std::snprintf(line, sizeof line, "[vr-board] state 0x%X at (%.1f %.1f %.1f) yaw %.2f board %.2f camera %.2f view %.2f", hero_state(), at.x, at.y,
+                      at.z, get_float(s_disc->hero + kHeroFacing), get_float(s_disc->hero + kHeroBoardYaw), camera_yaw(),
+                      s_have_frame ? world_yaw(s_rig.yaw, s_frame.head.orientation) : 0.0f);
         log_line(1, line);
     }
 #endif
@@ -9944,7 +10213,8 @@ void follow_board(const Pose& head, bool steering, float seconds) {
             stance = wrap_angle(std::atan2(line.y, line.x) - facing - kPi * 0.5f);
         }
     }
-    facing = wrap_angle(facing + stance);
+    // Ahead (by default from 0.1.17): the view along the board's way, steady; Side-on: along his chest, as it sways.
+    facing = wrap_angle(facing + (s_vr.board_side_on ? stance : 0.0f));
     if (!riding) {
         riding = true;
         heading = facing;
@@ -9956,8 +10226,8 @@ void follow_board(const Pose& head, bool steering, float seconds) {
             s_board_heading = yaw_now;
         }
         s_rig.recentre(head, wrap_angle(facing + yaw_now - s_board_heading));
-        char line[80];
-        std::snprintf(line, sizeof line, "[vr-board] riding, stance %.2f", stance);
+        char line[100];
+        std::snprintf(line, sizeof line, "[vr-board] riding, stance %.2f, the view %s", stance, s_vr.board_side_on ? "side-on" : "ahead");
         log_line(1, line);
         return;
     }
@@ -11515,13 +11785,38 @@ void steer(const FrameInfo& frame, int phase) {
         s_board_heading_kept = s_board_heading_kept && !(menu && !menu_was) && !frame.recentred;
         // A turret's seat starts looking along its barrels, where the head looks then.
         s_rig.recentre(head, s_manned != 0 ? turret_yaw_of(s_manned) : s_have_hero ? s_facing : 0.0f);
-        s_rig.origin.y -= (s_vr.seated ? kSeatedLift : 0.0f) + static_cast<float>(s_vr.view_height) / 100.0f;
+        // Where the real floor is, the head is that far over it in the game too, sitting or standing.
+        s_floor_lift = s_vr.feet_on_floor && frame.head_above_floor > 0.0f ? std::clamp(frame.head_above_floor - s_eye_height, 0.0f, 1.0f) : 0.0f;
+        s_rig.origin.y -= view_lift();
+        if (s_vr.feet_on_floor) {
+            char lifted[110];
+            std::snprintf(lifted, sizeof lifted, "[vr-rig] Feet on the floor: the head %.2f over it, the view lifted %.2f", frame.head_above_floor, s_floor_lift);
+            log_line(1, lifted);
+        }
         s_stand_known = false;  // where the player stands now is the crouch's standing
         s_neck_seen = false;
         s_recentre_yaw = tracking_yaw(head.orientation);
         s_recentre_wanted = false;
         s_panel_placed = false;
         s_view_moved_tick = s_tick;
+    }
+    // Held a second in play, the same button switches first and third person, as VR Options' View row does: a tester went
+    // to third person for the hoverboard and bolt cranks and asked for a quicker way than the menu (0.1.17). The press has
+    // recentred at once, as before; the switch recentres again in the new view.
+    static std::chrono::steady_clock::time_point menu_since;
+    static bool menu_switched = false;
+    if (menu && !menu_was) {
+        menu_since = std::chrono::steady_clock::now();
+        menu_switched = false;
+    }
+    if (menu && !menu_switched && phase == OPENRAC_PLAY_PLAYING && s_have_hero && !s_menu_input
+        && std::chrono::steady_clock::now() - menu_since >= std::chrono::seconds(1)) {
+        menu_switched = true;
+        s_options.first_person = !s_options.first_person;
+        s_recentre_wanted = true;
+        save_vr_options();
+        log_line(1, s_options.first_person ? "[vr-rig] the view is first person now: the left menu button held"
+                                           : "[vr-rig] the view is third person now: the left menu button held");
     }
     menu_was = menu;
 
@@ -11718,6 +12013,7 @@ void trace_state(int phase, const FrameInfo& frame, const char* why) {
 }
 
 void menu_pointer();
+void wheel_pointer();
 
 int views_begin(void*, openrac_view* views, int max) {
     const bool picture = views[0].reserved[kViewHintPicture] != 0;
@@ -11727,6 +12023,7 @@ int views_begin(void*, openrac_view* views, int max) {
     alpha = std::clamp(alpha, 0.0f, 1.0f);
     s_view_alpha = alpha;
     std::memset(views, 0, sizeof(openrac_view) * static_cast<std::size_t>(max));
+    s_motion_ready[0] = s_motion_ready[1] = false;
 
     if (!s_started) {
         start_headset();
@@ -11750,9 +12047,21 @@ int views_begin(void*, openrac_view* views, int max) {
     // A test under a headset with no controllers (vr/tests/pcvr_null.ps1 -Play, the null driver): Y now and then skips
     // the title's movies and any scene, until play.
     static const bool tap_to_play = std::getenv("QUEST_PC_TAP_TO_PLAY") != nullptr;
-    if (tap_to_play && phase != OPENRAC_PLAY_PLAYING) {
+    // QUEST_PC_TAP_ONCE=1: only until play first comes, for a scene after it to be seen through.
+    static const bool tap_once = std::getenv("QUEST_PC_TAP_ONCE") != nullptr;
+    static bool played_once = false;
+    played_once = played_once || phase == OPENRAC_PLAY_PLAYING;
+    if (tap_to_play && phase != OPENRAC_PLAY_PLAYING && !(tap_once && played_once)) {
         static int tap_frames = 0;
         s_frame.controls.y = ++tap_frames % 300 < 6;
+    }
+    // QUEST_PC_WHEEL_HOLD=1: the right stick held in for half a minute, from half a minute into play, for the real runtime's
+    // frames while the weapon wheel holds time slow.
+    static const bool wheel_hold = std::getenv("QUEST_PC_WHEEL_HOLD") != nullptr;
+    if (wheel_hold && played_once) {
+        static int hold_frames = 0;
+        ++hold_frames;
+        s_frame.controls.right_click = hold_frames > 1800 && hold_frames <= 3600;
     }
 #endif
     const bool changed = phase != s_last_phase;
@@ -11775,6 +12084,7 @@ int views_begin(void*, openrac_view* views, int max) {
     punch_gesture();
     disguise_gesture();
     menu_pointer();
+    wheel_pointer();
     ledge_gesture();
     trace_input(s_frame);
     trace_timing(s_frame);
@@ -11801,6 +12111,25 @@ int views_begin(void*, openrac_view* views, int max) {
         fill_eye(views[count++], 0, s_frame, first_person, alpha);
         fill_eye(views[count++], 1, s_frame, first_person, alpha);
         s_eyes_shown = true;
+        // Smoother frames: in play and the game's scenes, the eyes' motion with them. Not where the 2D stands in the
+        // eyes (a menu in the world, the title, the vendor), which moves with the head and not with the world behind it,
+        // nor in a frame the rig turned by a snap or recentred: a cut.
+        const float turned = std::abs(std::remainder(s_rig.yaw - s_motion_yaw, 2.0f * 3.14159265f));
+        s_motion_yaw = s_rig.yaw;
+        if (s_xr.space_warp && !s_world_menu && !s_title_world && !s_shopping && !s_recentre_wanted && !s_frame.recentred
+            && turned < kMotionTurnMost && (phase == OPENRAC_PLAY_PLAYING || phase == OPENRAC_PLAY_SCENE)) {
+            for (int eye = 0; eye < 2; ++eye) {
+                MotionTarget target;
+                if (s_headset->motion_target(eye, target)) {
+                    s_motion[eye] = openrac_view_motion{};
+                    s_motion[eye].motion_texture = target.motion;
+                    s_motion[eye].depth_texture = target.depth;
+                    s_motion[eye].width = target.width;
+                    s_motion[eye].height = target.height;
+                    s_motion_ready[eye] = true;
+                }
+            }
+        }
         // With a missile flying the panel is the weapon's monitor, with the game's own picture.
         s_panel_is_monitor = missile_flying() && !s_world_menu;
         fill_panel(views[count++], s_panel_is_monitor || s_title_world ? kViewKindWindow : OPENRAC_VIEW_2D);
@@ -11999,7 +12328,48 @@ void views_end(void*, const openrac_view* views, int count) {
         layer.visible = layer.visible && ((!s_world_menu && !s_title_world) || (s_title_world && s_eyes_stale));
 #endif
     }
+    // Smoother frames: what the port drew of the eyes' motion, its depth in metres (the eyes' distance apart in the
+    // game's units against theirs in metres, so third person's and a seat's scale too). Not on a kept picture.
+    if (s_motion_ready[0] || s_motion_ready[1]) {
+        SpaceWarpFrame warp;
+        const openrac_view* eye_view[2] = {nullptr, nullptr};
+        for (int i = 0; i < count && i < 2; ++i) {
+            if (views[i].kind == OPENRAC_VIEW_WORLD) {
+                eye_view[i] = &views[i];
+            }
+        }
+        float units = std::max(s_rig.scale, 0.01f);
+        if (eye_view[0] != nullptr && eye_view[1] != nullptr) {
+            const Vec3 apart{eye_view[1]->position[0] - eye_view[0]->position[0], eye_view[1]->position[1] - eye_view[0]->position[1],
+                             eye_view[1]->position[2] - eye_view[0]->position[2]};
+            const float metres = length(s_frame.eye[1].position - s_frame.eye[0].position);
+            if (metres > 0.01f && length(apart) > 0.0f) {
+                units = length(apart) / metres;
+            }
+        }
+        for (int eye = 0; eye < 2; ++eye) {
+            warp.drawn[eye] = eyes && !eyes_kept && s_motion_ready[eye] && s_motion[eye].drawn != 0;
+        }
+        warp.depth_zero = s_motion[0].depth_zero / units;
+        warp.depth_one = s_motion[0].depth_one / units;
+        if (warp.drawn[0] && warp.drawn[1] && !s_motion_said) {
+            s_motion_said = true;
+            char line[160];
+            std::snprintf(line, sizeof line, "[vr-view] smoother frames: the eyes' motion drawn (%d x %d), depth %.2f to %.3f m",
+                          s_motion[0].width, s_motion[0].height, warp.depth_zero, warp.depth_one);
+            log_line(1, line);
+        }
+        s_headset->space_warp(warp);
+    }
     s_headset->finish_frame(eyes, eyes_kept, layer);
+}
+
+// Smoother frames: where eye `index`'s motion goes this frame, or none.
+openrac_view_motion* views_motion(void*, int index) {
+    if (index < 0 || index > 1 || !s_motion_ready[index]) {
+        return nullptr;
+    }
+    return &s_motion[index];
 }
 
 void views_closing(void*) {
@@ -13200,6 +13570,109 @@ void shop_pointer() {
     s_pointer_shown = true;
 }
 
+// ---- Pointing at the wheel's weapons ----
+//
+// Wheel pick (More controls, Point by default; a tester's ask, 0.1.17: "pointing at the weapon in the wheel instead of
+// moving your whole arm toward it"). The hand's ray lands on the HUD's plane, where the wheel is drawn, and the way from
+// the wheel's middle to there is the stick the game's ring reads: pointing at an icon lights that icon. Near the middle
+// the stick is let go and the slot stays, as the game's does. A beam and a dot show where it lands. First person, on
+// foot; in a seat the HUD hangs apart from the head and the reach still picks.
+
+// The wheel as the game draws it (draw_hud_item_selector_panel): the middle of its icons from its corner, the radius of
+// their circle, and the x scale of it: words of level 0's after the ring's size (ring_size), or the disc's values if those are
+// not sane.
+struct RingLook {
+    float centre_x, centre_y, radius, aspect;
+};
+
+RingLook ring_look() {
+    constexpr gaddr kCentre = 8u, kRadius = 0x74u, kAspect = 0xACu;
+    const gaddr at = level0(s_disc->ring_size);
+    RingLook look{static_cast<float>(ref<int32_t>(at + kCentre)), static_cast<float>(ref<int32_t>(at + kCentre + 4u)), get_float(at + kRadius),
+                  get_float(at + kAspect)};
+    const float width = static_cast<float>(ring_width());
+    if (!(look.centre_x > 0.0f && look.centre_x < width) || !(look.centre_y > 0.0f && look.centre_y < width) || !(look.radius > 20.0f && look.radius < width)
+        || !(look.aspect > 0.5f && look.aspect < 2.0f)) {
+        look = {width * 0.5f, width * 0.5f, width * 0.35f, 1.0f};
+    }
+    return look;
+}
+
+void wheel_pointer() {
+    const bool open[2] = {s_left_ring, s_quick_select};  // kLeft, kRight
+    const bool can = !s_vr.wheel_reach && s_have_frame && s_ring_object != 0 && s_ring_seen != 0 && s_ring_seen + 1 >= s_tick && s_manned == 0 && !in_ship();
+    static int beam_side = kRight;
+    static bool open_was[2] = {false, false};
+    for (const int side : {kLeft, kRight}) {
+        if (open[side] && !open_was[side]) {
+            beam_side = side;  // the hand that opened its ring last
+        }
+        open_was[side] = open[side];
+    }
+    if (!open[beam_side] && open[1 - beam_side]) {
+        beam_side = 1 - beam_side;
+    }
+    const float wide = kHudDistance * 1.05f * s_options.hud_scale, high = wide * 3.0f / 4.0f;
+    const Pose& head = s_frame.head;
+    const Pose hud{head.position + rotate(head.orientation, Vec3{0, hud_lift(), -kHudDistance}), head.orientation};
+    for (const int side : {kLeft, kRight}) {
+        const bool pointing = can && open[side] && s_frame.hand_valid[side];
+        s_wheel_pointing[side] = pointing;
+        if (!pointing) {
+            continue;
+        }
+        float u = -1e9f, v = -1e9f;
+        const Pose& hand = s_frame.hand_aim[side];
+        const bool on = panel_point(hud, wide, high, hand, u, v);
+        // Pointing away, the stick is let go. Past the edge of the plane still means that way from the middle.
+        s_wheel_stick[side][0] = s_wheel_stick[side][1] = 0.0f;
+        if (u > -1e8f) {
+            const RingLook look = ring_look();
+            static bool said = false;
+            if (!said) {
+                said = true;
+                char line[120];
+                std::snprintf(line, sizeof line, "[vr-ring] pointing at the wheel: its middle %.0f, %.0f from its corner, radius %.0f, x scale %.2f", look.centre_x, look.centre_y,
+                              look.radius, look.aspect);
+                log_line(1, line);
+            }
+            const gaddr ring = s_ring_object;
+            const int32_t w = ref<int32_t>(ring + 0x58u), h = ref<int32_t>(ring + 0x5Cu), flags = ref<int32_t>(ring + 0x60u);
+            int32_t x = ref<int32_t>(ring + kRingX), y = ref<int32_t>(ring + 0x54u);
+            if (s_vr.akimbo) {
+                x = side == kLeft ? kRingEdge : kCanvasPixels - ring_width() - kRingEdge;
+            }
+            // As hud_screen_position has it.
+            if ((flags & 3) == 0) {
+                y -= h >> 1;
+            }
+            if ((flags & 4) == 0) {
+                x -= (flags & 8) != 0 ? w : w >> 1;
+            }
+            const float dx = (u * kCanvasWidth - (static_cast<float>(x) + look.centre_x)) / look.aspect;
+            const float dy = v * kCanvasHeight - (static_cast<float>(y) + look.centre_y);
+            const float from_middle = std::sqrt(dx * dx + dy * dy);
+            if (from_middle > look.radius * 0.3f) {
+                s_wheel_stick[side][0] = dx / from_middle;
+                s_wheel_stick[side][1] = -dy / from_middle;
+            }
+        }
+        if (side == beam_side && s_wheel_held[side] >= kWheelTapTicks) {
+            PointerLayers layers;
+            const Vec3 from = hand.position + rotate(hand.orientation, Vec3{0, 0, -kBeamStart});
+            Vec3 to = hand.position + rotate(hand.orientation, Vec3{0, 0, -kBeamFree});
+            if (on) {
+                to = hud.position + rotate(hud.orientation, Vec3{(u - 0.5f) * wide, (0.5f - v) * high, kDotLift});
+                layers.dot = true;
+                layers.dot_pose = {to, hud.orientation};
+            }
+            layers.beam = beam_pose(from, to, head.position, layers.beam_pose, layers.beam_length);
+            s_headset->show_pointer(layers);
+            s_pointer_shown = true;  // menu_pointer takes it down, the frame this stops
+        }
+    }
+}
+
 // Whether the page up has something to point at (Rerac-vr: then the sticks leave its cursor alone, wherever the hand
 // is): a port page, a list, a grid, toggles, choices or bars, or a widget the beam has taken a target from. A message, a prompt and the Select
 // map have none, and keep their sticks.
@@ -13661,11 +14134,13 @@ const openrac::UiPage* s_rows_page = &s_vr_page;  // the one last shown
 // VR Options' Cheats row is there in a level only: the title's list has no window, and eight rows fill its frame.
 enum VrRow { kRowHelmet, kRowBoots, kRowFlip, kRowDirection, kRowBody, kRowAkimbo, kRowPosition, kRowView, kRowScenes, kRowCheats, kRowBodyPage, kRowControlsPage };
 enum BodyRow { kRowBodyShown, kRowBodyParts, kRowBodyTail, kRowArmsBend, kRowLegsBend, kRowBodyFollows, kRowBodyHeight, kRowBodyForward, kRowArmLength,
-               kRowViewHeight };
+               kRowViewHeight, kRowFeetOnFloor, kRowWorldScale };
+static_assert(kRowWorldScale < OPENRAC_UI_ITEMS_MAX, "VR Body runs past the port's rows");
 enum ControlsRow { kRowTurning, kRowSnapAngle, kRowSmoothSpeed, kRowPhysicalCrouch, kRowCrouchDrop, kRowFirstSwitch };
 // After the first kFirstPageSwitches of the launcher's switches: More controls (kRowMoreControls), whose page is
 // Swingshot anywhere and then the other switches.
-enum MovesRow { kRowSwingAnywhere, kRowWallMoves, kRowSwingReach, kRowWrenchFar, kRowWrenchStay };
+enum MovesRow { kRowSwingAnywhere, kRowWallMoves, kRowSwingReach, kRowWrenchFar, kRowWrenchStay, kRowBoardView };
+static_assert(kRowBoardView < OPENRAC_UI_ITEMS_MAX, "Moves runs past the port's rows");
 enum MoreControlsRow { kRowMoves, kRowLedgeShimmy, kRowHideBars, kRowMenuHand, kRowArmMoves, kRowMoreFirstSwitch };
 enum HandsRow { kRowGunAngle, kRowGunSize, kRowHandSize, kRowEmptyHandAngle, kRowFollowHands, kRowMirrorGuns, kRowLeftAmmo, kRowHudSize, kRowHudHeight,
                 kRowFingers, kRowFingersWorld, kRowItemAngle };
@@ -13824,10 +14299,20 @@ std::vector<std::string> offset_choices(int most, int step, const char* less, co
     return choices;
 }
 
+// A World scale in percent on its steps, within the launcher's range.
+int world_scale_of(int percent) {
+    return std::clamp((percent - kWorldScaleMin + kWorldScaleStep / 2) / kWorldScaleStep * kWorldScaleStep + kWorldScaleMin, kWorldScaleMin,
+                      kWorldScaleMax);
+}
+int world_scale_now() { return world_scale_of(static_cast<int>(std::lround(s_options.world_scale * 100.0f))); }
+
 void show_body_page() {
-    std::vector<std::string> lengths;
+    std::vector<std::string> lengths, scales;
     for (int percent = kArmLengthMin; percent <= kArmLengthMax; percent += kArmLengthStep) {
         lengths.push_back(std::to_string(percent) + " percent");
+    }
+    for (int percent = kWorldScaleMin; percent <= kWorldScaleMax; percent += kWorldScaleStep) {
+        scales.push_back(percent == 100 ? std::string("Default") : std::to_string(percent) + " percent");
     }
     openrac::UiContent content;
     content.title = "VR Body";
@@ -13846,6 +14331,8 @@ void show_body_page() {
         openrac::UiItem::choice_of("Arm length", lengths, static_cast<std::uint32_t>((s_vr.arm_length - kArmLengthMin) / kArmLengthStep)),
         openrac::UiItem::choice_of("View height", offset_choices(kViewHeightMax, kViewHeightStep, "down", "up"),
                                    static_cast<std::uint32_t>((s_vr.view_height + kViewHeightMax) / kViewHeightStep)),
+        openrac::UiItem::choice_of("Feet on the floor", {"Off", "On"}, s_vr.feet_on_floor ? 1u : 0u),
+        openrac::UiItem::choice_of("World scale", scales, static_cast<std::uint32_t>((world_scale_now() - kWorldScaleMin) / kWorldScaleStep)),
     };
     set_rows(s_body_page, content);
 }
@@ -13877,7 +14364,9 @@ constexpr int kFirstPageSwitches = 6;
 constexpr int kRowMoreControls = kRowFirstSwitch + kFirstPageSwitches;
 constexpr int kMoreSwitchCount = kControlSwitchCount - kFirstPageSwitches;
 static_assert(kRowMoreControls + 1 <= OPENRAC_UI_ITEMS_MAX, "VR Controls runs past the port's rows");
-static_assert(kRowMoreFirstSwitch + kMoreSwitchCount <= OPENRAC_UI_ITEMS_MAX, "More controls runs past the port's rows");
+constexpr int kRowWheelSlow = kRowMoreFirstSwitch + kMoreSwitchCount;
+constexpr int kRowWheelPick = kRowWheelSlow + 1;
+static_assert(kRowWheelPick < OPENRAC_UI_ITEMS_MAX, "More controls runs past the port's rows");
 bool s_launcher_switch[kControlSwitchCount] = {};
 bool s_launcher_smooth = true;
 int s_launcher_snap = 45, s_launcher_rate = 140;
@@ -13922,6 +14411,7 @@ void show_moves_page() {
     content.items.push_back(openrac::UiItem::choice_of("Swingshot reach", {"Normal", "Longer", "No limit"}, static_cast<std::uint32_t>(s_vr.swing_reach)));
     content.items.push_back(openrac::UiItem::choice_of("Wrench throw distance", {"Normal", "Far", "Very far", "Super far"}, static_cast<std::uint32_t>(s_vr.wrench_far)));
     content.items.push_back(openrac::UiItem::choice_of("Wrench comes back", {"By itself", "When you call it"}, s_vr.wrench_stay ? 1u : 0u));
+    content.items.push_back(openrac::UiItem::choice_of("Hoverboard view", {"Ahead", "Side-on"}, s_vr.board_side_on ? 1u : 0u));
     set_rows(s_moves_page, content);
 }
 
@@ -13938,6 +14428,8 @@ void show_more_controls_page() {
         const ControlSwitch& row = kControlSwitches[i];
         content.items.push_back(openrac::UiItem::choice_of(row.name, {"On", "Off"}, s_options.*row.on ? 0u : 1u));
     }
+    content.items.push_back(openrac::UiItem::choice_of("Wheel slow motion", {"With sounds", "No sounds", "Off"}, static_cast<std::uint32_t>(s_vr.wheel_slow)));
+    content.items.push_back(openrac::UiItem::choice_of("Wheel pick", {"Point", "Reach"}, s_vr.wheel_reach ? 1u : 0u));
     set_rows(s_more_controls_page, content);
 }
 
@@ -14020,6 +14512,7 @@ int hud_height_of(int value) {
 bool s_launcher_first = true;
 int s_launcher_hud = 100;
 int s_launcher_scenes = kSceneViewEyes;
+int s_launcher_scale = 100;  // the World scale, percent
 
 void apply_hud_size() { s_options.hud_scale = static_cast<float>(s_vr.hud_size) / 100.0f; }
 
@@ -14039,15 +14532,15 @@ void save_vr_options() {
          << "\ncheat_bolts " << (s_cheats.bolts ? 1 : 0) << "\ncheat_big_heads " << (s_cheats.big_heads ? 1 : 0)
          << "\ncheat_contrails " << (s_cheats.contrails ? 1 : 0) << "\nfingers_tracked " << (s_vr.fingers_tracked ? 1 : 0) << "\nfingers_world "
          << (s_vr.fingers_world ? 1 : 0) << "\nphysical_crouch " << (s_vr.physical_crouch ? 1 : 0) << "\ncrouch_drop " << s_vr.crouch_drop
-         << "\nswing_anywhere " << (s_vr.swing_anywhere ? 1 : 0) << "\nwall_moves " << (s_vr.wall_moves ? 1 : 0) << "\nswing_reach " << s_vr.swing_reach << "\nwrench_far " << s_vr.wrench_far << "\nwrench_stay " << (s_vr.wrench_stay ? 1 : 0) << "\nshimmy_pull " << (s_vr.shimmy_pull ? 1 : 0) << "\nhide_bars " << (s_vr.hide_bars ? 1 : 0) << "\nmenu_hand " << s_vr.menu_hand
-         << "\nbutton_moves " << (s_vr.button_moves ? 1 : 0)
+         << "\nswing_anywhere " << (s_vr.swing_anywhere ? 1 : 0) << "\nwall_moves " << (s_vr.wall_moves ? 1 : 0) << "\nswing_reach " << s_vr.swing_reach << "\nwrench_far " << s_vr.wrench_far << "\nwrench_stay " << (s_vr.wrench_stay ? 1 : 0) << "\nboard_side_on " << (s_vr.board_side_on ? 1 : 0) << "\nshimmy_pull " << (s_vr.shimmy_pull ? 1 : 0) << "\nhide_bars " << (s_vr.hide_bars ? 1 : 0) << "\nmenu_hand " << s_vr.menu_hand
+         << "\nbutton_moves " << (s_vr.button_moves ? 1 : 0) << "\nfeet_on_floor " << (s_vr.feet_on_floor ? 1 : 0) << "\nwheel_slow " << s_vr.wheel_slow << "\nwheel_reach " << (s_vr.wheel_reach ? 1 : 0)
          << "\nbody_parts " << s_vr.body_parts << "\nbody_parts_chosen " << (s_vr.parts_chosen ? 1 : 0) << "\nbody_tail " << (s_vr.body_tail ? 1 : 0)
          << "\narms_bend " << (s_vr.arms_bend ? 1 : 0) << "\nlegs_bend " << (s_vr.legs_bend ? 1 : 0) << "\nbody_follows " << (s_vr.body_follows ? 1 : 0)
          << "\nbody_height " << s_vr.body_height << "\nbody_forward " << s_vr.body_forward << "\narm_length " << s_vr.arm_length << "\nview_height "
          << s_vr.view_height << "\nturn_smooth " << (s_options.turn.smooth ? 1 : 0) << "\nlauncher_turn_smooth " << (s_launcher_smooth ? 1 : 0)
          << "\nturn_snap " << snap_degrees_now() << "\nlauncher_turn_snap " << s_launcher_snap << "\nturn_rate " << smooth_degrees_now()
          << "\nlauncher_turn_rate " << s_launcher_rate << "\nscene_view " << scene_view_now() << "\nlauncher_scene_view " << s_launcher_scenes
-         << "\n";
+         << "\nworld_scale " << world_scale_now() << "\nlauncher_world_scale " << s_launcher_scale << "\n";
     for (int i = 0; i < kControlSwitchCount; ++i) {
         file << "play_" << kControlSwitches[i].key << " " << (s_options.*kControlSwitches[i].on ? 1 : 0) << "\nlauncher_" << kControlSwitches[i].key << " "
              << (s_launcher_switch[i] ? 1 : 0) << "\n";
@@ -14063,7 +14556,8 @@ void load_vr_options() {
     std::ifstream file(s_vr_file);
     std::string key;
     int value = 0;
-    int first_person = -1, launcher_first = -1, hud_size = -1, launcher_hud = -1;
+    int first_person = -1, launcher_first = -1, hud_size = -1, launcher_hud = -1, world_scale = -1, launcher_scale = -1;
+    s_launcher_scale = world_scale_now();
     bool body_read = false, parts_read = false, chosen_read = false, akimbo_read = false, akimbo_chosen_read = false;
     bool empty_hand_read = false, empty_hand_chosen_read = false;
     // The launcher's play options as they are now, before what was changed in a level is laid over them.
@@ -14091,6 +14585,10 @@ void load_vr_options() {
             hud_size = hud_size_of(value);
         } else if (key == "launcher_hud") {
             launcher_hud = value;
+        } else if (key == "world_scale") {
+            world_scale = world_scale_of(value);
+        } else if (key == "launcher_world_scale") {
+            launcher_scale = value;
         } else if (key == "hud_height") {
             s_vr.hud_height = hud_height_of(value);
         } else if (key == "follow_hands") {
@@ -14118,6 +14616,8 @@ void load_vr_options() {
             s_vr.wrench_far = value >= 0 && value <= 3 ? value : 0;
         } else if (key == "wrench_stay") {
             s_vr.wrench_stay = value != 0;
+        } else if (key == "board_side_on") {
+            s_vr.board_side_on = value != 0;
         } else if (key == "wall_moves") {
             s_vr.wall_moves = value != 0;
         } else if (key == "swing_reach") {
@@ -14130,6 +14630,12 @@ void load_vr_options() {
             s_vr.hide_bars = value != 0;
         } else if (key == "menu_hand") {
             s_vr.menu_hand = value >= 0 && value < kMenuHandCount ? static_cast<int>(value) : kMenuBothHands;
+        } else if (key == "feet_on_floor") {
+            s_vr.feet_on_floor = value != 0;
+        } else if (key == "wheel_slow") {
+            s_vr.wheel_slow = value >= 0 && value < kWheelSlowCount ? static_cast<int>(value) : kWheelWithSounds;
+        } else if (key == "wheel_reach") {
+            s_vr.wheel_reach = value != 0;
         } else if (key == "button_moves") {
             s_vr.button_moves = value != 0;
         } else if (key == "crouch_drop") {
@@ -14275,6 +14781,13 @@ void load_vr_options() {
     if (hud_size >= 0 && launcher_hud == s_launcher_hud) {
         s_vr.hud_size = hud_size;
     }
+    // The World scale changed in VR Body, unless the launcher's has changed since.
+    if (world_scale >= 0 && launcher_scale == s_launcher_scale) {
+        s_options.world_scale = static_cast<float>(world_scale) / 100.0f;
+        if (!in_ship()) {
+            s_rig.scale = s_options.world_scale;
+        }
+    }
 }
 
 void hands_page_event(const openrac::UiEvent& event) {
@@ -14356,8 +14869,10 @@ void vr_page_event(const openrac::UiEvent& event) {
         } else if (event.item() == kRowPosition) {
             const bool seated = event.value() == 1;
             if (seated != s_vr.seated) {
-                s_rig.origin.y += seated ? -kSeatedLift : kSeatedLift;
+                // Sat down or stood up: the head where it is now is his eyes again.
+                s_recentre_wanted = true;
                 s_vr.seated = seated;
+                log_line(1, seated ? "[vr-rig] Play position: seated, recentred" : "[vr-rig] Play position: standing, recentred");
             }
         }
         save_vr_options();
@@ -14402,13 +14917,19 @@ void body_page_event(const openrac::UiEvent& event) {
             const int was = s_vr.view_height;
             s_vr.view_height = value * kViewHeightStep - kViewHeightMax;
             s_rig.origin.y += static_cast<float>(was - s_vr.view_height) / 100.0f;
+        } else if (event.item() == kRowFeetOnFloor) {
+            s_vr.feet_on_floor = value == 1;
+            s_recentre_wanted = true;
+        } else if (event.item() == kRowWorldScale) {
+            // The rig takes it on the next tick (update_eye_height: the scale, the eye's height and a recentre).
+            s_options.world_scale = static_cast<float>(world_scale_of(value * kWorldScaleStep + kWorldScaleMin)) / 100.0f;
         }
-        char line[220];
+        char line[260];
         std::snprintf(line, sizeof line,
                       "[vr-body] VR Body: player body %d, parts %d, tail %d, arms bend %d, legs bend %d, turns with the head %d, height %d cm, forward %d cm, "
-                      "arm length %d percent, view height %d cm",
+                      "arm length %d percent, view height %d cm, world scale %d percent",
                       s_vr.body, s_vr.body_parts, s_vr.body_tail ? 1 : 0, s_vr.arms_bend ? 1 : 0, s_vr.legs_bend ? 1 : 0, s_vr.body_follows ? 1 : 0, s_vr.body_height,
-                      s_vr.body_forward, s_vr.arm_length, s_vr.view_height);
+                      s_vr.body_forward, s_vr.arm_length, s_vr.view_height, world_scale_now());
         log_line(1, line);
         save_vr_options();
         show_body_page();
@@ -14427,11 +14948,14 @@ void log_controls() {
     line += s_vr.wall_moves ? ", wall_moves on" : ", wall_moves off";
     line += ", wrench_far " + std::to_string(1 << s_vr.wrench_far);
     line += s_vr.wrench_stay ? ", wrench_stay on" : ", wrench_stay off";
+    line += s_vr.board_side_on ? ", hoverboard view side-on" : ", hoverboard view ahead";
     line += s_vr.swing_reach == 2 ? ", swing_reach no limit" : s_vr.swing_reach == 1 ? ", swing_reach longer" : ", swing_reach normal";
     line += s_vr.shimmy_pull ? ", ledge shimmy pull" : ", ledge shimmy reach";
     line += s_vr.hide_bars ? ", black bars hidden" : ", black bars the game's";
     line += s_vr.menu_hand == kMenuRightHand ? ", menu pointer right" : s_vr.menu_hand == kMenuLeftHand ? ", menu pointer left" : ", menu pointer both";
     line += s_vr.button_moves ? ", arm moves buttons" : ", arm moves for real";
+    line += s_vr.wheel_slow == kWheelSlowOff ? ", wheel slow motion off" : s_vr.wheel_slow == kWheelNoSounds ? ", wheel slow motion no sounds" : ", wheel slow motion with sounds";
+    line += s_vr.wheel_reach ? ", wheel pick reach" : ", wheel pick point";
     log_line(1, line.c_str());
 }
 
@@ -14489,6 +15013,9 @@ void moves_page_event(const openrac::UiEvent& event) {
         } else if (event.item() == kRowWrenchStay) {
             s_vr.wrench_stay = value == 1;
             log_line(1, s_vr.wrench_stay ? "[vr-wrench] Wrench comes back: when you call it" : "[vr-wrench] Wrench comes back: by itself");
+        } else if (event.item() == kRowBoardView) {
+            s_vr.board_side_on = value == 1;
+            log_line(1, s_vr.board_side_on ? "[vr-board] Hoverboard view: side-on, along his chest" : "[vr-board] Hoverboard view: ahead, where the board goes");
         }
         log_controls();
         save_vr_options();
@@ -14522,6 +15049,10 @@ void more_controls_page_event(const openrac::UiEvent& event) {
         } else if (event.item() == kRowLedgeShimmy) {
             s_vr.shimmy_pull = value == 1;
             log_line(1, s_vr.shimmy_pull ? "[vr-ledge] Ledge shimmy: pull, the hands drawn the other way" : "[vr-ledge] Ledge shimmy: reach, the hands held out the way he goes");
+        } else if (event.item() == kRowWheelSlow) {
+            s_vr.wheel_slow = value >= 0 && value < kWheelSlowCount ? value : kWheelWithSounds;
+        } else if (event.item() == kRowWheelPick) {
+            s_vr.wheel_reach = value == 1;
         } else if (event.item() >= kRowMoreFirstSwitch && event.item() < kRowMoreFirstSwitch + kMoreSwitchCount) {
             s_options.*kControlSwitches[event.item() - kRowMoreFirstSwitch + kFirstPageSwitches].on = value == 0;
         }
@@ -14620,6 +15151,7 @@ void load(openrac::Mod& mod) {
     s_options.sparkles_in_world = mod.setting<bool>("sparkles_in_world");
     s_xr.refresh_hz = static_cast<float>(mod.setting<std::int64_t>("refresh_hz"));
     s_xr.keep_refresh = mod.setting<bool>("keep_refresh");
+    s_xr.space_warp = mod.setting<bool>("space_warp");
     s_xr.resolution = static_cast<float>(mod.setting<double>("resolution"));
     s_rig.scale = s_options.world_scale;
     s_launcher_hud = hud_size_of(static_cast<int>(std::lround(s_options.hud_scale * 100.0f)));
@@ -14645,6 +15177,7 @@ void load(openrac::Mod& mod) {
             {s_options.solid_hands, "World collision"}, {s_options.wall_feel, "Vibrate when your hands meet the world"},
             {s_options.sparkles_in_world, "Sparkles on the bolts"}, {s_options.glyphs, "Controller buttons in hints"},
             {s_options.haptics, "Vibration"}, {s_xr.keep_refresh, "Keep the refresh rate"},
+            {s_xr.space_warp, "Smoother frames (AppSW)"},
         };
         std::string off;
         for (const Switch& s : switches) {
@@ -14715,6 +15248,9 @@ void load(openrac::Mod& mod) {
                       s_vr.body_parts, s_vr.parts_chosen ? " (chosen)" : "", s_vr.direction_body ? "Body" : "Gaze",
                       s_vr.seated ? "Seated" : "Standing", s_vr.physical_crouch ? "on" : "off", s_vr.swing_anywhere ? "on" : "off");
         log_line(1, line);
+        std::snprintf(line, sizeof line, "[vr-options] World scale %d percent (the launcher's %d), Hoverboard view %s", world_scale_now(), s_launcher_scale,
+                      s_vr.board_side_on ? "Side-on" : "Ahead");
+        log_line(1, line);
         if (s_vr.button_moves) {  // only then: the line above is every run's
             log_line(1, "[vr-options] Arm moves: Buttons (the right grip the game's swing, the trigger the Walloper's punch; "
                         "Throw by hand, Grab ledges with your hands and Swim with your arms as off)");
@@ -14722,12 +15258,12 @@ void load(openrac::Mod& mod) {
     }
 
     mod.on_frame([] { on_tick(); });
-    // The Quest fork's entry (patches/): a port without it has a shorter table, so it is looked
+    // The Quest fork's entries (patches/): a port without them has a shorter table, so each is looked
     // for as the SDK looks for its newer entries, and the weapon stays where the game puts it.
+    // A new game keeps the game's own Help Desk, voice and text on, from 0.1.17 (the owner's call, after a tester's
+    // Trespasser explanation did not play). Up to 0.1.16 the mod called quiet_new_game(1), Rerac-vr's choice, which turned
+    // both off; a save keeps what it holds either way.
     const openrac_api& api = mod.api();
-    if (!s_options.screen && api.size >= offsetof(openrac_api, quiet_new_game) + sizeof(void*) && api.quiet_new_game != nullptr) {
-        api.quiet_new_game(1);
-    }
     if (api.size >= offsetof(openrac_api, on_before_capture) + sizeof(void*) && api.on_before_capture != nullptr
         && api.on_before_capture(mod.handle(), [](void*) {
                sample_hero();
@@ -14834,6 +15370,8 @@ void load(openrac::Mod& mod) {
     source.end = views_end;
     source.closing = views_closing;
     source.world_quads = views_quads;
+    source.time_speed = views_time_speed;
+    source.view_motion = views_motion;
     mod.on_views(source);
 
     mod.info(std::string("Quest VR on the ") + std::string(mod.version()) + " disc");
@@ -14841,4 +15379,4 @@ void load(openrac::Mod& mod) {
 
 }  // namespace
 
-OPENRAC_MOD_CPP("quest-vr", "0.1.16", load)
+OPENRAC_MOD_CPP("quest-vr", "0.1.17", load)

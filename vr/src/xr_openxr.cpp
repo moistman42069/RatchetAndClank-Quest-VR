@@ -163,6 +163,10 @@ constexpr XrStructureType kSwapchainImageType = XR_TYPE_SWAPCHAIN_IMAGE_OPENGL_E
 #endif
 
 constexpr const char* kRefreshExtension = "XR_FB_display_refresh_rate";
+// Smoother frames (Application SpaceWarp, XR_FB_space_warp, from 0.1.17): the motion and depth images' formats, as
+// Meta's guide has them.
+constexpr int64_t kMotionFormat = 0x881A;       // GL_RGBA16F
+constexpr int64_t kMotionDepthFormat = 0x88F0;  // GL_DEPTH24_STENCIL8
 constexpr int kInfo = 1;
 constexpr int kWarn = 2;
 constexpr int kError = 3;
@@ -254,8 +258,27 @@ public:
         height = m_targets[target].height;
     }
 
-    unsigned acquire(Target target) override {
-        Swapchain& chain = m_targets[target];
+    unsigned acquire(Target target) override { return acquire_chain(m_targets[target]); }
+
+    bool motion_target(int eye, MotionTarget& out) override {
+        if (!m_space_warp_ready || eye < 0 || eye > 1) {
+            return false;
+        }
+        const unsigned motion = acquire_chain(m_motion[eye]);
+        const unsigned depth = acquire_chain(m_motion_depth[eye]);
+        if (motion == 0 || depth == 0) {
+            return false;
+        }
+        out = {motion, depth, m_motion[eye].width, m_motion[eye].height};
+        return true;
+    }
+
+    void space_warp(const SpaceWarpFrame& warp) override {
+        m_warp = warp;
+        m_warp_set = true;
+    }
+
+    unsigned acquire_chain(Swapchain& chain) {
         if (!m_frame_begun || chain.handle == XR_NULL_HANDLE) {
             return 0;
         }
@@ -296,6 +319,13 @@ public:
 
         const bool have_eyes = eyes && m_views_valid && m_targets[kTargetLeftEye].acquired
                                && m_targets[kTargetRightEye].acquired;
+        // Smoother frames: both eyes' motion and depth, drawn this frame from the last, beside their pictures. The app
+        // space does not move under the motion (identity): the eyes' motion has the rig's movement in it already.
+        XrCompositionLayerSpaceWarpInfoFB warp_info[2]{};
+        const bool warped = have_eyes && !eyes_kept && m_warp_set && m_warp.drawn[0] && m_warp.drawn[1]
+                            && m_motion[0].acquired && m_motion[1].acquired && m_motion_depth[0].acquired
+                            && m_motion_depth[1].acquired && m_warp.depth_zero > m_warp.depth_one && m_warp.depth_one > 0.0f;
+        m_warp_set = false;
         if (have_eyes) {
             for (int eye = 0; eye < 2; ++eye) {
                 const Swapchain& chain = m_targets[kTargetLeftEye + eye];
@@ -308,6 +338,25 @@ public:
                 views[eye].fov = m_drawn_fov[eye];
                 views[eye].subImage.swapchain = chain.handle;
                 views[eye].subImage.imageRect.extent = {chain.width, chain.height};
+                if (warped) {
+                    XrCompositionLayerSpaceWarpInfoFB& w = warp_info[eye];
+                    w.type = XR_TYPE_COMPOSITION_LAYER_SPACE_WARP_INFO_FB;
+                    w.motionVectorSubImage.swapchain = m_motion[eye].handle;
+                    w.motionVectorSubImage.imageRect.extent = {m_motion[eye].width, m_motion[eye].height};
+                    w.appSpaceDeltaPose.orientation.w = 1.0f;
+                    w.depthSubImage.swapchain = m_motion_depth[eye].handle;
+                    w.depthSubImage.imageRect.extent = {m_motion_depth[eye].width, m_motion_depth[eye].height};
+                    w.minDepth = 0.0f;
+                    w.maxDepth = 1.0f;
+                    // Reversed depth (the port's): depth 0 is the far plane, so nearZ, the distance at minDepth, is the
+                    // larger, which says so.
+                    w.nearZ = m_warp.depth_zero;
+                    w.farZ = m_warp.depth_one;
+                    views[eye].next = &w;
+                }
+            }
+            if (warped) {
+                ++m_warp_frames;
             }
             projection.space = m_local;
             projection.viewCount = 2;
@@ -407,6 +456,15 @@ public:
                     chain.handle = XR_NULL_HANDLE;
                 }
             }
+            for (int eye = 0; eye < 2; ++eye) {
+                for (Swapchain* chain : {&m_motion[eye], &m_motion_depth[eye]}) {
+                    if (chain->handle != XR_NULL_HANDLE) {
+                        xrDestroySwapchain(chain->handle);
+                        chain->handle = XR_NULL_HANDLE;
+                    }
+                }
+            }
+            m_space_warp_ready = false;
             if (m_notice_chain.handle != XR_NULL_HANDLE) {
                 xrDestroySwapchain(m_notice_chain.handle);
                 m_notice_chain.handle = XR_NULL_HANDLE;
@@ -715,6 +773,13 @@ private:
         if (m_thread_extension) {
             extensions.push_back(XR_KHR_ANDROID_THREAD_SETTINGS_EXTENSION_NAME);
         }
+        // Smoother frames, where the runtime has it and the launcher's option is on.
+        m_space_warp_extension = m_settings.space_warp && has(XR_FB_SPACE_WARP_EXTENSION_NAME);
+        if (m_space_warp_extension) {
+            extensions.push_back(XR_FB_SPACE_WARP_EXTENSION_NAME);
+        } else if (m_settings.space_warp) {
+            info("[openxr] smoother frames: the runtime has no XR_FB_space_warp");
+        }
 
         XrInstanceCreateInfoAndroidKHR android{XR_TYPE_INSTANCE_CREATE_INFO_ANDROID_KHR};
         android.applicationVM = m_vm;
@@ -744,8 +809,16 @@ private:
             return false;
         }
         XrSystemProperties properties{XR_TYPE_SYSTEM_PROPERTIES};
+        XrSystemSpaceWarpPropertiesFB warp{XR_TYPE_SYSTEM_SPACE_WARP_PROPERTIES_FB};
+        if (m_space_warp_extension) {
+            properties.next = &warp;
+        }
         if (XR_SUCCEEDED(xrGetSystemProperties(m_instance, m_system, &properties))) {
             info(std::string("[openxr] system: ") + properties.systemName);
+            if (m_space_warp_extension) {
+                m_motion_width = static_cast<int>(warp.recommendedMotionVectorImageRectWidth);
+                m_motion_height = static_cast<int>(warp.recommendedMotionVectorImageRectHeight);
+            }
         }
         return true;
     }
@@ -821,6 +894,11 @@ private:
             why = m_last_error;
             return false;
         }
+        // The floor, for Feet on the floor. A runtime may know none: then that option does nothing.
+        space.referenceSpaceType = XR_REFERENCE_SPACE_TYPE_STAGE;
+        if (XR_FAILED(xrCreateReferenceSpace(m_session, &space, &m_stage))) {
+            m_stage = XR_NULL_HANDLE;
+        }
         return true;
     }
 
@@ -836,6 +914,7 @@ private:
         }
         std::vector<int64_t> formats(count);
         xrEnumerateSwapchainFormats(m_session, count, &count, formats.data());
+        m_formats = formats;
 #if defined(_WIN32)
         // Desktop OpenGL from 3.0 has the switch (GL_FRAMEBUFFER_SRGB, off unless turned on).
         GLint major = 0;
@@ -880,10 +959,12 @@ private:
         }
     }
 
-    bool create_target(Swapchain& chain, int width, int height, std::string& why) {
+    // A swapchain of the eyes' format, or of `format` with `usage` (the motion images').
+    bool create_target(Swapchain& chain, int width, int height, std::string& why, int64_t format = 0,
+                       XrSwapchainUsageFlags usage = 0) {
         XrSwapchainCreateInfo create{XR_TYPE_SWAPCHAIN_CREATE_INFO};
-        create.usageFlags = XR_SWAPCHAIN_USAGE_COLOR_ATTACHMENT_BIT | XR_SWAPCHAIN_USAGE_SAMPLED_BIT;
-        create.format = m_format;
+        create.usageFlags = usage != 0 ? usage : XR_SWAPCHAIN_USAGE_COLOR_ATTACHMENT_BIT | XR_SWAPCHAIN_USAGE_SAMPLED_BIT;
+        create.format = format != 0 ? format : m_format;
         create.sampleCount = 1;
         create.width = static_cast<uint32_t>(width);
         create.height = static_cast<uint32_t>(height);
@@ -935,7 +1016,43 @@ private:
                  + std::to_string(views[eye].recommendedImageRectWidth) + " x "
                  + std::to_string(views[eye].recommendedImageRectHeight) + ")");
         }
-        return create_target(m_targets[kTargetPanel], m_settings.panel_width, m_settings.panel_height, why);
+        if (!create_target(m_targets[kTargetPanel], m_settings.panel_width, m_settings.panel_height, why)) {
+            return false;
+        }
+        create_space_warp_targets();
+        return true;
+    }
+
+    // Smoother frames: a motion and a depth swapchain an eye, at the size the runtime recommends. Without them the game
+    // draws every frame, as before.
+    void create_space_warp_targets() {
+        if (!m_space_warp_extension) {
+            return;
+        }
+        const auto offered = [&](int64_t format) {
+            return std::find(m_formats.begin(), m_formats.end(), format) != m_formats.end();
+        };
+        if (m_motion_width < 16 || m_motion_height < 16 || !offered(kMotionFormat) || !offered(kMotionDepthFormat)) {
+            warn("[openxr] smoother frames: off, the runtime gives a motion size of " + std::to_string(m_motion_width) + " x "
+                 + std::to_string(m_motion_height) + (offered(kMotionFormat) ? "" : ", no RGBA16F")
+                 + (offered(kMotionDepthFormat) ? "" : ", no DEPTH24_STENCIL8"));
+            return;
+        }
+        std::string why;
+        bool made = true;
+        for (int eye = 0; eye < 2 && made; ++eye) {
+            made = create_target(m_motion[eye], m_motion_width, m_motion_height, why, kMotionFormat,
+                                 XR_SWAPCHAIN_USAGE_COLOR_ATTACHMENT_BIT | XR_SWAPCHAIN_USAGE_SAMPLED_BIT)
+                   && create_target(m_motion_depth[eye], m_motion_width, m_motion_height, why, kMotionDepthFormat,
+                                    XR_SWAPCHAIN_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | XR_SWAPCHAIN_USAGE_SAMPLED_BIT);
+        }
+        if (!made) {
+            warn("[openxr] smoother frames: off, " + why);
+            return;
+        }
+        m_space_warp_ready = true;
+        info("[openxr] smoother frames (Application SpaceWarp): on, motion " + std::to_string(m_motion_width) + " x "
+             + std::to_string(m_motion_height) + " an eye");
     }
 
     XrPath path(const char* name) const {
@@ -1463,6 +1580,11 @@ private:
         } else {
             out.head = out.eye[0];
         }
+        XrSpaceLocation above{XR_TYPE_SPACE_LOCATION};
+        if (m_stage != XR_NULL_HANDLE && XR_SUCCEEDED(xrLocateSpace(m_view, m_stage, m_frame_time, &above))
+            && (above.locationFlags & XR_SPACE_LOCATION_POSITION_VALID_BIT) != 0) {
+            out.head_above_floor = above.pose.position.y;
+        }
     }
 
     float read_float(XrAction action) {
@@ -1695,12 +1817,19 @@ private:
 #endif
 
     void release_targets() {
-        for (Swapchain& chain : m_targets) {
+        const auto release_chain = [&](Swapchain& chain) {
             if (chain.acquired) {
                 XrSwapchainImageReleaseInfo release{XR_TYPE_SWAPCHAIN_IMAGE_RELEASE_INFO};
                 check(xrReleaseSwapchainImage(chain.handle, &release), "xrReleaseSwapchainImage");
                 chain.acquired = false;
             }
+        };
+        for (Swapchain& chain : m_targets) {
+            release_chain(chain);
+        }
+        for (int eye = 0; eye < 2; ++eye) {
+            release_chain(m_motion[eye]);
+            release_chain(m_motion_depth[eye]);
         }
     }
 
@@ -1717,16 +1846,23 @@ private:
             return;
         }
         const double rate = m_frames / seconds;
-        char line[160];
+        // Smoother frames: the share of frames given with motion, over which the headset paces the game at half its rate.
+        const double warped = m_frames > 0 ? static_cast<double>(m_warp_frames) / static_cast<double>(m_frames) : 0.0;
+        char line[200];
         std::snprintf(line, sizeof line,
-                      "[vr-perf] %.1f frames/s over %.0f s, period %.2f ms, waited %.2f ms a frame",
+                      "[vr-perf] %.1f frames/s over %.0f s, period %.2f ms, waited %.2f ms a frame%s",
                       rate, seconds, out.frame_seconds * 1000.0,
-                      m_frames > 0 ? m_wait_seconds / m_frames * 1000.0 : 0.0);
+                      m_frames > 0 ? m_wait_seconds / m_frames * 1000.0 : 0.0,
+                      m_space_warp_ready ? (", smoother frames on " + std::to_string(static_cast<int>(warped * 100.0 + 0.5))
+                                            + "% of them").c_str()
+                                         : "");
         info(line);
         // Keep the refresh rate (on by default from 0.1.14, the owner's wish: smooth wherever the game keeps up) leaves
-        // the chosen rate alone; off, a rate above 72 not held for two spells in a row goes back to 72.
+        // the chosen rate alone; off, a rate above 72 not held for two spells in a row goes back to 72. With smoother
+        // frames the game is meant to draw half the rate.
         if (m_refresh_rate > 72.5f && m_focused) {
-            m_refresh_misses = rate < m_refresh_rate * 0.9f ? m_refresh_misses + 1 : 0;
+            const double wanted = m_refresh_rate * (warped > 0.5 ? 0.5 : 1.0);
+            m_refresh_misses = rate < wanted * 0.9 ? m_refresh_misses + 1 : 0;
             if (m_refresh_misses >= 2 && m_settings.keep_refresh) {
                 if (!m_refresh_kept_told) {
                     m_refresh_kept_told = true;
@@ -1750,6 +1886,7 @@ private:
             }
         }
         m_frames = 0;
+        m_warp_frames = 0;
         m_wait_seconds = 0;
         m_stats_start = now;
     }
@@ -1767,6 +1904,7 @@ private:
     XrSession m_session = XR_NULL_HANDLE;
     XrSpace m_local = XR_NULL_HANDLE;
     XrSpace m_view = XR_NULL_HANDLE;
+    XrSpace m_stage = XR_NULL_HANDLE;  // the floor, where the runtime knows one
     XrSessionState m_state = XR_SESSION_STATE_UNKNOWN;
     bool m_running = false;
     bool m_focused = false;
@@ -1800,6 +1938,17 @@ private:
     float m_refresh_rate = 0;
     int m_refresh_misses = 0;
     bool m_refresh_kept_told = false;
+
+    // Smoother frames (create_space_warp_targets).
+    std::vector<int64_t> m_formats;  // the swapchain formats the runtime offers
+    bool m_space_warp_extension = false;
+    bool m_space_warp_ready = false;
+    int m_motion_width = 0, m_motion_height = 0;
+    Swapchain m_motion[2];
+    Swapchain m_motion_depth[2];
+    SpaceWarpFrame m_warp;
+    bool m_warp_set = false;
+    long m_warp_frames = 0;  // frames given with motion since the last [vr-perf] line
 
     XrActionSet m_set = XR_NULL_HANDLE;
     XrPath m_hand_path[2] = {XR_NULL_PATH, XR_NULL_PATH};

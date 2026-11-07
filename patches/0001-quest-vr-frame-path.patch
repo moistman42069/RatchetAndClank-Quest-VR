@@ -256,7 +256,7 @@ index 023e51982b53f2b9c51923e58fb52e80a46cfd22..1237a761918aea8f7faa1e635029c6bc
    add_test(NAME hero_shadow_vulkan COMMAND hero_shadow_test --gpu)
    set_tests_properties(hero_shadow_vulkan PROPERTIES SKIP_RETURN_CODE 77
 diff --git a/port/game/common/frontend.cpp b/port/game/common/frontend.cpp
-index a71a1a3e4b58b423bf378d2cde3ae509e6d9a4f2..6f2c37ed7eb1e4b39fec363ef115e629e3ba7b81 100644
+index a71a1a3e4b58b423bf378d2cde3ae509e6d9a4f2..c7690d031e97e31f3d97c6051b24cd94005be737 100644
 --- a/port/game/common/frontend.cpp
 +++ b/port/game/common/frontend.cpp
 @@ -414,6 +414,19 @@ void world_under_menu() {
@@ -279,7 +279,18 @@ index a71a1a3e4b58b423bf378d2cde3ae509e6d9a4f2..6f2c37ed7eb1e4b39fec363ef115e629
  void world_drawn(std::span<const std::uint8_t> ram) {
      if (!g || g->world_camera) {
          return;
-@@ -473,6 +486,10 @@ bool show_picture(const std::uint8_t* rgba, int width, int height, float black)
+@@ -422,6 +435,10 @@ void world_drawn(std::span<const std::uint8_t> ram) {
+     g->world_camera = g->profile->read_state(ram, level);
+ }
+ 
++bool headset_paces_pictures() {
++    return views_wanted();
++}
++
+ bool show_picture(const std::uint8_t* rgba, int width, int height, float black) {
+     using namespace gl;
+     // Movie frames also share the graphics context with pending world recording.
+@@ -473,6 +490,10 @@ bool show_picture(const std::uint8_t* rgba, int width, int height, float black)
      }
      // The picture fills the frame the game's own frames fill; its first row is the top.
      present(g->picture.id(), width, height, window_width, window_height, true);
@@ -290,7 +301,7 @@ index a71a1a3e4b58b423bf378d2cde3ae509e6d9a4f2..6f2c37ed7eb1e4b39fec363ef115e629
      draw_touch_pad(window_width, window_height);
      {
          // [debug tools] The overlay over a picture too (no renderer or camera then).
-@@ -490,7 +507,13 @@ bool show_picture(const std::uint8_t* rgba, int width, int height, float black)
+@@ -490,7 +511,13 @@ bool show_picture(const std::uint8_t* rgba, int width, int height, float black)
          shown.vsync = g->swap != platform::SwapInterval::Immediate;
          debug_overlay::draw(shown);
      }
@@ -306,7 +317,7 @@ index a71a1a3e4b58b423bf378d2cde3ae509e6d9a4f2..6f2c37ed7eb1e4b39fec363ef115e629
  }
  
 diff --git a/port/game/common/frontend.h b/port/game/common/frontend.h
-index 0cade011c6e07f2902c83e298ba8ef0a8a99edc8..21ebcb89c4dd9fc4f493cd8e253303c5810cc964 100644
+index 0cade011c6e07f2902c83e298ba8ef0a8a99edc8..457ab5f15af9ad037f76a84700f166b3ac61aec1 100644
 --- a/port/game/common/frontend.h
 +++ b/port/game/common/frontend.h
 @@ -33,6 +33,9 @@ void world_drawn(std::span<const std::uint8_t> ram);
@@ -329,8 +340,25 @@ index 0cade011c6e07f2902c83e298ba8ef0a8a99edc8..21ebcb89c4dd9fc4f493cd8e253303c5
  // A sky sprite the game drew this frame (openrac_game_sky_sprite).
  void sky_sprite(const std::uint8_t* record, std::uint64_t tex0);
  
+@@ -124,6 +130,16 @@ bool store_image(std::uint32_t base, std::uint32_t width_units, std::uint8_t psm
+ // FadeToBlack), and reads the input. Counts as a frame (shots, OPENRAC_PRESS). False once the window
+ // was closed.
+ bool show_picture(const std::uint8_t* rgba, int width, int height, float black);
++// Quest VR: a headset takes the pictures, and its frame wait inside show_picture paces whoever shows them.
++bool headset_paces_pictures();
++// Quest VR: how fast time runs, the mod's word for this vertical blank (openrac_view_source.time_speed): the game's
++// ticks, its sound and the sounds to make of it. Asked once a blank.
++struct TimeSpeed {
++    float game = 1.0f;
++    float sound = 1.0f;
++    unsigned cues = 0;
++};
++TimeSpeed time_speed();
+ 
+ // Window frames since the player got control in a scripted run (OPENRAC_PRESS's and OPENRAC_WRITE's
+ // c entries), -1 before.
 diff --git a/port/game/common/frontend/frame.cpp b/port/game/common/frontend/frame.cpp
-index 092aec37b6049b0a3854c21612c4918f7629caf4..bee62f698002a5a7c5b447a6e8a1f60e1a09ceda 100644
+index 092aec37b6049b0a3854c21612c4918f7629caf4..ddedab703f7b118a9fce23e32a991c34044ece27 100644
 --- a/port/game/common/frontend/frame.cpp
 +++ b/port/game/common/frontend/frame.cpp
 @@ -43,6 +43,7 @@
@@ -369,7 +397,30 @@ index 092aec37b6049b0a3854c21612c4918f7629caf4..bee62f698002a5a7c5b447a6e8a1f60e
  }
  
  // Puts the camera the game's world renderers drew with this tick into `state`, if they ran.
-@@ -1092,7 +1105,7 @@ TickMobys pose_mobys(
+@@ -1062,6 +1075,22 @@ TickMobys pose_mobys(
+     // vendor's own) is read from its address; with the frame's camera (the item's hologram over the
+     // vendor) it is drawn in the world.
+     const std::size_t listed = state.mobys.size();
++    // Quest VR: with a title menu up the scene's people and things are noted as drawn "with a camera of their own", which is
++    // the world's camera (the menu's frames have the menu's, at 256, 256, 64). They are the scene's: taken for the menu's they
++    // left the eyes (own_cameras_off_eyes), so Ratchet, his ship and the crate went as the main menu came up and came back for a
++    // moment at each change of page. In a level, a moby's own camera stands as it was.
++    if (world_ran && !openrac_game_has_level(g->loaded)) {
++        const auto close = [](float a, float b) { return std::abs(a - b) < 0.01f; };
++        std::erase_if(g->moby_cameras, [&](const auto& own) {
++            const host::GameState& camera = own.second;
++            for (int axis = 0; axis < 3; ++axis) {
++                if (!close(camera.camera_position[axis], state.camera_position[axis]) || !close(camera.forward[axis], state.forward[axis])) {
++                    return false;
++                }
++            }
++            return true;
++        });
++    }
+     std::unordered_map<std::uint32_t, const host::GameState*> into_texture;
+     // Over a world drawn under a menu (`under_menu`): the menu's mobys, drawn on the screen at their
+     // markers in the 2D path with their own cameras, after the world.
+@@ -1092,7 +1121,7 @@ TickMobys pose_mobys(
          }
          for (const auto& [address, camera] : g->moby_cameras) {
              switch (
@@ -378,7 +429,7 @@ index 092aec37b6049b0a3854c21612c4918f7629caf4..bee62f698002a5a7c5b447a6e8a1f60e
              ) {
                  case OwnCameraLayer::Texture:
                      into_texture.emplace(address, &camera);
-@@ -1110,21 +1123,19 @@ TickMobys pose_mobys(
+@@ -1110,21 +1139,19 @@ TickMobys pose_mobys(
              }
          }
      }
@@ -412,7 +463,7 @@ index 092aec37b6049b0a3854c21612c4918f7629caf4..bee62f698002a5a7c5b447a6e8a1f60e
      for (std::size_t index = 0; index < state.mobys.size(); ++index) {
          const host::LiveMoby& m = state.mobys[index];
          const bool extra = index >= listed;
-@@ -1153,8 +1164,12 @@ TickMobys pose_mobys(
+@@ -1153,8 +1180,12 @@ TickMobys pose_mobys(
                  [&](const auto& c) { return c.first == m.address; }
              )
              && g->profile->beyond_draw_distance(
@@ -427,7 +478,7 @@ index 092aec37b6049b0a3854c21612c4918f7629caf4..bee62f698002a5a7c5b447a6e8a1f60e
              continue;
          }
          if (only_own_camera
-@@ -1309,29 +1324,35 @@ TickMobys pose_mobys(
+@@ -1309,29 +1340,35 @@ TickMobys pose_mobys(
              target_mobys.push_back({m.address, instance, *t->second, true});
              continue;
          }
@@ -471,7 +522,7 @@ index 092aec37b6049b0a3854c21612c4918f7629caf4..bee62f698002a5a7c5b447a6e8a1f60e
                      "extrusion {:.2f} {:.2f} {:.2f}, slab {:.3f}..{:.3f}, scale {:.3f}",
                      shadows.size(),
                      shadow_state.direction_index,
-@@ -1374,8 +1395,12 @@ TickMobys pose_mobys(
+@@ -1374,8 +1411,12 @@ TickMobys pose_mobys(
      // part of reading the scene, about 1.5 ms a tick for 180 mobys on a phone's fast core), then
      // given palette slots in the loop's order, as one thread gave them.
      std::vector<std::vector<assets::rac1::JointMatrix>> poses(pose_jobs.size());
@@ -485,7 +536,7 @@ index 092aec37b6049b0a3854c21612c4918f7629caf4..bee62f698002a5a7c5b447a6e8a1f60e
      });
      for (std::size_t k = 0; k < pose_jobs.size(); ++k) {
          const PoseJob& job = pose_jobs[k];
-@@ -1385,9 +1410,15 @@ TickMobys pose_mobys(
+@@ -1385,9 +1426,15 @@ TickMobys pose_mobys(
          }
          scene::Instance& instance = job.target ? target_mobys[job.index].instance : live[job.index];
          instance.palette = static_cast<int>(palette.size());
@@ -501,7 +552,7 @@ index 092aec37b6049b0a3854c21612c4918f7629caf4..bee62f698002a5a7c5b447a6e8a1f60e
          for (int j = 0; j < job.joints; ++j) {
              // Columns: the images of the axes, then the translation, which the palette has in
              // packed units (the mesh is in packed units / 1024).
-@@ -1403,7 +1434,11 @@ TickMobys pose_mobys(
+@@ -1403,7 +1450,11 @@ TickMobys pose_mobys(
                  c[12] = f[3][0] / 1024.0f;
                  c[13] = f[3][1] / 1024.0f;
                  c[14] = f[3][2] / 1024.0f;
@@ -514,7 +565,7 @@ index 092aec37b6049b0a3854c21612c4918f7629caf4..bee62f698002a5a7c5b447a6e8a1f60e
              }
              palette.push_back(c);
          }
-@@ -1617,7 +1652,12 @@ TickPackets capture_2d_path(
+@@ -1617,7 +1668,12 @@ TickPackets capture_2d_path(
      if (before_world == SIZE_MAX && (draws & 0x10u) != 0) {
          before_world = first_offscreen;
      }
@@ -528,7 +579,7 @@ index 092aec37b6049b0a3854c21612c4918f7629caf4..bee62f698002a5a7c5b447a6e8a1f60e
      k.named_quads = named_quads;
      return k;
  }
-@@ -2022,8 +2062,27 @@ bool frame(std::span<const std::uint8_t> ram, std::uint32_t chain, std::uint32_t
+@@ -2022,8 +2078,27 @@ bool frame(std::span<const std::uint8_t> ram, std::uint32_t chain, std::uint32_t
      keep_tick(ram, state, draws, std::move(mobys));
      g->kept->world_under_menu = under_menu;
      g->kept->packets = std::move(packets.packets);
@@ -558,7 +609,7 @@ index 092aec37b6049b0a3854c21612c4918f7629caf4..bee62f698002a5a7c5b447a6e8a1f60e
      g->kept->before_world = bytes_before_world(packets.before_world, under_menu);
      part.reset();
      return finish_tick(ram, state, packets.named_quads, level, debug, scene);
-@@ -2043,6 +2102,10 @@ bool keep_picture() {
+@@ -2043,6 +2118,10 @@ bool keep_picture() {
      if (run_over()) {
          return false;
      }
@@ -678,7 +729,7 @@ index ae97a1e1c4ccce5f836e60cf0834842e15d93306..b82cdf84614c8bdfa8513cca8f8ca474
      }
  
 diff --git a/port/game/common/frontend/scene_frame_internal.h b/port/game/common/frontend/scene_frame_internal.h
-index e1e76a91e686ecd5347cd47bd62664696c5e3ca8..50621d7fe22360f9eff4f7f4bbf0e0973add010e 100644
+index e1e76a91e686ecd5347cd47bd62664696c5e3ca8..937227fcd235032552b96789d64b4b29c9560c3d 100644
 --- a/port/game/common/frontend/scene_frame_internal.h
 +++ b/port/game/common/frontend/scene_frame_internal.h
 @@ -35,6 +35,9 @@ void set_packets(SceneFrame& frame);
@@ -691,7 +742,7 @@ index e1e76a91e686ecd5347cd47bd62664696c5e3ca8..50621d7fe22360f9eff4f7f4bbf0e097
  
  // Retains the last world where the original menu reads its background.
  void retain_background(SceneFrame& frame);
-@@ -44,11 +47,26 @@ void retain_background(SceneFrame& frame);
+@@ -44,11 +47,32 @@ void retain_background(SceneFrame& frame);
  // True while a mod has views: then each frame draws them, on the window's thread.
  bool views_wanted();
  
@@ -714,6 +765,12 @@ index e1e76a91e686ecd5347cd47bd62664696c5e3ca8..50621d7fe22360f9eff4f7f4bbf0e097
 +// its world anew, else the last pictures are given again), then copies them where the mod said.
  void draw_views(SceneFrame& frame, bool world);
  
++// Quest VR: this frame's mobys and joint palettes as the views draw them, kept for the views' motion (Application
++// SpaceWarp, openrac_view_source.view_motion) while the mod takes it.
++void keep_view_motion_scene(
++    const std::vector<scene::Instance>& live, const std::vector<scene::LevelScene::JointColumns>& palette
++);
++
 +// A frame that shows a picture (a movie, a boot still) and no scene: the mod is asked as for a
 +// frame, told so (view_abi.h), and given the picture for the panels it asks for.
 +void show_picture_in_views(State& owner, const renderer::FrameBuffer& picture);
@@ -754,6 +811,19 @@ index 7c37772df5eab36ce59cb74120ecb2ffd2d9db5b..1eac13428000be0f91c6ce034db236cf
          frame.input.screen_mobys =
              [&owner,
               &scene](std::uint64_t marker, const renderer::RenderTarget& target, bool clear_depth) {
+diff --git a/port/game/common/frontend/scene_interpolation.cpp b/port/game/common/frontend/scene_interpolation.cpp
+index f4a67c7f7c95af223e0a9c51fbb6cd827a39b85b..ee13a6cbc2180924ed5136831b6cd022e64ed817 100644
+--- a/port/game/common/frontend/scene_interpolation.cpp
++++ b/port/game/common/frontend/scene_interpolation.cpp
+@@ -183,6 +183,8 @@ void upload_instances(SceneFrame& frame) {
+     if (frame.temporal) {
+         frame.owner.temporal->set_scene(live, palette);
+     }
++    // Quest VR: and a headset's, for its eyes (views.cpp).
++    keep_view_motion_scene(live, palette);
+ 
+     frame.owner.scene.set_instances(scene::Layer::Mobys, live);
+     if (debug_overlay::picker_enabled()) {
 diff --git a/port/game/common/frontend/state.h b/port/game/common/frontend/state.h
 index d05400a2695f831fcd05fd56376962c6bb57d253..6e23ee4db957b48d93f1a9b7fd552c8d621b4abf 100644
 --- a/port/game/common/frontend/state.h
@@ -781,10 +851,10 @@ index d05400a2695f831fcd05fd56376962c6bb57d253..6e23ee4db957b48d93f1a9b7fd552c8d
  // put first among the frame's effect quads: drawn behind everything (frontend/world.cpp).
  void sky_sprite_quads(const host::GameState& state);
 diff --git a/port/game/common/frontend/views.cpp b/port/game/common/frontend/views.cpp
-index 876d1f93695e552c70a95678e932446f055a4e37..0148a93fc5b7688f87f72d7de712bdf8ed0431b2 100644
+index 876d1f93695e552c70a95678e932446f055a4e37..a755470f81c448543a208359dc813d4cdc8cc0a0 100644
 --- a/port/game/common/frontend/views.cpp
 +++ b/port/game/common/frontend/views.cpp
-@@ -10,17 +10,22 @@
+@@ -10,17 +10,23 @@
  #include <algorithm>
  #include <array>
  #include <cmath>
@@ -792,6 +862,7 @@ index 876d1f93695e552c70a95678e932446f055a4e37..0148a93fc5b7688f87f72d7de712bdf8
 +#include <cstring>
  #include <optional>
  #include <string>
++#include <unordered_map>
  #include <vector>
  
 +#include "common/env.h"
@@ -807,7 +878,7 @@ index 876d1f93695e552c70a95678e932446f055a4e37..0148a93fc5b7688f87f72d7de712bdf8
  
  namespace openrac::frontend {
  namespace {
-@@ -32,11 +37,76 @@ constexpr float kNear = 0.05f;
+@@ -32,11 +38,78 @@ constexpr float kNear = 0.05f;
  constexpr float kFar = 2000.0f;
  constexpr int kLargest = 8192;
  
@@ -878,13 +949,15 @@ index 876d1f93695e552c70a95678e932446f055a4e37..0148a93fc5b7688f87f72d7de712bdf8
 +out vec4 colour;
 +void main() {
 +    colour = texture(tex_T0, uv);
-+    colour.a = mix(colour.a, 1.0, solid) * opacity;
++    colour.a = mix(colour.a, 1.0, solid);
++    // The 2D view's picture holds its colours already weighed by its alpha, and the opacity weighs both.
++    colour *= opacity;
 +}
 +)";
  
  // The GL proc for openrac_graphics.gl_proc, in its C shape.
  void* gl_proc(const char* name) {
-@@ -63,8 +133,15 @@ renderer::Camera view_camera(const renderer::Camera& game, const openrac_view& v
+@@ -63,8 +136,15 @@ renderer::Camera view_camera(const renderer::Camera& game, const openrac_view& v
      }
  
      renderer::Camera camera = game;
@@ -902,7 +975,7 @@ index 876d1f93695e552c70a95678e932446f055a4e37..0148a93fc5b7688f87f72d7de712bdf8
      camera.position = eye_position(camera.view);
      const float aspect = static_cast<float>(v.width) / static_cast<float>(v.height);
  
-@@ -83,6 +160,161 @@ renderer::Camera view_camera(const renderer::Camera& game, const openrac_view& v
+@@ -83,6 +163,161 @@ renderer::Camera view_camera(const renderer::Camera& game, const openrac_view& v
      return camera;
  }
  
@@ -947,7 +1020,7 @@ index 876d1f93695e552c70a95678e932446f055a4e37..0148a93fc5b7688f87f72d7de712bdf8
 +    glDisable(GL_SCISSOR_TEST);
 +    glDisable(GL_CULL_FACE);
 +    glEnable(GL_BLEND);
-+    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
++    glBlendFuncSeparate(GL_ONE, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 +    glDepthMask(GL_FALSE);
 +    glDepthFunc(GL_GEQUAL);  // reversed depth (renderer/math.h)
 +    for (const openrac_world_quad& q : g_world_quads) {
@@ -1064,7 +1137,7 @@ index 876d1f93695e552c70a95678e932446f055a4e37..0148a93fc5b7688f87f72d7de712bdf8
  // Draws view `v` of the frame's scene into `picture`.
  void render_view(SceneFrame& frame, const openrac_view& v, renderer::FrameBuffer& picture) {
      State& owner = frame.owner;
-@@ -96,12 +328,18 @@ void render_view(SceneFrame& frame, const openrac_view& v, renderer::FrameBuffer
+@@ -96,12 +331,18 @@ void render_view(SceneFrame& frame, const openrac_view& v, renderer::FrameBuffer
      input.keep_colour = false;
      // Ambient occlusion keeps targets of the window's size: a view of another would make them anew.
      input.gtao = false;
@@ -1088,12 +1161,13 @@ index 876d1f93695e552c70a95678e932446f055a4e37..0148a93fc5b7688f87f72d7de712bdf8
      }
  
      const float aspect = static_cast<float>(v.width) / static_cast<float>(v.height);
-@@ -109,20 +347,86 @@ void render_view(SceneFrame& frame, const openrac_view& v, renderer::FrameBuffer
+@@ -109,26 +350,602 @@ void render_view(SceneFrame& frame, const openrac_view& v, renderer::FrameBuffer
          picture.id(), v.width, v.height, std::min(1.0f, kTvAspect / aspect)
      };
      target.depth_texture = picture.depth_texture();
 +    target.resolve_framebuffer = picture.resolve_target();
 +    target.resolves_itself = picture.resolves_itself();
++    target.layered = v.kind == OPENRAC_VIEW_2D;
 +
 +    if (v.kind == OPENRAC_VIEW_2D) {
 +        input.direct_before_world = {};
@@ -1176,7 +1250,522 @@ index 876d1f93695e552c70a95678e932446f055a4e37..0148a93fc5b7688f87f72d7de712bdf8
  
      for (const auto& [bucket, enabled] : kept) {
          bucket->enabled = enabled;
-@@ -157,8 +461,11 @@ unsigned target_of(State& owner, unsigned texture) {
+     }
+ }
+ 
++// ---- Quest VR: Application SpaceWarp's motion (openrac_view_source.view_motion, from 0.1.17) ----
++//
++// For a world view the mod gives motion images for, once the view is drawn anew, into those images at their size:
++//   1. the depth of the level's terrain, ties and shrubs, by their own depth pass from the view's camera;
++//   2. where each of those pixels was in the last frame drawn with motion, by the view's camera then (a full-screen
++//      pass reading that depth; the sky by its direction alone): this frame's place less that one, in NDC;
++//   3. the mobys over it, each from its pose then to its pose now, their depth with them (the FSR velocity pass's way,
++//      scene/motion.cpp, with LevelScene::draw_motion); one that is new or jumped, by the camera alone.
++// Nothing blended (glows, translucent texels, particles) writes motion, as Meta's guide has it. A view that cut (a new
++// level, the camera jumped or turned far, no frame drawn before) gives its images as not drawn.
++constexpr float kMotionJump = 4.0f;    // game units the camera may move between two frames with motion
++constexpr float kMotionTurn = 0.9f;    // the cosine of the most it may turn between them (about 25 degrees)
++
++struct MotionHistory {
++    bool valid = false;
++    renderer::Mat4 view_projection{};
++    renderer::Vec3 position{};
++    renderer::Vec3 forward{};
++};
++std::array<MotionHistory, OPENRAC_VIEW_MAX> g_motion_history{};
++int g_motion_level = -100;  // the level the history is of
++// This frame's mobys and joint palettes as the eyes draw them (keep_view_motion_scene).
++std::vector<scene::Instance> g_motion_live;
++std::vector<scene::LevelScene::JointColumns> g_motion_palette;
++bool g_motion_scene = false;       // given this frame
++bool g_motion_keep = true;         // the mod took motion lately: the scene is kept for it
++struct MotionObject {
++    std::uint32_t model = 0;
++    renderer::Mat4 matrix{};
++    int palette = -1;
++    bool floats = false;
++};
++std::unordered_map<std::uint64_t, MotionObject> g_motion_objects;  // the mobys as the last frame with motion drew them
++unsigned g_motion_palette_then = 0;  // their joint palettes then: RGBA32F, four texels a matrix, 1024 a row
++bool g_motion_have_then = false;
++std::vector<scene::MotionInstance> g_motion_instances;  // this frame's, made for its first view with motion
++bool g_motion_built = false;
++bool g_motion_asked = false;  // a view took motion this frame
++renderer::Shader g_motion_camera;
++renderer::Shader g_motion_moby;
++unsigned g_motion_vertices = 0;
++bool g_motion_refused = false;
++struct MotionTargets {
++    unsigned motion = 0, depth = 0;
++    unsigned both = 0;    // the motion and the depth
++    unsigned colour = 0;  // the motion alone, while the depth is read
++};
++std::vector<MotionTargets> g_motion_targets;
++
++constexpr const char* kMotionCameraVertex = R"(#version 410 core
++void main() {
++    vec2 at = vec2(float((gl_VertexID << 1) & 2), float(gl_VertexID & 2));
++    gl_Position = vec4(at * 2.0 - 1.0, 0.0, 1.0);
++}
++)";
++
++// The level's pixels by the camera: the depth pass's depth taken back to the world, then through the last frame's
++// camera. A sky pixel (nothing drawn, depth 0) by its direction alone.
++constexpr const char* kMotionCameraFragment = R"(#version 410 core
++uniform sampler2D tex_T0;
++uniform mat4 inverse_now;
++uniform mat4 then;
++uniform vec3 eye;
++uniform vec2 size;
++layout(location=0) out vec4 motion;
++void main() {
++    float depth = texelFetch(tex_T0, ivec2(gl_FragCoord.xy), 0).r;
++    vec3 now = vec3(gl_FragCoord.xy / size * 2.0 - 1.0, depth * 2.0 - 1.0);
++    vec4 world = inverse_now * vec4(now, 1.0);
++    world /= world.w;
++    bool sky = depth <= 0.0;
++    if (sky) {
++        world = vec4(world.xyz - eye, 0.0);
++    }
++    vec4 old = then * world;
++    if (old.w <= 0.0) {
++        motion = vec4(0.0);
++        return;
++    }
++    vec3 before = old.xyz / old.w;
++    motion = vec4(now.xy - before.xy, sky ? 0.0 : now.z - before.z, 0.0);
++}
++)";
++
++// The mobys, rigid and skinned, at their pose now and then (enhanced/fsr3/shaders/motion.vert's, which the GL ES
++// build has not).
++constexpr const char* kMotionMobyVertex = R"(#version 410 core
++invariant gl_Position;
++layout(location=0) in vec3 position;
++layout(location=2) in vec2 uv;
++layout(location=3) in vec4 colour;
++layout(location=10) in uvec4 joints;
++layout(location=11) in vec4 weights;
++layout(location=12) in float light_slot;
++uniform mat4 raster;
++uniform mat4 current_view;
++uniform mat4 previous_view;
++uniform mat4 current_model;
++uniform mat4 previous_model;
++uniform vec2 palettes;
++uniform float reactive;
++uniform int exclude_glow;
++uniform float instance_alpha;
++uniform int motion_instances;
++uniform int motion_first;
++uniform usamplerBuffer tex_T3;
++uniform sampler2D tex_T1;
++uniform sampler2D tex_T2;
++out vec2 v_uv;
++out float v_alpha;
++out vec4 v_current;
++out vec4 v_previous;
++flat out int v_glow;
++flat out float v_instance_alpha;
++mat4 joint_matrix(sampler2D source, int index) {
++    int texel = index * 4;
++    ivec2 at = ivec2(texel % 1024, texel / 1024);
++    return mat4(texelFetch(source, at, 0), texelFetch(source, at + ivec2(1, 0), 0),
++                texelFetch(source, at + ivec2(2, 0), 0), texelFetch(source, at + ivec2(3, 0), 0));
++}
++vec4 posed(sampler2D source, int base) {
++    vec4 p = vec4(position, 1.0);
++    float total = weights.x + weights.y + weights.z + weights.w;
++    if (base >= 0 && total > 0.0) {
++        mat4 skin = weights.x * joint_matrix(source, base + int(joints.x))
++                  + weights.y * joint_matrix(source, base + int(joints.y))
++                  + weights.z * joint_matrix(source, base + int(joints.z))
++                  + weights.w * joint_matrix(source, base + int(joints.w));
++        p = vec4((skin * p).xyz, 1.0);
++    }
++    return p;
++}
++void main() {
++    mat4 current = current_model;
++    mat4 previous = previous_model;
++    vec2 joints_at = palettes;
++    float reject_history = reactive;
++    int glow = exclude_glow;
++    v_instance_alpha = instance_alpha;
++    if (motion_instances != 0) {
++        int at = (motion_first + gl_InstanceID) * 9;
++        current = mat4(uintBitsToFloat(texelFetch(tex_T3, at)), uintBitsToFloat(texelFetch(tex_T3, at + 1)),
++                       uintBitsToFloat(texelFetch(tex_T3, at + 2)), uintBitsToFloat(texelFetch(tex_T3, at + 3)));
++        previous = mat4(uintBitsToFloat(texelFetch(tex_T3, at + 4)), uintBitsToFloat(texelFetch(tex_T3, at + 5)),
++                        uintBitsToFloat(texelFetch(tex_T3, at + 6)), uintBitsToFloat(texelFetch(tex_T3, at + 7)));
++        uvec4 parameters = texelFetch(tex_T3, at + 8);
++        joints_at = uintBitsToFloat(parameters.xy);
++        v_instance_alpha = uintBitsToFloat(parameters.z);
++        reject_history = float(parameters.w & 1u);
++        glow = int((parameters.w >> 1u) & 1u);
++    }
++    vec4 world = current * posed(tex_T1, int(joints_at.x));
++#ifdef OPENRAC_WATER_FLOAT
++    mat4 water_pose = water_float_pose(current[3].xyz);
++    world = water_pose * world;
++#endif
++    gl_Position = raster * world;
++    v_current = current_view * world;
++    vec4 previous_world = reject_history > 0.5 ? world : previous * posed(tex_T2, int(joints_at.y));
++    v_previous = previous_view * previous_world;
++    v_uv = uv;
++    v_alpha = colour.a;
++    v_glow = glow != 0 && light_slot < -1.5 ? 1 : 0;
++}
++)";
++
++constexpr const char* kMotionMobyFragment = R"(#version 410 core
++in vec2 v_uv;
++in float v_alpha;
++in vec4 v_current;
++in vec4 v_previous;
++flat in int v_glow;
++flat in float v_instance_alpha;
++uniform sampler2D tex_T0;
++uniform float material_alpha;
++layout(location=0) out vec4 motion;
++void main() {
++    if (v_glow != 0 || texture(tex_T0, v_uv).a * v_alpha * v_instance_alpha * material_alpha < 0.99) {
++        discard;
++    }
++    bool valid = v_previous.w > 0.0 && v_current.w > 0.0;
++    motion = vec4(valid ? v_current.xyz / v_current.w - v_previous.xyz / v_previous.w : vec3(0.0), 0.0);
++}
++)";
++
++// A 4 x 4 matrix's inverse (column-major); false for none.
++bool invert(const renderer::Mat4& m, renderer::Mat4& out) {
++    renderer::Mat4 inv{};
++    inv[0] = m[5] * m[10] * m[15] - m[5] * m[11] * m[14] - m[9] * m[6] * m[15] + m[9] * m[7] * m[14] + m[13] * m[6] * m[11]
++             - m[13] * m[7] * m[10];
++    inv[4] = -m[4] * m[10] * m[15] + m[4] * m[11] * m[14] + m[8] * m[6] * m[15] - m[8] * m[7] * m[14] - m[12] * m[6] * m[11]
++             + m[12] * m[7] * m[10];
++    inv[8] = m[4] * m[9] * m[15] - m[4] * m[11] * m[13] - m[8] * m[5] * m[15] + m[8] * m[7] * m[13] + m[12] * m[5] * m[11]
++             - m[12] * m[7] * m[9];
++    inv[12] = -m[4] * m[9] * m[14] + m[4] * m[10] * m[13] + m[8] * m[5] * m[14] - m[8] * m[6] * m[13] - m[12] * m[5] * m[10]
++              + m[12] * m[6] * m[9];
++    inv[1] = -m[1] * m[10] * m[15] + m[1] * m[11] * m[14] + m[9] * m[2] * m[15] - m[9] * m[3] * m[14] - m[13] * m[2] * m[11]
++             + m[13] * m[3] * m[10];
++    inv[5] = m[0] * m[10] * m[15] - m[0] * m[11] * m[14] - m[8] * m[2] * m[15] + m[8] * m[3] * m[14] + m[12] * m[2] * m[11]
++             - m[12] * m[3] * m[10];
++    inv[9] = -m[0] * m[9] * m[15] + m[0] * m[11] * m[13] + m[8] * m[1] * m[15] - m[8] * m[3] * m[13] - m[12] * m[1] * m[11]
++             + m[12] * m[3] * m[9];
++    inv[13] = m[0] * m[9] * m[14] - m[0] * m[10] * m[13] - m[8] * m[1] * m[14] + m[8] * m[2] * m[13] + m[12] * m[1] * m[10]
++              - m[12] * m[2] * m[9];
++    inv[2] = m[1] * m[6] * m[15] - m[1] * m[7] * m[14] - m[5] * m[2] * m[15] + m[5] * m[3] * m[14] + m[13] * m[2] * m[7]
++             - m[13] * m[3] * m[6];
++    inv[6] = -m[0] * m[6] * m[15] + m[0] * m[7] * m[14] + m[4] * m[2] * m[15] - m[4] * m[3] * m[14] - m[12] * m[2] * m[7]
++             + m[12] * m[3] * m[6];
++    inv[10] = m[0] * m[5] * m[15] - m[0] * m[7] * m[13] - m[4] * m[1] * m[15] + m[4] * m[3] * m[13] + m[12] * m[1] * m[7]
++              - m[12] * m[3] * m[5];
++    inv[14] = -m[0] * m[5] * m[14] + m[0] * m[6] * m[13] + m[4] * m[1] * m[14] - m[4] * m[2] * m[13] - m[12] * m[1] * m[6]
++              + m[12] * m[2] * m[5];
++    inv[3] = -m[1] * m[6] * m[11] + m[1] * m[7] * m[10] + m[5] * m[2] * m[11] - m[5] * m[3] * m[10] - m[9] * m[2] * m[7]
++             + m[9] * m[3] * m[6];
++    inv[7] = m[0] * m[6] * m[11] - m[0] * m[7] * m[10] - m[4] * m[2] * m[11] + m[4] * m[3] * m[10] + m[8] * m[2] * m[7]
++             - m[8] * m[3] * m[6];
++    inv[11] = -m[0] * m[5] * m[11] + m[0] * m[7] * m[9] + m[4] * m[1] * m[11] - m[4] * m[3] * m[9] - m[8] * m[1] * m[7]
++              + m[8] * m[3] * m[5];
++    inv[15] = m[0] * m[5] * m[10] - m[0] * m[6] * m[9] - m[4] * m[1] * m[10] + m[4] * m[2] * m[9] + m[8] * m[1] * m[6]
++              - m[8] * m[2] * m[5];
++    const float det = m[0] * inv[0] + m[1] * inv[4] + m[2] * inv[8] + m[3] * inv[12];
++    if (!std::isfinite(det) || std::fabs(det) < 1e-30f) {
++        return false;
++    }
++    for (std::size_t i = 0; i < 16; ++i) {
++        out[i] = inv[i] / det;
++    }
++    return true;
++}
++
++// The framebuffers around a pair of the mod's motion textures, made the first time; null when they cannot be drawn
++// into.
++const MotionTargets* motion_targets(unsigned motion, unsigned depth) {
++    using namespace gl;
++    for (const MotionTargets& t : g_motion_targets) {
++        if (t.motion == motion && t.depth == depth) {
++            return t.both != 0 ? &t : nullptr;
++        }
++    }
++    MotionTargets made{motion, depth, 0, 0};
++    glGenFramebuffers(1, &made.both);
++    glBindFramebuffer(GL_FRAMEBUFFER, made.both);
++    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, motion, 0);
++    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, depth, 0);
++    bool complete = glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
++    glGenFramebuffers(1, &made.colour);
++    glBindFramebuffer(GL_FRAMEBUFFER, made.colour);
++    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, motion, 0);
++    complete = complete && glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
++    glBindFramebuffer(GL_FRAMEBUFFER, 0);
++    if (!complete) {
++        glDeleteFramebuffers(1, &made.both);
++        glDeleteFramebuffers(1, &made.colour);
++        made.both = made.colour = 0;
++        log::warn("mod views: the motion images {} and {} cannot be drawn into", motion, depth);
++    }
++    g_motion_targets.push_back(made);
++    return made.both != 0 ? &g_motion_targets.back() : nullptr;
++}
++
++bool motion_shaders(const State& owner) {
++    if (g_motion_refused) {
++        return false;
++    }
++    if (g_motion_camera.id() != 0) {
++        return true;
++    }
++    std::string error;
++    if (!g_motion_camera.build("view_motion_camera", kMotionCameraVertex, kMotionCameraFragment, error)
++        || !g_motion_moby.build("view_motion_mobys", owner.scene.deformation_vertex(kMotionMobyVertex),
++                                kMotionMobyFragment, error)) {
++        log::warn("mod views: the motion pass: {}", error);
++        g_motion_refused = true;
++        g_motion_camera.release();
++        g_motion_moby.release();
++        return false;
++    }
++    gl::glGenVertexArrays(1, &g_motion_vertices);
++    return true;
++}
++
++// The mobys' motion instances this frame, from their poses the last frame with motion (by their identity, as the FSR
++// pass follows them): a new one, one of another model, or one that jumped is moved by the camera alone.
++void build_motion_instances(State& owner) {
++    g_motion_instances.clear();
++    const bool deformation = owner.scene.deformation_active();
++    for (const scene::Instance& instance : g_motion_live) {
++        // Blended ones (flashes, fades) and the 2D layer's, placed for the game's own camera, have none.
++        if (instance.blend != 0 || instance.moby_light[3] > 1.5f) {
++            continue;
++        }
++        const auto old = g_motion_objects.find(instance.temporal_id);
++        bool matched = g_motion_have_then && instance.temporal_id != 0 && old != g_motion_objects.end()
++                       && old->second.model == instance.model;
++        if (matched) {
++            float movement = 0.0f;
++            for (std::size_t n = 12; n < 15; ++n) {
++                const float d = instance.matrix[n] - old->second.matrix[n];
++                movement += d * d;
++            }
++            matched = movement < 64.0f && (instance.palette < 0) == (old->second.palette < 0);
++        }
++        scene::MotionInstance m;
++        m.model = instance.model;
++        m.current = instance.matrix;
++        m.previous = matched ? old->second.matrix : instance.matrix;
++        m.palettes = {instance.palette, matched ? old->second.palette : instance.palette};
++        m.alpha = instance.tint[3];
++        m.floats_on_water = instance.floats_on_water && deformation;
++        m.reactive = !matched || m.floats_on_water || old->second.floats != m.floats_on_water;
++        m.exclude_glow = std::abs(instance.moby_light[3]) > 0.5f && instance.moby_ambient[3] > 0.5f;
++        g_motion_instances.push_back(m);
++    }
++}
++
++// The palettes now, as the next frame's palettes then.
++void save_motion_palette() {
++    using namespace gl;
++    constexpr std::size_t kMatricesPerRow = 256;
++    const std::size_t rows = std::max(std::size_t{1}, (g_motion_palette.size() + kMatricesPerRow - 1) / kMatricesPerRow);
++    std::vector<scene::LevelScene::JointColumns> padded(rows * kMatricesPerRow);
++    std::copy(g_motion_palette.begin(), g_motion_palette.end(), padded.begin());
++    if (g_motion_palette_then == 0) {
++        glGenTextures(1, &g_motion_palette_then);
++    }
++    glActiveTexture(GL_TEXTURE0 + 2);
++    glBindTexture(GL_TEXTURE_2D, g_motion_palette_then);
++    glTexImage2D(GL_TEXTURE_2D, 0, 0x8814 /* GL_RGBA32F */, 1024, static_cast<int>(rows), 0, GL_RGBA, GL_FLOAT,
++                 padded.data());
++    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
++    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
++    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
++    glActiveTexture(GL_TEXTURE0);
++}
++
++void forget_motion() {
++    for (MotionHistory& h : g_motion_history) {
++        h.valid = false;
++    }
++    g_motion_objects.clear();
++    g_motion_have_then = false;
++}
++
++// After view `index` (a world view) is drawn anew: its motion, where the mod wants it.
++void draw_view_motion(SceneFrame& frame, int index, const openrac_view& v) {
++    using namespace gl;
++    if (!g_source || g_source->view_motion == nullptr || gl::is_vulkan() || !frame.owner.renderer) {
++        return;
++    }
++    openrac_view_motion* m = g_source->view_motion(g_source->user, index);
++    if (m == nullptr) {
++        return;
++    }
++    m->drawn = 0;
++    m->depth_zero = kFar;
++    m->depth_one = kNear;
++    g_motion_asked = true;
++    State& owner = frame.owner;
++    if (m->motion_texture == 0 || m->depth_texture == 0 || m->width < 1 || m->height < 1 || m->width > kLargest
++        || m->height > kLargest || !motion_shaders(owner)) {
++        return;
++    }
++    if (frame.scene.level != g_motion_level) {
++        g_motion_level = frame.scene.level;
++        forget_motion();
++    }
++    const renderer::Camera camera = view_camera(frame.input.camera, v);
++    const renderer::Mat4 now = renderer::multiply(camera.projection, camera.view);
++    const renderer::Vec3 forward{-camera.view[2], -camera.view[6], -camera.view[10]};
++    MotionHistory& h = g_motion_history[static_cast<std::size_t>(index)];
++    const renderer::Vec3 moved{camera.position[0] - h.position[0], camera.position[1] - h.position[1],
++                               camera.position[2] - h.position[2]};
++    const bool continuous = h.valid && g_motion_scene && renderer::dot(moved, moved) < kMotionJump * kMotionJump
++                            && renderer::dot(forward, h.forward) > kMotionTurn;
++    const renderer::Mat4 then = h.view_projection;
++    h = {true, now, camera.position, forward};
++    renderer::Mat4 inverse_now{};
++    if (!continuous || !invert(now, inverse_now)) {
++        return;
++    }
++    const MotionTargets* targets = motion_targets(m->motion_texture, m->depth_texture);
++    if (targets == nullptr) {
++        return;
++    }
++    if (!g_motion_built) {
++        g_motion_built = true;
++        build_motion_instances(owner);
++        if (g_motion_palette_then == 0) {
++            save_motion_palette();
++        }
++    }
++
++    // 1. The level's depth.
++    renderer::FrameInput input = frame.input;
++    input.camera = camera;
++    renderer::RenderTarget target{targets->both, m->width, m->height, 1.0f};
++    renderer::RenderState state{owner.renderer->textures(), target, {}};
++    glBindFramebuffer(GL_FRAMEBUFFER, targets->both);
++    glViewport(0, 0, m->width, m->height);
++    glDisable(GL_SCISSOR_TEST);
++    glDisable(GL_STENCIL_TEST);
++    glDisable(GL_BLEND);
++    glDisable(GL_CULL_FACE);
++    glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
++    glDepthMask(GL_TRUE);
++    glClearDepth(0.0);
++    glClear(GL_DEPTH_BUFFER_BIT);
++    state.depth_prepass = true;
++    for (const scene::Layer layer : {scene::Layer::Terrain, scene::Layer::Ties, scene::Layer::Shrubs}) {
++        owner.scene.draw_layer(layer, input, state);
++    }
++
++    // 2. The level and the sky by the camera.
++    glBindFramebuffer(GL_FRAMEBUFFER, targets->colour);
++    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
++    glDisable(GL_DEPTH_TEST);
++    glDepthMask(GL_FALSE);
++    glDisable(GL_BLEND);
++    glDisable(GL_CULL_FACE);
++    g_motion_camera.use();
++    glUniformMatrix4fv(g_motion_camera.uniform("inverse_now"), 1, GL_FALSE, inverse_now.data());
++    glUniformMatrix4fv(g_motion_camera.uniform("then"), 1, GL_FALSE, then.data());
++    glUniform3f(g_motion_camera.uniform("eye"), camera.position[0], camera.position[1], camera.position[2]);
++    glUniform2f(g_motion_camera.uniform("size"), static_cast<float>(m->width), static_cast<float>(m->height));
++    glActiveTexture(GL_TEXTURE0);
++    glBindTexture(GL_TEXTURE_2D, m->depth_texture);
++    // A depth texture is read texel by texel; anything else leaves it incomplete in GL ES.
++    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
++    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
++    glBindVertexArray(g_motion_vertices);
++    glDrawArrays(GL_TRIANGLES, 0, 3);
++    glBindTexture(GL_TEXTURE_2D, 0);
++
++    // 3. The mobys, over it, by their depth.
++    glBindFramebuffer(GL_FRAMEBUFFER, targets->both);
++    glEnable(GL_DEPTH_TEST);
++    glDepthFunc(GL_GEQUAL);  // reversed depth
++    glDepthMask(GL_TRUE);
++    scene::MotionView view;
++    view.raster = now;
++    view.current = now;
++    view.previous = then;
++    view.size = {m->width, m->height};
++    view.previous_palette = g_motion_palette_then;
++    owner.scene.draw_motion(g_motion_moby, g_motion_instances, view, owner.renderer->textures());
++
++    glBindVertexArray(0);
++    glActiveTexture(GL_TEXTURE0);
++    glBindFramebuffer(GL_FRAMEBUFFER, 0);
++    m->drawn = 1;
++}
++
++// After the frame's views: what the next frame's motion is measured from.
++void end_view_motion(const State& owner, bool world) {
++    if (!world) {
++        // A frame given again (the eyes' last pictures): the next drawn is not a frame after the last.
++        forget_motion();
++    } else if (g_motion_asked && g_motion_scene) {
++        g_motion_objects.clear();
++        const bool deformation = owner.scene.deformation_active();
++        for (const scene::Instance& instance : g_motion_live) {
++            if (instance.temporal_id != 0) {
++                g_motion_objects[instance.temporal_id] = {instance.model, instance.matrix, instance.palette,
++                                                         instance.floats_on_water && deformation};
++            }
++        }
++        save_motion_palette();
++        g_motion_have_then = true;
++    } else if (g_motion_asked) {
++        // The scene was not kept this frame (the mod had not taken motion before): the mobys start over.
++        g_motion_objects.clear();
++        g_motion_have_then = false;
++    } else if (g_motion_have_then || !g_motion_objects.empty()) {
++        forget_motion();
++    }
++    if (world) {
++        g_motion_keep = g_motion_asked;
++    }
++    g_motion_scene = false;
++    g_motion_built = false;
++    g_motion_asked = false;
++}
++
++void release_view_motion() {
++    for (const MotionTargets& t : g_motion_targets) {
++        if (t.both != 0) {
++            gl::glDeleteFramebuffers(1, &t.both);
++        }
++        if (t.colour != 0) {
++            gl::glDeleteFramebuffers(1, &t.colour);
++        }
++    }
++    g_motion_targets.clear();
++    g_motion_camera.release();
++    g_motion_moby.release();
++    if (g_motion_vertices != 0) {
++        gl::glDeleteVertexArrays(1, &g_motion_vertices);
++        g_motion_vertices = 0;
++    }
++    if (g_motion_palette_then != 0) {
++        gl::glDeleteTextures(1, &g_motion_palette_then);
++        g_motion_palette_then = 0;
++    }
++    g_motion_refused = false;
++    forget_motion();
++    g_motion_live.clear();
++    g_motion_palette.clear();
++}
++
+ // The framebuffer around the mod's GL texture `texture`, made the first time.
+ unsigned target_of(State& owner, unsigned texture) {
+     for (const auto& [name, framebuffer] : owner.view_targets) {
+@@ -157,8 +974,11 @@ unsigned target_of(State& owner, unsigned texture) {
      return framebuffer;
  }
  
@@ -1190,7 +1779,7 @@ index 876d1f93695e552c70a95678e932446f055a4e37..0148a93fc5b7688f87f72d7de712bdf8
      if (gl::is_vulkan()) {
          return v.image == nullptr
                 || platform::copy_to_vulkan_image(
-@@ -175,7 +482,30 @@ bool copy_out(State& owner, const openrac_view& v, const renderer::FrameBuffer&
+@@ -175,7 +995,30 @@ bool copy_out(State& owner, const openrac_view& v, const renderer::FrameBuffer&
          return false;
      }
  
@@ -1222,7 +1811,7 @@ index 876d1f93695e552c70a95678e932446f055a4e37..0148a93fc5b7688f87f72d7de712bdf8
      return true;
  }
  
-@@ -188,7 +518,7 @@ void draw_view(SceneFrame& frame, int index, bool world) {
+@@ -188,7 +1031,7 @@ void draw_view(SceneFrame& frame, int index, bool world) {
  
      // Sizes and kinds the port does not draw: the view is left out, said once.
      if (v.width < 1 || v.height < 1 || v.width > kLargest || v.height > kLargest
@@ -1231,7 +1820,7 @@ index 876d1f93695e552c70a95678e932446f055a4e37..0148a93fc5b7688f87f72d7de712bdf8
          if (!g_warned) {
              log::warn(
                  "mod views: view {} is {} by {} of kind {}, which is not drawn",
-@@ -202,14 +532,27 @@ void draw_view(SceneFrame& frame, int index, bool world) {
+@@ -202,20 +1045,36 @@ void draw_view(SceneFrame& frame, int index, bool world) {
          return;
      }
  
@@ -1262,7 +1851,16 @@ index 876d1f93695e552c70a95678e932446f055a4e37..0148a93fc5b7688f87f72d7de712bdf8
                  log::warn("mod views: view {}: {}", index, error);
                  return;
              }
-@@ -274,21 +617,124 @@ void set_view_source(const openrac_view_source* source) {
+         }
+         render_view(frame, v, picture);
+         v.drawn = 1;
++        if (v.kind == OPENRAC_VIEW_WORLD) {
++            draw_view_motion(frame, index, v);
++        }
+     }
+ 
+     // Nothing drawn at this size yet: nothing to give.
+@@ -274,21 +1133,150 @@ void set_view_source(const openrac_view_source* source) {
      g_count = 0;
  }
  
@@ -1306,6 +1904,20 @@ index 876d1f93695e552c70a95678e932446f055a4e37..0148a93fc5b7688f87f72d7de712bdf8
  }
  
 -void draw_views(SceneFrame& frame, bool world) {
++TimeSpeed time_speed() {
++    TimeSpeed result;
++    if (views_wanted() && g_source->size >= offsetof(openrac_view_source, time_speed) + sizeof(void*)
++        && g_source->time_speed != nullptr) {
++        openrac_time_speed asked{1.0f, 1.0f, 0u};
++        g_source->time_speed(g_source->user, &asked);
++        // A game much slower than this leaves the mod's own tick-bound work too far behind the head.
++        result.game = std::clamp(asked.game, 0.1f, 1.0f);
++        result.sound = std::clamp(asked.sound, 0.25f, 1.0f);
++        result.cues = asked.cues;
++    }
++    return result;
++}
++
 +void begin_views(float alpha) {
      // A frame drawn twice before its swap (none should be) ends the first one's views first.
      finish_views();
@@ -1361,6 +1973,18 @@ index 876d1f93695e552c70a95678e932446f055a4e37..0148a93fc5b7688f87f72d7de712bdf8
 +            draw_view(frame, i, world);
 +        }
 +    }
++    end_view_motion(frame.owner, world);
++}
++
++void keep_view_motion_scene(
++    const std::vector<scene::Instance>& live, const std::vector<scene::LevelScene::JointColumns>& palette
++) {
++    if (!g_motion_keep || !views_wanted() || g_source->view_motion == nullptr) {
++        return;
++    }
++    g_motion_live = live;
++    g_motion_palette = palette;
++    g_motion_scene = true;
 +}
 +
 +void show_picture_in_views(State& owner, const renderer::FrameBuffer& picture) {
@@ -1389,10 +2013,11 @@ index 876d1f93695e552c70a95678e932446f055a4e37..0148a93fc5b7688f87f72d7de712bdf8
      }
  }
  
-@@ -301,6 +747,11 @@ void finish_views() {
+@@ -301,6 +1289,12 @@ void finish_views() {
  
  void release_views(State& owner) {
      finish_views();
++    release_view_motion();
 +    g_quad_shader.release();
 +    if (g_quad_vertices != 0) {
 +        gl::glDeleteVertexArrays(1, &g_quad_vertices);
@@ -2664,10 +3289,100 @@ index 83f7de5281e4e9a080a85a7766ac18097423c4e6..40e4073d3b3b7ec56d2809b6ca21f9b0
      return c_boundary::call("openrac_game_ui_quad", -1, [&]() -> int {
  #ifdef OPENRAC_FRONTEND
 diff --git a/port/game/common/program/movie.cpp b/port/game/common/program/movie.cpp
-index b9329019a8d79e3b3465e5e0aea074d477f2ac08..574c017060721aa230db234ed1e5bff07fb7d356 100644
+index b9329019a8d79e3b3465e5e0aea074d477f2ac08..c71be4006fd278afc50e71f2c183d85f0265a96d 100644
 --- a/port/game/common/program/movie.cpp
 +++ b/port/game/common/program/movie.cpp
-@@ -166,7 +166,8 @@ int play_movie(uint32_t lsn, uint32_t bytes, int channel, int start_skips) {
+@@ -7,6 +7,7 @@
+ // support (OPENRAC_MOVIES) there is none, and the game goes on as if it had played.
+ // The player follows ReRAC's movie mode (ISC License): the comment above play_movie credits it.
+ 
++#include <algorithm>
+ #include <chrono>
+ #include <cstdint>
+ #include <cstdio>
+@@ -95,6 +96,8 @@ int play_movie(uint32_t lsn, uint32_t bytes, int channel, int start_skips) {
+     );
+     std::string error;
+     auto output = platform::AudioOutput::open(error);
++    // The game's own sound stays at its own speed under a movie, whatever time was doing as it started.
++    set_sound_speed(1.0f, 0u);
+ 
+     if (!output) {
+         log::warn("movie: no sound ({})", error);
+@@ -102,7 +105,13 @@ int play_movie(uint32_t lsn, uint32_t bytes, int channel, int start_skips) {
+ 
+     const int rate = tick_rate();
+     const std::size_t per_blank = static_cast<std::size_t>(platform::kAudioRate / rate);
+-    std::vector<std::int16_t> samples(per_blank * 2);
++    // Quest VR: a headset's frame wait paces this loop, each refresh, inside show_picture. A flat 60
++    // on top of it fits no headset's rate: every few frames one came late, and SteamVR answered by
++    // halving the rate (72 to 36 on a tester's headset), which was the movies' lag. So under a headset
++    // nothing sleeps here and the sound is handed by the clock instead of by the blank; what is heard
++    // still picks the picture, so the two cannot drift apart.
++    const bool headset_paces = frontend::headset_paces_pictures();
++    std::vector<std::int16_t> samples((headset_paces ? platform::kAudioRate / 4 : per_blank) * 2);
+     std::vector<std::uint8_t> rgba;
+     std::shared_ptr<const media::VideoFrame> shown;
+     std::uint16_t previous = 0xFFFF;
+@@ -121,24 +130,45 @@ int play_movie(uint32_t lsn, uint32_t bytes, int channel, int start_skips) {
+         g_frame++;
+     };
+ 
++    const auto begun = std::chrono::steady_clock::now();
++    std::uint64_t handed = 0;
++    std::uint64_t ticked = 0;
++
+     for (std::uint64_t blank = 0;; ++blank) {
++        const auto loop_began = std::chrono::steady_clock::now();
++        std::size_t hand = per_blank;
++
++        if (headset_paces) {
++            // Two blanks ahead of the clock: the device takes its sound in chunks, and a queue that
++            // only just keeps up runs dry between them.
++            const double elapsed = std::chrono::duration<double>(loop_began - begun).count();
++            const auto due = static_cast<std::uint64_t>(elapsed * platform::kAudioRate) + 2 * per_blank;
++            hand = due > handed
++                       ? static_cast<std::size_t>(std::min<std::uint64_t>(due - handed, samples.size() / 2))
++                       : 0;
++        }
++
+         if (output) {
+             output->set_gain(settings::output_gain());
+-            const std::size_t got = player->read_audio(samples);
++            const std::size_t got =
++                player->read_audio(std::span<std::int16_t>(samples.data(), hand * 2));
+ 
+             if (got > 0) {
+                 output->queue(std::span<const std::int16_t>(samples.data(), got * 2));
+             }
+         }
+ 
+-        const std::uint64_t handed = (blank + 1) * per_blank;
++        handed += hand;
+         const std::uint64_t held = output ? static_cast<std::uint64_t>(output->queued_frames()) : 0;
+         const double heard =
+             static_cast<double>(handed > held ? handed - held : 0) / platform::kAudioRate;
+         auto frame = player->frame_at(heard);
+ 
+-        if (frame) {
++        // A new picture only when there is one: a headset's refresh comes more often than the
++        // movie's 30 frames a second.
++        if (frame && frame != shown) {
+             shown = frame;
++            media::frame_to_rgba(*shown, rgba);
+         }
+ 
+         if (player->video_finished()) {
+@@ -146,8 +176,6 @@ int play_movie(uint32_t lsn, uint32_t bytes, int channel, int start_skips) {
+         }
+ 
+         if (shown) {
+-            media::frame_to_rgba(*shown, rgba);
+-
+             if (!frontend::show_picture(rgba.data(), int(shown->width), int(shown->height), 0.0f)) {
+                 leave();
+             }
+@@ -166,13 +194,32 @@ int play_movie(uint32_t lsn, uint32_t bytes, int channel, int start_skips) {
          const bool start_before = (previous & 0x0008) == 0;
          previous = buttons;
  
@@ -2677,6 +3392,31 @@ index b9329019a8d79e3b3465e5e0aea074d477f2ac08..574c017060721aa230db234ed1e5bff0
              log::info("movie at sector {}: Start pressed (pad {:#06x})", lsn, buttons);
              skipped = 1;
              break;
+         }
+ 
+-        pace();
++        if (headset_paces) {
++            using namespace std::chrono;
++            const auto now = steady_clock::now();
++
++            // The game's frame count keeps the game's 60 a second, whatever the headset's rate.
++            for (const auto due = static_cast<std::uint64_t>(duration<double>(now - begun).count() * rate);
++                 ticked < due;
++                 ++ticked) {
++                g_frame++;
++            }
++
++            // A headset that is not waiting for frames (its session not running) has no refresh
++            // to wait for; this loop does not then spin.
++            if (now < loop_began + milliseconds(2)) {
++                std::this_thread::sleep_until(loop_began + milliseconds(2));
++            }
++        } else {
++            pace();
++        }
+     }
+ 
+     // FadeToBlack(4) over the last picture, then its closing black blank.
 diff --git a/port/game/common/program/options.cpp b/port/game/common/program/options.cpp
 index 1cf7d94b0b4049f8243ffa6ecf21cb27a080e019..eaf0f8e4d97488240e15a374adadb4fe1a0ab799 100644
 --- a/port/game/common/program/options.cpp
@@ -2705,8 +3445,298 @@ index 66c1978bd7d293b9faebe7d26f25fc0ebd8198a3..7144b5006f83c3889be6a2b35971cbaf
      long frames = -1;
      bool keep_going = true;
      bool window = false;
+diff --git a/port/game/common/program/program.h b/port/game/common/program/program.h
+index 5973ccaecb4307cdce802a4f0fae8b52e9e70394..9e97964f3c1cbe10b27855c56585754c226e7d0a 100644
+--- a/port/game/common/program/program.h
++++ b/port/game/common/program/program.h
+@@ -101,6 +101,10 @@ void close_sound();
+ // every few seconds on a machine without sound, are not).
+ void open_sound(bool report = true);
+ 
++// Quest VR: the speed of the game's sound on its way to the device (1 is as it is, less is slower and lower) and the
++// sounds of the change to make (OPENRAC_TIME_CUE_*), the mod's word by way of vsync.
++void set_sound_speed(float speed, unsigned cues);
++
+ // Once a frame: a device that stalled is opened again, and one that could not be opened is tried
+ // again every few seconds (a phone's audio can be busy with a call or another app at the start).
+ void watch_sound();
+diff --git a/port/game/common/program/sound.cpp b/port/game/common/program/sound.cpp
+index 59074d3911bff9979be2f0b8f1b763ac66708666..de79ba557a64f6049c4c2ac8b4b05ac492355cc3 100644
+--- a/port/game/common/program/sound.cpp
++++ b/port/game/common/program/sound.cpp
+@@ -5,6 +5,10 @@
+ // each frame and opened again when it stalls or was missing, closed before the program's globals
+ // go. With OPENRAC_AUDIO_TICKED there is no device, and each tick renders its own samples.
+ 
++#include <algorithm>
++#include <array>
++#include <atomic>
++#include <cmath>
+ #include <cstddef>
+ #include <cstdint>
+ #include <memory>
+@@ -18,6 +22,7 @@
+ #include "program/program.h"
+ 
+ #ifdef OPENRAC_FRONTEND
++#include "openrac/openrac_mod.h"
+ #include "platform/audio.h"
+ #include "settings.h"
+ #endif
+@@ -32,6 +37,223 @@ std::unique_ptr<platform::AudioOutput> g_sound;
+ // The frame from which watch_sound next tries to open a device that could not be opened.
+ long g_sound_retry_frame = 0;
+ 
++// ---- Quest VR: the sound of a change of time (the weapon wheel's slow motion, the mod's word) ----
++
++std::atomic<float> g_sound_speed{1.0f};
++std::atomic<unsigned> g_sound_cues{0u};
++
++constexpr float kSoundRate = static_cast<float>(platform::kAudioRate);
++constexpr float kTau = 6.2831855f;
++
++// The game's sound slower and lower: fewer of its samples for each of the device's, read between them.
++// At its own speed it goes straight to the device, as ever. The speed glides, sample by sample, so that
++// the drop in pitch is heard as a drop and not a step.
++class SoundAtSpeed {
++public:
++    void render(std::span<std::int16_t> out) {
++        const float target = g_sound_speed.load(std::memory_order_relaxed);
++        const std::size_t frames = out.size() / 2;
++
++        if (target >= 1.0f && m_speed >= 1.0f && m_at >= m_have) {
++            openrac_sound_render(out.data(), frames);
++
++            if (frames > 0) {
++                m_before[0] = m_now[0] = out[frames * 2 - 2];
++                m_before[1] = m_now[1] = out[frames * 2 - 1];
++            }
++
++            m_between = 0.0f;
++            return;
++        }
++
++        // Down in 0.12 s, back in 0.05 s, from the slowest the port takes.
++        const float down = 0.75f / (0.12f * kSoundRate);
++        const float up = 0.75f / (0.05f * kSoundRate);
++
++        for (std::size_t i = 0; i < frames; ++i) {
++            m_speed = m_speed > target ? std::max(target, m_speed - down) : std::min(target, m_speed + up);
++
++            for (int channel = 0; channel < 2; ++channel) {
++                out[i * 2 + static_cast<std::size_t>(channel)] = static_cast<std::int16_t>(
++                    m_before[channel] + (m_now[channel] - m_before[channel]) * m_between
++                );
++            }
++
++            m_between += m_speed;
++
++            while (m_between >= 1.0f) {
++                m_between -= 1.0f;
++                next();
++            }
++        }
++    }
++
++private:
++    void next() {
++        if (m_at >= m_have) {
++            openrac_sound_render(m_chunk.data(), kChunk);
++            m_have = kChunk;
++            m_at = 0;
++        }
++
++        m_before[0] = m_now[0];
++        m_before[1] = m_now[1];
++        m_now[0] = static_cast<float>(m_chunk[m_at * 2]);
++        m_now[1] = static_cast<float>(m_chunk[m_at * 2 + 1]);
++        ++m_at;
++    }
++
++    static constexpr std::size_t kChunk = 128;
++    std::array<std::int16_t, kChunk * 2> m_chunk{};
++    std::size_t m_have = 0;
++    std::size_t m_at = 0;
++    float m_before[2] = {0.0f, 0.0f};
++    float m_now[2] = {0.0f, 0.0f};
++    float m_between = 0.0f;
++    float m_speed = 1.0f;
++};
++
++// The sounds themselves, made here so that they need no file and are the same on every disc:
++// a whoosh that falls as time slows, a tick, a thwip for the weapon coming out, a punch as time comes back.
++class TimeCues {
++public:
++    void mix(std::span<std::int16_t> out) {
++        if (const unsigned cues = g_sound_cues.exchange(0u, std::memory_order_acquire); cues != 0u) {
++            start(cues);
++        }
++
++        if (!m_slow.on && !m_tick.on && !m_pick.on && !m_back.on) {
++            return;
++        }
++
++        for (std::size_t i = 0; i + 1 < out.size(); i += 2) {
++            const float sample = slow() + tick() + pick() + back();
++            const int value = static_cast<int>(sample * 32767.0f);
++            out[i] = static_cast<std::int16_t>(std::clamp(out[i] + value, -32768, 32767));
++            out[i + 1] = static_cast<std::int16_t>(std::clamp(out[i + 1] + value, -32768, 32767));
++        }
++    }
++
++private:
++    struct Voice {
++        bool on = false;
++        int at = 0;  // samples from its start; below 0, still to come
++        float phase = 0.0f;
++        float low = 0.0f;  // the noise, filtered
++    };
++
++    void start(unsigned cues) {
++        const auto begin = [](Voice& v, int at = 0) {
++            v.on = true;
++            v.at = at;
++            v.phase = 0.0f;
++            v.low = 0.0f;
++        };
++
++        if ((cues & OPENRAC_TIME_CUE_SLOW) != 0u) {
++            begin(m_slow);
++        }
++
++        if ((cues & OPENRAC_TIME_CUE_TICK) != 0u) {
++            begin(m_tick);
++        }
++
++        if ((cues & OPENRAC_TIME_CUE_PICK) != 0u) {
++            begin(m_pick);
++        }
++
++        // After the thwip, when both come together: the weapon, then the punch.
++        if ((cues & OPENRAC_TIME_CUE_BACK) != 0u) {
++            begin(m_back, (cues & OPENRAC_TIME_CUE_PICK) != 0u ? -static_cast<int>(0.035f * kSoundRate) : 0);
++        }
++    }
++
++    float noise() {
++        m_noise ^= m_noise << 13;
++        m_noise ^= m_noise >> 17;
++        m_noise ^= m_noise << 5;
++        return static_cast<float>(static_cast<std::int32_t>(m_noise)) / 2147483648.0f;
++    }
++
++    // A sharp whoosh with a tone falling under it, about a third of a second (the "VREEEOW").
++    float slow() {
++        constexpr float kSeconds = 0.42f;
++        if (!m_slow.on) {
++            return 0.0f;
++        }
++        const float t = static_cast<float>(m_slow.at++) / kSoundRate;
++        const float u = t / kSeconds;
++        if (u >= 1.0f) {
++            m_slow.on = false;
++            return 0.0f;
++        }
++        const float fade = (1.0f - u) * std::sqrt(1.0f - u);
++        const float envelope = std::min(t / 0.012f, 1.0f) * fade;
++        const float cut = 0.015f + 0.32f * (1.0f - u) * (1.0f - u);
++        m_slow.low += cut * (noise() - m_slow.low);
++        const float hertz = 900.0f * std::exp(u * std::log(110.0f / 900.0f));
++        m_slow.phase = std::fmod(m_slow.phase + kTau * hertz / kSoundRate, kTau);
++        return envelope * (0.30f * std::sin(m_slow.phase) + 0.55f * m_slow.low);
++    }
++
++    float tick() {
++        constexpr float kSeconds = 0.016f;
++        if (!m_tick.on) {
++            return 0.0f;
++        }
++        const float t = static_cast<float>(m_tick.at++) / kSoundRate;
++        const float u = t / kSeconds;
++        if (u >= 1.0f) {
++            m_tick.on = false;
++            return 0.0f;
++        }
++        return 0.13f * (1.0f - u) * (1.0f - u) * std::sin(kTau * 2200.0f * t);
++    }
++
++    // The "THWIP": a rising chirp with a tick of noise on its front.
++    float pick() {
++        constexpr float kSeconds = 0.075f;
++        if (!m_pick.on) {
++            return 0.0f;
++        }
++        const float t = static_cast<float>(m_pick.at++) / kSoundRate;
++        const float u = t / kSeconds;
++        if (u >= 1.0f) {
++            m_pick.on = false;
++            return 0.0f;
++        }
++        const float hertz = 700.0f * std::exp(u * std::log(2800.0f / 700.0f));
++        m_pick.phase = std::fmod(m_pick.phase + kTau * hertz / kSoundRate, kTau);
++        const float envelope = std::min(t / 0.003f, 1.0f) * (1.0f - u) * (1.0f - u);
++        return envelope * 0.34f * std::sin(m_pick.phase) + (t < 0.008f ? 0.12f * noise() : 0.0f);
++    }
++
++    // The punch: a deep thump falling fast, and a burst of noise for its hit.
++    float back() {
++        constexpr float kSeconds = 0.26f;
++        if (!m_back.on) {
++            return 0.0f;
++        }
++        const int at = m_back.at++;
++        if (at < 0) {
++            return 0.0f;
++        }
++        const float t = static_cast<float>(at) / kSoundRate;
++        const float u = t / kSeconds;
++        if (u >= 1.0f) {
++            m_back.on = false;
++            return 0.0f;
++        }
++        const float hertz = 135.0f * std::exp(u * std::log(42.0f / 135.0f));
++        m_back.phase = std::fmod(m_back.phase + kTau * hertz / kSoundRate, kTau);
++        m_back.low += 0.25f * (noise() - m_back.low);
++        return std::exp(-t * 15.0f) * 0.75f * std::sin(m_back.phase) + std::exp(-t * 70.0f) * 0.6f * m_back.low;
++    }
++
++    Voice m_slow, m_tick, m_pick, m_back;
++    std::uint32_t m_noise = 0x2545F491u;
++};
++
+ }  // namespace
+ #endif
+ 
+@@ -53,6 +275,14 @@ void audio_tick() {
+ }
+ 
+ #ifdef OPENRAC_FRONTEND
++void set_sound_speed(float speed, unsigned cues) {
++    g_sound_speed.store(speed, std::memory_order_relaxed);
++
++    if (cues != 0u) {
++        g_sound_cues.fetch_or(cues, std::memory_order_release);
++    }
++}
++
+ void close_sound() {
+     g_sound.reset();
+ }
+@@ -60,7 +290,11 @@ void close_sound() {
+ void open_sound(bool report) {
+     std::string why;
+     g_sound = platform::AudioOutput::open(why, [](std::span<std::int16_t> samples) {
+-        openrac_sound_render(samples.data(), samples.size() / 2);
++        // Only this thread touches them, and a device opened again goes on with the same.
++        static SoundAtSpeed at_speed;
++        static TimeCues cues;
++        at_speed.render(samples);
++        cues.mix(samples);
+ 
+         // The player's volume (settings.h): at 0 the output is silence itself.
+         if (const float gain = settings::output_gain(); gain < 1.0f) {
 diff --git a/port/game/common/program/vsync.cpp b/port/game/common/program/vsync.cpp
-index a85baf599207847746d6ce6e227acb18961ed6a3..a45bde9dbd42645556b0abc93fa3626219c5182b 100644
+index a85baf599207847746d6ce6e227acb18961ed6a3..6062454bb8b8cce4412c4b5043899c0d1d316b04 100644
 --- a/port/game/common/program/vsync.cpp
 +++ b/port/game/common/program/vsync.cpp
 @@ -120,6 +120,43 @@ void crash_test() {
@@ -2753,16 +3783,44 @@ index a85baf599207847746d6ce6e227acb18961ed6a3..a45bde9dbd42645556b0abc93fa36262
  // OPENRAC_REACH=FILE: the functions without C (and the zero-filled calls) this run reached, with
  // their calls (guest.h, openrac_reach_site; port/tools/regress reach). Written at exit and every
  // 600 frames, so a run that crashes still leaves most of it.
-@@ -227,6 +264,8 @@ int vsync() {
+@@ -168,14 +205,17 @@ void apply_writes() {
+     }
+ }
+ 
+-// [debug tools] The game's tick length, stretched by the overlay's slow motion (debug_overlay.h).
++// Quest VR: how fast the game runs now, the mod's word asked once a blank (the weapon wheel's slow motion).
++double g_time_speed = 1.0;
++
++// [debug tools] The game's tick length, stretched by the overlay's slow motion (debug_overlay.h), and by a mod's.
+ std::chrono::microseconds tick_period() {
+     auto period = std::chrono::microseconds(1000000 / tick_rate());
+ #ifdef OPENRAC_FRONTEND
+     if (g_window) {
+         period = std::chrono::microseconds(
+             std::llround(
+-                static_cast<double>(period.count()) * frontend::debug_overlay::tick_stretch()
++                static_cast<double>(period.count()) * frontend::debug_overlay::tick_stretch() / g_time_speed
+             )
+         );
+     }
+@@ -227,6 +267,16 @@ int vsync() {
      // [debug tools] The game's own code stops here and goes on when this returns: its time is the
      // tick's (common/stats.h). The tick's frame of measurements begins.
      stats::game_yielded();
 +    // Quest VR: a mod's last word on the tick, where the capture below still sees it.
 +    mods::before_capture();
++#ifdef OPENRAC_FRONTEND
++    // Quest VR: this blank's speed, once (tick_period is asked more than once a blank).
++    if (g_window) {
++        const frontend::TimeSpeed speed = frontend::time_speed();
++        g_time_speed = speed.game;
++        set_sound_speed(speed.sound, speed.cues);
++    }
++#endif
      // Render snapshots own their values, so next-tick writes precede the overlapping CPU capture.
      apply_writes();
  #ifdef OPENRAC_FRONTEND
-@@ -257,6 +296,7 @@ int vsync() {
+@@ -257,6 +307,7 @@ int vsync() {
      const bool sent = !g_vsync_since_kick;
      sent_once = sent_once || sent;
      g_vsync_since_kick = true;
@@ -2961,7 +4019,7 @@ index 53c4999be8bd2461ab699972b7ebe09bca0274c5..43141a1c3e07b326ccc723305b07f4d3
                  *(unsigned short*)cell = (unsigned short)fresh;
                  if (capacity) {
 diff --git a/port/game/rac1-ntsc/host/rac1_version.h b/port/game/rac1-ntsc/host/rac1_version.h
-index d47b464a57db390665797beb86e96b8ae559d1e3..c1c1e102e3dea1d2c4e2ec67dc768b11c6a55bb6 100644
+index d47b464a57db390665797beb86e96b8ae559d1e3..f1c9173b01a8d141a41f682535405f227396ac6e 100644
 --- a/port/game/rac1-ntsc/host/rac1_version.h
 +++ b/port/game/rac1-ntsc/host/rac1_version.h
 @@ -50,8 +50,9 @@ static inline unsigned rac1_moby_vtbl_address(int level) {
@@ -2990,7 +4048,16 @@ index d47b464a57db390665797beb86e96b8ae559d1e3..c1c1e102e3dea1d2c4e2ec67dc768b11
  #define RAC1_ADDR_0x0015EEB4u 0x0015EDB4u
  #define RAC1_ADDR_0x0015EEE0u 0x0015EDE0u
  #define RAC1_ADDR_L00_0x0015F044u 0x0015EF44u
-@@ -458,6 +466,8 @@ static inline unsigned rac1_moby_vtbl_address(int level) {
+@@ -419,6 +427,8 @@ static inline unsigned rac1_moby_vtbl_address(int level) {
+ #define func_L02_0020A690 func_L02_0020A390
+ #define func_L02_00250720 game_FUN_L02_0024f748
+ #define func_L02_00250720__game game_FUN_L02_0024f748__game
++#define func_L01_002BA380 game_FUN_L01_002b91c8
++#define func_L01_002BA380__game game_FUN_L01_002b91c8__game
+ #define func_L03_00292AC0 game_FUN_L03_00291918
+ #define func_L03_0029ED60 game_FUN_L03_0029dba8
+ #define func_L03_0029ED60__hooked game_FUN_L03_0029dba8__hooked
+@@ -458,6 +468,8 @@ static inline unsigned rac1_moby_vtbl_address(int level) {
  #define RAC1_ADDR_0x0015EE80u 0x0015ED80u
  #define RAC1_ADDR_0x0015EE84u 0x0015ED84u
  #define RAC1_ADDR_0x0015EE98u 0x0015ED98u
@@ -3044,7 +4111,7 @@ index 53066e79e57fbd1df4ccf2d6d72e77210867c6f2..006805d85e0594fcc284d22a45842545
      "FUN_0020fa90",
      "func_L00_00251CE8",
 diff --git a/port/game/rac1-ntsc/libraries.tsv b/port/game/rac1-ntsc/libraries.tsv
-index e489f4ab9a4f6ba7937ac6121c8b094a28613938..ec735d7a968d1373c45a5e71624e6381895e0f77 100644
+index e489f4ab9a4f6ba7937ac6121c8b094a28613938..c3704744a6bc20f189b5843071312a5ae48a220b 100644
 --- a/port/game/rac1-ntsc/libraries.tsv
 +++ b/port/game/rac1-ntsc/libraries.tsv
 @@ -262,6 +262,7 @@ FUN_L00_001f19a0	game	FUN_L00_001f19a0	host	the port's own (rac1/host/collision.
@@ -3083,7 +4150,15 @@ index e489f4ab9a4f6ba7937ac6121c8b094a28613938..ec735d7a968d1373c45a5e71624e6381
  FUN_L00_00232670	hero	Hero_AdvanceAnimation	hook	Ratchet's animation advance, once a tick after his state's update: a hook point for mods (docs/port/MODS.md; the lock-strafe mod takes it); the game's C with none; PAL func_L00_00232EF0	void (void)
  FUN_L00_00260860	items	Item_Give	hook	gives the player an item (GiveItem: owned and obtained flags, banner, ammo, vendor mark, quick select): a hook point for mods (docs/port/MODS.md; the item-randomizer mod takes it); the game's C with none; PAL func_L00_002618D8	void (int, int)
  FUN_L00_002607d0	items	Planet_Unlock	hook	unlocks a planet's coordinates (UnlockPlanet: the flag, the galaxy list, the banner): a hook point for mods (docs/port/MODS.md; the item-randomizer mod takes it); the game's C with none; PAL func_L00_00261848	void (int)
-@@ -381,12 +401,15 @@ FUN_L00_002adb30	moby	Moby_Class121_Update	hook	The update of class 121, each ti
+@@ -349,6 +369,7 @@ FUN_L00_00212088	hero	Hero_ApproachSpeed	hook	eases the hero's ground speed (+0x
+ FUN_L00_0028ed58	level	Ship_TravelTo	hook	the ship's travel from the planet select (ShipTravelTo): to the planet it is on, the landing again (as backing out of the select does); to another, the save to the card and the ship's flight out of the level, which then ends and flies there: a hook point for mods (docs/port/MODS.md; the multiplayer mod takes it); the game's C with none; PAL func_L00_00290030	void (int)
+ FUN_L00_002a6b70	moby	Moby_CollectBolt	hook	collects a bolt (collect_bolt, from the bolt update once it reaches the hero): its value (1, or 5 / 20 / 50 for classes 14 / 15 / 16) added to the bolt count, the level's total and its source's stats, the bolt counter shown and two sparkles at it; the bolt update deletes the bolt after it: a hook point for mods (docs/port/MODS.md; the multiplayer mod takes it); the game's C with none; PAL func_L00_002A7E10	void (unsigned int)
+ FUN_L02_0024f748	draw	func_L02_00250720	wrap	the liquid grid's cull (seas, lava, sand): in a picture wider than the game's, against the cull matrix opened by as much as the picture is wider, put back after it (rac1/host/wide_view.c); PAL func_L02_00250720
++FUN_L01_002b91c8	draw	func_L01_002BA380	wrap	the ripple pools (render_water_grids): under a headset, their tiles are sent wherever the game's camera looks (rac1/host/wide_view.c); PAL func_L01_002BA380
+ FUN_001fa728	draw	fast_bsphere_check	wrap	the bounding sphere view test: while a draw callback list, the nanotech cluster's update or Kerwan's air traffic's runs, in a picture wider than the game's, against clip constants opened by as much as the picture is wider, put back after it (rac1/host/wide_view.c); PAL func_L00_00200290
+ FUN_L00_002d89f0	draw	nanotech_ball_update	wrap	the nanotech cluster's update (the orb on a nanotech crate), which draws it only while the bounding sphere test finds it in view: in a picture wider than the game's, that test against clip constants opened by as much as the picture is wider (rac1/host/wide_view.c); PAL func_L00_002D9EA0	void (unsigned int)
+ FUN_L03_0029dba8	draw	Moby_RedShip1_Update	wrap	Kerwan's air traffic's update (classes 75, 115-120, 132, 795), which parks a group of ships for 5 ticks while the bounding sphere test finds none of them in view: in a picture wider than the game's, that test against clip constants opened by as much as the picture is wider (rac1/host/wide_view.c); PAL func_L03_0029ED60	void (unsigned int)
+@@ -381,12 +402,15 @@ FUN_L00_002adb30	moby	Moby_Class121_Update	hook	The update of class 121, each ti
  FUN_L00_002af5b8	moby	Moby_Class122_Update	hook	The update of class 122, each tick: a hook point for mods, rac1.moby.falling_spark.update (docs/port/MODS.md); retail with none
  FUN_L00_002afa48	moby	Moby_NanotechCrateFragment_Update	hook	The update of classes 149, nanotech_crate_fragment (348), nanotech_crate_fragment (349), metal_crate_fragment (354) and 7 more, each tick: a hook point for mods, rac1.moby.debris_bounce.update (docs/port/MODS.md); retail with none
  FUN_L00_002b03a0	moby	Moby_GoldDevastatorMissile_Update	hook	The update of class gold_devastator_missile (153), each tick: a hook point for mods, rac1.moby.missile.update (docs/port/MODS.md); retail with none
@@ -3099,7 +4174,7 @@ index e489f4ab9a4f6ba7937ac6121c8b094a28613938..ec735d7a968d1373c45a5e71624e6381
  FUN_L00_002bb400	moby	Moby_Class179_Update	hook	The update of class 179, each tick: a hook point for mods, rac1.moby.moby179.update (docs/port/MODS.md); retail with none
  FUN_L00_002bb558	moby	Moby_Walloper_Update	hook	The update of class walloper (180), each tick: a hook point for mods, rac1.moby.moby180.update (docs/port/MODS.md); retail with none
  FUN_L00_002bc7e8	moby	Moby_Morphoray_Update	hook	The update of class morphoray (185), each tick: a hook point for mods, rac1.moby.morphoray.update (docs/port/MODS.md); retail with none
-@@ -396,6 +419,7 @@ FUN_L00_002c1ad0	moby	Moby_MineGlove_Update	hook	The update of class mine_glove
+@@ -396,6 +420,7 @@ FUN_L00_002c1ad0	moby	Moby_MineGlove_Update	hook	The update of class mine_glove
  FUN_L00_002c26c8	moby	Moby_BombGlove_Update	hook	The update of class bomb_glove (192), each tick: a hook point for mods, rac1.moby.moby192.update (docs/port/MODS.md); retail with none
  FUN_L00_002c4380	moby	Moby_Decoy_Update	hook	The update of classes decoy (203), gold_decoy (1900), each tick: a hook point for mods, rac1.moby.thrown_object.update (docs/port/MODS.md); retail with none
  FUN_L00_002c53c0	moby	Moby_DevestatorAmmo_Update	hook	The update of classes devestator_ammo (204), tesla_claw_ammo (213), pyrocitor_ammo (214), visibomb_ammo (222) and 7 more, each tick: a hook point for mods, rac1.moby.ammo_pickup.update (docs/port/MODS.md); retail with none
@@ -3241,7 +4316,7 @@ index c3fd978f6a0b42575f31e2375d0f21e51ace741d..e85ba1868b565ab4b479406c16a7c42d
      "func_001F7560",
      "func_001F75D0",
 diff --git a/port/game/rac1-pal/libraries.tsv b/port/game/rac1-pal/libraries.tsv
-index 95c37ea746def94fd2341f0a4c5e7d47ac8da59e..3ce66862d14d10e0d759c3a34257d879e5f32c74 100644
+index 95c37ea746def94fd2341f0a4c5e7d47ac8da59e..358b235b652585d5fe9885ed067c0135848c9d2a 100644
 --- a/port/game/rac1-pal/libraries.tsv
 +++ b/port/game/rac1-pal/libraries.tsv
 @@ -362,8 +362,27 @@ func_002181F0	pad	Pad_ProcessReport	hook	the pad's report into its state, each p
@@ -3272,7 +4347,15 @@ index 95c37ea746def94fd2341f0a4c5e7d47ac8da59e..3ce66862d14d10e0d759c3a34257d879
  func_L00_00232EF0	hero	Hero_AdvanceAnimation	hook	Ratchet's animation advance, once a tick after his state's update: a hook point for mods (docs/port/MODS.md; the lock-strafe mod takes it); the game's C with none	void (void)
  func_L00_002618D8	items	Item_Give	hook	gives the player an item (GiveItem: owned and obtained flags, banner, ammo, vendor mark, quick select): a hook point for mods (docs/port/MODS.md; the item-randomizer mod takes it); the game's C with none	void (int, int)
  func_L00_00261848	items	Planet_Unlock	hook	unlocks a planet's coordinates (UnlockPlanet: the flag, the galaxy list, the banner): a hook point for mods (docs/port/MODS.md; the item-randomizer mod takes it); the game's C with none	void (int)
-@@ -411,12 +430,15 @@ func_L00_002AEDD0	moby	Moby_Class121_Update	hook	The update of class 121, each t
+@@ -379,6 +398,7 @@ func_L00_00212740	hero	Hero_ApproachSpeed	hook	eases the hero's ground speed (+0
+ func_L00_00290030	level	Ship_TravelTo	hook	the ship's travel from the planet select (ShipTravelTo): to the planet it is on, the landing again (as backing out of the select does); to another, the save to the card and the ship's flight out of the level, which then ends and flies there: a hook point for mods (docs/port/MODS.md; the multiplayer mod takes it); the game's C with none	void (int)
+ func_L00_002A7E10	moby	Moby_CollectBolt	hook	collects a bolt (collect_bolt, from the bolt update once it reaches the hero): its value (1, or 5 / 20 / 50 for classes 14 / 15 / 16) added to the bolt count, the level's total and its source's stats, the bolt counter shown and two sparkles at it; the bolt update deletes the bolt after it: a hook point for mods (docs/port/MODS.md; the multiplayer mod takes it); the game's C with none	void (unsigned int)
+ func_L02_00250720	draw	func_L02_00250720	wrap	the liquid grid's cull (seas, lava, sand): in a picture wider than the game's, against the cull matrix opened by as much as the picture is wider, put back after it (rac1/host/wide_view.c)
++func_L01_002BA380	draw	func_L01_002BA380	wrap	the ripple pools (render_water_grids): under a headset, their tiles are sent wherever the game's camera looks (rac1/host/wide_view.c)
+ func_L00_00200290	draw	FastBSphereCheck	wrap	the bounding sphere view test: while a draw callback list, the nanotech cluster's update or Kerwan's air traffic's runs, in a picture wider than the game's, against clip constants opened by as much as the picture is wider, put back after it (rac1/host/wide_view.c)
+ func_L00_002D9EA0	draw	NanotechBallUpdate	wrap	the nanotech cluster's update (the orb on a nanotech crate), which draws it only while the bounding sphere test finds it in view: in a picture wider than the game's, that test against clip constants opened by as much as the picture is wider (rac1/host/wide_view.c)	void (unsigned int)
+ func_L03_0029ED60	draw	Moby_RedShip1_Update	wrap	Kerwan's air traffic's update (classes 75, 115-120, 132, 795), which parks a group of ships for 5 ticks while the bounding sphere test finds none of them in view: in a picture wider than the game's, that test against clip constants opened by as much as the picture is wider (rac1/host/wide_view.c)	void (unsigned int)
+@@ -411,12 +431,15 @@ func_L00_002AEDD0	moby	Moby_Class121_Update	hook	The update of class 121, each t
  func_L00_002B08A0	moby	Moby_Class122_Update	hook	The update of class 122, each tick: a hook point for mods, rac1.moby.falling_spark.update (docs/port/MODS.md); retail with none
  func_L00_002B0D30	moby	Moby_NanotechCrateFragment_Update	hook	The update of classes 149, nanotech_crate_fragment (348), nanotech_crate_fragment (349), metal_crate_fragment (354) and 7 more, each tick: a hook point for mods, rac1.moby.debris_bounce.update (docs/port/MODS.md); retail with none
  func_L00_002B1688	moby	Moby_GoldDevastatorMissile_Update	hook	The update of class gold_devastator_missile (153), each tick: a hook point for mods, rac1.moby.missile.update (docs/port/MODS.md); retail with none
@@ -3288,7 +4371,7 @@ index 95c37ea746def94fd2341f0a4c5e7d47ac8da59e..3ce66862d14d10e0d759c3a34257d879
  func_L00_002BC708	moby	Moby_Class179_Update	hook	The update of class 179, each tick: a hook point for mods, rac1.moby.moby179.update (docs/port/MODS.md); retail with none
  func_L00_002BC860	moby	Moby_Walloper_Update	hook	The update of class walloper (180), each tick: a hook point for mods, rac1.moby.moby180.update (docs/port/MODS.md); retail with none
  func_L00_002BDAF0	moby	Moby_Morphoray_Update	hook	The update of class morphoray (185), each tick: a hook point for mods, rac1.moby.morphoray.update (docs/port/MODS.md); retail with none
-@@ -426,6 +448,7 @@ func_L00_002C2DD8	moby	Moby_MineGlove_Update	hook	The update of class mine_glove
+@@ -426,6 +449,7 @@ func_L00_002C2DD8	moby	Moby_MineGlove_Update	hook	The update of class mine_glove
  func_L00_002C39D0	moby	Moby_BombGlove_Update	hook	The update of class bomb_glove (192), each tick: a hook point for mods, rac1.moby.moby192.update (docs/port/MODS.md); retail with none
  func_L00_002C5688	moby	Moby_Decoy_Update	hook	The update of classes decoy (203), gold_decoy (1900), each tick: a hook point for mods, rac1.moby.thrown_object.update (docs/port/MODS.md); retail with none
  func_L00_002C6720	moby	Moby_DevestatorAmmo_Update	hook	The update of classes devestator_ammo (204), tesla_claw_ammo (213), pyrocitor_ammo (214), visibomb_ammo (222) and 7 more, each tick: a hook point for mods, rac1.moby.ammo_pickup.update (docs/port/MODS.md); retail with none
@@ -4042,7 +5125,7 @@ index af1d9b0d600059e7664449c661d2794903f02253..81d94fc1971800ac05f93f2ce2220fd8
 +    }
  }
 diff --git a/port/game/rac1/host/wide_view.c b/port/game/rac1/host/wide_view.c
-index b6a6d178740fbb8cab2af283c523191fa6e41388..82ef9c4a38022364feb01c481f718e81253f7c82 100644
+index b6a6d178740fbb8cab2af283c523191fa6e41388..80a831e1d40b08799c5d41367d5fcccdb4770988 100644
 --- a/port/game/rac1/host/wide_view.c
 +++ b/port/game/rac1/host/wide_view.c
 @@ -66,6 +66,7 @@
@@ -4053,6 +5136,15 @@ index b6a6d178740fbb8cab2af283c523191fa6e41388..82ef9c4a38022364feb01c481f718e81
  #include "wide_view.h"
  
  #include <stdint.h>
+@@ -79,7 +80,7 @@ enum {
+     CLIP_TAN_X = 0x2C0,   /* view block: the clip constants' tangent ... */
+     CLIP_SEC_X = 0x2C8,   /* ... its secant ... */
+     CLIP_SCALE_X = 0x2E0, /* ... and the secant again (the sphere test's) */
+-    SLOTS = 4
++    SLOTS = 12
+ };
+ 
+ /* Words opened for a test or a list's run: where, what they were, what they were set to. */
 @@ -228,17 +229,32 @@ void func_L02_00250720(gaddr grid) {
      close_view(&o);
  }
@@ -4092,6 +5184,34 @@ index b6a6d178740fbb8cab2af283c523191fa6e41388..82ef9c4a38022364feb01c481f718e81
  }
  
  /* NanotechBallUpdate: the nanotech cluster (the orb on a nanotech crate) draws only while its
+@@ -275,3 +291,27 @@ void func_L00_002D83D8(gaddr moby) {
+     func_L00_002D83D8__hooked(moby);
+     g_effects--;
+ }
++
++/* Quest VR: the ripple pools (Novalis, Rilgar, Umbris, Pokitaru, Hoven, Gemlik; render_water_grids). Each tile and each of
++ * its blocks is sent only if the cull matrix has some of it inside the game's view, side, top, bottom and near plane. That
++ * view is the game's camera's, wherever a headset's eye is looking: standing over a pool with the camera level, the water
++ * was under the view's bottom and left out in pieces as the head moved (a player's video, Novalis). Opening the sides as
++ * above does not reach the rest, so here the test's x, y and z come out 0: inside everything. Only the sending changes, and
++ * the matrix is put back after. Without a headset's eyes the tests run as they did. */
++void func_L01_002BA380(gaddr tiles, int count) {
++    float eye[3], rows[12], tangents[2];
++    if (!openrac_game_eye_view(eye, rows, tangents)) {
++        func_L01_002BA380__game(tiles, count);
++        return;
++    }
++    const gaddr matrix = OPENRAC_DATA(CAMERA) + CULL_MATRIX;
++    opened o;
++    o.count = 0;
++    for (int column = 0; column < 4; column++) {
++        for (int row = 0; row < 3; row++) {
++            put(&o, matrix + (gaddr)column * 16u + (gaddr)row * 4u, 0.0f);
++        }
++    }
++    func_L01_002BA380__game(tiles, count);
++    close_view(&o);
++}
 diff --git a/port/game/rac1/host/world.c b/port/game/rac1/host/world.c
 index 7e0c2f9dd2e8d1d503f202b7f8d997ef17d567cf..0270df5137e0041317dddbec2e81a74c2356764a 100644
 --- a/port/game/rac1/host/world.c
@@ -7727,7 +8847,7 @@ index 6ba5daabfd52164ba5119744efb1d1656c38bd50..eeae7eb6c34a796682339d7623821e6e
      }
      if (window->m_window == nullptr) {
 diff --git a/port/renderer/direct.cpp b/port/renderer/direct.cpp
-index 5199b3127edd1dcf8e3cdc84b2ff891e62ba46bd..ca9baad75e96f9033139ce01f783eec4245f16d2 100644
+index 5199b3127edd1dcf8e3cdc84b2ff891e62ba46bd..2bf64df7064bc1d3a3514bfad5d497324770f97b 100644
 --- a/port/renderer/direct.cpp
 +++ b/port/renderer/direct.cpp
 @@ -28,6 +28,11 @@ constexpr std::int64_t kFrameFillLines = 400;
@@ -7859,7 +8979,54 @@ index 5199b3127edd1dcf8e3cdc84b2ff891e62ba46bd..ca9baad75e96f9033139ce01f783eec4
      // A line is a quad one pixel wide (GL core profile draws no wide lines,
      // and one draw call takes triangles only).
      float ax = 0.0f;
-@@ -1541,11 +1602,14 @@ bool DirectRenderer::retain_uploads(std::span<const std::uint8_t> packets) {
+@@ -1404,6 +1465,30 @@ GlBlend translate_blend(const gs::Alpha& alpha) {
+     return out;
+ }
+ 
++DirectLayeredBlend layered_blend(const GlBlend& b) {
++    DirectLayeredBlend out;
++    if (b.equation == GL_FUNC_ADD && b.dst == GL_ONE_MINUS_SRC_ALPHA) {
++        // Over what is there, by the source's alpha.
++        out.src = GL_ONE;
++        out.dst = GL_ONE_MINUS_SRC_ALPHA;
++    } else if (b.equation == GL_FUNC_ADD && b.dst == GL_ONE_MINUS_CONSTANT_ALPHA) {
++        // Over what is there, all of it by a fixed weight, whatever the source's alpha says.
++        out.src = GL_CONSTANT_ALPHA;
++        out.dst = GL_ONE_MINUS_CONSTANT_ALPHA;
++        out.panel_alpha = DirectPanelAlpha::Whole;
++    } else if (b.dst == GL_ONE || b.equation != GL_FUNC_ADD) {
++        // Light added or taken away: it hides nothing behind it, only the pixel is no longer empty.
++        out.equation = GL_MAX;
++        out.src = GL_ONE;
++        out.dst = GL_ONE;
++        out.panel_alpha = DirectPanelAlpha::Trace;
++    } else {
++        // Weighed by the frame's own alpha, or replaced: the chip's own rule, with what is lit never empty.
++        out.panel_alpha = DirectPanelAlpha::Lit;
++    }
++    return out;
++}
++
+ namespace {
+ 
+ GLenum depth_func(gs::DepthTest test) {
+@@ -1447,6 +1532,7 @@ bool DirectRenderer::init(RenderState& state, std::string& error) {
+     m_uniforms.tex_T1 = m_shader.uniform("tex_T1");
+     m_uniforms.pixel_offset = m_shader.uniform("pixel_offset");
+     m_uniforms.source_scale = m_shader.uniform("source_scale");
++    m_uniforms.panel_alpha = m_shader.uniform("panel_alpha");
+     m_uniforms.source_fix = m_shader.uniform("source_fix");
+ 
+     glGenVertexArrays(1, &m_vao);
+@@ -1494,6 +1580,7 @@ bool DirectRenderer::init(RenderState& state, std::string& error) {
+ 
+ void DirectRenderer::release() {
+     m_shader.release();
++    m_lit_shader.release();
+     if (m_vbo != 0) {
+         glDeleteBuffers(1, &m_vbo);
+         m_vbo = 0;
+@@ -1541,11 +1628,14 @@ bool DirectRenderer::retain_uploads(std::span<const std::uint8_t> packets) {
  
  void DirectRenderer::render(const FrameInput& input, RenderState& state) {
      const auto packets = input.packets[static_cast<std::size_t>(bucket())];
@@ -7874,7 +9041,116 @@ index 5199b3127edd1dcf8e3cdc84b2ff891e62ba46bd..ca9baad75e96f9033139ce01f783eec4
      m_interpreter->set_picture(state.target.picture_scale_x, state.target.wide_2d);
      m_frame = &input;
      {
-@@ -1733,7 +1797,11 @@ void DirectRenderer::draw(const DirectDraw& d, RenderState& render_state) {
+@@ -1668,6 +1758,12 @@ void DirectRenderer::apply(const DirectState& s, RenderState& render_state) {
+         static_cast<float>((s.fog_colour >> 16) & 0xFF)
+     );
+ 
++    // Quest VR: a picture laid over the world by a headset's compositor (RenderTarget::layered) is read with its alpha,
++    // as a television never read the chip's. What this draw leaves there must say how much of the world still shows: the
++    // chip's own rule (the source alpha replaces what was there) let a glyph's clear corners punch through the panel
++    // behind it, and a runtime that drops a pixel of alpha 0 (SteamVR, measured) lost text and the Trespasser's rings.
++    const bool layered = render_state.target.layered && s.target == 0;
++    DirectPanelAlpha panel_alpha = DirectPanelAlpha::AsItIs;
+     if (s.blend) {
+         const GlBlend b = translate_blend(s.alpha);
+         if (!b.exact) {
+@@ -1680,16 +1776,27 @@ void DirectRenderer::apply(const DirectState& s, RenderState& render_state) {
+             );
+         }
+         glEnable(GL_BLEND);
+-        glBlendEquation(b.equation);
+-        // The chip writes the source alpha as it is; it never blends alpha.
+-        glBlendFuncSeparate(b.src, b.dst, GL_ONE, GL_ZERO);
++        if (layered) {
++            const DirectLayeredBlend l = layered_blend(b);
++            panel_alpha = l.panel_alpha;
++            glBlendEquationSeparate(b.equation, l.equation);
++            glBlendFuncSeparate(b.src, b.dst, l.src, l.dst);
++        } else {
++            glBlendEquation(b.equation);
++            // The chip writes the source alpha as it is; it never blends alpha.
++            glBlendFuncSeparate(b.src, b.dst, GL_ONE, GL_ZERO);
++        }
+         glBlendColor(0.0f, 0.0f, 0.0f, b.constant);
+         glUniform1i(m_uniforms.source_scale, static_cast<GLint>(b.source_scale));
+         glUniform1f(m_uniforms.source_fix, b.fix);
+     } else {
+         glDisable(GL_BLEND);
+         glUniform1i(m_uniforms.source_scale, 0);
++        if (layered) {
++            panel_alpha = DirectPanelAlpha::Lit;
++        }
+     }
++    glUniform1i(m_uniforms.panel_alpha, static_cast<GLint>(panel_alpha));
+ 
+     if (!s.test.zte) {
+         glDisable(GL_DEPTH_TEST);
+@@ -1729,11 +1836,76 @@ void DirectRenderer::apply(const DirectState& s, RenderState& render_state) {
+     glScissor(x0, target_height - y1, std::max(0, x1 - x0), std::max(0, y1 - y0));
+ }
+ 
++void DirectRenderer::lit_counts_in_alpha(RenderState& render_state) {
++    constexpr const char* kVertex = R"(#version 410 core
++out vec2 uv;
++void main() {
++    uv = vec2(float(gl_VertexID & 1), float(gl_VertexID >> 1));
++    gl_Position = vec4(uv * 2.0 - 1.0, 0.0, 1.0);
++}
++)";
++    constexpr const char* kFragment = R"(#version 410 core
++uniform sampler2D tex_T0;
++in vec2 uv;
++out vec4 colour;
++void main() {
++    vec4 c = texture(tex_T0, uv);
++    colour = vec4(0.0, 0.0, 0.0, max(c.a, max(c.r, max(c.g, c.b))));
++}
++)";
++    if (m_lit_refused) {
++        return;
++    }
++    if (m_lit_shader.id() == 0) {
++        std::string error;
++        if (!m_lit_shader.build("direct_lit", kVertex, kFragment, error)) {
++            log::warn("the layered picture's alpha: {}", error);
++            m_lit_refused = true;
++            return;
++        }
++    }
++    const int w = render_state.target.width;
++    const int h = render_state.target.height;
++    glActiveTexture(GL_TEXTURE0);
++    if (m_frame_copy == 0) {
++        glGenTextures(1, &m_frame_copy);
++    }
++    glBindTexture(GL_TEXTURE_2D, m_frame_copy);
++    if (w != m_frame_copy_width || h != m_frame_copy_height) {
++        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
++        m_frame_copy_width = w;
++        m_frame_copy_height = h;
++    }
++    glBindFramebuffer(GL_READ_FRAMEBUFFER, readable(render_state.target));
++    glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, w, h);
++    glBindFramebuffer(GL_FRAMEBUFFER, render_state.target.framebuffer);
++    glViewport(0, 0, w, h);
++    glDisable(GL_BLEND);
++    glDisable(GL_DEPTH_TEST);
++    glDisable(GL_SCISSOR_TEST);
++    glDisable(GL_CULL_FACE);
++    glDepthMask(GL_FALSE);
++    glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_TRUE);
++    m_lit_shader.use();
++    glUniform1i(m_lit_shader.uniform("tex_T0"), 0);
++    glBindSampler(0, m_samplers[12]);  // nearest, clamped: a pixel to itself
++    m_bound_sampler = m_samplers[12];
++    glBindVertexArray(m_vao);
++    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
++    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
++    glDepthMask(GL_TRUE);
++    glEnable(GL_DEPTH_TEST);
++}
++
+ void DirectRenderer::draw(const DirectDraw& d, RenderState& render_state) {
      const DirectState& s = d.state;
      if (d.mobys != 0) {
          // Mobys the game drew into this target: the frontend draws them, with the target bound;
@@ -7887,11 +9163,74 @@ index 5199b3127edd1dcf8e3cdc84b2ff891e62ba46bd..ca9baad75e96f9033139ce01f783eec4
          if (m_frame != nullptr && m_frame->target_mobys && s.target != 0) {
              const Offscreen& o = offscreen(s.target);
              glBindFramebuffer(GL_FRAMEBUFFER, o.framebuffer);
+@@ -1751,6 +1923,9 @@ void DirectRenderer::draw(const DirectDraw& d, RenderState& render_state) {
+             glViewport(0, 0, render_state.target.width, render_state.target.height);
+             glDisable(GL_SCISSOR_TEST);
+             m_frame->screen_mobys(d.mobys, render_state.target, d.clear_depth);
++            if (render_state.target.layered) {
++                lit_counts_in_alpha(render_state);
++            }
+             glDisable(GL_CULL_FACE);
+             glDisable(GL_SCISSOR_TEST);
+             m_shader.use();
+@@ -1766,7 +1941,9 @@ void DirectRenderer::draw(const DirectDraw& d, RenderState& render_state) {
+     const GLboolean red = (s.fbmsk & 0x000000FFu) != 0x000000FFu ? GL_TRUE : GL_FALSE;
+     const GLboolean green = (s.fbmsk & 0x0000FF00u) != 0x0000FF00u ? GL_TRUE : GL_FALSE;
+     const GLboolean blue = (s.fbmsk & 0x00FF0000u) != 0x00FF0000u ? GL_TRUE : GL_FALSE;
+-    const GLboolean alpha = (s.fbmsk & 0xFF000000u) != 0xFF000000u ? GL_TRUE : GL_FALSE;
++    // (In a layered picture what is drawn also counts in its alpha, masked or not.)
++    const bool colour_written = red == GL_TRUE || green == GL_TRUE || blue == GL_TRUE;
++    const GLboolean alpha = (s.fbmsk & 0xFF000000u) != 0xFF000000u || (render_state.target.layered && s.target == 0 && colour_written) ? GL_TRUE : GL_FALSE;
+     const GLboolean depth = s.depth_write && !m_background ? GL_TRUE : GL_FALSE;
+ 
+     auto call = [&](int test,
+@@ -1805,6 +1982,8 @@ void DirectRenderer::draw(const DirectDraw& d, RenderState& render_state) {
+             break;
+         case gs::AlphaFail::RgbOnly:
+             fail_colour = GL_TRUE;
++            // (The chip's RGB_ONLY: text and the Trespasser's rings. In a layered picture the colour must count in the alpha too.)
++            fail_alpha = render_state.target.layered && s.target == 0 ? GL_TRUE : GL_FALSE;
+             break;
+     }
+     if (s.test.atst == gs::AlphaTest::Never) {
+@@ -1919,6 +2098,7 @@ void DirectRenderer::flush(RenderState& state, bool background) {
+         }
+     }
+     // Leave GL as the next renderer expects it.
++    glBlendEquation(GL_FUNC_ADD);
+     glBindFramebuffer(GL_FRAMEBUFFER, state.target.framebuffer);
+     glViewport(0, 0, state.target.width, state.target.height);
+     glDisable(GL_SCISSOR_TEST);
 diff --git a/port/renderer/direct.h b/port/renderer/direct.h
-index 15973d02f982726f96914dad24a9064ed56dd927..a3d3fdae011c06e70e4f3ed861a3014749de2497 100644
+index 15973d02f982726f96914dad24a9064ed56dd927..fbfdb7c12710116fe6ce9411688bb19f5b6f5448 100644
 --- a/port/renderer/direct.h
 +++ b/port/renderer/direct.h
-@@ -198,6 +198,11 @@ public:
+@@ -71,6 +71,24 @@ struct GlBlend {
+ };
+ GlBlend translate_blend(const gs::Alpha& alpha);
+ 
++// Quest VR: the alpha a draw leaves in a layered picture (RenderTarget::layered), as the shader writes it. AsItIs: the
++// chip's. Lit: its alpha, at least as much as its brightest colour. Whole: 1, for a blend that weighs it itself. Trace:
++// just above 0 where it is lit (light added: it hides nothing behind it, but a pixel of alpha 0 may be dropped).
++enum class DirectPanelAlpha : int {
++    AsItIs = 0,
++    Lit = 1,
++    Whole = 2,
++    Trace = 3
++};
++// How a draw of colour blend `b` blends the alpha of a layered picture.
++struct DirectLayeredBlend {
++    unsigned src = 0x0001;       // GL_ONE
++    unsigned dst = 0;            // GL_ZERO
++    unsigned equation = 0x8006;  // GL_FUNC_ADD
++    DirectPanelAlpha panel_alpha = DirectPanelAlpha::AsItIs;
++};
++DirectLayeredBlend layered_blend(const GlBlend& b);
++
+ 
+ struct DirectConfig {
+     // The game's frame buffer: 512 x 448 for PAL Ratchet & Clank.
+@@ -198,6 +216,11 @@ public:
  
      // Whether the moby markers drawn into the main frame become draws (FrameInput::screen_mobys).
      void set_screen_mobys(bool on) { m_screen_mobys = on; }
@@ -7903,7 +9242,7 @@ index 15973d02f982726f96914dad24a9064ed56dd927..a3d3fdae011c06e70e4f3ed861a30147
      static constexpr std::uint64_t kUiQuadMarker = 0x4E55;
      // The target the frame is drawn into (RenderTarget): the picture's width as a part of it, and
      // whether a scissor of the screen's whole width is cut at the target's sides instead
-@@ -263,6 +268,11 @@ private:
+@@ -263,6 +286,11 @@ private:
      void native_quad(const UiQuad& quad);
      std::span<const UiQuad> m_ui_quads{};
      bool m_screen_mobys = false;  // set_screen_mobys
@@ -7915,7 +9254,34 @@ index 15973d02f982726f96914dad24a9064ed56dd927..a3d3fdae011c06e70e4f3ed861a30147
      bool m_glyph = false;  // native_quad: drawing a glyph
      bool m_in_native = false;  // native_quad: its own vertices
      void emit_triangle(
-@@ -441,6 +451,7 @@ public:
+@@ -394,6 +422,8 @@ private:
+     const FrameInput* m_frame = nullptr;
+     void apply(const DirectState& state, RenderState& render_state);
+     void draw(const DirectDraw& draw, RenderState& render_state);
++    // Quest VR: in a layered picture, after mobys that left colour with an alpha of their own: all that is lit counts.
++    void lit_counts_in_alpha(RenderState& render_state);
+     bool m_background = false;  // flush(): the part before the world
+     // flush(), on a target wider than the picture: the triangles being drawn are the whole
+     // target's (what covered the whole screen), not the picture's in its middle.
+@@ -403,6 +433,8 @@ private:
+     Input m_input;
+     std::unique_ptr<GifInterpreter> m_interpreter;
+     Shader m_shader;
++    Shader m_lit_shader;
++    bool m_lit_refused = false;
+     unsigned m_vao = 0;
+     unsigned m_vbo = 0;
+     // The render target as drawn so far, copied for a draw that reads the frame (frame_source).
+@@ -424,7 +456,7 @@ private:
+ 
+     struct Uniforms {
+         int textured, tcc, tfx, tex_alpha_scale, fog_enable, fog_colour, alpha_test, alpha_ref,
+-            alpha_keep_failing, distance_field, tex_T1, pixel_offset, source_scale, source_fix;
++            alpha_keep_failing, distance_field, tex_T1, pixel_offset, source_scale, source_fix, panel_alpha;
+     } m_uniforms{};
+ };
+ 
+@@ -441,6 +473,7 @@ public:
          if (!input.direct_before_world.empty()) {
              m_direct.interpreter().set_ui_quads(input.ui_quads);
              m_direct.interpreter().set_screen_mobys(static_cast<bool>(input.screen_mobys));
@@ -7923,8 +9289,28 @@ index 15973d02f982726f96914dad24a9064ed56dd927..a3d3fdae011c06e70e4f3ed861a30147
              m_direct.set_frame_input(&input);
              m_direct.submit(input.direct_before_world);
              m_direct.flush(state, true);
+diff --git a/port/renderer/gl.h b/port/renderer/gl.h
+index 96cc39538d39a50574c75106b3e0abea8a17e16f..78e4cefc967bdde225aaefe632545b198c8317f1 100644
+--- a/port/renderer/gl.h
++++ b/port/renderer/gl.h
+@@ -81,6 +81,7 @@ inline constexpr GLenum GL_ONE_MINUS_CONSTANT_ALPHA = 0x8004;
+ inline constexpr GLenum GL_FUNC_ADD = 0x8006;
+ inline constexpr GLenum GL_FUNC_SUBTRACT = 0x800A;
+ inline constexpr GLenum GL_FUNC_REVERSE_SUBTRACT = 0x800B;
++inline constexpr GLenum GL_MAX = 0x8008;
+ 
+ inline constexpr GLenum GL_FRONT = 0x0404;
+ inline constexpr GLenum GL_BACK = 0x0405;
+@@ -223,6 +224,7 @@ inline constexpr GLenum GL_FRAMEBUFFER_COMPLETE = 0x8CD5;
+     X(void, glColorMask, (GLboolean r, GLboolean g, GLboolean b, GLboolean a))                     \
+     X(void, glBlendFuncSeparate, (GLenum src_rgb, GLenum dst_rgb, GLenum src_a, GLenum dst_a))     \
+     X(void, glBlendEquation, (GLenum mode))                                                        \
++    X(void, glBlendEquationSeparate, (GLenum mode_rgb, GLenum mode_alpha))                                                        \
+     X(void, glBlendColor, (GLfloat r, GLfloat g, GLfloat b, GLfloat a))                            \
+     X(void, glCullFace, (GLenum mode))                                                             \
+     X(void, glFrontFace, (GLenum mode))                                                            \
 diff --git a/port/renderer/renderer.h b/port/renderer/renderer.h
-index cbc8ea230e44170824174399f243bc7dcd501d89..cd8fc5e7979a5ee71fb8b77e9a1c696ea14cfe4e 100644
+index cbc8ea230e44170824174399f243bc7dcd501d89..4efc4735b9555a54895eea90a11d81e0fa7ca7e3 100644
 --- a/port/renderer/renderer.h
 +++ b/port/renderer/renderer.h
 @@ -137,6 +137,12 @@ inline constexpr std::uint32_t kUiGlyph = 1;
@@ -7949,6 +9335,46 @@ index cbc8ea230e44170824174399f243bc7dcd501d89..cd8fc5e7979a5ee71fb8b77e9a1c696e
      // Mobys the game draws into a texture (the vendor's item and salesman screens, the page menus'
      // widgets): at their marker in the 2D path (GifInterpreter::kMobyMarker), called with the
      // marker's value and the off-screen target bound (its framebuffer, its side in GL pixels, and
+@@ -229,6 +237,9 @@ struct RenderTarget {
+     unsigned depth_texture = 0;
+     // Borrowed resolved view-space smooth normals from the depth/normal prepass, or zero.
+     unsigned normal_texture = 0;
++    // Quest VR: this picture is laid over the world by a headset's compositor, alpha and all (a mod's 2D view): the
++    // 2D path's alpha says how much of the world shows through it (DirectRenderer::apply).
++    bool layered = false;
+ };
+ 
+ // The framebuffer to read `target` from (glReadPixels, glCopyTexSubImage2D, a scaled blit): the
+diff --git a/port/renderer/shaders/direct.frag b/port/renderer/shaders/direct.frag
+index 2d59c05e23983d6a97e5125fdb3ec227a356012a..b7237ce311dd09f6a7992825471771952268e40e 100644
+--- a/port/renderer/shaders/direct.frag
++++ b/port/renderer/shaders/direct.frag
+@@ -24,6 +24,7 @@ uniform int alpha_keep_failing;  // the second pass of the double draw
+ uniform int distance_field;   // the texture's alpha is a distance field (text drawn sharp)
+ uniform int source_scale;     // the blend's weight of Cs, applied here (GlBlend): 1 As, 2 FIX
+ uniform float source_fix;     // FIX / 128, unclamped
++uniform int panel_alpha;      // a layered picture's alpha (DirectPanelAlpha): 0 as it is, 1 lit, 2 whole, 3 a trace
+ 
+ layout(location = 0) out vec4 out_colour;
+ 
+@@ -96,5 +97,16 @@ void main() {
+     } else if (source_scale == 2) {
+         c.rgb = min(c.rgb * source_fix, 255.0);
+     }
+-    out_colour = vec4(c.rgb / 255.0, c.a / 128.0);
++    float written_alpha = c.a / 128.0;
++    if (panel_alpha != 0) {
++        float lit = max(c.r, max(c.g, c.b)) / 255.0;
++        if (panel_alpha == 1) {
++            written_alpha = max(written_alpha, lit);
++        } else if (panel_alpha == 2) {
++            written_alpha = 1.0;
++        } else {
++            written_alpha = lit > 0.0 ? 1.0 / 255.0 : 0.0;
++        }
++    }
++    out_colour = vec4(c.rgb / 255.0, written_alpha);
+ }
 diff --git a/port/scene/level.cpp b/port/scene/level.cpp
 index 41be6f9dace1c27730764b3e28b2b64c9b7d9f43..ba5ae7533499cc5b4e909c5889cf7fba4a81f2e2 100644
 --- a/port/scene/level.cpp
@@ -10580,7 +12006,7 @@ index f7599bfd303332ecb59f19adbd344481de5fea5f..4e37e027798d452fd53736bae503872b
      bool has_world() const {
          return m_api->api_minor >= 9
 diff --git a/sdk/include/openrac/openrac_mod.h b/sdk/include/openrac/openrac_mod.h
-index 1c39e2802298cb408295bfad2d777539cf40371e..45114dd56cf2dd556b4182b7d71b46ec076645b3 100644
+index 1c39e2802298cb408295bfad2d777539cf40371e..8009411eb41b48bc24ad95749b8d7290083e1289 100644
 --- a/sdk/include/openrac/openrac_mod.h
 +++ b/sdk/include/openrac/openrac_mod.h
 @@ -51,9 +51,10 @@ extern "C" {
@@ -10596,7 +12022,7 @@ index 1c39e2802298cb408295bfad2d777539cf40371e..45114dd56cf2dd556b4182b7d71b46ec
  
  /* The interface a mod is built for, what its openrac_mod_query reports: its manifest's "api" minor,
   * which the SDK's openrac_add_mod passes in, else this header's. A mod for 1.1 built with a newer
-@@ -307,6 +308,37 @@ typedef struct openrac_view {
+@@ -307,6 +308,75 @@ typedef struct openrac_view {
  /* The functions a mod gives on_views. The port copies the structure; `user` is
   * passed back to each. Every function is called on the game's thread, with the
   * graphics context current. Since 1.4. */
@@ -10631,10 +12057,48 @@ index 1c39e2802298cb408295bfad2d777539cf40371e..45114dd56cf2dd556b4182b7d71b46ec
 +#define OPENRAC_WORLD_QUAD_WINDOW 2
 +#define OPENRAC_WORLD_QUAD_CAMERA 4
 +
++/* Sounds the port makes for a change of time (openrac_time_speed.cues), each once. */
++#define OPENRAC_TIME_CUE_SLOW 1u /* time slows: a whoosh, falling in pitch */
++#define OPENRAC_TIME_CUE_TICK 2u /* a short tick */
++#define OPENRAC_TIME_CUE_PICK 4u /* a quick rising thwip */
++#define OPENRAC_TIME_CUE_BACK 8u /* time snaps back: a punch */
++
++/* How fast time runs for a while (the Quest fork's view source, time_speed). */
++typedef struct openrac_time_speed {
++  /* The game's ticks: 1 is its own speed, less is slower. */
++  float game;
++  /* Its sound: 1 is as it is, less is slower and lower in pitch. */
++  float sound;
++  /* OPENRAC_TIME_CUE_* to play now. */
++  unsigned cues;
++} openrac_time_speed;
++
++/* The Quest fork's: the images Application SpaceWarp (OpenXR's XR_FB_space_warp) takes beside a world view's
++ * picture (openrac_view_source.view_motion). The mod gives the textures and their size; in a frame that draws the
++ * view anew the port draws into them how far each pixel moved since the last frame it drew them, and the depth of
++ * that pass, and sets the members after `height`. With OpenGL (and OpenGL ES) only. */
++typedef struct openrac_view_motion {
++  /* GL textures of the port's context, at least width by height: the motion, GL_RGBA16F (x y z: this frame's
++   * place in normalized device coordinates less the last frame's, the view's own movement and each object's in
++   * it); the depth, GL_DEPTH24_STENCIL8 (as the port's eyes: 1 at the near plane, 0 at the far one). */
++  uint32_t motion_texture;
++  uint32_t depth_texture;
++  int32_t width;
++  int32_t height;
++  /* Set by the port: 1 when both were drawn this frame, from the frame before (0: not drawn, or the view cut:
++   * a new place, a jump of the camera, nothing drawn before). */
++  uint32_t drawn;
++  /* Set by the port: the distance from the eye, in the game's units, that depth 0 and depth 1 stand for. */
++  float depth_zero;
++  float depth_one;
++  /* Padding; zero. */
++  uint32_t reserved[3];
++} openrac_view_motion;
++
  typedef struct openrac_view_source {
    /* sizeof(openrac_view_source) as the mod was built. */
    uint32_t size;
-@@ -327,6 +359,10 @@ typedef struct openrac_view_source {
+@@ -327,6 +397,17 @@ typedef struct openrac_view_source {
    /* Called once before the graphics context goes (the window closes): let go of
     * everything made with it (OpenXR's session and swapchains). Optional. */
    void (*closing)(void *user);
@@ -10642,10 +12106,17 @@ index 1c39e2802298cb408295bfad2d777539cf40371e..45114dd56cf2dd556b4182b7d71b46ec
 +   * in the eyes' world (openrac_world_quad), `count` of them, valid until the next
 +   * call. They are drawn after the world, before its HUD. Optional. */
 +  const openrac_world_quad *(*world_quads)(void *user, int *count);
++  /* The Quest fork's: asked once at each vertical blank, on the game's thread, how fast
++   * time runs now (openrac_time_speed, which comes filled with the game's own speed).
++   * Optional. */
++  void (*time_speed)(void *user, openrac_time_speed *speed);
++  /* The Quest fork's: after world view `index` (of `begin`'s) is drawn anew, where its motion goes this frame
++   * (openrac_view_motion), or null for none. What the port sets in it stands until `end`. Optional. */
++  openrac_view_motion *(*view_motion)(void *user, int index);
  } openrac_view_source;
  
  /* What a mod gives setup_vulkan so that the port's Vulkan device is one the mod
-@@ -796,6 +832,61 @@ typedef struct openrac_hit {
+@@ -796,6 +877,61 @@ typedef struct openrac_hit {
   * never reads it), 0 to leave it. Since 1.9. */
  typedef int (*openrac_hit_fn)(void* user, const openrac_hit* hit);
  
@@ -10707,7 +12178,7 @@ index 1c39e2802298cb408295bfad2d777539cf40371e..45114dd56cf2dd556b4182b7d71b46ec
  /* The most eyes (openrac_api.play_eyes). Since 1.9. */
  #define OPENRAC_EYES_MAX 8
  
-@@ -1349,6 +1440,64 @@ typedef struct openrac_api {
+@@ -1349,6 +1485,64 @@ typedef struct openrac_api {
      /* Changes a registered item's label, copying `label`. Only from this mod's tick-boundary
       * callback. Since 1.10. */
      int (*developer_menu_set_label)(openrac_mod* mod, uint32_t action, const char* label);

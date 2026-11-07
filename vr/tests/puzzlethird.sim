@@ -1,0 +1,17 @@
+# The Trespasser in third person, the game's own way: on the floor pad by its lock with the tool out, the fire button plugs it in
+# and the game's rings come up on the HUD's panel. A tester could not see them on PC VR (0.1.15).
+# Run with QUEST_SIM_NEAR_AT=0.1,0 on the lock (class 615): the pad is beside it, and the stick walks him onto it.
+600 y 1
+606 y 0
+3000 shot before
+3010 left_x -0.6
+3011 left_y -0.8
+3025 left_x 0
+3026 left_y 0
+3100 shot walked
+3140 right_trigger 1
+3150 right_trigger 0
+3300 shot pressed
+3500 shot rings
+3700 shot rings2
+3800 quit 0

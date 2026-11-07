@@ -1,0 +1,45 @@
+# Ratchet on the title (the owner on 0.1.16: he is there at first, gone once the menus are up, back for a moment as a menu item is chosen): the
+# Press Start, the main menu, Load Game by the hand and back, with a card that has a save (pointer14's). The eyes and the panel, close together
+# as the pages change.
+100 hand_pitch 45
+900 shot a0
+1000 shot a1
+1100 shot a2
+1200 shot a3
+1300 shot a4
+1400 shot a5
+1500 a 1
+1506 a 0
+1510 shot b0
+1518 shot b1
+1526 shot b2
+1534 shot b3
+1542 shot b4
+1550 shot b5
+1570 shot b6
+1600 shot b7
+1800 shot b8
+1900 hand_pitch 16.5
+1975 shot c0
+1980 right_trigger 1
+1986 right_trigger 0
+1988 shot c1
+1994 shot c2
+2000 shot c3
+2006 shot c4
+2012 shot c5
+2018 shot c6
+2030 shot c7
+2060 shot c8
+2200 shot c9
+2300 b 1
+2306 b 0
+2308 shot d0
+2314 shot d1
+2320 shot d2
+2326 shot d3
+2332 shot d4
+2345 shot d5
+2400 shot d6
+2600 shot d7
+2700 quit 0

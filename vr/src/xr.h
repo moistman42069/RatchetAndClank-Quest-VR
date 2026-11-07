@@ -27,6 +27,24 @@ struct XrSettings {
     float resolution = 1.0f;     // of the headset's recommended eye size
     int panel_width = 1024;
     int panel_height = 768;
+    // Smoother frames (Application SpaceWarp, XR_FB_space_warp, from 0.1.17): the game draws every other frame and the
+    // headset makes the ones between from the last and how its pixels moved. Where the runtime has it (the Quest's).
+    bool space_warp = true;
+};
+
+// Smoother frames: an eye's motion and depth images to draw this frame (GL textures of the game's context).
+struct MotionTarget {
+    unsigned motion = 0;  // GL_RGBA16F: each pixel's movement since the last frame, in NDC
+    unsigned depth = 0;   // GL_DEPTH24_STENCIL8: that pass's depth, 1 near and 0 far
+    int width = 0;
+    int height = 0;
+};
+
+// What the frame's motion pass drew, for the finish_frame after it.
+struct SpaceWarpFrame {
+    bool drawn[2]{};        // each eye's motion and depth were drawn this frame, from the frame before
+    float depth_zero = 0;   // the distance in metres that depth 0 stands for (the far plane)
+    float depth_one = 0;    // and depth 1 (the near plane)
 };
 
 struct FrameInfo {
@@ -39,6 +57,7 @@ struct FrameInfo {
     Pose eye[2];
     float fov[2][4]{};           // left, right, up, down, radians
     Pose head;
+    float head_above_floor = -1.0f;  // over the floor the headset knows (Feet on the floor); below 0, it knows none
     Pose hand_grip[2];
     Pose hand_aim[2];
     bool hand_valid[2]{};
@@ -84,6 +103,17 @@ public:
     // `eyes_kept`: the eyes' pictures are the last drawn, not this frame's: shown from the poses they were drawn
     // from, so that the compositor holds the world still under the head.
     virtual void finish_frame(bool eyes, bool eyes_kept, const PanelLayer& panel) = 0;
+
+    // Smoother frames: eye `eye`'s motion images for this frame, taken with it; false for none (the headset makes no
+    // frames between, or it is off).
+    virtual bool motion_target(int eye, MotionTarget& out) {
+        (void)eye;
+        (void)out;
+        return false;
+    }
+
+    // What this frame's motion pass drew, told before its finish_frame; not told: nothing.
+    virtual void space_warp(const SpaceWarpFrame& warp) { (void)warp; }
 
     virtual void haptic(Hand hand, float strength, float seconds, float hertz) = 0;
 

@@ -1,0 +1,46 @@
+# Pointing with the left hand at its own wheel (Akimbo's left stick click), the mirror of wheelpoint.sim: the hand stays where it
+# is and only turns, its ray going round the left wheel's eight icons in turn, then settling on one to take into the left hand.
+# Run with QUEST_SIM_GIVE of eight weapons or more and QUEST_SIM_LEFT for the left hand's gun.
+600 y 1
+606 y 0
+3000 shot before
+3100 left_click 1
+3160 shot open
+# The wheel's next page has more of them on it.
+3170 left_trigger 1
+3176 left_trigger 0
+# Top, then round to the right: the left hand's yaw and pitch for each icon, from where it is (xr_sim's 0.2 left, 0.35 down), the
+# left hand's wheel being left of the middle.
+3200 hand_yaw 11.7
+3201 hand_pitch 23.5
+3260 shot top
+3280 hand_yaw 4.0
+3281 hand_pitch 21.4
+3340 shot topright
+3360 hand_yaw 0.7
+3361 hand_pitch 15.2
+3420 shot right
+3440 hand_yaw 4.0
+3441 hand_pitch 8.5
+3500 shot bottomright
+3520 hand_yaw 11.7
+3521 hand_pitch 5.6
+3580 shot bottom
+3600 hand_yaw 19.0
+3601 hand_pitch 8.1
+3660 shot bottomleft
+3680 hand_yaw 21.9
+3681 hand_pitch 14.1
+3740 shot left
+3760 hand_yaw 19.0
+3761 hand_pitch 20.4
+3820 shot topleft
+# Back to the right-hand icon, and let go: it comes out in the left hand.
+3840 hand_yaw 0.7
+3841 hand_pitch 15.2
+3880 shot chosen
+3900 left_click 0
+3920 hand_yaw 0
+3921 hand_pitch 0
+4000 shot after
+4100 quit 0

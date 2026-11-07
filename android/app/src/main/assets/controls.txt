@@ -11,17 +11,21 @@ RIGHT TRIGGER Fire where your hand points. With an empty hand, takes your last g
               Gloves: hold the trigger, throw with your hand and let go. Let go slowly to keep it
               Walloper: punch for real
 RIGHT GRIP    Takes the wrench out. Swing your hand for real to hit, weak taps do not count
-              Let go mid-swing to throw it, it comes back. Let go slowly to put it away: your hand
-              is empty, which is how to put a gun or a glove down
+              It holds until you open the grip well past halfway: a loose grip in a swing keeps it
+              Open your hand mid-swing to throw it, it comes back. Let go slowly to put it away:
+              your hand is empty, which is how to put a gun or a glove down
               In the air, slam it down for the Hyper Strike
-              Near a bolt: hold it on the bolt and walk around it
+              At a bolt crank: hold the wrench's head on the bolt, then walk around it or push
+              the left stick forward. It works in first person
 LEFT TRIGGER  Crouch, and the packs (hold with A for long and high jumps, flips)
               Or crouch for real: lower your head (Physical crouch, VR Controls)
+              At the water's surface, in first or third person, it dives
 LEFT GRIP     On foot in first person it only closes your left hand (a fist, a ledge): the
               trigger crouches, Physical crouch on or off. With Akimbo's gun in the left hand,
               or in Third person, the grip crouches too
               Near the front of a big weapon, the left grip holds it with both hands
-RIGHT STICK CLICK      Talk, and quick select: hold, move your right hand toward a weapon, let go
+RIGHT STICK CLICK      Talk, and the weapon wheel: hold, point your right hand at a weapon, let go.
+                       Time slows while you hold it (More controls: Wheel slow motion, Wheel pick)
                        Pull the right trigger while holding it for the next page
 LEFT STICK CLICK       Akimbo (VR Options, on by default): the same for your left hand, on a ring of
                        its own. Both can be open at once. Left trigger fires it, or turns its
@@ -31,6 +35,7 @@ LEFT STICK CLICK       Akimbo (VR Options, on by default): the same for your lef
                        they are used. The Drone Device picked there launches its drones.
                        On the hoverboard the left weapon is put away
 LEFT MENU BUTTON       Recentre (holding the headset's own button does it too)
+                       Hold it a second in play: switch first and third person
 
 LEDGES        Squeeze a grip near the edge as you fall. To shimmy, hold your hands out the way you
               want to go (right to go right), or push the left stick. Ledge shimmy (More controls):
@@ -38,7 +43,10 @@ LEDGES        Squeeze a grip near the edge as you fall. To shimmy, hold your han
               the holding hand's gun is put away until it lets go. To climb, pull yourself up: draw
               a holding hand (or both) down toward your chest. Pushing both down fast, or A, climbs
               too. Let go of both to drop
-SWIMMING      Breaststroke with your hands, palms pushing back. Push the water up to dive
+SWIMMING      Breaststroke with your hands, palms pushing back, or the left stick. To dive: the left
+              trigger, push both hands up quickly (any way you hold them), or look well down and
+              stroke. Under the water you go where you look: look down and push the stick (or
+              stroke) to go deeper, look up to come back up
 HYDRODISPLACER, TRESPASSER   Push the tool into its slot, or pull the trigger on it
 TRESPASSER RINGS   The sticks turn them. Y, the click or the trigger takes the tool out. They hang
               over the tool you plugged in (a setting puts them before your face)
@@ -68,6 +76,7 @@ ON THE HOVERBOARD
 
 Left stick steers, A jumps, left trigger boosts, right trigger shoots.
 In the air: right stick for tricks (or the left grip, X, B), left stick to spin.
+The view looks where the board goes. Hoverboard view (Moves): Side-on looks along his chest.
 
 AS CLANK AND GIANT CLANK
 

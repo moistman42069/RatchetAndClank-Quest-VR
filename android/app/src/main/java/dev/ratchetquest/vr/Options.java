@@ -43,6 +43,11 @@ abstract class Options {
         "On: the headset stays at the rate you chose, so anywhere the game can keep up it is that smooth. Off: where "
             + "the game cannot hold a rate above 72 for twenty seconds, the headset drops back to 72 Hz by itself.",
         ON_OFF, TRUE_FALSE, "true");
+    static final Choice SPACE_WARP = new Choice("space_warp", "Smoother frames (AppSW)",
+        "On: the game draws every other frame and the Quest makes the ones between from how everything moved (Meta's "
+            + "Application SpaceWarp), so each picture has twice the time and 90 or 120 Hz holds. Fast moves can smear a "
+            + "little at the edges of things. Off: the game draws every frame. On a PC your headset's own smoothing does this.",
+        ON_OFF, TRUE_FALSE, "true");
     static final Choice RESOLUTION = new Choice("resolution", "Eye resolution",
         "Of the headset's recommended size. The biggest effect on performance.",
         new String[] {"70%", "80%", "90%", "100%", "110%", "120%", "130%"},
@@ -76,7 +81,7 @@ abstract class Options {
         "Removes the thin stray lines on leaves and flowers, and the hard straight edge of the dark patch round a "
             + "tree's foot, which fades out instead. Off: those lines and that edge stay.",
         ON_OFF, TRUE_FALSE, "true");
-    static final Choice[] GRAPHICS = {PRESET, REFRESH, KEEP_REFRESH, RESOLUTION, MSAA, FILTER, ANISOTROPY, ORIGINAL_LOD,
+    static final Choice[] GRAPHICS = {PRESET, REFRESH, KEEP_REFRESH, SPACE_WARP, RESOLUTION, MSAA, FILTER, ANISOTROPY, ORIGINAL_LOD,
         MAX_DRAW, MATCHING_SHADOW, FADES_IN_VIEW, SMOOTH_PLANT_EDGES};
 
     // The port's own options for play (docs/port/SETTINGS.md), beside OpenRAC's mods on the Game tab.
@@ -241,6 +246,7 @@ abstract class Options {
         settings.put("glyphs", Boolean.parseBoolean(get(GLYPHS)));
         settings.put("refresh_hz", Integer.parseInt(get(REFRESH)));
         settings.put("keep_refresh", Boolean.parseBoolean(get(KEEP_REFRESH)));
+        settings.put("space_warp", Boolean.parseBoolean(get(SPACE_WARP)));
         settings.put("resolution", Double.parseDouble(get(RESOLUTION)));
         return settings;
     }

@@ -1,0 +1,30 @@
+# The game's Help Desk, the way a player turns it on or off: pause, Options, HelpDesk, for the game's tips in voice and text (a
+# tester missed the Trespasser's). From 0.1.17 a new game, and so a --level run, has both on, and the two presses here turn them
+# off (up to 0.1.16 they started off and these turned them on). QUEST_HELP_TRACE=1 says the voice and text as they change.
+600 y 1
+606 y 0
+3000 y 1
+3006 y 0
+3120 hand_pitch 0
+3140 hand_pitch 28
+3200 hand_pitch -5.4
+3230 shot pause
+3240 right_trigger 1
+3246 right_trigger 0
+3340 shot options
+# The list's first row, HelpDesk.
+3360 hand_pitch 23.6
+3420 shot on-row
+3440 right_trigger 1
+3446 right_trigger 0
+3560 shot helpdesk
+# Its two rows: Voice, then Text, each toggled by the hand.
+3580 hand_pitch 13.0
+3640 right_trigger 1
+3646 right_trigger 0
+3720 shot voice-off
+3740 hand_pitch 9.6
+3800 right_trigger 1
+3806 right_trigger 0
+3880 shot both-off
+3900 quit 0

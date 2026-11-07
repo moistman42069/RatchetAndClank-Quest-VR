@@ -1,0 +1,22 @@
+# Diving in first person (a tester, 0.1.17: "how do you dive, go down in the water?"). Ratchet put in Novalis's water
+# treads it at the surface. The left trigger (the crouch) dives him (before 0.1.17 only both palms pushing the water up
+# or a swing did); under the water he goes where the head looks with the stick pushed. Run with QUEST_SWIM_TRACE=1
+# QUEST_STATE_TRACE=1: the swim lines give his height (z), which goes down looking down and up looking up.
+600 y 1
+606 y 0
+3300 shot treading
+3340 left_trigger 1
+3400 left_trigger 0
+3500 shot dived
+# Under: look down and push the stick.
+3520 head_pitch -40
+3540 left_y 1
+3700 left_y 0
+3710 shot looked-down
+# Look up and push the stick.
+3720 head_pitch 40
+3740 left_y 1
+3900 left_y 0
+3910 head_pitch 0
+3920 shot looked-up
+4000 quit 0

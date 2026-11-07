@@ -1,0 +1,16 @@
+# The left menu button held a second in play switches first and third person (a tester's ask, 0.1.17); a tap only
+# recentres, as before. Expect: a tap's "[vr-rig] recentred: the left menu button" and no view line, then "the view is
+# third person now: the left menu button held", then "first person now" again.
+600 y 1
+606 y 0
+3300 shot first
+3320 menu 1
+3326 menu 0
+3400 shot tapped
+3420 menu 1
+3600 menu 0
+3700 shot third
+3720 menu 1
+3900 menu 0
+4000 shot first-again
+4100 quit 0
