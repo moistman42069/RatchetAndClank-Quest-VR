@@ -1,7 +1,7 @@
 Options are in two places: these tabs, before you play, and the pause menu, in the game.
 Many are only in the game, and that includes all the newest ones.
 
-THE WAY TO THE NEW MOVES (Wall run and jump, Swingshot reach, the wrench's distance)
+THE WAY TO THE NEW MOVES (wall moves, the Swingshot's reach and grab, the wrench's throw, punches)
 1. In a level, press Y to pause. Pick Options. Pick VR Options.
 2. Hold your hand on the bottom row until VR Controls shows at the bottom. Pick it.
 3. Hold your hand on the bottom row until More controls shows at the bottom. Pick it.
@@ -26,8 +26,8 @@ VR OPTIONS    Helmet, Boots, Camera flip, Direction, Player body, Akimbo, Play p
               Cutscenes. Further down, in a level only: Cheats, VR Body, VR Controls
 
 VR HANDS      Gun angle, Gun size, Hand size, Empty hand angle, Items match hand size, Mirror
-              left-hand guns, Left gun ammo, HUD size, HUD height, Fingers, Fingers bend around
-              the world, and the angle of the weapon you last held
+              left-hand guns, Left gun ammo, HUD size, HUD height, Fingers, Hand on guns, and the
+              angle of the weapon you last held
 
 VR OPTIONS, CHEATS
               Invincible, Infinite ammo, Infinite bolts, Big heads, Trippy contrails, Give all
@@ -50,7 +50,20 @@ VR OPTIONS, VR CONTROLS, MORE CONTROLS
 
 VR OPTIONS, VR CONTROLS, MORE CONTROLS, MOVES
               Swingshot anywhere, Wall run and jump, Swingshot reach (how far the hook goes),
-              Wrench throw distance, Wrench comes back, Hoverboard view (Ahead or Side-on)
+              Swingshot grabs enemies, Grab moves, Wrench throw distance, Wrench comes back,
+              Wrench throw aim, Wrench throw angle, Punch with your hands, Hoverboard view (Ahead
+              or Side-on), Turning bolts (Trigger or hand, or Walk around)
+
+VR OPTIONS, VR CONTROLS, MORE CONTROLS, MOVES, GRAB MOVES
+              Fling while reeling in, Stun when dropped, Throw them up high, Slam them down, Zip
+              to them in the air, Pits and lava finish them
 
 The game's own HelpDesk (its tips in voice and text, on for a new game), Save, Load, Sound, Video, Camera and Subtitles
 are in the Options list too.
+
+IN THE LAUNCHER
+
+GRAPHICS      CPU and GPU boost (Quest), Smoother frames (AppSW), Keep the refresh rate, and the rest
+GAME          Mods: each mod's switch and settings (RAC-Board and Multiplayer are built in, off to
+              start), Browse OpenRAC's mods, Add a mod file, Mod files
+PLAY (PC)     Shortcut: a desktop shortcut to play in VR or 2D, or the command for Playnite or Steam

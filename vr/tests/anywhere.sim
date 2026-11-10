@@ -5,6 +5,8 @@
 # fall or idle it ends in. Off (the start) nothing is done: no [vr-swing] line. On Novalis (level 1) nothing is given.
 600 y 1
 606 y 0
+# 0.1.18: play keeps the arrival scene's heading (he turns to 0.67, not 1.57), so regress.sh begins Kerwan's runs as 0.1.17
+# did, recentred on his facing (QUEST_TEST_NO_HANDOVER=1, a PC test switch): the aims here were worked out for that.
 3000 shot before
 3100 right_trigger 1
 3130 shot level-1

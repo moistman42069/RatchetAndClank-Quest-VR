@@ -1,0 +1,24 @@
+# 0.1.18: Ratchet's hands on two guns, from outside (a PCVR tester's 0.1.17: "the left hand gun is slightly offset").
+# The same gun in each hand (QUEST_SIM_GIVE=15 QUEST_SIM_HOLD=15 QUEST_SIM_LEFT=15), seen from in front, from each side
+# and from above: the left fist on its grip as the right's is on its own, mirrored.
+600 y 1
+606 y 0
+2400 view_free 1
+2401 view_z -1.0
+2402 view_y -0.3
+2403 view_yaw 180
+2860 shot front
+2870 view_x 0.8
+2872 view_z -0.25
+2874 view_yaw 90
+2930 shot right-side
+2940 view_x -0.8
+2942 view_yaw -90
+3000 shot left-side
+3010 view_x 0
+3012 view_z -0.3
+3014 view_y 0.45
+3016 view_yaw 0
+3018 view_pitch -80
+3080 shot above
+3100 quit 0

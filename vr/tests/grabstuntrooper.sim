@@ -1,0 +1,54 @@
+# 0.1.18, Grab moves: Stun when dropped, and the wrench's hit on the stunned one, on an enemy that stands alone:
+# Eudora's Blarg trooper (QUEST_SIM_GIVE=12 QUEST_SIM_HOLD=12 QUEST_SIM_NEAR=427 QUEST_SIM_NEAR_AT=6,0, --level 4; Y at
+# 1150 skips its arrival movie; he is put before it at about frame 1990). grabstun.sim does the same on Novalis, where
+# two critters stand a unit apart and the other one, coming at him, takes the sweep in most runs. Caught and reeled in,
+# the trigger let go with the hand still: "[vr-grab] dropped", "dropped: stunned for 1.5 s" about two units before the
+# hand. The right grip takes the wrench, a step in, and the hand sweeps across, back and across again: "[vr-wrench] hit
+# slot N" with N the slot of "the hook out to slot N", "[vr-grab] slot N let go: a hit on it (record R): the game's to
+# take", "[vr-hit] slot N after the hit".
+600 y 1
+606 y 0
+1150 y 1
+1156 y 0
+2050 shot before
+2110 right_trigger 1
+2150 shot held
+2170 right_trigger 0
+2174 right_grip 1
+2178 left_y 1
+2190 left_y 0
+2194 shot dropped
+2198 rh_z -0.25
+2198 rh_x 0.30
+2200 rh_x 0.225
+2201 rh_x 0.15
+2202 rh_x 0.075
+2203 rh_x 0.0
+2204 rh_x -0.075
+2205 rh_x -0.15
+2206 rh_x -0.225
+2207 rh_x -0.30
+2210 shot swung-1
+2227 rh_x -0.225
+2228 rh_x -0.15
+2229 rh_x -0.075
+2230 rh_x 0.0
+2231 rh_x 0.075
+2232 rh_x 0.15
+2233 rh_x 0.225
+2234 rh_x 0.30
+2237 shot swung-2
+2250 rh_x 0.225
+2251 rh_x 0.15
+2252 rh_x 0.075
+2253 rh_x 0.0
+2254 rh_x -0.075
+2255 rh_x -0.15
+2256 rh_x -0.225
+2257 rh_x -0.30
+2260 shot swung-3
+2290 rh_x 0
+2290 rh_z 0
+2300 right_grip 0
+2350 shot after
+2450 quit 0

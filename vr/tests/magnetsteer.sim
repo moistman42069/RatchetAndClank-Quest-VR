@@ -1,0 +1,30 @@
+# 0.1.18: magnetturn.sim's walk up Batalia's magnet wall, steered. From 0.1.18 the stick goes ahead in the surface's own
+# plane: facing the wall square on (the head 27 degrees right of the start) is straight up it, and turning the head left
+# on it takes him up and to the left. Near the wall's top (about z 41) the strip leans off to -y; the head turns left
+# (to 20 degrees, 47 left of square on) and he follows it, then the stick is let go while he is still on the strip.
+# QUEST_WALK_TRACE: the surface lines' "move" gains a -y part as the head turns (about -0.6 by the let-go), magnet 1 to the end;
+# QUEST_STATE_TRACE: no 0x79 (slipping off) or fall (6). Not further: the strip narrows over the top and the sim's
+# fixed frames land him a few tenths apart from run to run (magnetorxon.sim climbs a whole wall to its top).
+600 y 1
+606 y 0
+1000 y 1
+1006 y 0
+1800 y 1
+1806 y 0
+3000 shot foot
+3010 left_y 1
+3050 head_yaw -5
+3060 head_yaw -10
+3070 head_yaw -15
+3085 head_yaw -19
+3090 head_yaw -23
+3095 head_yaw -27
+3180 head_yaw -20
+3185 head_yaw -10
+3190 head_yaw 0
+3195 head_yaw 10
+3200 head_yaw 20
+3200 left_y 0
+3230 shot steered
+3350 shot held
+3400 quit 0

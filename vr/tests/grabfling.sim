@@ -1,0 +1,23 @@
+# 0.1.18, Grab moves: Fling while reeling in. The Swingshot in the right hand (QUEST_SIM_GIVE=12 QUEST_SIM_HOLD=12), a
+# Novalis critter 12 units ahead, from its far side (QUEST_SIM_NEAR=577 QUEST_SIM_NEAR_AT=12,0,180, --level 1). As in
+# swinggrab.sim, Ratchet is put there about frame 2550 and the critters reach and hurt him from about 2790, so the trigger
+# is pulled at 2660. The hook catches it and it is reeled in at 25 units a second; a flick to the side while it still
+# comes (30 cm in four frames, 4.5 m/s) flings it from where it is: "[vr-grab] flung while reeling in", then it meets the
+# world or another ("it landed: half the wrench's blow"). With 'QUEST_VR_OPTIONS=grab_fling 0' the flick does nothing
+# while it comes in. The yank back is grabyank.sim's.
+# (Until OpenRAC 91b67c67 the pull was at 2900 from 14 units on the near side, and a second pull at 3150 did the yank:
+# the critters are on him before either now, and hurt, he cannot fire.)
+600 y 1
+606 y 0
+2600 shot before
+2660 right_trigger 1
+2664 shot hook-out
+2671 rh_x 0.075
+2672 rh_x 0.15
+2673 rh_x 0.225
+2674 rh_x 0.30
+2677 shot flung
+2690 rh_x 0
+2710 right_trigger 0
+2750 shot landed
+3000 quit 0

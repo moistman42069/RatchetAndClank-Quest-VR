@@ -5,9 +5,33 @@ The app as a whole is under the GNU General Public License v3 or later (LICENSE)
 vr/src/strafe.h and the walking and facing hooks in vr/src/quest_vr.cpp, vr/src/discs.h
   From lock-strafe, OpenRAC/rac1-mods. GPL-3.0-or-later. Copyright (c) 2026 the OpenRAC contributors.
 
-The bundled mods difficulty, item-randomizer and ammo-max (the APK's libdifficulty.so,
-libitem_randomizer.so, libammo_max.so and assets/mods)
+The bundled mods difficulty, item-randomizer, ammo-max, xbox-icons, button-swap and multiplayer (the
+APK's libdifficulty.so, libitem_randomizer.so, libammo_max.so, libxbox_icons.so, libmultiplayer.so and
+assets/mods; the PC release's mods folder)
   OpenRAC/rac1-mods, built unchanged. GPL-3.0-or-later. Copyright (c) 2026 the OpenRAC contributors.
+
+The bundled mod RAC-Board (the APK's librac_board.so and assets/mods/rac-board; the PC release's
+mods/rac-board), github.com/mateuszklysz/RAC-Board, built unchanged
+  MIT License. Copyright (c) 2026 Mateusz Klysz.
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+  associated documentation files (the "Software"), to deal in the Software without restriction,
+  including without limitation the rights to use, copy, modify, merge, publish, distribute,
+  sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in all copies or
+  substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+  NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+  NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES
+  OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+  CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+  Its board logic is ported from OpenGOAL's decompilation of Jak II (github.com/open-goal/jak-project):
+  ISC License, Copyright (c) 2020-2026 OpenGOAL Team, under the same terms as Rerac-vr's below. Its
+  folder carries its LICENSE and THIRD_PARTY.md as they are.
 
 The controller layout and VR design
   After Rerac-vr by npiriou, on ReRAC. ISC License. Copyright (c) 2026 ReRAC contributors.

@@ -1,92 +1,196 @@
-NEW IN 0.1.17
+NEW IN 0.1.18
 
-SLOW MOTION AT THE WEAPON WHEEL (new, on to start)
+NEW MOVES FOR YOU TO TURN ON: GRAB ENEMIES, GRAB MOVES, PUNCHES
 
-    Hold the weapon wheel open and time slows to a third, so you can change weapons in the middle of a fight or a
-    chain of moves. A sharp whoosh as it slows, the sound drops in pitch, a click at each weapon you pass, a quick
-    chirp as the new weapon comes out, and normal speed snaps back with a thump. A quick press to talk to someone
-    slows nothing. To change it: More controls, Wheel slow motion: With sounds, No sounds or Off.
+    This release adds three things you can turn on: grabbing enemies with the Swingshot, the Grab moves that go
+    with it, and punching with your hands. They start off, so the game plays as it did until you want them. To
+    turn them on, in a level: press Y, then Options, VR Options, VR Controls, More controls, Moves (the Controls
+    tab's Menus section shows the way). There, set Swingshot grabs enemies and Punch with your hands to On, and
+    pick Grab moves for a page of six rows, one for each move. Each one is told below.
 
-POINT AT THE WEAPON YOU WANT (new, on to start)
+THE SWINGSHOT GRABS ENEMIES (new, off to start: turn it on in Moves)
 
-    No more moving your whole arm toward a weapon. Open the wheel and point your hand at the weapon, as you point at
-    a menu: a beam and a dot show where, and the weapon lights up. Let go and it comes out. Both hands, in first
-    person, on foot. In a seat the reach still picks. To change it: More controls, Wheel pick: Point, or Reach for the
-    old way.
+    Aim the Swingshot at an enemy where there is no Swingshot target and pull the trigger. The hook flies out,
+    catches it and yanks it in to hang before your hand, and it follows your hand as you move. Swing your hand and
+    let go of the trigger to throw it: it flies that way, falling as it goes, and takes half a wrench blow where it
+    lands, as does an enemy it hits on the way. Let go gently and it drops where it hangs. You can hold one for up to
+    six seconds, and it neither walks nor fights while you do. Big enemies can't be caught, and a Swingshot target
+    in reach is still the game's own. To turn it on: VR Options, VR Controls, More controls, Moves, Swingshot grabs
+    enemies.
 
-SMOOTHER FRAMES (new, on to start, on Quest)
+GRAB MOVES (new, each off to start, each its own row on Moves, Grab moves)
 
-    The game draws every other frame, and the Quest's own Application SpaceWarp (AppSW) makes the ones in between
-    from how things move. That gives the headset twice the time for each picture, so the view should stay smooth at
-    90 or 120 Hz where it stuttered. Fast, thin things can smear a little at their edges, most of all when you turn
-    with the stick. To turn it off: Graphics, Smoother frames (AppSW). On PC your headset's own smoothing does this
-    instead. We could only try it in a simulated headset: tell us how it looks on your Quest.
+    Turn on Swingshot grabs enemies first, then the moves you want here. With all of them off, a caught enemy is
+    only thrown or dropped.
 
-FROM A SEATED PLAYER'S REPORT
+    Fling while reeling in: flick your hand while it is still coming in and it is thrown from there, that way.
+    Stun when dropped: let go gently and it stands stunned a moment, for the wrench. Throw them up high: let go
+    swinging up and it flies straight up; hook it again up there and it hangs on the line. Slam them down: let go
+    swinging down, or yank down while it hangs up there, for a whole wrench blow. Zip to them in the air: jump
+    while one hangs on the line and the Swingshot pulls you to it. Pits and lava finish them. A shot, wrench or
+    punch lets a caught enemy go at once.
 
-    Seated no longer lifts your view and hands. Up to 0.1.16, VR Options, Play position: Seated put them 45 cm
-    above Ratchet's eyes, though a recentre already puts your eyes at his, sitting or standing. Your hands were then
-    out of the water at the surface, and above bolt cranks and enemies. Now Seated lifts nothing, choosing it
-    recentres, and leaning forward in your chair does not crouch him. For a higher or lower view: VR Body, View
-    height.
+PUNCH WITH YOUR HANDS (new, off to start: turn it on in Moves)
 
-    Diving: at the surface, push both hands up quickly, however you hold the controllers, or look well down and
-    stroke. The left trigger dives too, now in third person as well.
+    A quick jab out from your body with a free hand, or with the hand holding a gun, hits what it meets for half a
+    wrench blow. Open hand or fist: there is no button to hold. The wrench still swings, and a glove, the Walloper,
+    the Swingshot, the Hydrodisplacer and the Trespasser do their own thing. To turn it on: Moves, Punch with your
+    hands.
 
-    The wrench stays in your hand through a swing. Easing the grip a little in a fast swing used to let go of it,
-    or throw it. Now it holds until you open the grip well past halfway. Opening your hand in a swing still throws.
+THE WRENCH THROW
 
-    The hoverboard looks where it goes, steady, not along Ratchet's side-on chest. To change it: More controls,
-    Moves, Hoverboard view: Ahead, or Side-on for the old way.
+    It now flies where your controller pointed as your hand began to open, not where your swing carried on to,
+    which threw it low. Two new rows on Moves to set it as you like: Wrench throw aim (Where you point
+    to start, or Along your swing, the old way) and Wrench throw angle (30 down to 30 up in steps of 5, Level to
+    start).
 
-    World scale is in the game too: VR Body, World scale, 70 to 150 percent.
+THE WEAPON WHEEL
+
+    Opening it no longer lets go of the Swingshot: a trigger you are holding to hang or be pulled in stays the
+    Swingshot's until you let it go. The pointer's dot stays inside the wheel, and each weapon you pass gives a
+    firmer click in your hand. Each hand's wheel now opens where that hand is and stays there while it is up, so
+    with Akimbo the left wheel is no longer at the edge of your view.
+
+RATCHET'S HANDS ON THE GUNS
+
+    His hand sits on each gun's grip, where your hand holds the controller, and the guns stay where they were. The
+    left hand's gun (Akimbo) is held the same way, mirrored: it sat below and in front of the handle. A hand on the
+    front of a gun, such as the Pyrocitor's, no longer slides along it as he walks, and the gloves' wrist is
+    straight. VR Hands has a new row, Hand on guns, to move his hand along the gun (10 cm forward to 15 cm back).
+    VR Hands, Fingers now has three choices: Tracked, bend around the world (as before), Tracked, and Static.
+
+    Two hands on a big gun hold steady: the front hand on the Pyrocitor and the other two-handed guns no longer
+    turns with his arm's swing as he walks. A hand no longer grows twice as wide with a wrench on a bolt or swung
+    fast.
+
+WHAT HE WEARS FITS HIS BODY
+
+    The throwing gloves, the Walloper and the Swingshot sit on his forearm with no gap and no wrung wrist, at any
+    Empty hand angle. The Grindboots and Magneboots turn about the ankle with his shin as his legs bend, and on a
+    grind rail his legs now bend down to his feet, where they stood a hand's width above the boots.
+
+TURNING BOLTS (new row on Moves)
+
+    Trigger or hand (to start): with the wrench on a bolt, hold the trigger and it turns by itself while you stand
+    still, or turn it round with your hand. Walk around keeps the old way.
+
+EVERYTHING YOU HOLD MEETS THE WORLD
+
+    With World collision on (More controls), the wrench's head stops at walls and the ground, with the game's clank
+    and sparks when it hits hard, where only its handle did before. The Walloper stops too, and so do the
+    Hydrodisplacer and the Trespasser until their slot is in reach, where they go in as before. A wrench on a bolt
+    crank turns it as before.
+
+GETTING IN AND OUT OF THE SHIP
+
+    In first person, the view now glides from your head to Ratchet's eyes and back as the ship's scenes start and
+    end, keeping the way you face, where it used to jump and turn you. The flight between planets fills the view
+    from the game's own camera, as in Rerac-vr, instead of a flat window (Cutscenes, On a screen, keeps the window).
+    A ride the game shows from a camera far from Ratchet, with him hidden, such as the pod to a ship on Drek's
+    station, is now followed until he is back. We could not find that pod here to try it.
+
+CUTSCENES
+
+    X in a cutscene now switches only between Through his eyes and In VR around you. VR Options, Cutscenes still
+    has On a screen.
+
+SMOOTHER FRAMES WITHOUT THE STUTTER
+
+    With AppSW at a low rate the world moved in uneven steps. Each picture is now made for the moment the headset
+    will show it, not the moment the game started on it. This helps PC VR too.
+
+CPU AND GPU BOOST (new, on to start, Quest)
+
+    Graphics, CPU and GPU boost: the game asks the Quest for its top speeds while you play.
+
+"HEY META" NO LONGER MUTES THE GAME
+
+    The game now asks the Quest for the sound as a game does, and opens its sound again when it gets it back. We
+    could not try this on a Quest: please tell us.
+
+MODS
+
+    Browse OpenRAC's mods (new, Game tab): the list on openrac.dev/mods. Pick one and it is fetched, checked and
+    added; only mods that suit this game and your headset or PC are offered, and one you added from it can be
+    updated there. The last good list is kept for when you are offline.
+
+    RAC-Board and Multiplayer are now built in, off to start: turn them on in the Game tab. RAC-Board: reach
+    behind your back with either hand and click its stick to get on the board and off again, the left stick
+    steers, A jumps, the right trigger does tricks, and your view goes with its flips and spins.
+
+    Multiplayer: play with flat and VR players alike; your swings, punches, throws and shots, in either hand,
+    count for everyone. It goes online only when you pick Multiplayer in the game. Multiplayer name (in the
+    launcher while the mod is on) is what the others see: 3 to 16 letters, digits or _. In a party there is no
+    slow motion at the wheel. When you join someone's party, the Swingshot does not catch enemies, and a cheat
+    counts only if the host plays in VR with it on too. The others see the gun in your right hand, not the left
+    one's, though its hits count.
+
+    OpenRAC is updated to its latest (mod interface 1.14), so mods built for OpenRAC load here as they are. A
+    mod's own files (models, pictures, sounds) are copied whole now. The new Mod files button (Game tab) shows
+    the files mods keep, such as the Item randomizer's seed: on the Quest in the Files app, where the game's
+    saves and your disc images show too, and on PC in a folder.
+
+SHORTCUTS ON PC (new)
+
+    The PC launcher's Play page has a Shortcut card: a desktop shortcut that starts the game straight away, in VR
+    or 2D, with your launcher choices, or its command (RatchetClankVR.exe --play) for Playnite or Steam.
 
 FIXED
 
-1.  PC VR: the HUD's text and numbers, and the Trespasser's rings. On SteamVR they did not show at all, which made the
-    Trespasser impossible to do. They are there now. On Quest the same text was pale, and it is solid now.
+1.  The black flicker as a menu closes or turns a page: a dark frame of the game's backdrop showed for a moment.
 
-2.  The bolt numbers at a vendor or an equipment box, on Quest and PC: no more lighter boxes behind the digits.
+2.  A crash on Gaspar with Akimbo, firing the left hand's gun while running.
 
-3.  Water from up close, on Quest and PC: parts of it were cut away when you stood right by it. It is whole now.
+3.  The left Suck Cannon (Akimbo) sucked an enemy in but never filled, so it could not fire. It fills and fires.
 
-4.  PC VR: movies. They ran at a flat 60 pictures a second whatever your headset's rate, which could look laggy. They
-    now keep to the headset's rate, with the sound still setting the movie's time. Tell us if yours still lags.
+4.  Pokitaru's sky went flat cyan at some angles of your head. It is whole all the way round.
 
-5.  The ammo count in the wheel: on its later pages, the count under a weapon's name was missing or was another
-    weapon's. It is now that weapon's own.
+5.  The shop: a pull of the trigger to buy brought your last gun back out, and a bomb into your hand with each
+    pull after. At a vendor the trigger is the shop's alone.
 
-6.  The title screen: Ratchet, his ship and the crate vanished as soon as the menu came up, and flashed back when you
-    picked something. They now stay in the scene behind the menu.
+6.  Feet on the floor (VR Body): Ratchet's body now rises with the view, so his arms meet your hands again.
 
-ALSO NEW
+7.  PC VR, the US disc: some windows and the water broke in the eyes. The game's enhanced reflections are now off
+    while you play in VR, so PC VR draws them as the Quest does. We only have the PAL disc to try it on.
 
-7.  Feet on the floor (VR Body, off to start). You stand at Ratchet's height, so your real feet are below his ground.
-    On, the view lifts so that his ground is your floor. It measures you each time you recentre, so stand up straight
-    when you do. Your hands then reach from your own height, so some things are further from them. Off is as before.
+8.  A crash on Aridia with a Swingshot in each hand, changing the right hand's item.
 
-8.  The game's Help Desk is on for a new game. It is the game's tips, in voice and text, like the one that explains
-    the Trespasser when you find it. Up to 0.1.16 this port turned it off on every new game, so those tips never
-    played. A save you already have keeps what it had: to turn the tips on or off there, in a level press Y, then
-    Options, HelpDesk, Voice and Text.
+9.  The Magneboots in first person: on a magnet wall the stick pointed into the wall or off its side, so he
+    walked off a few metres up. The stick now goes ahead in the wall's own plane, the way you face: face the wall
+    and push ahead to walk straight up it, turn your head to go to one side, let go and he stands on it. A magnet
+    strip is narrow: turn your head the way it goes, or he slips off its side.
 
-9.  Switch the view quickly. In play, hold the left menu button for a second to switch between first and third
-    person. A short press still recentres, as before. VR Options, View does the same.
+10. Walking after the Magneboots: coming off a magnet surface could leave the view turned to one side while the
+    stick, your throws and your steps still went the old way, until the game was restarted. They agree again
+    as soon as you are off it.
 
-10. Dive with the left trigger, in first or third person. At the water's surface, pull the left trigger and Ratchet
-    dives. Under the water he goes where you look: look down and push the stick, or stroke, to go deeper, and look
-    up to come back up. Pushing the water up with both hands still dives too.
+11. Orxon's electric barriers could hurt you without being seen. On the US disc the game's code that draws them
+    was missing; it is there now. And on both discs, with your head turned from the way Ratchet faced, the game
+    left out a barrier in front of your eyes, as it draws one only while its own camera sees it. Now it goes by
+    what your eyes see, for the barriers and everything else it checks that way. We only have the PAL disc to
+    try the US fix on.
 
-GOOD TO KNOW: ALL OF THIS WORKS IN FIRST PERSON
+GOOD TO KNOW (PC VR)
 
-    Bolt cranks: hold the wrench's head on the bolt (right grip), then walk around it or push the left stick
-    forward. The hoverboard: the left stick steers and the left trigger boosts. The whole list is in the Controls
-    tab.
+    At 120 Hz with AppSW the game drew 33 to 46 pictures a second; at 90 Hz without it, a steady 90. On PC your
+    headset's own smoothing does AppSW's job, so 90 Hz is the better choice there.
 
 STILL LOOKING
 
-    A player on PC VR saw a black box stay in front of them after Clank's video on Veldin. We could not make it happen
-    here. If you see it, please send your log and say what you did just before.
+    We could not make these happen here: a slab at a vendor, the pod ride to a ship on Drek's station (the view
+    left at a window), a black box staying in front of a player after Clank's video on Veldin, the HUD flickering
+    on Orxon (PC VR), and a mine squashed into an oval. If you see one, please send your log and say where you were
+    and what you did just before.
+
+0.1.17: SMOOTHER FRAMES, SLOW MOTION AT THE WHEEL, SEATED PLAY
+
+    Smoother frames (AppSW, Graphics, Quest). Time slows while the weapon wheel is open, and you point at the
+    weapon you want (More controls: Wheel slow motion, Wheel pick). Seated no longer lifts your view and hands;
+    diving with both hands up, a look down and a stroke, or the left trigger; the wrench held through an eased
+    grip; the hoverboard looking ahead (Moves, Hoverboard view). World scale in VR Body, Feet on the floor, the
+    Help Desk on for a new game, and a long press of the left menu button to switch first and third person. Fixed:
+    the PC VR HUD's text and the Trespasser's rings, the bolt numbers, water up close, PC VR movie pacing, the
+    wheel's ammo counts and the title screen.
 
 0.1.16: LONG MENUS NOW TELL YOU THERE IS MORE
 

@@ -1,6 +1,8 @@
 # Pointing at the wheel's weapons with Akimbo off: the one wheel is where the game has it, at the left of the HUD (wheelpoint.sim's
 # for Akimbo's). The right hand only turns, the ray going round the eight icons in turn; [vr-ring] lines say each slot and item.
 # Run with QUEST_SIM_GIVE of eight weapons, and QUEST_VR_OPTIONS=akimbo 0;akimbo_chosen 1.
+# 0.1.18: the one wheel opens at the right hand too (399, 298 of the canvas; it was at the game's place, the HUD's left), so the
+# yaws and pitches are wheelpoint.sim's.
 600 y 1
 606 y 0
 3000 shot before
@@ -9,33 +11,33 @@
 # The page of all that is owned.
 3170 right_trigger 1
 3176 right_trigger 0
-3200 hand_yaw 26.1
-3201 hand_pitch 21.7
+3200 hand_yaw -11.7
+3201 hand_pitch 12.8
 3260 shot top
-3280 hand_yaw 19.4
-3281 hand_pitch 20.4
+3280 hand_yaw -19.0
+3281 hand_pitch 9.7
 3340 shot topright
-3360 hand_yaw 16.4
-3361 hand_pitch 14.5
+3360 hand_yaw -21.9
+3361 hand_pitch 3.2
 3420 shot right
-3440 hand_yaw 19.4
-3441 hand_pitch 8.0
+3440 hand_yaw -19.0
+3441 hand_pitch -3.4
 3500 shot bottomright
-3520 hand_yaw 26.1
-3521 hand_pitch 5.1
+3520 hand_yaw -11.7
+3521 hand_pitch -6.3
 3580 shot bottom
-3600 hand_yaw 32.1
-3601 hand_pitch 7.2
+3600 hand_yaw -4.0
+3601 hand_pitch -3.6
 3660 shot bottomleft
-3680 hand_yaw 34.4
-3681 hand_pitch 12.6
+3680 hand_yaw -0.7
+3681 hand_pitch 3.4
 3740 shot left
-3760 hand_yaw 32.1
-3761 hand_pitch 18.4
+3760 hand_yaw -4.0
+3761 hand_pitch 10.3
 3820 shot topleft
 # Back to the icon on the right, and let go: that weapon comes out as time snaps back.
-3840 hand_yaw 16.4
-3841 hand_pitch 14.5
+3840 hand_yaw -21.9
+3841 hand_pitch 3.2
 3900 right_click 0
 3960 shot after
 4100 quit 0

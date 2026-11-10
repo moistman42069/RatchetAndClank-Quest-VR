@@ -1,0 +1,57 @@
+# The Mine Glove in the left hand (Akimbo): its mines thrown by the left hand (a tester's log on Orxon has theirs thrown
+# that way; the same day's picture: "one of my mines became an oval"). The left glove is a second glove the game does not
+# know of: its mine updates with the hand slot lent to it, and from 0.1.18 the left hand's item is held mirrored.
+# QUEST_SIM_GIVE=15,17 QUEST_SIM_HOLD=15 QUEST_SIM_LEFT=17 QUEST_ROWS_TRACE=74 on Novalis (--level 1): "[sim] rows tick N:
+# slot S class 74 ... (even)" for each mine and no "(UNEVEN)"; the shots are to be looked at.
+600 y 1
+606 y 0
+3200 shot ahead
+# A fast throw by the left hand, forward and up.
+3300 left_trigger 1
+3350 shot held-1
+3360 lh_z -0.05
+3360 lh_y 0.02
+3361 lh_z -0.10
+3361 lh_y 0.05
+3362 lh_z -0.15
+3362 lh_y 0.08
+3363 lh_z -0.20
+3363 lh_y 0.11
+3364 lh_z -0.25
+3364 lh_y 0.13
+3364 left_trigger 0
+3365 lh_z -0.30
+3365 lh_y 0.15
+3380 shot far-1
+3440 shot far-2
+3500 lh_z 0
+3500 lh_y 0
+# A gentle lob: it lands a step ahead.
+3600 left_trigger 1
+3660 lh_z -0.02
+3661 lh_z -0.04
+3662 lh_z -0.06
+3663 lh_z -0.08
+3663 left_trigger 0
+3664 lh_z -0.10
+3700 shot lob-1
+3760 shot lob-2
+3800 lh_z 0
+# Another, a little harder, while the right hand fires its Blaster.
+3900 left_trigger 1
+3950 right_trigger 1
+3960 lh_z -0.03
+3961 lh_z -0.06
+3962 lh_z -0.09
+3963 lh_z -0.12
+3963 left_trigger 0
+3964 lh_z -0.15
+3980 right_trigger 0
+4000 shot both-1
+4060 shot both-2
+4100 lh_z 0
+# Looking down at where they lie.
+4160 head_pitch -35
+4200 shot down-1
+4300 shot down-2
+4400 quit 0

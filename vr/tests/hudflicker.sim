@@ -1,0 +1,45 @@
+# 0.1.18: a PCVR tester's 0.1.17 on Orxon in first person, "some flicking elements mainly hud" (SteamVR, 72 Hz, a steady
+# 72 frames a second in their log). QUEST_SIM_OWN=6 QUEST_SIM_GIVE=16 QUEST_SIM_HOLD=16 on --level 10: Ratchet beside his
+# ship with the Pyrocitor; the trigger held fires it, so the HUD shows its ammo, and a shot each frame of the panel (the
+# HUD's picture) while it is up. Read the panels frame to frame (vr/tests/panelcmp.py): a HUD part there one frame and
+# gone the next, with nothing changed in the game, is the flicker. Run it too with QUEST_FRAME_RATE=unlimited
+# OPENRAC_PACING=1, as the tester's game ran: frames between the game's ticks then come (the log's "pace ... between"),
+# as on a 72 Hz headset with the game's 60 ticks. 0.1.18 on PC, both ways: the panel the same frame to frame but for the
+# ammo count going down; not reproduced.
+600 y 1
+606 y 0
+1000 y 1
+1006 y 0
+3000 right_trigger 1
+3020 shot f00
+3021 shot f01
+3022 shot f02
+3023 shot f03
+3024 shot f04
+3025 shot f05
+3026 shot f06
+3027 shot f07
+3028 shot f08
+3029 shot f09
+3030 shot f10
+3031 shot f11
+3032 shot f12
+3033 shot f13
+3034 shot f14
+3035 shot f15
+3036 shot f16
+3037 shot f17
+3038 shot f18
+3039 shot f19
+3040 right_trigger 0
+3060 shot g00
+3061 shot g01
+3062 shot g02
+3063 shot g03
+3064 shot g04
+3065 shot g05
+3066 shot g06
+3067 shot g07
+3068 shot g08
+3069 shot g09
+3100 quit 0

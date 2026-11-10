@@ -29,8 +29,12 @@ reverse-engineering and decompilation communities.
 
 MODS BUILT ON: rac1-mods by the OpenRAC contributors
 lock-strafe's hooks and strafe logic make Ratchet face where you aim. keyboard-mouse documents the
-game's pad report. Difficulty, Item randomizer, Ammo at the most, Xbox button icons and Button swap come
-with this app as they are, on the Game tab. github.com/OpenRAC/rac1-mods
+game's pad report. Difficulty, Item randomizer, Ammo at the most, Xbox button icons, Button swap and
+Multiplayer come with this app as they are, on the Game tab. github.com/OpenRAC/rac1-mods
+
+RAC-BOARD: Mateusz Klysz
+Jak II's JET-Board for Ratchet, with this app as it is (off to start, on the Game tab). MIT.
+github.com/mateuszklysz/RAC-Board
 
 QUEST KNOW-HOW: Halo CE Decomp Remix VR
 The OpenXR session, performance, launcher and updater patterns proven on the Quest 3.

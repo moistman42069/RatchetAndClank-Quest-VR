@@ -1,7 +1,8 @@
 # The Moves page (More controls' first row, 0.1.14) and More controls: the way to VR Options as bodypage.sim goes, by the sticks with
 # the right controller off, eleven rows down to VR Controls; there eleven down to its last row, More controls, and A opens it. Its
 # first row is a button, Moves: A opens that page. Each row stepped: Swingshot anywhere On, Wall run and jump On, Swingshot reach twice
-# (No limit), Wrench throw distance Far, Wrench comes back When you call it. B back to More controls. Two down (past Ledge shimmy),
+# (No limit), Swingshot grabs enemies and Grab moves passed (0.1.18's rows, left Off), Wrench throw distance Far, Wrench comes back When you call it.
+# B back to More controls. Two down (past Ledge shimmy),
 # Hide black bars stepped right then left: "[vr-view] Hide black bars: off, the game's own", then "on". Two down (past Menu pointer),
 # Arm moves stepped: Buttons ("[vr-controls] Arm moves: Buttons"); five down, the page's last, Sparkles on the bolts
 # stepped: Off. B back to VR Controls. The [vr-swing] line says "Swingshot anywhere: on", the [vr-rig] lines arm moves
@@ -108,15 +109,20 @@
 5322 left_x 0
 5350 left_y -1
 5362 left_y 0
-5390 left_x 1
-5402 left_x 0
+5390 left_y -1
+5402 left_y 0
+# Grab moves (a button, 0.1.18) passed: one more down to Wrench throw distance.
 5430 left_y -1
 5442 left_y 0
 5470 left_x 1
 5482 left_x 0
-5520 shot moves-end
-5530 b 1
-5542 b 0
+5500 left_y -1
+5512 left_y 0
+5530 left_x 1
+5542 left_x 0
+5552 shot moves-end
+5560 b 1
+5572 b 0
 5640 shot more-again
 5650 left_y -1
 5662 left_y 0

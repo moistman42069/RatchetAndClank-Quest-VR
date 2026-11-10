@@ -16,6 +16,15 @@ run() { # name sim level|- [NAME=value...] [the sim's own arguments, such as --c
     if [ "$a" = KEEP=1 ]; then keep=1; continue; fi  # this entry's shots are to be looked at
     if [[ "$a" =~ ^[A-Za-z_][A-Za-z0-9_]*= ]]; then envs+=("$a"); else extra+=("$a"); fi
   done
+  # Kerwan's start: its sims were written with Ratchet facing along y (1.57), where 0.1.17's play began. From 0.1.18 play
+  # keeps the arrival scene's heading and he turns to it (0.67), so every aim written for that start went 52 degrees to
+  # the side. A Kerwan run with no place of its own is put back at the start facing along y; "[sim] put at" says so.
+  # And play begins recentred on his facing as in 0.1.17 (QUEST_TEST_NO_HANDOVER=1): with the put alone the view kept
+  # the scene's heading for a tick, the Gaze turn took him to 1.53 before the recentre, and every aim went 2 degrees to
+  # the side (anywhere-zips' third pull found nothing; with this its three pulls are 0.1.17's to the tenth).
+  if [ "$level" = 3 ] && [[ " ${envs[*]} " != *" QUEST_SIM_AT="* && " ${envs[*]} " != *" QUEST_SIM_NEAR="* && " ${envs[*]} " != *" QUEST_SIM_RAIL="* ]]; then
+    envs+=(QUEST_SIM_AT=263.98,101.89,54.5,90 QUEST_TEST_NO_HANDOVER=1)
+  fi
   if [ "$level" = "-" ]; then
     env OPENRAC_DIRECT=1 QUEST_TIMEOUT=480 "${envs[@]}" bash vr/tests/pc_run.sh "$sim" "${extra[@]}" > "$OUTS/$name.run" 2>&1
   else
@@ -26,8 +35,13 @@ run() { # name sim level|- [NAME=value...] [the sim's own arguments, such as --c
     echo "== $name ($sim, level $level, $*) in $((SECONDS - start)) s: $(head -1 "$OUTS/$name.run")"
     grep -a -c 'not loaded' "$log" | sed 's/^/mod not loaded lines: /'
     grep -a -i -E 'crash|exception|assert|fatal' "$log" | grep -a -v 'settings from' | head -3
+    # The game's code the port has no C for, called in this run: it did nothing (an Orxon barrier undrawn on 0.1.17's US disc).
+    grep -a -o '[A-Za-z0-9_]* has no C in the port yet' "$log" | sort | uniq -c | sed 's/^ */port: /' | head -10
     grep -a -E '\[(vr-[a-z]+|sim)\]' "$log" | grep -a -v -E 'vr-perf|vr-state] (tick|phase)|vr-input|vr-glyphs|vr-body] hidden|sim] hittable|vr-hand] class|vr-aim] near the head|vr-aim] class .* (also holds|aimed by)|\[sim\] (frame|shot|pointer:|smoother frames)|haptic|vr-sound|centred text|not a list' \
-      | sed 's/.*\[mod quest-vr\] //' | cut -c1-170 | awk '!seen[$0]++ || /^\[sim\] hero state/' | head -150
+      | sed -e 's/.*\[mod quest-vr\] //' -e 's/^\[sim\] stick tick [0-9]*:/[sim] stick:/' | cut -c1-170 \
+      | awk '!seen[$0]++ || /^\[sim\] hero state/' | head -150
+  # (The stick's trace on the boots' surface comes every 8 ticks: without its tick, the same line is kept once and the
+  # climb's own lines stay under the 150.)
   } > "$OUTS/$name.txt"
   [ -n "$keep" ] || rm -f /c/RACQuest/pc/out/"$sim"/*.png
   echo "$name done in $((SECONDS - start)) s"
@@ -176,7 +190,7 @@ run menuscroll menuscroll 1 KEEP=1
 run throw throw 1 $G=10,17,20,25 $H=10
 run throw-doom throw 1 $G=20 $H=20
 run glovehold glovehold 1 $G=10 $H=10
-run twohand twohand 1 $G=23 $H=23
+run twohand twohand 1 $G=23 $H=23 'QUEST_VR_OPTIONS=hand_punch 1'
 # A left hand holding an item takes no foregrip (Rerac-vr's): no "holds the foregrip" line.
 run twohandleft twohand 1 $G=23,15 $H=23 $L=15
 run twohand-pyro twohand 1 $G=16 $H=16
@@ -368,6 +382,9 @@ run vendor4 vendor4 1 $G=10,11,12,13,14,15,16,17,18,19,20 $N=11 QUEST_SIM_BOLTS=
 run vendor5 vendor5 1 $N=11 QUEST_SIM_BOLTS=9000 QUEST_POINTER_TRACE=1 'QUEST_SETTINGS={"shop_on_foot":false}'
 # 2026-11-01: on foot, the PDA's, the world menu, the two rings, the boots
 run boots boots 1 $G=28 QUEST_BOOTS_TRACE=1
+# 0.1.18: the boots on bent legs, standing and crouched, and the Grindboots on a grind rail, the legs bent to them
+run bootsbend bootsbend 1 $G=28 QUEST_BOOTS_TRACE=1 KEEP=1
+run railboots railboots 14 $G=29 QUEST_SIM_RAIL=2,0.3,3 QUEST_SIM_ALIGN=2620 QUEST_STATE_TRACE=1 QUEST_BOOTS_TRACE=1 KEEP=1
 run shop shop 1 $G=16,17,18,19 $N=11 QUEST_SIM_BOLTS=9000 QUEST_POINTER_TRACE=1
 run shopcontrol shopcontrol 1 $N=11 QUEST_STATE_TRACE=1
 run shopsweep shopsweep 1 $G=16,17,18,19 $N=11 QUEST_SIM_BOLTS=9000 QUEST_POINTER_TRACE=1
@@ -402,4 +419,126 @@ run worldscale-launcher hands 1 $G=15,16,21 $H=21 'QUEST_VR_OPTIONS=world_scale 
 # 0.1.17: Seated, the head going down does not crouch him; standing it does (crouch.sim's own).
 run crouch crouch 1 QUEST_STATE_TRACE=1
 run crouch-seated crouch 1 QUEST_STATE_TRACE=1 'QUEST_VR_OPTIONS=seated 1'
+# 0.1.18: Ratchet's hand on the gun's grip (the owner's Blaster pictures), still on the Pyrocitor's while walking, and the left
+# hand on its own gun as the right on its own, mirrored (a PCVR tester: "the left hand gun is slightly offset").
+run gungrip gungrip 3 $G=15,16 $H=15 KEEP=1
+run gungrip-pyro gungrip 3 $G=15,16 $H=16 QUEST_GRIP_TRACE=1 KEEP=1
+run gungrip-akimbo gungrip 1 $G=15 $H=15 $L=15 KEEP=1
+run akimbohands akimbohands 1 $G=15 $H=15 $L=15 KEEP=1
+# 0.1.18: the left Suck Cannon fills and fires (QUEST_AKIMBO_TRACE: "1 held", then "0 held").
+run akimbosuck akimbosuck 1 $G=15,9 $H=15 $L=9 $N=577 $A=5,0 QUEST_AKIMBO_TRACE=1 KEEP=1
+# 0.1.18: Akimbo while running at the place of the owner's Gaspar crash: no crash.
+run akimborun akimborun 9 $G=15,11 $H=15 $L=11 QUEST_SIM_AT=218.2,308.9,26.03,98
+# 0.1.18: a tester's two crashes on Aridia with Akimbo (0.1.17, Quest 3S): the left Swingshot's lead pressed again and again
+# with nothing to swing from, and a hand item the game made while the left hand led. No crash, the right item back each time.
+run akimbo-leadspam akimboleadspam 2 $G=12 $H=12 $L=12
+run akimbo-leadswitch akimboleadswitch 2 $G=15,12,16 $H=15 $L=12 QUEST_TEST_LEAD_SWITCH=16
+# 0.1.18: the vendor's trigger is the shop's alone; the vendor looked round; Pokitaru's sky whole all the way round.
+run shoptrig shoptrig 3 $G=10,16 $H=10 $N=11 QUEST_SIM_BOLTS=9000 QUEST_POINTER_TRACE=1
+run shoplook shoplook 3 $G=10,16 $H=10 $N=11 QUEST_SIM_BOLTS=9000 KEEP=1
+run resortsky resortsky 11 KEEP=1
+# 0.1.18: the menus a frame at a time as they close and change pages: no dark frame of the game's backdrop.
+run menuclose menuclose 3 QUEST_VIEW_TRACE=1 KEEP=1
+run menuswitch menuswitch 3 QUEST_VIEW_TRACE=1 KEEP=1
+# 0.1.18: the ship from Novalis to Kerwan: the flight between them in the eyes, and the glide out of his eyes into play.
+run takeoff takeoff 1 QUEST_VIEW_TRACE=1 QUEST_SHIP_TRACE=1 QUEST_SCENE_EYE_TRACE=1 QUEST_SIM_MENU=14 QUEST_SIM_PLANETS=1,3,5,7 KEEP=1
+# 0.1.18: X in a scene goes between his eyes and in VR only, never to the screen.
+run sceneview sceneview 1
+# 0.1.18: the weapon wheel opened during a Swingshot pull keeps the pull (a tester: "using the weapon selector cancels the hookshot").
+run swingwheel swingwheel 3 $G=12 $H=12 $N=758 $A=10,1,180 QUEST_STATE_TRACE=1
+# 0.1.18: Punch with your hands (Moves, off to start: the owner's call): turned on, the left hand free, the right with
+# the Blaster; and as it starts, off.
+PUNCH='QUEST_VR_OPTIONS=hand_punch 1'
+run handpunch handpunch 1 $G=15 $H=15 $N=500 $A=1.2,0 "$PUNCH"
+run handpunch-off handpunch 1 $G=15 $H=15 $N=500 $A=1.2,0
+# 0.1.18: Swingshot grabs enemies and its Grab moves (Moves, each off to start: the owner's call). GRAB turns them all
+# on; a row named after it is that one off.
+GRAB='swing_grab 1;grab_fling 1;grab_stun 1;grab_launch 1;grab_slam 1;grab_zip 1;grab_hazards 1'
+# A Novalis critter caught, yanked in and thrown; and as it starts, nothing caught.
+run swinggrab swinggrab 1 $G=12 $H=12 $N=577 $A=6,0,180 "QUEST_VR_OPTIONS=$GRAB" KEEP=1
+run swinggrab-off swinggrab 1 $G=12 $H=12 $N=577 $A=6,0,180
+# Grab moves, each on, and each off. From the critter's far side and early, as swinggrab:
+# from OpenRAC 91b67c67 the critters are on him by about 2790 some runs, and hurt, he cannot fire (grabfling's pull at
+# 2900 from the near side caught one in one run and nothing in the next; grabslam's throw up met another of them).
+run grabfling grabfling 1 $G=12 $H=12 $N=577 $A=12,0,180 "QUEST_VR_OPTIONS=$GRAB"
+run grabfling-off grabfling 1 $G=12 $H=12 $N=577 $A=12,0,180 "QUEST_VR_OPTIONS=$GRAB;grab_fling 0"
+run grabyank grabyank 1 $G=12 $H=12 $N=577 $A=12,0,180 "QUEST_VR_OPTIONS=$GRAB"
+run grabyank-off grabyank 1 $G=12 $H=12 $N=577 $A=12,0,180 "QUEST_VR_OPTIONS=$GRAB;grab_fling 0"
+run grabstun grabstun 1 $G=12 $H=12 $N=577 $A=6,0 "QUEST_VR_OPTIONS=$GRAB"
+run grabstun-off grabstun 1 $G=12 $H=12 $N=577 $A=6,0 "QUEST_VR_OPTIONS=$GRAB;grab_stun 0"
+# The wrench's hit on the stunned one, on Eudora's Blarg trooper, which stands alone: on Novalis the critter beside the
+# stunned one takes the sweep in most runs.
+run grabstun-trooper grabstuntrooper 4 $G=12 $H=12 $N=427 $A=6,0 "QUEST_VR_OPTIONS=$GRAB"
+run grabslam grabslam 1 $G=12 $H=12 $N=577 $A=6,0,180 "QUEST_VR_OPTIONS=$GRAB"
+run grabslam-off grabslam 1 $G=12 $H=12 $N=577 $A=6,0,180 "QUEST_VR_OPTIONS=$GRAB;grab_launch 0;grab_slam 0"
+# The same on Eudora's Blarg trooper, which stands alone: on Novalis the critter thrown up can meet the one beside it.
+run grabslam-trooper grabslamtrooper 4 $G=12 $H=12 $N=427 $A=6,0 "QUEST_VR_OPTIONS=$GRAB"
+run grabslam-trooper-off grabslamtrooper 4 $G=12 $H=12 $N=427 $A=6,0 "QUEST_VR_OPTIONS=$GRAB;grab_launch 0;grab_slam 0"
+run grabzip grabzip 4 $G=12 $H=12 $N=427 $A=6,0 "QUEST_VR_OPTIONS=$GRAB"
+run grabzip-off grabzip 4 $G=12 $H=12 $N=427 $A=6,0 "QUEST_VR_OPTIONS=$GRAB;grab_zip 0"
+# Swingshot grabs enemies on alone, as a player who turns only that row on finds it: a catch and a plain throw, no
+# Grab move (grabfling's flick while it comes in does nothing).
+run grabplain grabfling 1 $G=12 $H=12 $N=577 $A=12,0,180 'QUEST_VR_OPTIONS=swing_grab 1'
+# 0.1.18: VR in a multiplayer party (the owner: "vr swinging and shooting should work also with flat players"). The
+# Multiplayer mod on (QUEST_MODS; it goes online only from its menu, so no party): the wrench's and the fist's hits go
+# through openrac_api.moby_hit_as_game and still land; the Blaster in each hand still fires. QUEST_PARTY_ROLE=2 (a
+# member of a flat host, PC tests only): "[vr-party] ... member", the Swingshot catches nothing, no wheel slow motion,
+# and the hits still land.
+MP='QUEST_MODS=, {"id": "multiplayer", "enabled": true, "settings": {}}'
+run wrench-mp wrench 1 $G=10 $N=511 "$MP"
+run handpunch-mp handpunch 1 $G=15 $H=15 $N=500 $A=1.2,0 "$MP" "$PUNCH"
+run akimbo-mp akimbo 1 $G=15,16 $H=16 $L=15 "$MP"
+run handpunch-member handpunch 1 $G=15 $H=15 $N=500 $A=1.2,0 "$MP" "$PUNCH" QUEST_PARTY_ROLE=2
+run swinggrab-member swinggrab 1 $G=12 $H=12 $N=577 $A=6,0,180 "QUEST_VR_OPTIONS=$GRAB" QUEST_PARTY_ROLE=2
+run wheel-member wheelpoint 1 $G=10,15,16,11,13,9,18,19 QUEST_PARTY_ROLE=2
+# 0.1.18: with the Multiplayer mod on, it loads beside the VR mod (the fork's caps: 32 pages, 3 pause items; it was
+# refused at 16 pages), and the pause menu's Options page has VR Options, VR Hands and Multiplayer, the way to VR Options
+# as options.sim goes.
+run options-mp options 1 "$MP" KEEP=1
+# 0.1.18: Turning bolts, Trigger or hand (Moves, the default): the trigger held turns it, Ratchet still; the hand round it.
+run cranktrigger cranktrigger 1 $N=280 $A=1.2,0
+run cranktrigger-walk cranktrigger 1 $N=280 $A=1.2,0 'QUEST_VR_OPTIONS=bolt_walk 1'
+run crankhand crankhand 1 $N=280 $A=1.2,0
+# 0.1.18: what is worn on a hand meets the forearm: the four throwing gloves, the Walloper, the Swingshot's housing.
+run glovefit-a glovefit 1 $G=10,17 $H=10 $L=17 KEEP=1
+run glovefit-b glovefit 1 $G=20,25 $H=20 $L=25 KEEP=1
+run glovefit-c glovefit 1 $G=18,12 $H=18 $L=12 KEEP=1
+# 0.1.18: a two-handed gun walked with: the front hand keeps its place and turn on it (the Pyrocitor, the Devastator).
+run holdwalk holdwalk 1 $G=16 $H=16 QUEST_SWING_TRACE=1 KEEP=1
+run holdwalk23 holdwalk 1 $G=23 $H=23 QUEST_SWING_TRACE=1
+# 0.1.18: Batalia's magnet ramp and wall (a PCVR tester's "magnet boots don't work"), walked, steered and stopped.
+run magnet magnet 8 $G=28 QUEST_SIM_AT=279.0,274.6,37.2,-163 QUEST_STATE_TRACE=1
+run magnetturn magnetturn 8 $G=28 QUEST_SIM_AT=279.0,274.6,37.2,-163 QUEST_STATE_TRACE=1 QUEST_WALK_TRACE=1
+run magnetsteer magnetsteer 8 $G=28 QUEST_SIM_AT=279.0,274.6,37.2,-163 QUEST_STATE_TRACE=1 QUEST_WALK_TRACE=1
+run magnetstop magnetstop 8 $G=28 QUEST_SIM_AT=279.0,274.6,37.2,-163 QUEST_STATE_TRACE=1 QUEST_WALK_TRACE=1
+run magnetstop-flat magnetstopflat 8 $G=28 QUEST_SIM_AT=279.0,274.6,37.2,-163 QUEST_STATE_TRACE=1 QUEST_WALK_TRACE=1 'QUEST_SETTINGS={"view": "screen"}'
+# 0.1.18: off the boots' surface the stick, throws and steps go where the view looks (a PCVR tester's 0.1.17: walking
+# directions broken after falling off the walk area): [vr-boots] off the surface, the turn the rig took.
+run magnetoff magnetoff 8 $G=28 QUEST_SIM_AT=279.0,274.6,37.2,-163 QUEST_STATE_TRACE=1 QUEST_WALK_TRACE=1
+# What the tester saw: the turn left as 0.1.17 left it (a PC test switch), the walk trace's "view" off its "aim".
+run magnetoff-before magnetoff 8 $G=28 QUEST_SIM_AT=279.0,274.6,37.2,-163 QUEST_STATE_TRACE=1 QUEST_WALK_TRACE=1 QUEST_TEST_NO_BOOTS_FOLD=1
+# 0.1.18: the stick turned in the boots' surface's own plane (stick_camera_yaw): Batalia's wall stood on still while the
+# game's camera settles, then climbed on; and the PCVR tester's own Orxon wall walked end to end in first person.
+run magnetwait magnetwait 8 $G=28 QUEST_SIM_AT=279.0,274.6,37.2,-163 QUEST_STATE_TRACE=1 QUEST_WALK_TRACE=1
+run magnetorxon magnetorxon 10 QUEST_SIM_OWN=6 $G=28 QUEST_SIM_AT=270.7,323.0,33.6,78 QUEST_STATE_TRACE=1 QUEST_WALK_TRACE=1 QUEST_TIMEOUT=300 KEEP=1
+# 0.1.18: scenery ahead of a flown ship on Pokitaru (a PCVR tester's building that popped in), and without the level's
+# own visibility data to compare.
+run shipfly shipfly 11 $G=7 $N=1242 $A=2,0 QUEST_STATE_TRACE=1 KEEP=1
+run shipfly-nopvs shipfly 11 $G=7 $N=1242 $A=2,0 OPENRAC_PVS_OFF=1 KEEP=1
+# 0.1.18: RAC-Board in the headset (bundled, off): got out by reaching behind the back, ridden, flipped, put away.
+run racboard racboard 1 QUEST_RACBOARD=1 QUEST_JET_TRACE=1 QUEST_STATE_TRACE=1 'QUEST_RACBOARD_SETTINGS={"trace": true}'
+# 0.1.18: the wrench thrown where the controller pointed as the hand opened, 15 degrees up, and along the swing.
+run wrenchthrow-angle wrenchthrow 1 $G=15 $H=15 'QUEST_VR_OPTIONS=wrench_angle 15'
+run wrenchthrow-swing wrenchthrow 1 $G=15 $H=15 'QUEST_VR_OPTIONS=wrench_aim 1'
+# 0.1.18: Orxon's electric barrier (a PCVR tester on the US disc: undrawn, it killed them twice), faced from 12 units:
+# its six "class 1067" rows, no "port:" line, and its strands in the "ahead" eyes.
+run orxonwall orxonwall 10 QUEST_SIM_OWN=6 QUEST_SIM_AT=224.0,289.0,35.2,-132 QUEST_ROWS_TRACE=1067 KEEP=1
+# 0.1.18: the same barrier with the head turned 70 degrees from his heading (the game's camera keeps it): its strands in
+# "turned70" too (before the eye's view counted in the game's updates, only the post's glow; [vr-drawn] head -2.27, camera -1.03).
+run orxonwallturn orxonwallturn 10 QUEST_SIM_OWN=6 QUEST_SIM_AT=224.0,289.0,35.2,-62 QUEST_STATE_TRACE=1 QUEST_DRAWN_TRACE=1 KEEP=1
+# 0.1.18: the Mine Glove's mines thrown several ways (a tester's "one of my mines became an oval"): no "UNEVEN" row.
+run mines mines 1 $G=17 $H=17 QUEST_ROWS_TRACE=74
+# The same thrown by the left hand (Akimbo: a second glove the game does not know of), and one lobbed by Eudora's trooper.
+run minesleft minesleft 1 $G=15,17 $H=15 QUEST_SIM_LEFT=17 QUEST_ROWS_TRACE=74
+run mineseek mineseek 4 $G=17 $H=17 $N=427 $A=6,0 QUEST_ROWS_TRACE=74
 echo regress-done

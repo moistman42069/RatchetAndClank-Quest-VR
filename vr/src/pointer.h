@@ -288,4 +288,75 @@ inline int icon_at(int width, int count, int first_y, int step, float x, float y
     return -1;
 }
 
+// ---- The weapon wheel at the hand (0.1.18, the owner's ask: with Akimbo the rings sat at the HUD's edges, which
+// could be out of view) ----
+
+// Where `point` is seen from `eye` on the panel at `panel` (`width` by `height`, facing its +Z): `u` from its left
+// edge, `v` from its top, 0..1 across it and past its edges as far as it is. False when the point is not ahead of the
+// eye, as the panel faces.
+inline bool panel_point_seen(const Pose& panel, float width, float height, Vec3 eye, Vec3 point, float& u, float& v) {
+    const Quat back = conjugate(panel.orientation);
+    const Vec3 origin = rotate(back, eye - panel.position);
+    const Vec3 along = rotate(back, point - eye);
+    if (along.z > -1e-3f || origin.z <= 0.0f) {
+        return false;
+    }
+    const float t = -origin.z / along.z;
+    u = (origin.x + along.x * t) / width + 0.5f;
+    v = 0.5f - (origin.y + along.y * t) / height;
+    return std::isfinite(u) && std::isfinite(v);
+}
+
+// A ring on the canvas: the canvas's size, the ring's box (`ring_w` by `ring_h`) and its icons' middle in it (`mid_x`,
+// `mid_y` from its corner), the least gap to the canvas's edges, and the canvas point straight ahead of the eyes
+// (`look_x`, `look_y`) with how far from it the ring's middle stays, so that it is in clear view. All canvas pixels.
+struct WheelFit {
+    float canvas_w = 512.0f, canvas_h = 416.0f;
+    float ring_w = 192.0f, ring_h = 192.0f;
+    float mid_x = 96.0f, mid_y = 96.0f;
+    float edge = 8.0f;
+    float look_x = 256.0f, look_y = 208.0f;
+    float reach_x = 1e9f, reach_y = 1e9f;
+};
+
+// The middle of the ring's icons for a hand seen at (`u`, `v`) of the canvas: there, no further from straight ahead
+// than the reach, and the whole box inside the canvas by the gap (in its middle if it cannot be).
+inline void wheel_middle_at(const WheelFit& fit, float u, float v, float& x, float& y) {
+    x = std::clamp(u * fit.canvas_w, fit.look_x - fit.reach_x, fit.look_x + fit.reach_x);
+    y = std::clamp(v * fit.canvas_h, fit.look_y - fit.reach_y, fit.look_y + fit.reach_y);
+    const auto inside = [](float at, float canvas, float box, float middle, float edge) {
+        const float least = edge + middle, most = canvas - edge - box + middle;
+        return least <= most ? std::clamp(at, least, most) : (least + most) * 0.5f;
+    };
+    x = inside(x, fit.canvas_w, fit.ring_w, fit.mid_x, fit.edge);
+    y = inside(y, fit.canvas_h, fit.ring_h, fit.mid_y, fit.edge);
+}
+
+// A ring opened while the other hand's is up (its middle at `other_x`, `other_y`): moved off it to its own hand's side
+// (`left`), `gap` between them, or above or below it if the canvas has no room that side; as it was if neither fits.
+inline void wheel_beside(const WheelFit& fit, bool left, float other_x, float other_y, float gap, float& x, float& y) {
+    const auto apart = [&](float ax, float ay) {
+        return std::abs(ax - other_x) >= fit.ring_w + gap - 0.5f || std::abs(ay - other_y) >= fit.ring_h + gap - 0.5f;
+    };
+    if (apart(x, y)) {
+        return;
+    }
+    float sx = 0, sy = 0;
+    wheel_middle_at(fit, ((other_x + (left ? -1.0f : 1.0f) * (fit.ring_w + gap)) / fit.canvas_w), y / fit.canvas_h, sx, sy);
+    if (apart(sx, sy)) {
+        x = sx;
+        y = sy;
+        return;
+    }
+    const float down = y >= other_y ? 1.0f : -1.0f;
+    for (const float way : {down, -down}) {
+        wheel_middle_at(fit, x / fit.canvas_w, (other_y + way * (fit.ring_h + gap)) / fit.canvas_h, sx, sy);
+        if (apart(sx, sy)) {
+            x = sx;
+            y = sy;
+            return;
+        }
+    }
+}
+
 }  // namespace quest

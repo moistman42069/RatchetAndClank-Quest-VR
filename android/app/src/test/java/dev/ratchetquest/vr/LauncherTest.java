@@ -31,6 +31,7 @@ import org.robolectric.annotation.GraphicsMode;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
@@ -445,19 +446,173 @@ public class LauncherTest {
         assertEquals("", defaults.get("seed"));
         assertTrue("a mod that changes the game's rules is off until the player turns it on", !mods.on(mod));
 
-        // A preset sets what it names and puts the others back.
+        // As OpenRAC's launcher (settings.md): a preset sets what the presets cover (each setting one names, and every
+        // keybind); the others keep the player's values. The button lit is the one whose values the settings have.
+        assertEquals(BundledMods.DEFAULT, mods.lit(mod));
         mods.set(mod, mod.settings.get(1), "a");
         mods.apply(mod, mod.presets.get(0));
         JSONObject hard = mods.settings(mod);
         assertEquals(4, hard.get("count"));
         assertEquals(2.0, hard.getDouble("scale"), 0.0);
-        assertEquals("b", hard.get("mode"));
+        assertEquals("a", hard.get("mode"));
+        assertEquals(BundledMods.presetValue(0), mods.lit(mod));
+        mods.set(mod, count, "3");
+        assertEquals("", mods.lit(mod));
+        mods.apply(mod, null);
+        assertEquals(2, mods.settings(mod).get("count"));
+        assertEquals(1.0, mods.settings(mod).getDouble("scale"), 0.0);
+        assertEquals("a", mods.settings(mod).get("mode"));
+        assertEquals(BundledMods.DEFAULT, mods.lit(mod));
 
         // A stored value the manifest no longer offers, or too long, is not written.
         mods.set(mod, count, "9");
         mods.set(mod, mod.settings.get(4), "abcdefghij");
         assertEquals(2, mods.settings(mod).get("count"));
         assertEquals("abcdefgh", mods.settings(mod).get("seed"));
+    }
+
+    @Test
+    public void aModsKeybindsPresetsAndOtherGamesSettingsAreAsOpenRacsLauncherHasThem() throws Exception {
+        // RAC-Board's kind of manifest: keybinds, a setting only Going Commando shows, and a preset that is the default.
+        BundledMods.Mod mod = BundledMods.parse("{\"format\": 2, \"id\": \"board\", \"name\": \"Board\", \"settings\": ["
+            + " {\"key\": \"toggle\", \"name\": \"Toggle\", \"type\": \"keybind\", \"default\": \"KeyB\"},"
+            + " {\"key\": \"gc\", \"name\": \"Only in GC\", \"type\": \"bool\", \"default\": true, \"games\": [\"rac2\"]},"
+            + " {\"key\": \"speed\", \"name\": \"Speed\", \"type\": \"int\", \"default\": 1, \"min\": 0, \"max\": 2},"
+            + " {\"key\": \"trace\", \"name\": \"Trace\", \"type\": \"bool\", \"default\": false}],"
+            + " \"presets\": [{\"id\": \"default\", \"name\": \"Normal\", \"values\": {\"speed\": 1}},"
+            + "  {\"id\": \"fast\", \"name\": \"Fast\", \"values\": {\"speed\": 2, \"toggle\": \"KeyF\"}}]}");
+        assertEquals("the Going Commando one is left to the mod's default", 3, mod.settings.size());
+        assertEquals("keybind", mod.settings.get(0).type);
+        assertTrue(BundledMods.ownDefault(mod));
+
+        app.getSharedPreferences("mods", Context.MODE_PRIVATE).edit().clear().commit();
+        BundledMods mods = new BundledMods(app);
+        assertEquals(BundledMods.presetValue(0), mods.lit(mod));
+        mods.set(mod, mod.settings.get(2), "true");  // Trace: no preset names it
+        mods.apply(mod, mod.presets.get(1));
+        JSONObject fast = mods.settings(mod);
+        assertEquals("KeyF", fast.get("toggle"));
+        assertEquals(2, fast.get("speed"));
+        assertEquals(true, fast.get("trace"));
+        assertEquals(BundledMods.presetValue(1), mods.lit(mod));
+        mods.apply(mod, mod.presets.get(0));
+        assertEquals("a keybind the preset leaves out goes back to its default", "KeyB", mods.settings(mod).get("toggle"));
+        assertEquals(true, mods.settings(mod).get("trace"));
+        assertEquals(BundledMods.presetValue(0), mods.lit(mod));
+
+        StringBuilder many = new StringBuilder();
+        for (int i = 0; i < 20; i++) {
+            many.append("KeyA,");
+        }
+        mods.set(mod, mod.settings.get(0), many.toString());
+        assertEquals(64, mods.settings(mod).getString("toggle").length());
+    }
+
+    /** OpenRAC's own index fixture and the minisign test key it is signed with (launcher/core/src/index.rs tests). */
+    private static final String INDEX_FIXTURES = "../../third_party/OpenRAC/launcher/core/tests/fixtures";
+    private static final String INDEX_TEST_KEY = "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXkgMzk2RkM2MzFGRDkyM0NGMgpSV1R"
+        + "5UEpMOU1jWnZPUU8zNE1OTytWWmdjN3hwMjRXOFBKRUpSSkNvVGlwMlIxU1pYV0FIVGpsSAo=";
+
+    private static String hex(byte[] bytes) {
+        StringBuilder out = new StringBuilder();
+        for (byte b : bytes) {
+            out.append(String.format("%02x", b & 0xff));
+        }
+        return out.toString();
+    }
+
+    private static byte[] unhex(String text) {
+        byte[] out = new byte[text.length() / 2];
+        for (int i = 0; i < out.length; i++) {
+            out[i] = (byte) Integer.parseInt(text.substring(2 * i, 2 * i + 2), 16);
+        }
+        return out;
+    }
+
+    @Test
+    public void openRacsModListIsCheckedAndReadAsItsLauncherDoes() throws Exception {
+        assertEquals("786a02f742015903c6c6fd852552d272912f4740e15847618a86e217f71f5419d25e1031afee585313896444934eb04b9"
+            + "03a685b1448b755d56f701afe9be2ce", hex(ModIndex.Blake2b.digest512(new byte[0])));
+        assertEquals("ba80a53f981c4d0d6a2797b69f12f6e94c212f14685ac4b74b12bb6fdbffa2d17d87c5392aab792dc252d5de4533cc95"
+            + "18d38aa8dbf1925ab92386edd4009923", hex(ModIndex.Blake2b.digest512("abc".getBytes(StandardCharsets.US_ASCII))));
+        // RFC 8032 7.1, test 1.
+        byte[] key = unhex("d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a");
+        byte[] signed = unhex("e5564300c360ac729086e2cc806e828a84877f1eb8e5d974d873e065224901555fb8821590a33bacc61e39701cf9b46"
+            + "bd25bf5f0595bbe24655141438e7a100b");
+        assertTrue(ModIndex.Ed25519.verify(key, new byte[0], signed));
+        signed[5] ^= 1;
+        assertTrue(!ModIndex.Ed25519.verify(key, new byte[0], signed));
+
+        byte[] body = Files.readAllBytes(new File(INDEX_FIXTURES, "index.json").toPath());
+        String signature = new String(Files.readAllBytes(new File(INDEX_FIXTURES, "index.json.minisig").toPath()),
+            StandardCharsets.UTF_8);
+        assertTrue("the fixture checks with its key", ModIndex.Minisign.verify(body, signature, INDEX_TEST_KEY));
+        assertTrue("not with OpenRAC's own", !ModIndex.Minisign.verify(body, signature, ModIndex.PUBLIC_KEY));
+        byte[] changed = body.clone();
+        changed[20] ^= 1;
+        assertTrue("a changed list is refused", !ModIndex.Minisign.verify(changed, signature, INDEX_TEST_KEY));
+        assertTrue("a changed trusted comment is refused",
+            !ModIndex.Minisign.verify(body, signature.replace("file:index.json", "file:other.json"), INDEX_TEST_KEY));
+        assertTrue(ModIndex.Minisign.publicKey(ModIndex.PUBLIC_KEY) != null);
+
+        ModIndex index = ModIndex.read(body, signature, INDEX_TEST_KEY, 0, "android-arm64", 1, 14, BundledMods::jsonMap, false, "");
+        assertTrue("the fixture's expiry has passed", index.stale);
+        ModIndex.Offer ammo = index.get("ammo-max");
+        assertTrue("ammo-max offers 1.0.1, not the 1.0.0 taken back",
+            ammo != null && "1.0.1".equals(ammo.version) && ammo.url.endsWith("/ammo-max-1.0.1.zip"));
+        assertTrue(index.revoked("ammo-max", "1.0.0") != null);
+        boolean refused = false;
+        try {
+            ModIndex.read(body, signature, INDEX_TEST_KEY, index.serial + 1, "android-arm64", 1, 14, BundledMods::jsonMap, false, "");
+        } catch (IOException e) {
+            refused = true;
+        }
+        assertTrue("a list older than one seen is refused", refused);
+        int left = 0;
+        for (ModIndex.Offer offer : ModIndex.read(body, signature, INDEX_TEST_KEY, 0, "android-arm64", 1, 9, BundledMods::jsonMap,
+                                                 false, "").offers) {
+            left += offer.why != null ? 1 : 0;
+        }
+        assertTrue("an older mod interface leaves some out, saying why", left > 0);
+    }
+
+    @Test
+    public void theMultiplayerNameIsAsOpenRacsLauncherKeepsIt() throws Exception {
+        // OpenRAC's random_name_from: the same seed, the same name, always a valid one.
+        assertEquals("BraveLombax00", PlayerName.fromSeed(0));
+        for (long seed : new long[] {1, 42, 123456789L, -1, Long.MIN_VALUE, Long.MAX_VALUE}) {
+            assertTrue(PlayerName.fromSeed(seed), PlayerName.valid(PlayerName.fromSeed(seed)));
+        }
+        assertFalse(PlayerName.valid("no spaces"));
+        assertFalse(PlayerName.valid("ab"));
+        assertFalse(PlayerName.valid("x2345678901234567"));
+        assertTrue(PlayerName.valid("Brave_Lombax_42"));
+
+        app.getSharedPreferences("mods", Context.MODE_PRIVATE).edit().clear().commit();
+        BundledMods mods = new BundledMods(app);
+        String made = mods.playerName();
+        assertTrue(PlayerName.valid(made));
+        assertEquals("a made-up name is kept", made, mods.playerName());
+        assertTrue(PlayerName.validKey(mods.playerKey()));
+        assertEquals("the key never changes", mods.playerKey(), mods.playerKey());
+        assertTrue(mods.setPlayerName("no spaces") != null);
+        assertEquals(made, mods.playerName());
+        assertNull(mods.setPlayerName("Brave_Lombax42"));
+
+        // A string setting whose default is ${player_name} shows the name, and the game gets the placeholder until
+        // the player sets a value of their own (docs/port/MODS.md).
+        BundledMods.Mod mod = BundledMods.parse("{\"format\": 2, \"id\": \"online\", \"name\": \"Online\", \"settings\": ["
+            + " {\"key\": \"name\", \"name\": \"Name\", \"type\": \"string\", \"default\": \"${player_name}\", \"max_length\": 16}]}");
+        BundledMods.Setting name = mod.settings.get(0);
+        assertEquals("Brave_Lombax42", mods.shown(mod, name));
+        assertEquals("${player_name}", mods.settings(mod).get("name"));
+        mods.set(mod, name, "Brave_Lombax42");
+        assertEquals("typed back as shown, it stays the placeholder", "${player_name}", mods.settings(mod).get("name"));
+        assertNull(mods.setPlayerName("Other_One"));
+        assertEquals("Other_One", mods.shown(mod, name));
+        mods.set(mod, name, "Mine");
+        assertEquals("Mine", mods.settings(mod).get("name"));
+        assertEquals("Mine", mods.shown(mod, name));
     }
 
     private static byte[] zip(String... namesAndTexts) throws Exception {

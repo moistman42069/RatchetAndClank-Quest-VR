@@ -34,7 +34,8 @@ it worked (the log is in Download/RatchetQuestVR). PC-proven features are in STA
 - **Odd views in scenes seen through his eyes.** Your eyes follow the scene's own Ratchet even in shots where the game's
   camera looks elsewhere, so a moment can be seen from under the ground or the wrong place (on PC, a Novalis scene
   started out of its place in the story). Note the planet and the scene with your log. Press X: the scene goes on In VR,
-  from the game's own camera, X again On a screen, X again back through his eyes (`[vr-scene] X in a scene: cutscenes
+  from the game's own camera, X again back through his eyes, and never On a screen (0.1.18; only VR Options'
+  Cutscenes row puts scenes on a screen, and X from there goes through his eyes) (`[vr-scene] X in a scene: cutscenes
   ... now`). When the scene ends you should play in your View as before, first person by default, and X should open the
   map again. VR Options' Cutscenes row (after View) shows what X left, and sets it too.
 - **A tester's list (0.1.10).** Each item a tester reported on 0.1.7 to 0.1.9:
@@ -92,7 +93,7 @@ it worked (the log is in Download/RatchetQuestVR). PC-proven features are in STA
     says the path ran, and class 87 as Clank. Static brings the old hands back.
   - **World collision and World vibration:** push a hand, the wrench, a gun and a glove into a wall and the ground: each
     stops there, the buzz grows with the push and fades when rested. Nothing buzzes when nothing is touched (a tester had
-    a stuck rumble). Note the frame rate with World collision and Fingers bend around the world on and off: the cost of
+    a stuck rumble). Note the frame rate with World collision on and off, and Fingers on its first two choices: the cost of
     their line tests has not been measured on a Quest. Each `[vr-perf]` line ends with it, `line tests N a tick, X ms a
     tick` (on PC, pushing two guns into the ground: 6 to 8 a tick, 0.02 to 0.03 ms; none with World collision off).
   - **Physical crouch:** lower your head about 25 cm and he crouches (`[vr-body] physical crouch on`), rise and he stands.
@@ -186,6 +187,35 @@ it worked (the log is in Download/RatchetQuestVR). PC-proven features are in STA
   - **The start of the game:** after the intro movie the copyright lines show on the title's panel, steady as you move
     your head, with no warp. Load a save into a level that starts with a scene: no flash of the save select as it
     begins (`[vr-view] the eyes' last picture is of another place` at most once there).
+- **Testers' and the owner's notes on 0.1.17 (0.1.18).** PC-run with a simulated headset only, on the PAL disc.
+  - **Swingshot grabs enemies (Moves, off to start):** first check that nothing is caught and nothing punched as it starts; then turn it on, and on Novalis, aim the Swingshot at a small enemy away from any target and pull the trigger: the hook flies, catches it and yanks it in to hang before your hand (`[vr-grab] the hook out to slot N`, `caught: yanked in`). Move your hand about: it follows smoothly. Swing and let go: it flies that way and lands hurt (`thrown at X m/s`, `it landed: half the wrench's blow to it`); let go gently: it drops unhurt. Throw one into another enemy. Say how it feels, whether the hold looks steady, and anything that goes wrong with an enemy you caught (stuck, lost, still attacking). Off: the Swingshot is the game's.
+  - **Punch with your hands (Moves, off to start):** turned on, with the left hand empty, jab an enemy, open hand and fist: a hit for half a wrench blow (`[vr-fist] Ratchet's left punch at X m/s`). The same with the right hand holding the Blaster. Walking with your hands moving, reaching for a ledge, holding a gun two-handed: no punch. Say whether it ever misses a real jab or fires on its own.
+  - **The wrench throw (Moves: Wrench throw aim, Wrench throw angle):** throw it at a target ahead, as you would: it should go where the controller pointed as your hand opened (`[vr-wrench] thrown at X m/s where the controller pointed as the hand opened`), not low into the ground. Try Wrench throw angle 10 and 15 up, and Along your swing. Say which suits you.
+  - **The weapon wheel:** hang from a Swingshot target (or be pulled in), open the wheel and pick a weapon: you keep hanging until you let go of the trigger. Point past the weapons: the dot stays at the wheel's edge. Pass each weapon: a click in the hand, firmer than 0.1.17's.
+  - **Hands on guns:** hold the Blaster and look at Ratchet's hand from the side: his palm on the grip, where your hand is, the gun where it was. The Pyrocitor held with both hands, walking: the front hand stays on the gun. With Akimbo, the left gun held the same, mirrored. The gloves: a straight wrist. VR Hands, Hand on guns: try 5 cm back and forward and say what suits you.
+  - **Fingers (VR Hands, three choices):** Tracked, bend around the world (as before), Tracked (no bending around things), Static. The old Fingers bend around the world row is gone.
+  - **Everything meets the world:** with World collision on, push the wrench's head into a wall and the ground: it stops there, and a hard hit clanks and sparks (`[vr-wrench] the wall`). The Walloper too. The Hydrodisplacer and Trespasser stop at walls but still go into their slot. A bolt crank still turns.
+  - **The ship (first person):** fly from Novalis to another planet and land: into the take-off scene and out of the landing into play, the view glides to and from his eyes (`[vr-scene] into his eyes from play: ... glided` and `out of his eyes into play: the heading kept`) and keeps the way you face. The flight between planets fills the view, not a window. Say how it compares with Rerac-vr on PC, if you have played it.
+  - **X in a scene:** X goes between through his eyes and In VR, never to the screen.
+  - **AppSW stutter:** with Smoother frames on at 72 and 90 Hz, walk and turn and watch the world: it should move evenly. The log says `[openxr] frame timing: the scene blended for the headset's display times`. Send a log and OVR Metrics numbers if it still stutters.
+  - **CPU and GPU boost (Graphics, on):** the log says what the Quest gave (`[openxr] performance levels: CPU and GPU boost (CPU taken, GPU taken)`). Note the frame rate with it on and off.
+  - **"Hey Meta":** say "Hey Meta", then close the assistant: the game's sound should come back without a restart. Untried on a Quest.
+  - **Grab moves (Moves, Grab moves, each off to start: turn each on):** catch a small enemy, then in turn: flick while it comes in (flung from there); let go gently (stunned, `[vr-grab] dropped: stunned for 1.5 s`); let go swinging up (straight up; hook it again at the top and it hangs on the line); let go swinging down or yank down while it hangs (`[vr-grab] slammed`); jump while it hangs on the line (pulled to it; not on Novalis). Throw one into a pit or lava: it should be finished (`[vr-grab] finished`). Pits and lava have no PC test.
+  - **Turning bolts (Moves, Trigger or hand):** wrench on a bolt crank, hold the trigger: it turns by itself as you stand still (`[vr-crank] turned X%`); let go and turn it round with your hand. Walk around brings back the old way.
+  - **Two hands steady:** hold the Pyrocitor (and the other two-handed guns) with both hands and walk: neither hand should turn or slide on the gun with his steps.
+  - **What he wears:** the gloves, the Walloper and the Swingshot on his forearm with no gap at a few Empty hand angles; the Grindboots and Magneboots with your knees bent (crouch for real), and on a grind rail: the boot's cuff on his shin, his legs down to the boots.
+  - **The weapon wheel at the hand:** with Akimbo, open the left wheel with the hand low and to the side: it opens there, in view, and stays while open (`[vr-ring] the left ring opens at its hand`). The same on the right.
+  - **RAC-Board (Game tab, on):** reach behind your back with either hand (a buzz), click its stick: on the board (`[vr-jetboard] riding RAC-Board's board`); the left stick ahead keeps the board's heading; A jumps, the right trigger with the stick back flips, and the view goes with it and comes back level; reach back and click again: off. No weapon wheel opens on those clicks.
+  - **Multiplayer (Game tab, on):** host a party with a flat player, and join one: your wrench, punches and both hands' guns hurt enemies for both of you; as a member the Swingshot catches no enemy and the wheel does not slow time (`[vr-party]`). The Multiplayer item should be in the title's menu. Untried with two real players.
+  - **Mods:** Browse OpenRAC's mods (Game tab): the list loads, a mod is fetched and added; offline, the last list shows. Mod files opens the Files app on Mod files (Quest) or the folder (PC).
+  - **Aridia:** a Swingshot in each hand, the left leading again and again, then change the right hand's item: no crash.
+  - **Magneboots in first person** (Orxon's first wall, Batalia's ramp): face the wall square on and push the stick ahead: he walks straight up it. Turn your head on the wall: he goes up and that way. Let go halfway up and push again: he stands, then goes on. Follow the strip with your head where it bends; note where, if anywhere, he slips off with your head along the strip (Batalia's top is not walked on PC).
+  - **After the Magneboots** (Orxon's walkways or Batalia's wall): walk a magnet surface, round a corner if there is one, then drop or walk off it. On the ground, look ahead and push the stick ahead: he walks where you look, and a throw goes where you throw it. The log has `[vr-boots] off the surface` with the turn it put right.
+  - **PC: Shortcut (Play page):** make the desktop VR shortcut and start the game from it: it plays in VR with the launcher's choices, no launcher.
+  - **Fixed on PC, to see on a Quest:** the pause menu and the map closing without a dark flash; Pokitaru's sky whole as you look round the resort; at a vendor the trigger buying with no gun or bomb coming out; Feet on the floor with his arms at your hands; on Gaspar, Akimbo while running with no crash; the left Suck Cannon filling and firing.
+  - **Orxon's electric barriers** (the US disc above all): the purple strands drawn between their posts, in the headset and on the 2D screen, before you walk into one; also standing still with your head turned well to the side of the way Ratchet faces, looking at one; no "has no C in the port yet" in the log on Orxon.
+  - **Not seen on PC:** the shop's slab (the owner's report), the pod ride on Drek's station, the HUD flickering on Orxon (PC VR) and a mine squashed into an oval (a tester's picture, a boss's lava arena) could not be made to happen here. If you see one, say where and send the log.
+  - **PC VR on the US disc:** windows and water should look as on the Quest (the enhanced reflections are off in VR). We only have the PAL disc.
 - **PC VR (0.1.14), with a real headset.** Run on SteamVR's null driver only (a headset that is not there, 60 frames
   a second). Each run's log is in Downloads\RatchetQuestVR.
   - **It opens in the headset:** `[openxr] runtime:` names your PC VR software, `[openxr] system:` your headset, and
@@ -349,7 +379,7 @@ it worked (the log is in Download/RatchetQuestVR). PC-proven features are in STA
 | Rilgar, Kalebo III | Land a jump crooked, after a spin | He rides on (`[vr-board] a crooked landing straightened along the board`); a trick left unfinished still throws him |
 | Rilgar, Kalebo III | Ride a second time, or fall and respawn | The view keeps the first ride's posture; after a recentre it takes the new one |
 | Grind rails (Oltanis, Kalebo) | Grind with the Grindboots | Taking a rail and the view on it are PC-proven: say if it is comfortable through curves; a soft hum while riding and a pulse as you land on it |
-| Magneboot floors (Orxon) | Walk up the magnetic surfaces | The view's up follows the surface; a pulse as the boots take hold |
+| Magneboot floors (Orxon) | Walk up the magnetic surfaces | The view's up follows the surface; a pulse as the boots take hold; the stick goes the way you face in the surface's plane (square on to a wall: straight up it) |
 | Where the Metal Detector finds buried bolts | Detect and dig | A pulse at each dig, a beat while it searches |
 | A moving carrier (Kerwan's transports, a hover car, a ferry) | Ride one and walk about the room | Room steps do not push you off it |
 | Gemlik's ship, ship flights | Fly each ship | The cockpit view and the lasers on the trigger (boarding and flying are PC-proven on Pokitaru and the fleet) |

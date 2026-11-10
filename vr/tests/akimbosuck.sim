@@ -1,0 +1,20 @@
+# 0.1.18: the Suck Cannon in the left hand (a PCVR tester's 0.1.17: "the left Suck Cannon can't fill its meter or
+# blow"). The Blaster in the right, the Suck Cannon in the left (QUEST_SIM_LEFT=9), Ratchet put before a Novalis critter
+# (QUEST_SIM_NEAR=577 QUEST_SIM_NEAR_AT=5,0). The left trigger held sucks it in, then two pulls fire it back out. With
+# QUEST_AKIMBO_TRACE=1 expect "[vr-akimbo] the left Suck Cannon (state N): 1 held" while it holds one, then "0 held" after
+# the fire, and the "[vr-akimbo] left Suck Cannon starts / sucks / fires" lines.
+600 y 1
+606 y 0
+2950 shot before
+3000 left_trigger 1
+3100 shot sucking
+3300 shot sucked
+3400 left_trigger 0
+3460 shot loaded
+3500 left_trigger 1
+3506 left_trigger 0
+3540 shot fired
+3600 left_trigger 1
+3606 left_trigger 0
+3700 shot after
+3760 quit 0

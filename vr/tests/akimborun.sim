@@ -1,0 +1,40 @@
+# Akimbo while running (the owner's 0.1.17 crash on Gaspar, level 9: the Devastator in the left hand, fired twice as
+# Ratchet ran, then the game fell). The Blaster in the right, the Devastator in the left (QUEST_SIM_LEFT), at the place of
+# the crash (QUEST_SIM_AT), running ahead and turning with the left trigger pulled again and again. Expect the run to end
+# on its quit with "[vr-akimbo] the left gun fired" lines and no crash report.
+600 y 1
+606 y 0
+3000 left_y 1
+3010 left_trigger 1
+3030 left_trigger 0
+3050 left_trigger 1
+3070 left_trigger 0
+3090 right_x 0.6
+3100 left_trigger 1
+3120 left_trigger 0
+3140 left_trigger 1
+3160 left_trigger 0
+3170 right_x 0
+3180 left_trigger 1
+3200 left_trigger 0
+3220 left_trigger 1
+3240 left_trigger 0
+3250 right_x -0.6
+3260 left_trigger 1
+3280 left_trigger 0
+3300 left_trigger 1
+3320 left_trigger 0
+3330 right_x 0
+3340 left_trigger 1
+3360 left_trigger 0
+3380 left_trigger 1
+3400 left_trigger 0
+3400 left_y 0
+3420 left_y -1
+3440 left_trigger 1
+3460 left_trigger 0
+3480 left_trigger 1
+3500 left_trigger 0
+3520 left_y 0
+3560 shot after
+3600 quit 0

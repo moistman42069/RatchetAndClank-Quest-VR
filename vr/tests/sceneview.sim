@@ -1,6 +1,7 @@
-# X in a cutscene steps how it is seen (0.1.12, the owner's ask): the Novalis arrival scene through his eyes (the
-# launcher's default), X: in VR around you, X: on a screen, X: through his eyes again, X: in VR, and play after the scene
-# in first person all the same (the View row's, which X leaves alone: [vr-state] first_person 1), X then the map's own.
+# X in a cutscene switches how it is seen (0.1.12, the owner's ask; from 0.1.18 between the two in VR only, the owner's
+# ask, never to the screen): the Novalis arrival scene through his eyes (the launcher's default), X: in VR around you,
+# X: through his eyes again, X: in VR, and play after the scene in first person all the same (the View row's, which X
+# leaves alone: [vr-state] first_person 1), X then the map's own. No [vr-scene] line says "on a screen".
 # Then VR Options by the sticks as options.sim goes, down to the ninth row, Cutscenes (In VR, from the last X), stepped
 # back to Through his eyes. The [vr-scene] lines say each step; the run's vr-options.txt keeps scene_view 0 and
 # launcher_scene_view 0.
@@ -12,13 +13,10 @@
 1200 shot invr
 1240 x 1
 1246 x 0
-1400 shot onscreen
+1400 shot eyesagain
 1440 x 1
 1446 x 0
-1600 shot eyesagain
-1640 x 1
-1646 x 0
-1800 shot invr2
+1600 shot invr2
 2800 shot play
 3000 y 1
 3006 y 0

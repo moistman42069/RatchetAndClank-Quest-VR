@@ -1,0 +1,24 @@
+# 0.1.18: Orxon's damage wall (a PCVR tester's 0.1.17 on the US disc: "a damage wall isn't renering propperly. it killed
+# me twice"; their screenshot: two posts with yellow lights, nothing drawn between them). QUEST_SIM_OWN=6
+# QUEST_SIM_AT=234.8,301.2,35.2,35 on --level 10: Ratchet where the tester threw mines at it, facing it, first person;
+# shots ahead and to each side. QUEST_ROWS_TRACE=1067: where the walls' effect mobys are (class 1067, the data processor's
+# linked effect, drawn by render_data_processor_linked_effect: FUN_L10_002da690 on the US disc, which their game's port
+# had no C for and so never drew). Also with QUEST_SETTINGS='{"view": "screen"}', the game's own picture.
+# 0.1.18: the six barriers at (247.0 247.9 35.0), (216.0 280.2 35.0), (304.4 322.0 40.0), (304.0 273.0 44.0),
+# (171.6 270.7 42.1), (214.5 351.0 42.0); with QUEST_SIM_AT=224.0,289.0,35.2,-132 (regress.sh), facing the second from
+# 12 units, the "ahead" eyes show its purple strands on PAL. The US disc: 0.1.17's OpenRAC had only a header for the
+# draw (five C files for all of Orxon), the 0.1.18 one (91b67c67) builds it from C (game_FUN_L10_002da690); no US disc
+# here to run it on. The pale bands at the eyes' top and bottom are the O2 Mask seen from inside (VR Options' helmet).
+600 y 1
+606 y 0
+1000 y 1
+1006 y 0
+3000 shot ahead
+3010 head_yaw 25
+3020 shot left
+3030 head_yaw -25
+3040 shot right
+3050 head_yaw 0
+3060 head_pitch -15
+3070 shot down
+3100 quit 0

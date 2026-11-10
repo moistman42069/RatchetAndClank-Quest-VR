@@ -1,0 +1,24 @@
+# 0.1.18: the trigger at the vendor on foot is the shop's alone. At the owner's 0.1.17 shop on Kerwan a pull to buy, with
+# the wrench put away, brought the Bomb Glove back out ("the trigger asks the last gun back") and a bomb into the palm
+# with each pull after. Here: the wrench taken and put away, the vendor opened, the trigger pulled twice; the log should
+# have neither line, and the hand should keep what it had.
+600 y 1
+606 y 0
+2700 right_grip 1
+2760 right_grip 0
+2900 shot before
+3000 right_click 1
+3006 right_click 0
+3300 shot open
+3310 right_trigger 1
+3340 shot pulled
+3370 right_trigger 0
+3400 right_trigger 1
+3430 right_trigger 0
+3460 shot after
+3461 head_yaw 25
+3470 shot right
+3471 head_yaw -25
+3480 shot left
+3481 head_yaw 0
+3500 quit 0

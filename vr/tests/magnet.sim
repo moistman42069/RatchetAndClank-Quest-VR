@@ -1,0 +1,21 @@
+# 0.1.18: Batalia's magnet ramp (a PCVR tester's 0.1.17 log, "magnet boots don't work": the boots took hold five times
+# near (272 281 37), and each time he came off a few metres up, state 63). QUEST_SIM_GIVE=28 owns the Magneboots and
+# QUEST_SIM_AT puts him at the ramp's foot facing up it; the stick held ahead walks him up it in first person, the head
+# straight ahead. QUEST_STATE_TRACE: his states and places as he goes; [vr-feel] "the boots take hold". Y at 1000 and
+# 1800 skips the commando's talk, a second scene after the first, or the set-up never comes (it waits for play).
+600 y 1
+606 y 0
+1000 y 1
+1006 y 0
+1800 y 1
+1806 y 0
+3000 shot foot
+3010 left_y 1
+3090 shot up1
+3170 shot up2
+3250 shot up3
+3330 shot up4
+3410 shot up5
+3490 left_y 0
+3530 shot top
+3600 quit 0

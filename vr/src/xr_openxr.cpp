@@ -27,8 +27,11 @@
 #include <sys/syscall.h>
 #include <unistd.h>
 
+#include <ctime>
+
 #define XR_USE_PLATFORM_ANDROID
 #define XR_USE_GRAPHICS_API_OPENGL_ES
+#define XR_USE_TIMESPEC  // XR_KHR_convert_timespec_time: the runtime's clock against CLOCK_MONOTONIC
 #else
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
@@ -238,6 +241,7 @@ public:
         }
         m_frame_begun = true;
         m_frame_time = state.predictedDisplayTime;
+        note_display(state.predictedDisplayTime);
         const double after = now_seconds();
         m_wait_seconds += after - before;
         ++m_frames;
@@ -711,6 +715,10 @@ private:
         if (m_performance_extension) {
             extensions.push_back(XR_EXT_PERFORMANCE_SETTINGS_EXTENSION_NAME);
         }
+        m_time_extension = listed(available, XR_KHR_WIN32_CONVERT_PERFORMANCE_COUNTER_TIME_EXTENSION_NAME);
+        if (m_time_extension) {
+            extensions.push_back(XR_KHR_WIN32_CONVERT_PERFORMANCE_COUNTER_TIME_EXTENSION_NAME);
+        }
         for (const char* name : kControllerExtensions) {
             if (listed(available, name)) {
                 extensions.push_back(name);
@@ -731,6 +739,7 @@ private:
         if (!find_calls(why)) {
             return false;
         }
+        find_clock();
         auto properties_fn = proc<PFN_xrGetInstanceProperties>("xrGetInstanceProperties");
         XrInstanceProperties runtime{XR_TYPE_INSTANCE_PROPERTIES};
         if (properties_fn != nullptr && XR_SUCCEEDED(properties_fn(m_instance, &runtime))) {
@@ -773,6 +782,10 @@ private:
         if (m_thread_extension) {
             extensions.push_back(XR_KHR_ANDROID_THREAD_SETTINGS_EXTENSION_NAME);
         }
+        m_time_extension = has(XR_KHR_CONVERT_TIMESPEC_TIME_EXTENSION_NAME);
+        if (m_time_extension) {
+            extensions.push_back(XR_KHR_CONVERT_TIMESPEC_TIME_EXTENSION_NAME);
+        }
         // Smoother frames, where the runtime has it and the launcher's option is on.
         m_space_warp_extension = m_settings.space_warp && has(XR_FB_SPACE_WARP_EXTENSION_NAME);
         if (m_space_warp_extension) {
@@ -797,9 +810,83 @@ private:
             why = m_last_error;
             return false;
         }
+        find_clock();
         return find_system(why);
     }
 #endif
+
+    // The runtime's clock against this system's (XR_KHR_win32_convert_performance_counter_time on Windows,
+    // XR_KHR_convert_timespec_time on Android), for when the next frame is shown (next_display_in).
+    void find_clock() {
+        if (m_time_extension) {
+#if defined(_WIN32)
+            m_clock = proc<PFN_xrConvertWin32PerformanceCounterToTimeKHR>("xrConvertWin32PerformanceCounterToTimeKHR");
+#else
+            m_clock = proc<PFN_xrConvertTimespecTimeToTimeKHR>("xrConvertTimespecTimeToTimeKHR");
+#endif
+        }
+        info(m_clock != nullptr ? "[openxr] frame timing: the scene blended for the headset's display times"
+                                : "[openxr] frame timing: the runtime does not convert its clock; the scene blended "
+                                  "for the port's own guess");
+    }
+
+    // The runtime's clock now; 0 where it cannot say.
+    XrTime xr_now() const {
+        if (m_clock == nullptr) {
+            return 0;
+        }
+        XrTime time = 0;
+#if defined(_WIN32)
+        LARGE_INTEGER counter;
+        QueryPerformanceCounter(&counter);
+        return XR_SUCCEEDED(m_clock(m_instance, &counter, &time)) ? time : 0;
+#else
+        timespec now{};
+        clock_gettime(CLOCK_MONOTONIC, &now);
+        return XR_SUCCEEDED(m_clock(m_instance, &now, &time)) ? time : 0;
+#endif
+    }
+
+    // A frame's display time from xrWaitFrame: the steps between them lately, and how far ahead of the wait's return
+    // it was (a frame begun late is shown no sooner than that from its start).
+    void note_display(XrTime display) {
+        if (m_last_display != 0 && display > m_last_display) {
+            m_display_steps[m_display_step_at] = display - m_last_display;
+            m_display_step_at = (m_display_step_at + 1) % kDisplaySteps;
+        }
+        m_last_display = display;
+        const XrTime now = xr_now();
+        if (now != 0 && display > now) {
+            m_display_ahead[m_display_ahead_at] = display - now;
+            m_display_ahead_at = (m_display_ahead_at + 1) % kDisplaySteps;
+        }
+    }
+
+    // The next frame's display time: the last one and the steps' median (one refresh, or two while the headset paces
+    // the game at half its rate), later by steps where the frame begins too late for it.
+    std::int64_t next_display_in() override {
+        if (!m_running || m_last_display == 0) {
+            return 0;
+        }
+        const XrTime now = xr_now();
+        XrDuration steps[kDisplaySteps];
+        XrDuration aheads[kDisplaySteps];
+        std::copy(std::begin(m_display_steps), std::end(m_display_steps), steps);
+        std::copy(std::begin(m_display_ahead), std::end(m_display_ahead), aheads);
+        std::sort(std::begin(steps), std::end(steps));
+        std::sort(std::begin(aheads), std::end(aheads));
+        const XrDuration step = steps[kDisplaySteps / 2];
+        const XrDuration ahead = aheads[0];  // the least: 0 until the runs fill (then no later steps are added)
+        if (now == 0 || step <= 0) {
+            return 0;
+        }
+        XrTime next = m_last_display + step;
+        for (int i = 0; i < 8 && next < now + ahead; ++i) {
+            next += step;
+        }
+        const XrDuration in = next - now;
+        return in > 0 && in < 500000000 ? in : 0;
+    }
 
     bool find_system(std::string& why) {
         XrSystemGetInfo system{XR_TYPE_SYSTEM_GET_INFO};
@@ -1421,9 +1508,15 @@ private:
             auto set_level =
                 proc<PFN_xrPerfSettingsSetPerformanceLevelEXT>("xrPerfSettingsSetPerformanceLevelEXT");
             if (set_level != nullptr) {
-                set_level(m_session, XR_PERF_SETTINGS_DOMAIN_CPU_EXT, XR_PERF_SETTINGS_LEVEL_SUSTAINED_HIGH_EXT);
-                set_level(m_session, XR_PERF_SETTINGS_DOMAIN_GPU_EXT, XR_PERF_SETTINGS_LEVEL_SUSTAINED_HIGH_EXT);
-                info("[openxr] performance levels: CPU and GPU sustained high");
+                // CPU and GPU boost (launcher): the highest level an app may ask for. The runtime may lower it when the
+                // headset grows warm, and says so (the performance notices below).
+                const XrPerfSettingsLevelEXT level =
+                    m_settings.cpu_gpu_boost ? XR_PERF_SETTINGS_LEVEL_BOOST_EXT : XR_PERF_SETTINGS_LEVEL_SUSTAINED_HIGH_EXT;
+                const XrResult cpu = set_level(m_session, XR_PERF_SETTINGS_DOMAIN_CPU_EXT, level);
+                const XrResult gpu = set_level(m_session, XR_PERF_SETTINGS_DOMAIN_GPU_EXT, level);
+                info(std::string("[openxr] performance levels: CPU and GPU ") + (m_settings.cpu_gpu_boost ? "boost" : "sustained high")
+                     + " (CPU " + (XR_SUCCEEDED(cpu) ? "taken" : "refused " + std::to_string(cpu)) + ", GPU "
+                     + (XR_SUCCEEDED(gpu) ? "taken" : "refused " + std::to_string(gpu)) + ")");
             }
         }
 #if defined(__ANDROID__)
@@ -1930,6 +2023,19 @@ private:
     bool m_refresh_extension = false;
     bool m_performance_extension = false;
     bool m_thread_extension = false;
+    // When frames are shown (next_display_in): the runtime's clock, and the last display times' steps.
+    bool m_time_extension = false;
+#if defined(_WIN32)
+    PFN_xrConvertWin32PerformanceCounterToTimeKHR m_clock = nullptr;
+#else
+    PFN_xrConvertTimespecTimeToTimeKHR m_clock = nullptr;
+#endif
+    static constexpr int kDisplaySteps = 8;
+    XrTime m_last_display = 0;
+    XrDuration m_display_steps[kDisplaySteps]{};
+    int m_display_step_at = 0;
+    XrDuration m_display_ahead[kDisplaySteps]{};
+    int m_display_ahead_at = 0;
 #if defined(_WIN32)
     HMODULE m_loader = nullptr;
     std::vector<std::string> m_enabled;  // the controller families' extensions the runtime has

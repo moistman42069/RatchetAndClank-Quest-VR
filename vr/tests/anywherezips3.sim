@@ -2,8 +2,13 @@
 # QUEST_SIM_GIVE=12 QUEST_SIM_HOLD=12, at Kerwan's start, a tunnel). A tester on 0.1.13: "the right zip one only works once in
 # a chain. You can only use it again after touching the ground." The first zip's fall starts about frame 3590: [vr-swing] says
 # "a pull to" a second and a third time, from higher than the floor, each pull beginning within about ten ticks of its fire.
+# From 0.1.17 (its before copy in logs/regress-before-0118b) and on 0.1.18: the second pull, in the air, reaches the tunnel's
+# end wall (about y 124.5) and the third fire there says "nothing within the reach of the aim": the hand's aim goes past the
+# wall's top. The second zip in the air is the tester's fix; the third wants a new aim, not a change to the zips.
 600 y 1
 606 y 0
+# 0.1.18: play keeps the arrival scene's heading (he turns to 0.67, not 1.57), so regress.sh begins Kerwan's runs as 0.1.17
+# did, recentred on his facing (QUEST_TEST_NO_HANDOVER=1, a PC test switch): the aims here were worked out for that.
 3000 shot before
 3400 hand_pitch 40
 3500 right_trigger 1

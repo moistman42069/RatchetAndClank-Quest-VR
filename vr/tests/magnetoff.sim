@@ -1,0 +1,43 @@
+# 0.1.18: off the boots' surface (a PCVR tester on 0.1.17: "magnetic surface controls break the walking directions even
+# after you fall of the walk area"). magnetturn.sim's walk up Batalia's magnet wall, square on, the stick held on past
+# where the strip leans off to -y near its top (about z 44), where he slips off and falls; then on the ground below the
+# head turns left and back (3400 on), and at the end walks straight, the stick ahead. The view's up follows the
+# surface by arcs a frame at a time, and coming off it can be left turned about up; from 0.1.18 the rig takes that turn
+# ([vr-boots] off the surface: ... degrees), so the stick, throws and the room's steps go where the view looks again.
+# QUEST_WALK_TRACE: his step along and across his facing each tick, "aim" where the stick's ahead goes and "view" where the
+# drawn view looks: the same from the moment he is off. With QUEST_TEST_NO_BOOTS_FOLD=1 the turn is left as 0.1.17 left
+# it: "view" stays off "aim" by what the fold line would have said. He walks straight for some 25 ticks, then meets a wall:
+# the two walk shots are in those ticks. QUEST_STATE_TRACE: states and places.
+600 y 1
+606 y 0
+1000 y 1
+1006 y 0
+1800 y 1
+1806 y 0
+3000 shot foot
+3010 left_y 1
+3050 head_yaw -5
+3060 head_yaw -10
+3070 head_yaw -15
+3085 head_yaw -19
+3090 head_yaw -23
+3095 head_yaw -27
+3230 shot wall2
+3350 shot wall4
+3400 head_yaw -5
+3420 head_yaw 5
+3440 head_yaw 15
+3460 head_yaw 25
+3480 head_yaw 35
+3560 shot turn2
+3680 shot turn4
+3740 left_y 0
+3750 shot top
+3900 head_yaw 20
+3910 head_yaw 0
+3940 shot below
+3950 left_y 1
+3962 shot walk1
+3973 shot walk2
+4040 left_y 0
+4100 quit 0

@@ -1,0 +1,31 @@
+# 0.1.18: Punch with your hands (Moves, off to start; run on: hand_punch 1). The Blaster in the right hand (QUEST_SIM_GIVE=15 QUEST_SIM_HOLD=15), Ratchet by
+# an ammo crate on Novalis (QUEST_SIM_NEAR=500 QUEST_SIM_NEAR_AT=1.2,0, --level 1). No grip anywhere: an open hand.
+# A slow push of the left hand: no punch. A jab of the left hand, 20 cm out in four frames: "[vr-fist] Ratchet's left punch"
+# and, the crate in reach, "[vr-fist] it landed". A jab of the right hand, the Blaster in it: "Ratchet's right punch".
+# As it starts (no options), none of the [vr-fist] lines.
+600 y 1
+606 y 0
+3200 shot before
+# A slow push: no punch.
+3300 lh_z -0.01
+3305 lh_z -0.02
+3310 lh_z -0.03
+3315 lh_z -0.04
+3320 lh_z -0.05
+3330 lh_z -0.06
+3360 lh_z 0
+# The left jab.
+3500 lh_z -0.05
+3501 lh_z -0.10
+3502 lh_z -0.15
+3503 lh_z -0.20
+3510 shot left-jab
+3560 lh_z 0
+# The right jab, the Blaster in the hand.
+3650 rh_z -0.05
+3651 rh_z -0.10
+3652 rh_z -0.15
+3653 rh_z -0.20
+3660 shot right-jab
+3700 rh_z 0
+3800 quit 0

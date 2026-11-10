@@ -72,9 +72,16 @@ it), where the logs are (`Download/RatchetQuestVR`), and how to report.
    --short` lists them as `??`). For 0.1.12 and 0.1.13 they are `port/game/rac1-ntsc/host/vector.c`,
    `port/game/rac1/host/hero_anim_guard.c`, `port/game/common/frontend/hero_shadows.h` and
    `port/tests/hero_shadow_rig_test.cpp`. Then
-   `git -C third_party/OpenRAC diff --full-index > patches/0001-quest-vr-frame-path.patch`. On Windows, gen_binding.py
-   writes CRLF: put its files back to LF first, or the patch carries the line endings.
-2. `git -C third_party/OpenRAC fetch origin develop`, check it out, and `git apply` the patch.
+   `git -C third_party/OpenRAC diff --full-index HEAD -- . ':(exclude)games/rac2/decomp' > patches/0001-quest-vr-frame-path.patch`
+   (from 91b67c67 the decompilations are submodules: `sources.py init` moves rac2's, which is no change of ours). On
+   Windows, gen_binding.py and `sdk/tools/gen_reference.py` write CRLF: put their files back to LF first, or the patch
+   carries the line endings (`tr -cd '\r' < file | wc -c` counts them; `grep $'\r'` misses them in Git Bash).
+2. `git -C third_party/OpenRAC fetch origin develop`, check it out, and `git apply` the patch. Then, in
+   third_party/OpenRAC, `python tools/sources.py init` (the decompilations are submodules from 91b67c67). A build
+   folder made before that keeps the old decompilation's path (`OPENRAC_RAC1_PAL_SOURCE`, `..._NTSC_SOURCE` in its
+   CMakeCache.txt) and hostgen's prepared copy of it (`games/<game>/gen/prep`), which hostgen adds to and never
+   empties: set those paths to `games/rac1/decomp` and `games/rac1/ntsc-decomp`, and move each `gen` folder away,
+   in `port/build/release` and in `C:/RACQuest/b/port` alike, or the game is built from the old one's units.
 3. Read upstream's diff of every patched file, and every new window swap or draw path: in VR the
    headset's frame replaces the window's swap.
 4. Set `OPENRAC_PIN` in `tools/build_quest.py`, commit the submodule's new commit, and note the

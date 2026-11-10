@@ -1,0 +1,59 @@
+# Closing menus, a frame at a time (the owner's 0.1.17 "black flicker when closing menus"): the pause menu, the map and
+# the quick select (the map opened by X and closed by B), each shot every frame from just before it closes to just
+# after. Each eye's picture should keep the level, no frame darker than those round it (no dark rectangle of the game's
+# backdrop: 0.1.17 had one at the pause menu's and the map's closing frame); with QUEST_VIEW_TRACE=1 the [vr-view] lines
+# say what each frame showed, and "[vr-pointer] the page's N parts held as the menu closes" each close.
+600 y 1
+606 y 0
+3000 y 1
+3006 y 0
+3196 shot p196
+3198 shot p198
+3200 y 1
+3201 shot p201
+3202 shot p202
+3203 shot p203
+3204 shot p204
+3205 shot p205
+3206 y 0
+3207 shot p207
+3208 shot p208
+3209 shot p209
+3210 shot p210
+3212 shot p212
+3214 shot p214
+3218 shot p218
+3400 x 1
+3406 x 0
+3596 shot m596
+3598 shot m598
+3600 b 1
+3601 shot m601
+3602 shot m602
+3603 shot m603
+3604 shot m604
+3605 shot m605
+3606 b 0
+3607 shot m607
+3608 shot m608
+3609 shot m609
+3610 shot m610
+3612 shot m612
+3614 shot m614
+3618 shot m618
+3640 shot m640
+3700 right_click 1
+3896 shot w896
+3898 shot w898
+3900 right_click 0
+3901 shot w901
+3902 shot w902
+3903 shot w903
+3904 shot w904
+3905 shot w905
+3906 shot w906
+3908 shot w908
+3910 shot w910
+3914 shot w914
+3920 shot w920
+4000 quit 0

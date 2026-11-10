@@ -15,7 +15,7 @@ cp "$MOD_PACKAGE/openrac-mod.json" "$DATA/plugins/quest-vr/"
 # The bundled mods (tools/build_pc.py builds them) beside it, for a test that turns some on: QUEST_MODS is their
 # plugins.json entries, ', {"id": "difficulty", "enabled": true, "settings": {...}}' each, after quest-vr's.
 MODS_PC=/c/RACQuest/b/rac1-mods-pc/package
-for pair in difficulty:difficulty item-randomizer:item_randomizer ammo-max:ammo_max xbox-icons:xbox_icons; do
+for pair in difficulty:difficulty item-randomizer:item_randomizer ammo-max:ammo_max xbox-icons:xbox_icons multiplayer:multiplayer; do
   rm -rf "$DATA/plugins/${pair%%:*}"
   if [ -n "${QUEST_MODS:-}" ] && [ -d "$MODS_PC/${pair#*:}" ]; then
     cp -r "$MODS_PC/${pair#*:}" "$DATA/plugins/${pair%%:*}"
@@ -25,8 +25,21 @@ rm -rf "$DATA/plugins/button-swap"
 if [ -n "${QUEST_MODS:-}" ]; then
   cp -r /c/RACQuest/upstream/rac1-mods/button-swap "$DATA/plugins/button-swap"
 fi
+# RAC-Board (tools/build_pc.py builds it, bundled from 0.1.18), for a test that rides it: QUEST_RACBOARD=1, and its
+# settings, a JSON object, in QUEST_RACBOARD_SETTINGS.
+BOARD_PC=/c/RACQuest/b/rac-board-pc/package/rac_board
+BOARD_ENTRY=""
+rm -rf "$DATA/plugins/rac-board"
+if [ -n "${QUEST_RACBOARD:-}" ]; then
+  if [ ! -d "$BOARD_PC" ]; then
+    echo "QUEST_RACBOARD: no RAC-Board build at $BOARD_PC (tools/build_pc.py)"
+    exit 1
+  fi
+  cp -r "$BOARD_PC" "$DATA/plugins/rac-board"
+  BOARD_ENTRY=", {\"id\": \"rac-board\", \"enabled\": true, \"settings\": ${QUEST_RACBOARD_SETTINGS:-{\}}}"
+fi
 cat > "$DATA/plugins/plugins.json" <<JSON
-{"format": 1, "mods": [{"id": "quest-vr", "enabled": true, "settings": ${QUEST_SETTINGS:-{\}}}${QUEST_MODS:-}]}
+{"format": 1, "mods": [{"id": "quest-vr", "enabled": true, "settings": ${QUEST_SETTINGS:-{\}}}${QUEST_MODS:-}${BOARD_ENTRY}]}
 JSON
 # 60 frames a second whatever the display runs at: the sims move the hands by the frame, so a slower display made
 # every motion slower (a 31 Hz desktop on 5 November halved a throw's speed). "display" was the rate before.

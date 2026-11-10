@@ -91,7 +91,7 @@ GAMES = ("rac1-pal", "rac1-ntsc")
 # The Java modules the launcher uses: Swing (java.desktop), and TLS's elliptic curves for GitHub (jdk.crypto.ec).
 JAVA_MODULES = "java.base,java.desktop,jdk.crypto.ec"
 # The launcher's sources: the APK's own option table, discs and update rules, then the PC's.
-SHARED_JAVA = ("Options.java", "Discs.java", "UpdatePolicy.java")
+SHARED_JAVA = ("Options.java", "Discs.java", "UpdatePolicy.java", "ModIndex.java", "ModVr.java", "PlayerName.java")
 ANDROID_JAVA = ROOT / "android/app/src/main/java/dev/ratchetquest/vr"
 
 
@@ -189,6 +189,11 @@ def package(ver: str) -> Path:
     for game in GAMES:
         if not (OPENRAC / f"port/build/release/openrac-{game}.exe").is_file():
             sys.exit(f"the game for {game} was not built (tools/build_port.py {game})")
+    # Every hook point the mod takes, with the SDK's signature, in each game's table, as build_quest.py checks the
+    # Quest's (tools/check_hooks.py): 0.1.18's first PC zip had the US game's Hud_Frame of another signature, which
+    # refuses the whole mod on that disc (the US decomp's fix of 0.1.6 had stayed behind in OpenRAC's old tree).
+    run([sys.executable, ROOT / "tools/check_hooks.py",
+         *(OPENRAC / "port/build/release/games" / game / "gen/hooks.c" for game in GAMES)])
     work = PACKAGE_BUILD
     remove_tree(work)
     work.mkdir(parents=True)
@@ -221,13 +226,16 @@ def package(ver: str) -> Path:
         if not (folder / "vr" / needed).is_file():
             sys.exit(f"the VR mod's package has no {needed}")
 
-    # The bundled mods, each folder named by its id, as the APK's assets/mods.
+    # The bundled mods, each folder named by its id, as the APK's assets/mods: with RAC-Board (its models and sounds).
     mods = folder / "mods"
-    for mod_id, target in build_quest_module.BUNDLED_MODS.items():
-        packaged = BUILD_ROOT / "rac1-mods-pc/package" / target
+    packages = {mod_id: (BUILD_ROOT / "rac1-mods-pc/package" / target, target)
+                for mod_id, target in build_quest_module.BUNDLED_MODS.items()}
+    packages[build_quest_module.RAC_BOARD_ID] = (BUILD_ROOT / "rac-board-pc/package" / build_quest_module.RAC_BOARD_TARGET,
+                                                 build_quest_module.RAC_BOARD_TARGET)
+    for mod_id, (packaged, target) in packages.items():
         if not (packaged / f"lib/windows-x86_64/{target}.dll").is_file():
             sys.exit(f"{packaged} has no Windows build")
-        shutil.copytree(packaged, mods / mod_id)
+        shutil.copytree(packaged, mods / mod_id, ignore=shutil.ignore_patterns("*.pdb"))
     for mod_id, files in build_quest_module.BUNDLED_SCRIPT_MODS.items():
         (mods / mod_id).mkdir(parents=True)
         for file in files:
@@ -311,6 +319,15 @@ def main() -> int:
          f"-DOPENRAC_SDK={(OPENRAC / 'sdk').as_posix()}", "-DBUILD_TESTING=OFF", "-Wno-dev"], env=env)
     run(["cmake", "--build", mods, "--target", *build_quest.BUNDLED_MODS.values()], env=env)
     print(f"{mods / 'package'}: the bundled mods for vr/tests/pc_run.sh", flush=True)
+    # RAC-Board (github.com/mateuszklysz/RAC-Board, MIT), bundled from 0.1.18 (off until turned on), at its pin
+    # (build_quest.py RAC_BOARD, checked above): for the release and the sims that ride it (pc_run.sh QUEST_RACBOARD=1).
+    board_out = BUILD_ROOT / "rac-board-pc"
+    run(["cmake", "-S", build_quest.RAC_BOARD, "-B", board_out, "-G", "Ninja", "-DCMAKE_BUILD_TYPE=RelWithDebInfo",
+         "-DCMAKE_C_COMPILER=clang-cl", "-DCMAKE_CXX_COMPILER=clang-cl",
+         f"-DCMAKE_MAKE_PROGRAM={shutil.which('ninja')}", f"-DOPENRAC_SDK={(OPENRAC / 'sdk').as_posix()}",
+         "-DBUILD_TESTING=OFF", "-Wno-dev"], env=env)
+    run(["cmake", "--build", board_out, "--target", build_quest.RAC_BOARD_TARGET], env=env)
+    print(f"{board_out / 'package'}: RAC-Board for the release and vr/tests/pc_run.sh", flush=True)
     if args.package:
         package(version())
     return 0

@@ -48,6 +48,11 @@ public final class LauncherActivity extends Activity {
     private static final int REQUEST_MOD = 0x5244;
     /** What became of the last mod file picked, shown on the Game tab. */
     private String modNote = "";
+    /** OpenRAC's mod list once Browse has read it (ModIndex), what Browse is doing, and the mod being added from it. */
+    private volatile ModIndex modIndex;
+    private String browseNote = "";
+    private boolean browsing = false, reading = false;
+    private String adding = "";
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private LinearLayout page;
@@ -518,6 +523,9 @@ public final class LauncherActivity extends Activity {
             environment.add(entry.getKey() + "=" + entry.getValue());
         }
         environment.add("QUEST_VR_STATUS=" + tools.statusFile().getPath());
+        // The Multiplayer name and this installation's key, as OpenRAC's launcher gives them (online mods read them).
+        environment.add(PlayerName.ENV + "=" + mods.playerName());
+        environment.add(PlayerName.KEY_ENV + "=" + mods.playerKey());
         // The 2D mode is the same headset session, the game on a big screen in it, so that the Touch
         // controllers are read as ever and no gamepad is needed.
         Intent game = new Intent(this, QuestGameActivity.class)
@@ -582,14 +590,185 @@ public final class LauncherActivity extends Activity {
         about.addView(text("Add a mod file takes another OpenRAC mod's .zip: a script mod, a data pack, or a native mod "
             + "with an android-arm64 build. Mods are programs: add only ones you trust. Made for a flat screen, some may "
             + "not suit VR.", 13, Artwork.MUTED, false));
+        about.addView(text(ModVr.PAD, 13, Artwork.MUTED, false));
+        about.addView(button(browsing ? "Hide OpenRAC's mod list" : "Browse OpenRAC's mods", false, view -> browseMods()));
         about.addView(button("Add a mod file", false, view -> chooseMod()));
+        // The files each mod keeps (a seed, a spoiler log), in the Files app, as OpenRAC's launcher shows them.
+        about.addView(button("Mod files", false, view -> {
+            File modFiles = new File(getFilesDir(), FilesProvider.MOD_FILES);
+            modFiles.mkdirs();
+            if (!FilesProvider.show(this, modFiles)) {
+                modNote = "This headset has no Files app to show the mods' files with.";
+                showTab(tab);
+            }
+        }));
+        about.addView(button("openrac.dev/mods", false, view -> {
+            try {
+                startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(ModIndex.SITE)));
+            } catch (ActivityNotFoundException e) {
+                modNote = "This headset has no browser to open " + ModIndex.SITE + " with.";
+                showTab(tab);
+            }
+        }));
         if (!modNote.isEmpty()) {
             about.addView(text(modNote, 13, Artwork.ORANGE, false));
         }
         page.addView(about);
+        if (mods.usesPlayerName()) {
+            showPlayerName();
+        }
+        if (browsing) {
+            showModIndex();
+        }
         for (BundledMods.Mod mod : mods.list()) {
             showMod(mod);
         }
+    }
+
+    /**
+     * The Multiplayer name (PlayerName), as OpenRAC's launcher shows it: only while a mod that is on uses it. A name
+     * that is not one is not kept; the last one stays.
+     */
+    private void showPlayerName() {
+        LinearLayout card = card();
+        card.addView(text("Multiplayer name", 16, Artwork.INK, true));
+        card.addView(text("What the other players see in Multiplayer. " + PlayerName.MIN + " to " + PlayerName.MAX
+            + " letters, digits or underscores (_), no spaces. Made up at random until you give yours.", 13,
+            Artwork.MUTED, false));
+        EditText name = new EditText(this);
+        name.setSingleLine(true);
+        name.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
+        name.setFilters(new InputFilter[] {new InputFilter.LengthFilter(PlayerName.MAX)});
+        name.setText(mods.playerName());
+        name.setTextColor(Artwork.INK);
+        name.addTextChangedListener(new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence text, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence text, int start, int before, int count) {}
+            @Override public void afterTextChanged(Editable text) { mods.setPlayerName(text.toString()); }
+        });
+        card.addView(name);
+        page.addView(card);
+    }
+
+    // ---- Browse: OpenRAC's mod list (ModIndex), each mod added as Add a mod file adds one ----
+
+    private void browseMods() {
+        // Each opening reads the list again, as OpenRAC's launcher does at Check for updates; the list from before
+        // stays on show until the new one is in.
+        browsing = !browsing;
+        if (browsing && !reading) {
+            reading = true;
+            browseNote = modIndex == null ? "Reading OpenRAC's mod list..." : "Checking OpenRAC's mod list again...";
+            new Thread(() -> {
+                String note = "";
+                ModIndex read = null;
+                try {
+                    read = ModIndex.fetch(new File(getFilesDir(), "mod-index"), "RatchetQuestVR-launcher/" + BuildConfig.VERSION_NAME,
+                        "android-arm64", BundledMods.API_MAJOR, BundledMods.API_MINOR, BundledMods::jsonMap);
+                } catch (IOException | RuntimeException e) {
+                    note = e.getMessage();
+                }
+                final ModIndex got = read;
+                final String said = note;
+                runOnUiThread(() -> {
+                    reading = false;
+                    if (got != null) {
+                        modIndex = got;
+                    }
+                    browseNote = said;
+                    showTab(tab);
+                });
+            }, "mod-index").start();
+        }
+        showTab(tab);
+    }
+
+    private void showModIndex() {
+        LinearLayout head = card();
+        head.addView(text("OpenRAC's mods", 16, Artwork.INK, true));
+        ModIndex index = modIndex;
+        if (index == null) {
+            head.addView(text(browseNote, 13, Artwork.MUTED, false));
+            page.addView(head);
+            return;
+        }
+        head.addView(text("From OpenRAC's own mod list, checked against OpenRAC's signature. Each is the newest version made "
+            + "for this game and the headset; Add puts it with your mods, on, from the game's next start. Mods are "
+            + "programs: add only ones you trust." + (index.offline ? " (Offline: the list from before. " + index.problem + ")" : "")
+            + (index.stale ? " This list is out of date." : ""), 13, Artwork.MUTED, false));
+        if (!browseNote.isEmpty()) {
+            head.addView(text(browseNote, 13, Artwork.ORANGE, false));
+        }
+        page.addView(head);
+        List<BundledMods.Mod> have = mods.list();
+        for (boolean addable : new boolean[] {true, false}) {
+            for (ModIndex.Offer offer : index.offers) {
+                if ((offer.why == null) != addable) {
+                    continue;
+                }
+                LinearLayout card = card();
+                card.addView(text(offer.name, 15, addable ? Artwork.INK : Artwork.MUTED, true));
+                String by = (offer.author.isEmpty() ? "" : "by " + offer.author + "  ") + (offer.version.isEmpty() ? "" : offer.version + "  ")
+                    + offer.kind + (offer.aiAssisted ? "  made with AI help" : "") + (offer.impact.contains("touches-saves") ? "  changes saves" : "")
+                    + (offer.impact.contains("online") ? "  goes online" : "");
+                card.addView(text(by.trim(), 12, Artwork.MUTED, false));
+                if (!offer.description.isEmpty()) {
+                    card.addView(text(offer.description, 13, Artwork.MUTED, false));
+                }
+                String vr = ModVr.controls(offer.id);
+                if (vr != null) {
+                    card.addView(text(vr, 13, Artwork.ORANGE, false));
+                }
+                BundledMods.Mod installed = null;
+                for (BundledMods.Mod mod : have) {
+                    if (mod.id.equals(offer.id)) {
+                        installed = mod;
+                    }
+                }
+                if (!addable) {
+                    card.addView(text(offer.why, 13, Artwork.MUTED, false));
+                } else if (installed != null && !installed.added) {
+                    card.addView(text("Built in: it is with your mods below.", 13, Artwork.MUTED, false));
+                } else if (adding.equals(offer.id)) {
+                    card.addView(text("Adding " + offer.name + "...", 13, Artwork.ORANGE, false));
+                } else {
+                    String label = installed == null ? "Add " + offer.name
+                        : installed.version.equals(offer.version) ? "Added (" + offer.version + "): add it again"
+                        : "Update to " + offer.version;
+                    card.addView(button(label, installed == null, view -> addFromIndex(offer)));
+                    String revoked = installed != null && !installed.version.isEmpty() ? index.revoked(offer.id, installed.version) : null;
+                    if (revoked != null) {
+                        card.addView(text("OpenRAC took your version back: " + revoked, 13, Artwork.ORANGE, false));
+                    }
+                }
+                page.addView(card);
+            }
+        }
+    }
+
+    private void addFromIndex(ModIndex.Offer offer) {
+        if (!adding.isEmpty()) {
+            return;
+        }
+        adding = offer.id;
+        browseNote = "";
+        showTab(tab);
+        new Thread(() -> {
+            String note;
+            try {
+                byte[] bytes = ModIndex.download(offer, "RatchetQuestVR-launcher/" + BuildConfig.VERSION_NAME);
+                note = "Added " + mods.add(new java.io.ByteArrayInputStream(bytes)) + " " + offer.version
+                    + ". It counts from the game's next start.";
+            } catch (IOException | RuntimeException e) {
+                note = "Not added. " + e.getMessage();
+            }
+            final String said = note;
+            runOnUiThread(() -> {
+                adding = "";
+                browseNote = said;
+                showTab(tab);
+            });
+        }, "add-mod").start();
     }
 
     private void chooseMod() {
@@ -624,8 +803,12 @@ public final class LauncherActivity extends Activity {
 
     private void showMod(BundledMods.Mod mod) {
         LinearLayout card = card();
-        card.addView(text(mod.name, 16, Artwork.INK, true));
+        card.addView(text(mod.name + (mod.version.isEmpty() ? "" : "  " + mod.version), 16, Artwork.INK, true));
         card.addView(text(mod.description, 13, Artwork.MUTED, false));
+        String vr = ModVr.controls(mod.id);
+        if (vr != null) {
+            card.addView(text(vr, 13, Artwork.ORANGE, false));
+        }
         boolean on = mods.on(mod);
         if (on) {
             String problem = BundledMods.lastStart(tools.plugins(), mod);
@@ -645,13 +828,21 @@ public final class LauncherActivity extends Activity {
         }));
         if (on) {
             if (!mod.presets.isEmpty()) {
+                // As OpenRAC's launcher: a Default button of its own (unless a preset is the default), the one whose
+                // values the settings have lit.
                 card.addView(text("Presets", 14, Artwork.INK, true));
-                String[] names = new String[mod.presets.size()];
-                for (int i = 0; i < names.length; i++) {
-                    names[i] = mod.presets.get(i).name;
+                List<String> names = new ArrayList<>(), values = new ArrayList<>();
+                if (!BundledMods.ownDefault(mod)) {
+                    names.add("Default");
+                    values.add(BundledMods.DEFAULT);
                 }
-                card.addView(row(names, names, "", value -> {
-                    mods.apply(mod, mod.presets.get(Arrays.asList(names).indexOf(value)));
+                for (int i = 0; i < mod.presets.size(); i++) {
+                    names.add(mod.presets.get(i).name);
+                    values.add(BundledMods.presetValue(i));
+                }
+                card.addView(row(names.toArray(new String[0]), values.toArray(new String[0]), mods.lit(mod), value -> {
+                    mods.apply(mod, value.equals(BundledMods.DEFAULT) ? null
+                        : mod.presets.get(values.indexOf(value) - (BundledMods.ownDefault(mod) ? 0 : 1)));
                     showTab(tab);
                 }));
             }
@@ -660,14 +851,20 @@ public final class LauncherActivity extends Activity {
                 if (!s.help.isEmpty()) {
                     card.addView(text(s.help, 12, Artwork.MUTED, false));
                 }
-                String current = mods.get(mod, s);
+                String current = mods.shown(mod, s);
                 if (s.stepped()) {
                     card.addView(stepper(s, current, value -> {
                         mods.set(mod, s, value);
                         showTab(tab);
                     }));
-                } else if (s.type.equals("string")) {
-                    card.addView(field(s, current, value -> mods.set(mod, s, value)));
+                } else if (s.type.equals("string") || s.type.equals("keybind")) {
+                    EditText typed = field(s, current, value -> mods.set(mod, s, value));
+                    if (s.type.equals("keybind")) {
+                        card.addView(text("Keyboard keys by name, comma-separated (KeyB, Space); the controllers do not use "
+                            + "them.", 12, Artwork.MUTED, false));
+                        typed.setHint("none");
+                    }
+                    card.addView(typed);
                 } else {
                     card.addView(row(s.names, s.values, current, value -> {
                         mods.set(mod, s, value);

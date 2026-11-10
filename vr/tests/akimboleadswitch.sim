@@ -1,0 +1,41 @@
+# A tester's crash on Aridia (0.1.17, Quest 3S): with Akimbo, the game made a hand item while the left hand led, and the
+# decode of its model went into the buffer the right hand's item kept aside was drawn from; that item came back to the
+# hand with another's model, and the next change of item (the right grip) read garbage for its animation. Here the
+# Blaster is in the right hand and the Swingshot in the left (QUEST_SIM_GIVE=15,12,16 QUEST_SIM_HOLD=15
+# QUEST_SIM_LEFT=12), and QUEST_TEST_LEAD_SWITCH=16 asks for the Pyrocitor on each lead's third tick. Expect no crash,
+# "[vr-akimbo] the game changed the hand's slot while the left hand led: the lead ends", the Blaster back in the right
+# hand and firing, and the grip's wrench and the trigger's gun after it. With OPENRAC_ITEMS_DEBUG=1 the port says
+# which buffer each decode went into; with OPENRAC_ITEMS_NO_RESTORE=1 (the old way) the mod's guard empties a
+# spoilt slot instead ("its model was decoded over by another").
+600 y 1
+606 y 0
+2990 shot before
+3000 left_trigger 1
+3012 left_trigger 0
+3030 shot lead-1
+3060 right_trigger 1
+3070 right_trigger 0
+3100 right_grip 1
+3130 shot wrench-1
+3160 right_grip 0
+3220 right_trigger 1
+3230 right_trigger 0
+3260 shot gun-back-1
+3300 left_trigger 1
+3312 left_trigger 0
+3360 right_trigger 1
+3370 right_trigger 0
+3400 right_grip 1
+3430 shot wrench-2
+3460 right_grip 0
+3520 right_trigger 1
+3530 right_trigger 0
+3560 shot gun-back-2
+3600 left_trigger 1
+3612 left_trigger 0
+3640 right_grip 1
+3700 right_grip 0
+3760 right_trigger 1
+3770 right_trigger 0
+3800 shot end
+3860 quit 0

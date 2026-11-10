@@ -1,0 +1,28 @@
+# 0.1.18: a PCVR tester's first-person falls on Orxon's magnet walls ("tried moving carefully", third person held): on
+# Batalia's wall he walks the ramp as magnetstop.sim does, turns the head up the wall at its foot (the strip bends there),
+# climbs, and stands still on the steep part while the game's own camera
+# settles behind him, then the stick is pushed ahead again. He is to go on up the wall the way the view looks, on the
+# strip (QUEST_STATE_TRACE: no 0x79; QUEST_WALK_TRACE's surface lines: magnet 1, slip 0, "move" up the wall). The push ends about z 43, before the strip leans off to -y near its top (magnetorxon.sim climbs a whole wall).
+600 y 1
+606 y 0
+1000 y 1
+1006 y 0
+1800 y 1
+1806 y 0
+3000 shot foot
+3010 left_y 1
+3050 head_yaw -5
+3060 head_yaw -10
+3070 head_yaw -15
+3085 head_yaw -19
+3090 head_yaw -23
+3095 head_yaw -27
+3165 left_y 0
+3200 shot stopped
+3560 shot waited
+3600 left_y 1
+3650 shot again
+3660 shot higher
+3665 left_y 0
+3760 shot top
+3800 quit 0

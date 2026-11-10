@@ -87,5 +87,17 @@
             android:authorities="${applicationId}.update"
             android:exported="false"
             android:grantUriPermissions="true" />
+
+        <!-- The game's files in the system's Files app (FilesProvider, as OpenRAC's launcher has them). -->
+        <provider
+            android:name=".FilesProvider"
+            android:authorities="${applicationId}.files"
+            android:exported="true"
+            android:grantUriPermissions="true"
+            android:permission="android.permission.MANAGE_DOCUMENTS">
+            <intent-filter>
+                <action android:name="android.content.action.DOCUMENTS_PROVIDER" />
+            </intent-filter>
+        </provider>
     </application>
 </manifest>

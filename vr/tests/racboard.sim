@@ -1,0 +1,39 @@
+# 0.1.18: RAC-Board in the headset (the owner's ask; QUEST_RACBOARD=1, the mod tools/build_pc.py builds from its checkout).
+# On Novalis's start: the right hand reached behind the back (xr_sim's hand 0.3 behind the head, 0.2 under it), its stick
+# clicked, gets the board out; the stick rides it ahead (its heading should hold, the stick being about the board's own);
+# A jumps, the right trigger with the stick back a flip in the air; the left hand's reach puts it away (either hand).
+# QUEST_JET_TRACE: the log's [vr-jetboard] lines say RAC-Board is loaded, each hand's click, riding, the view going with
+# the board, the body's turn every 15 ticks (a flip: past a radian, mostly tilt), and off the board. No [vr-ring] line:
+# the clicks were the board's, not the weapon wheels'.
+600 y 1
+606 y 0
+2800 shot stand
+2900 rh_z 0.6
+2901 rh_y 0.15
+2930 right_click 1
+2936 right_click 0
+2960 rh_z 0
+2961 rh_y 0
+3100 shot board
+3120 left_y 1
+3200 shot ride
+3250 a 1
+3256 a 0
+3260 right_trigger 1
+3261 left_y -1
+3275 shot flip1
+3290 shot flip2
+3305 shot flip3
+3320 shot flip4
+3340 right_trigger 0
+3341 left_y 1
+3500 shot after
+3520 left_y 0
+3600 lh_z 0.6
+3601 lh_y 0.15
+3630 left_click 1
+3636 left_click 0
+3660 lh_z 0
+3661 lh_y 0
+3800 shot off
+3900 quit 0

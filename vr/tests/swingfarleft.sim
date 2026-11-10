@@ -1,6 +1,9 @@
 # Swingshot reach with a swing (QUEST_VR_OPTIONS="swing_anywhere 1;swing_reach 2", QUEST_SIM_GIVE=15,12 QUEST_SIM_HOLD=15 QUEST_SIM_LEFT=12, at
 # Kerwan's start, a tunnel): the left hand aimed out of the far mouth at a building: "a swing from" it, hundreds of units off. The rope must
 # draw, his swing stay sane (no flight off at speed, no state stuck), and a let go leave him a plain fall.
+# From 0.1.14 a rope past twice the game's swing zips, the left hand's too (swing_anywhere_tick): "a pull to (321.1 465.4 93.9), 370.0 units
+# away, by the left hand", the zip to the building, then a fall into the city below (0x77) and back at the start; the trigger still
+# held pulls again, and let go at 4300 "let go mid-zip ... the speed kept, as after a swing", a plain fall (0.1.18 runs).
 600 y 1
 606 y 0
 3000 shot before

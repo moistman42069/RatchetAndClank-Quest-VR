@@ -1,0 +1,22 @@
+# 0.1.18: the Grindboots on a grind rail (a tester on 0.1.17: "I just got the grind boots and the angle on the ankle part is
+# cursed"). As rail.sim (QUEST_SIM_RAIL=2,0.3,3 on Oltanis, item 29 owned, QUEST_SIM_ALIGN=2620: frames from 2620 count
+# from the set-up, the catch; the game shows the Grindboots only on the rail, here about 55 ticks, give or take 20
+# frames): from his right (xr_sim view_free), then the head down at the feet. Each shot: the boot's cuff along his shin,
+# its sole on the rail. [vr-boots] (QUEST_BOOTS_TRACE=1) says how far each was turned.
+600 y 1
+606 y 0
+2621 rh_x 0.45
+2621 lh_x -0.45
+2621 view_free 1
+2621 view_x 1.0
+2621 view_y -0.4
+2621 view_yaw 90
+2621 view_pitch -20
+2628 shot side0
+2636 shot side1
+2638 view_free 0
+2638 head_pitch -75
+2644 shot feet0
+2652 shot feet1
+2660 head_pitch 0
+2700 quit 0

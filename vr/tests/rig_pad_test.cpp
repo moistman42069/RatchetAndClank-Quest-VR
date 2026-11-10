@@ -6,6 +6,7 @@
 #include <cstdlib>
 
 #include "hand.h"
+#include "board.h"
 #include "heading.h"
 #include "notice.h"
 #include "pad.h"
@@ -391,7 +392,7 @@ void test_mapper() {
     out = pages.map(c, context);
     check((out.held & kPadL1) && (out.held & kPadR1), "the page shoulders");
 
-    // The quick select leaves the left stick walking, and its trigger turns pages, firing nothing.
+    // The quick select leaves the left stick walking, and a pull of its trigger turns pages, firing nothing.
     PadMapper quick;
     context = PadContext{};
     context.first_person = true;
@@ -399,10 +400,11 @@ void test_mapper() {
     c = Controls{};
     c.right_click = true;
     c.left_y = 1.0f;
-    c.right_trigger = 1.0f;
     out = quick.map(c, context);
     check(out.held & kPadTriangle, "held open");
     check(out.left_y > 0.9f, "still walking");
+    c.right_trigger = 1.0f;
+    out = quick.map(c, context);
     check(!(out.held & kPadCircle), "the page's trigger does not fire");
     context.quick_select = false;
     c.right_click = false;
@@ -413,6 +415,19 @@ void test_mapper() {
     c.right_trigger = 1.0f;
     out = quick.map(c, context);
     check(out.held & kPadCircle, "fires again");
+    // Held as the ring opens (hanging from the Swingshot, 0.1.18): the game's fire still, until let go; a fresh pull
+    // in the ring then is its page's.
+    context.quick_select = true;
+    c.right_click = true;
+    out = quick.map(c, context);
+    check(out.held & kPadCircle, "a trigger held as the ring opens still fires");
+    out = quick.map(c, context);
+    check(out.held & kPadCircle, "and goes on firing while held");
+    c.right_trigger = 0.0f;
+    quick.map(c, context);
+    c.right_trigger = 1.0f;
+    out = quick.map(c, context);
+    check(!(out.held & kPadCircle), "a fresh pull in the ring is its page's");
 
     // The Trespasser's rings: the stick is the d-pad, nothing walks; a trigger held from the push is
     // not a cancel, a fresh pull is, and it does nothing else until let go.
@@ -860,6 +875,44 @@ void test_pointer() {
     check(!panel_point(panel, 3.0f, 2.25f, Pose{{0, 1.5f, 0}, yaw_quat(kPi)}, u, v), "turned away");
     check(!panel_point(panel, 3.0f, 2.25f, Pose{{0, 1.5f, 0}, yaw_quat(1.2f)}, u, v), "past its edge");
 
+    // The weapon wheel at the hand: a hand seen from the eye on the HUD, the ring's middle there, kept in.
+    const Vec3 eye{0, 1.5f, 0};
+    check(panel_point_seen(panel, 3.0f, 2.25f, eye, {0, 1.5f, -1.0f}, u, v), "a hand straight ahead");
+    near_(u, 0.5f, "seen in the middle across");
+    near_(v, 0.5f, "and down");
+    check(panel_point_seen(panel, 3.0f, 2.25f, eye, {0.3f, 1.2f, -0.6f}, u, v), "a hand low and right");
+    near_(u, 0.5f + 0.3f * 4.0f / 3.0f, "seen right by its angle");
+    near_(v, 0.5f + 0.3f * 4.0f / 2.25f, "and low, past the edge");
+    check(!panel_point_seen(panel, 3.0f, 2.25f, eye, {0.3f, 1.2f, 0.1f}, u, v), "a hand beside the head is not seen ahead");
+    WheelFit fit;  // a ring 192 square, its middle in its middle, on 512 by 416
+    float x = 0, y = 0;
+    wheel_middle_at(fit, 0.5f, 0.5f, x, y);
+    near_(x, 256.0f, "the ring in the middle");
+    near_(y, 208.0f, "and down");
+    wheel_middle_at(fit, 1.4f, -0.3f, x, y);
+    near_(x, 512.0f - 8.0f - 96.0f, "past the right edge: in by the gap");
+    near_(y, 8.0f + 96.0f, "past the top: in by the gap");
+    fit.reach_x = 60.0f;
+    wheel_middle_at(fit, 0.0f, 0.5f, x, y);
+    near_(x, 196.0f, "no further from straight ahead than the reach");
+    fit.reach_x = 1e9f;
+    // A right ring opened over the left one's: moved to its right; with no room there, below it.
+    x = 200.0f;
+    y = 208.0f;
+    wheel_beside(fit, false, 180.0f, 208.0f, 6.0f, x, y);
+    near_(x, 180.0f + 198.0f, "beside the other, to the right");
+    near_(y, 208.0f, "at its height");
+    x = 380.0f;
+    y = 150.0f;
+    wheel_beside(fit, false, 400.0f, 104.0f, 6.0f, x, y);
+    near_(x, 380.0f, "no room right of it: where it was across");
+    near_(y, 104.0f + 198.0f, "below it");
+    x = 100.0f;
+    y = 300.0f;
+    wheel_beside(fit, true, 400.0f, 100.0f, 6.0f, x, y);
+    near_(x, 100.0f, "already clear: left as it was");
+    near_(y, 300.0f, "both ways");
+
     // A list of four rows 100 high: 20 a row, the first from 13; a second line takes two.
     MenuList list;
     list.width = 200;
@@ -925,6 +978,153 @@ void test_dive_pad() {
     check((mapper.map(c, context).held & kPadSquare) == 0, "no dive, no Square");
     context.dive = true;
     check((mapper.map(c, context).held & kPadSquare) != 0, "the dive is the game's Square");
+}
+
+// RAC-Board (board.h): the reach behind the back, the riding pad, and the view with the board.
+void test_jet_board() {
+    const Pose head{{0, 1.6f, 0}, yaw_quat(0)};
+    check(hand_behind_back(head, {0, 1.4f, 0.25f}, false), "a hand behind the head is behind the back");
+    check(!hand_behind_back(head, {0, 1.2f, -0.3f}, false), "a hand ahead is not");
+    check(!hand_behind_back(head, {0, 0.5f, 0.25f}, false), "nor one at the knees");
+    check(!hand_behind_back(head, {0.6f, 1.4f, 0.25f}, false), "nor one well out to the side");
+    check(!hand_behind_back(head, {0, 1.4f, 0.10f}, false), "at the edge, coming in: not yet");
+    check(hand_behind_back(head, {0, 1.4f, 0.10f}, true), "at the edge, in already: still");
+    const Pose turned{{0, 1.6f, 0}, yaw_quat(kPi / 2)};  // facing -x
+    check(hand_behind_back(turned, {0.25f, 1.4f, 0}, false), "the head turned: behind it");
+    check(!hand_behind_back(turned, {0, 1.4f, 0.25f}, false), "the head turned: the old behind is a side");
+    const Pose down{{0, 1.6f, 0}, Quat{std::sin(-0.7f), 0, 0, std::cos(-0.7f)}};  // looking down 80 degrees
+    check(hand_behind_back(down, {0, 1.3f, 0.25f}, false), "looking down: behind still by the head's top");
+
+    check(board_toggle_bits("up") == kPadUp && board_toggle_bits("l2r2") == (kPadL2 | kPadR2), "the board's button");
+    check(board_trick_bits("r1r2") == kPadR1 && board_grind_bits("r1r2x") == kPadR2 && board_grab_bits("none") == 0, "its trick, grind, grab");
+
+    PadMapper mapper;
+    PadContext context;
+    context.first_person = true;
+    context.jet_toggle = kPadUp;
+    Controls c;
+    check((mapper.map(c, context).held & kPadUp) != 0, "on foot the reach presses the board's button");
+    context.jet_toggle = 0;
+    context.jet_board = true;
+    context.jet_trick = kPadR1;
+    context.jet_grind = kPadR2;
+    context.jet_grab = kPadL1;
+    context.jet_yaw = kPi / 2;  // the board heads 90 degrees left of the game's camera
+    context.head_yaw = -1.0f;   // and the head looks elsewhere
+    c.right_trigger = 1.0f;
+    c.a = true;
+    c.left_y = 1.0f;
+    PadMapper riding;
+    const VirtualPad out = riding.map(c, context);
+    check((out.held & kPadR1) != 0 && (out.held & kPadCross) != 0, "riding: the right trigger its trick, A the jump");
+    check((out.held & (kPadCircle | kPadSquare | kPadTriangle)) == 0, "riding: none of the game's own play");
+    near_(out.left_x, 0.0f, "riding: the stick as it is (RAC-Board reads it about the board)");
+    near_(out.left_y, 1.0f, "riding: forward on the stick is along the board, not the camera or the head");
+
+    near_(yaw_part(yaw_quat(0.7f)), 0.7f, "a yaw's part about up");
+    check(angle_between(axes_quat({2, 0, 0}, {0.1f, 3, 0}), Quat{}) < 1e-3f, "the axes as they are: no turn");
+    const Quat some = normalized(Quat{0.2f, 0.5f, -0.1f, 0.8f});
+    check(angle_between(axes_quat(rotate(some, {1, 0, 0}), rotate(some, {0, 1, 0})), some) < 1e-3f, "a joint's turn from its axes");
+
+    // The follow: a stance (crouched, side-on), a carve, a flip, a spin with the mod's heading jump at its end.
+    const float dt = 1.0f / 72.0f;
+    const Quat stance = normalized(yaw_quat(0.8f) * Quat{0.15f, 0, 0, 1});
+    const auto pitch = [](float a) { return Quat{std::sin(a * 0.5f), 0, 0, std::cos(a * 0.5f)}; };
+    BoardFollow follow;
+    Quat turn{};
+    float rig = follow.update(0.3f, yaw_quat(0.3f) * stance, true, dt, turn);
+    near_(rig, 0.0f, "the ride's start turns nothing");
+    check(angle_between(turn, Quat{}) < 1e-3f, "standing on it: no turn of the view");
+    rig = follow.update(0.4f, yaw_quat(0.4f) * stance, true, dt, turn);
+    near_(rig, 0.1f, "a carve turns the rig with him");
+    check(angle_between(turn, Quat{}) < 1e-3f, "a carve: no turn of the view besides");
+    follow.update(0.4f, yaw_quat(0.4f) * pitch(1.2f) * stance, true, dt, turn);
+    near_(angle_between(turn, Quat{}), 1.2f, "a flip turns the view as far", 2e-3f);
+    near_(yaw_part(turn), 0.0f, "a flip has no yaw", 2e-3f);
+    follow.update(0.4f, yaw_quat(0.4f) * stance, true, dt, turn);
+    check(angle_between(turn, Quat{}) < 1e-3f, "landed: level");
+    float rig_total = follow.update(0.4f, yaw_quat(0.4f + 3.0f) * stance, true, dt, turn);
+    rig_total += follow.update(0.4f + 3.0f, yaw_quat(0.4f + 3.0f) * stance, true, dt, turn);
+    check(angle_between(turn, Quat{}) > 2.5f, "the heading's jump at a spin's end leaves the view where it was");
+    for (int i = 0; i < 400; ++i) {
+        rig_total += follow.update(0.4f + 3.0f, yaw_quat(0.4f + 3.0f) * stance, true, dt, turn);
+    }
+    check(angle_between(turn, Quat{}) < 0.02f, "after the spin the turn goes to the rig");
+    near_(wrap_angle(rig_total), wrap_angle(3.0f), "the rig has the spin", 0.03f);
+
+    // What the view shows: a riding sway not, a trick all, the yaw all.
+    check(angle_between(board_view_turn(pitch(0.12f)), Quat{}) < 1e-3f, "a sway of riding: the view stays level");
+    check(angle_between(board_view_turn(pitch(2.0f)), pitch(2.0f)) < 1e-3f, "a flip: the view goes all the way with it");
+    check(angle_between(board_view_turn(yaw_quat(0.5f) * pitch(0.1f)), yaw_quat(0.5f)) < 1e-3f, "a spin's yaw, all of it");
+    const float mid = angle_between(board_view_turn(pitch(0.5f)), Quat{});
+    check(mid > 0.1f && mid < 0.5f, "between: some of it");
+
+    // The ease: there in a few frames, back to none as the ride ends.
+    BoardView view;
+    for (int i = 0; i < 30; ++i) {
+        view.update(pitch(1.0f), true, dt);
+    }
+    check(view.on && angle_between(view.turn, pitch(1.0f)) < 0.01f, "the view's turn follows in under half a second");
+    view.update(pitch(1.2f), true, dt);
+    check(angle_between(view.turn, pitch(1.0f)) < 0.2f, "no frame jumps");
+    for (int i = 0; i < 60; ++i) {
+        view.update(pitch(1.0f), false, dt);
+    }
+    check(!view.on && angle_between(view.turn, Quat{}) < 1e-3f, "off the board: level again");
+}
+
+// The view's up on Magneboots and what is left when he comes off (rig.h's follow_up, give_up_turn_to_rig).
+void test_surface_turn() {
+    const auto towards = [](Vec3 a, Vec3 b, float t) {
+        const Vec3 v = a * (1.0f - t) + b * t;
+        return v * (1.0f / length(v));
+    };
+    const auto walk = [&](Quat turn, Vec3 from, Vec3 to) {
+        for (int i = 1; i <= 60; ++i) {
+            turn = follow_up(turn, towards(from, to, static_cast<float>(i) / 60.0f));
+        }
+        return turn;
+    };
+    const Vec3 up{0, 1, 0}, wall_x{1, 0, 0}, wall_z{0, 0, 1};
+    // Up a ramp to a wall and straight back down: nothing left.
+    Quat turn = walk(walk(Quat{}, up, wall_x), wall_x, up);
+    float rig = 0.4f;
+    near_(give_up_turn_to_rig(turn, rig), 0.0f, "up the wall and back the same way: no turn left", 1e-3f);
+    near_(rig, 0.4f, "the rig as it was");
+    // Up a wall, round its corner onto the next, and off: a quarter turn about up was left.
+    turn = walk(walk(Quat{}, up, wall_x), wall_x, wall_z);
+    turn = follow_up(turn, up);  // he falls off: up is the world's at once
+    near_(length(rotate(turn, {0, 1, 0}) - up), 0.0f, "off: the view's up is the world's", 1e-3f);
+    near_(std::fabs(angle_between(turn, Quat{})), kPi * 0.5f, "round the corner and off: a quarter turn left", 2e-3f);
+    // The view before the rig takes it, and after: the same, and the head's yaw (the stick's) now the view's.
+    Rig before;
+    before.yaw = 0.4f;
+    const Pose head{{0.1f, 1.6f, -0.2f}, yaw_quat(0.3f)};
+    const Vec3 anchor{5, 2, 1};
+    Pose shown = before.to_frame(head, anchor);
+    shown.position = anchor + rotate(turn, shown.position - anchor);
+    shown.orientation = turn * shown.orientation;
+    Rig after = before;
+    const float given = give_up_turn_to_rig(turn, after.yaw);
+    near_(std::fabs(given), kPi * 0.5f, "the rig takes the quarter turn", 2e-3f);
+    check(turn.x == 0.0f && turn.y == 0.0f && turn.z == 0.0f && turn.w == 1.0f, "the view's own turn is none after");
+    const Pose now = after.to_frame(head, anchor);
+    near_(length(now.position - shown.position), 0.0f, "the eyes where they were shown", 1e-4f);
+    near_(angle_between(now.orientation, shown.orientation), 0.0f, "looking where they looked", 2e-3f);
+    const Vec3 look = rotate(shown.orientation, {0, 0, -1});
+    near_(wrap_angle(world_yaw(after.yaw, head.orientation) - (std::atan2(-look.x, -look.z) + kPi * 0.5f)), 0.0f,
+          "the stick's yaw is where the view looks", 2e-3f);
+    // A half turn the arcs cannot undo (off a ceiling): upright again.
+    Quat flipped{1, 0, 0, 0};
+    flipped = follow_up(flipped, up);
+    float rig2 = 0.0f;
+    give_up_turn_to_rig(flipped, rig2);
+    check(flipped.w == 1.0f, "off a ceiling: upright");
+    // Nothing to give in plain play.
+    Quat none{};
+    float rig3 = 1.0f;
+    near_(give_up_turn_to_rig(none, rig3), 0.0f, "no surface: nothing");
+    near_(rig3, 1.0f, "no surface: the rig untouched");
 }
 
 void test_body_heading() {
@@ -1240,6 +1440,8 @@ int main() {
     test_turret();
     test_ledge_pad();
     test_dive_pad();
+    test_jet_board();
+    test_surface_turn();
     test_body_heading();
     if (g_failures == 0) {
         std::printf("all passed\n");

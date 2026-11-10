@@ -11,33 +11,39 @@
 3176 right_trigger 0
 # Top, then round to the right: the hand's yaw and pitch for each icon, from where the hand is (xr_sim's 0.2 right, 0.35 down),
 # the right hand's wheel being right of the middle.
+# 0.1.18: the wheel opens at the hand, its middle at 399, 298 of the canvas for this hand (it was 399, 207), so the pitches are 10.7 to
+# 11.8 lower than 0.1.17's; the yaws are as they were.
 3200 hand_yaw -11.7
-3201 hand_pitch 23.5
+3201 hand_pitch 12.8
 3260 shot top
 3280 hand_yaw -19.0
-3281 hand_pitch 20.4
+3281 hand_pitch 9.7
 3340 shot topright
 3360 hand_yaw -21.9
-3361 hand_pitch 14.1
+3361 hand_pitch 3.2
 3420 shot right
 3440 hand_yaw -19.0
-3441 hand_pitch 8.1
+3441 hand_pitch -3.4
 3500 shot bottomright
 3520 hand_yaw -11.7
-3521 hand_pitch 5.6
+3521 hand_pitch -6.3
 3580 shot bottom
 3600 hand_yaw -4.0
-3601 hand_pitch 8.5
+3601 hand_pitch -3.6
 3660 shot bottomleft
 3680 hand_yaw -0.7
-3681 hand_pitch 15.2
+3681 hand_pitch 3.4
 3740 shot left
 3760 hand_yaw -4.0
-3761 hand_pitch 21.4
+3761 hand_pitch 10.3
 3820 shot topleft
+# 0.1.18: far past the top icon (about 165 canvas pixels above the middle): "[vr-ring] the dot kept in the wheel".
+3822 hand_yaw -11.7
+3823 hand_pitch 24.0
+3836 shot past
 # Back to the icon on the right, and let go: that weapon comes out as time snaps back.
 3840 hand_yaw -21.9
-3841 hand_pitch 14.1
+3841 hand_pitch 3.2
 3900 right_click 0
 3960 shot after
 4100 quit 0

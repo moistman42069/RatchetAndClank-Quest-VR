@@ -1,0 +1,18 @@
+# 0.1.18: the weapon wheel opened while the Swingshot pulls him (a tester's 0.1.17: opening the wheel let go of the
+# Swingshot). swing.sim's pull on Kerwan (QUEST_SIM_GIVE=12 QUEST_SIM_HOLD=12 QUEST_SIM_NEAR=758 QUEST_SIM_NEAR_AT=10,1,180,
+# --level 3, QUEST_STATE_TRACE=1): the trigger held, the right stick's click held 15 ticks into the pull, the trigger let go
+# later. The hero states 0x24 to 0x26, the pull, go on through the click; then a fresh pull with the wheel open fires
+# nothing (its page's).
+600 y 1
+606 y 0
+3100 shot before
+3200 right_trigger 1
+3212 right_click 1
+3214 shot wheel-open
+3240 shot pulling
+3290 right_trigger 0
+3300 right_trigger 1
+3306 right_trigger 0
+3320 right_click 0
+3360 shot after
+3500 quit 0

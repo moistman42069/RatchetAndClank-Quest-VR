@@ -49,6 +49,7 @@ final class PcSelfTest {
             setup(paths);
             updates(paths, scratch);
             release(paths);
+            shortcut(paths, scratch);
         } catch (Exception e) {
             failed++;
             System.out.println("FAILED: " + e);
@@ -59,6 +60,19 @@ final class PcSelfTest {
         System.out.println(failed == 0 ? "all " + passed + " checks passed" : failed + " of " + (passed + failed)
             + " checks failed");
         return failed == 0 ? 0 : 1;
+    }
+
+    // Create shortcut (0.1.18): a .lnk made where asked, to the release's exe (only the release has one).
+    private static void shortcut(PcPaths paths, File scratch) throws IOException {
+        File exe = new File(paths.install, PcPaths.EXE);
+        if (!exe.isFile()) {
+            System.out.println("(no " + PcPaths.EXE + " here: the shortcut is checked in the release)");
+            return;
+        }
+        File link = new File(scratch, "test shortcut & play.lnk");
+        File made = PcLauncher.writeShortcut(exe, PcLauncher.PLAY_VR, link, PcLauncher.SHORTCUT_VR);
+        check(made.isFile() && made.getCanonicalFile().equals(link.getCanonicalFile()) && made.length() > 0,
+            "a shortcut is made where asked");
     }
 
     private static void json() {
@@ -150,8 +164,18 @@ final class PcSelfTest {
             ids.add(mod.id);
             check(!mod.added, mod.id + " came with the release");
         }
-        for (String id : new String[] {"difficulty", "item-randomizer", "ammo-max", "xbox-icons", "button-swap"}) {
+        for (String id : new String[] {"difficulty", "item-randomizer", "ammo-max", "xbox-icons", "button-swap", "multiplayer",
+                                       "rac-board"}) {
             check(ids.contains(id), "the release carries " + id + " (" + ids + ")");
+        }
+        for (PcMods.Mod mod : list) {
+            if (mod.id.equals("multiplayer") || mod.id.equals("rac-board")) {
+                check(!mods.on(mod), mod.id + " is off until the player turns it on");
+            }
+            if (mod.id.equals("rac-board")) {
+                check(new File(mod.folder, "assets/board.glb").isFile() && new File(mod.folder, "LICENSE").isFile(),
+                    "RAC-Board's models and licence came with it");
+            }
         }
         for (PcMods.Mod mod : list) {
             File manifest = new File(mod.folder, "openrac-mod.json");
@@ -164,7 +188,7 @@ final class PcSelfTest {
 
         check(PcMods.refusal(Json.object("{\"id\": \"x\", \"api\": \"1.11\", \"plugin\": {\"android-arm64\": \"a.so\"}}"))
             .contains("no build for Windows"), "a headset-only mod is refused");
-        check(PcMods.refusal(Json.object("{\"id\": \"x\", \"api\": \"1.12\"}")).contains("1.11"),
+        check(String.valueOf(PcMods.refusal(Json.object("{\"id\": \"x\", \"api\": \"1.15\"}"))).contains("1.14"),
             "a mod for a newer interface is refused");
         check(PcMods.refusal(Json.object("{\"id\": \"quest-vr\", \"api\": \"1.0\"}")) != null, "quest-vr's id is refused");
         check(PcMods.refusal(Json.object("{\"id\": \"script\", \"api\": \"1.3\", \"games\": {\"rac1\": [\"pal\"]}}")) == null,

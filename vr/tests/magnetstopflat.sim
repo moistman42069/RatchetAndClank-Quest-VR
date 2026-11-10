@@ -1,0 +1,25 @@
+# 0.1.18: magnetstop.sim on the 2D screen (QUEST_SETTINGS={"view": "screen"}): the game's own pad, where the menu button is
+# Start and skips the level's opening (Y is Triangle there). The same stick on the wall, let go, pushed again.
+# QUEST_WALK_TRACE and QUEST_STATE_TRACE: whether he holds on the wall (0x3F) with the stick let go, as the game has it.
+# The stick is pulled back: put there, the game's camera faces him (its yaw 0.51, his facing -163 degrees), so back on the
+# stick is his way up the wall (pushed forward he walked away from it, which told nothing).
+600 menu 1
+606 menu 0
+1000 menu 1
+1006 menu 0
+1800 menu 1
+1806 menu 0
+3000 shot foot
+3010 left_y -1
+3050 head_yaw -5
+3060 head_yaw -10
+3070 head_yaw -15
+3200 shot climbing
+3210 left_y 0
+3260 shot stopped
+3330 shot held
+3340 left_y -1
+3460 shot again
+3470 left_y 0
+3530 shot stopped2
+3600 quit 0

@@ -150,4 +150,43 @@ struct Rig {
     void slide_origin(Vec3 delta) { origin = origin + rotate(yaw_quat(-yaw), delta); }
 };
 
+// Rerac-vr's gravity_frame, the view's up on Magneboots (quest_vr.cpp's follow_surface): `turn`, the view's turn about
+// the anchor after the rig's, taken on by the least arc that brings its up to `up` (a unit vector, y up), a frame at a
+// time. A half turn has no least arc: then it waits a frame.
+inline Quat follow_up(Quat turn, Vec3 up) {
+    const Vec3 old = rotate(turn, {0, 1, 0});
+    const Vec3 axis{old.y * up.z - old.z * up.y, old.z * up.x - old.x * up.z, old.x * up.y - old.y * up.x};
+    const float w = 1.0f + old.x * up.x + old.y * up.y + old.z * up.z;
+    if (w <= 0.001f) {
+        return turn;
+    }
+    const float size = std::sqrt(axis.x * axis.x + axis.y * axis.y + axis.z * axis.z + w * w);
+    turn = Quat{axis.x / size, axis.y / size, axis.z / size, w / size} * turn;
+    const float n = std::sqrt(turn.x * turn.x + turn.y * turn.y + turn.z * turn.z + turn.w * turn.w);
+    return {turn.x / n, turn.y / n, turn.z / n, turn.w / n};
+}
+
+// Off the surface the view's up is the world's again, but the arcs that took it along the surface and back can leave it
+// turned about up, by as much as the area its up went round (round a wall's corner and off: a quarter turn). The view
+// showed the world so turned while the stick, the throws, the punches and the room's steps went by the rig's yaw, off
+// by that much until the game was restarted (a PCVR tester on 0.1.17: "magnetic surface controls break the walking
+// directions even after you fall of the walk area"). The rig takes that turn on: the same view, and the head's yaw is
+// the view's again. Any tilt left (a half turn the arcs could not undo) goes too. Returns the turn the rig took, radians,
+// left positive as yaw_quat's.
+inline float give_up_turn_to_rig(Quat& turn, float& rig_yaw) {
+    if (turn.x == 0.0f && turn.y == 0.0f && turn.z == 0.0f) {
+        return 0.0f;
+    }
+    Vec3 along{0, 0, -1};
+    Vec3 now = rotate(turn, along);
+    if (now.x * now.x + now.z * now.z < 0.09f) {  // looking up or down: the turn of a level direction across instead
+        along = {1, 0, 0};
+        now = rotate(turn, along);
+    }
+    const float yaw = wrap_angle(std::atan2(-now.x, -now.z) - std::atan2(-along.x, -along.z));
+    rig_yaw = wrap_angle(rig_yaw + yaw);
+    turn = Quat{};
+    return yaw;
+}
+
 }  // namespace quest

@@ -1,0 +1,22 @@
+# 0.1.18: Ratchet's hand on a held gun (the owner's 0.1.17 pictures: the hand sat ahead of the real one on the Blaster's
+# grip, the handle beside the fingers, not in them; on the Pyrocitor it moved on the handle while walking). Seen as the
+# player sees it, looking down at both hands held alike, the left a fist at its controller as a free hand is: the right
+# palm on the gun where the left's is on nothing. Then walking with the left grip held: both hands stay where they are.
+600 y 1
+606 y 0
+2600 head_pitch -35
+2601 left_grip 1
+2700 shot down
+2710 head_pitch -60
+2760 shot lower
+2775 head_pitch -20
+2800 left_y 1
+2830 shot walk1
+2838 shot walk2
+2846 shot walk3
+2854 shot walk4
+2862 shot walk5
+2870 shot walk6
+2900 left_y 0
+2960 shot stopped
+2970 quit 0

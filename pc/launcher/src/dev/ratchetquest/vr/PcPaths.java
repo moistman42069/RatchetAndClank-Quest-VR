@@ -99,6 +99,8 @@ final class PcPaths {
     File lastReport() { return new File(data(), "quest-last-report.txt"); }
     /** The memory cards, as the game keeps them in its data home: memcard/<serial>, the mods' files beside. */
     File cards(Discs.Disc disc) { return new File(home, "memcard/" + disc.serial); }
+    /** Each mod's own files (the SDK's data_dir, mod-data/<id>), beside the cards as the fork's options.cpp keeps them. */
+    File modFiles() { return new File(home, "memcard/mod-data"); }
     File addedMods() { return new File(home, "added-mods"); }
     File updates() { return new File(home, "updates"); }
     File prefs(String name) { return new File(home, name + ".properties"); }

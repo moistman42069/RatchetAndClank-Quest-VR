@@ -1,0 +1,37 @@
+# 0.1.18: Turning bolts, Trigger or hand: the hand going round the bolt turns it, a bit at a time, either way. Seated as
+# crank.sim (QUEST_SIM_NEAR=280 QUEST_SIM_NEAR_AT=1.2,0, --level 1), the hand swept side to side before it (30 cm each way, a
+# sweep each half second): "[vr-crank] turned N%" rising with each sweep, Ratchet standing still, the stick untouched.
+600 y 1
+606 y 0
+3100 right_grip 1
+3200 shot wrench
+3300 hand_pitch -20
+3320 rh_z -0.5
+3400 shot seated
+3420 rh_x -0.10
+3425 rh_x -0.20
+3430 rh_x -0.30
+3450 rh_x -0.15
+3460 rh_x 0.0
+3470 rh_x 0.15
+3480 rh_x 0.30
+3500 rh_x 0.15
+3510 rh_x 0.0
+3520 rh_x -0.15
+3530 rh_x -0.30
+3550 rh_x -0.15
+3560 rh_x 0.0
+3570 rh_x 0.15
+3580 rh_x 0.30
+3600 shot swept
+3600 rh_x 0.15
+3610 rh_x 0.0
+3620 rh_x -0.15
+3630 rh_x -0.30
+3650 rh_x -0.15
+3660 rh_x 0.0
+3670 rh_x 0.15
+3680 rh_x 0.30
+3700 rh_x 0
+3800 shot after
+4000 quit 0

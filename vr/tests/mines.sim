@@ -1,0 +1,85 @@
+# The Mine Glove's mines, thrown several ways (a tester's picture: "one of my mines became an oval", a mine on the ground
+# drawn about twice as long as wide). QUEST_SIM_GIVE=17 QUEST_SIM_HOLD=17 on Novalis (--level 1), with
+# QUEST_ROWS_TRACE=74: "[sim] rows tick N: slot S class 74 ... (even)" for each mine as it is made and "(UNEVEN)" if its
+# three rows ever differ in length or lean together, which is what draws one stretched. The shots are to be looked at.
+# 0.1.18 on PC, also with QUEST_VR_OPTIONS="world_scale 135": every mine even, its rows square ("lean 0.000"), held,
+# thrown, lying and hit by the wrench; round in the shots. Not reproduced. The game's own code: a held mine copies the
+# glove's joint (flag 0x100), a thrown one has it cleared and its rows built again from its turn and scale; the mod gives
+# a thrown one only its place and speed. The tester's picture was a boss's lava arena (no level or log given).
+# A fast throw by hand, forward and up.
+600 y 1
+606 y 0
+3200 shot ahead
+3300 right_trigger 1
+3350 shot held-1
+3360 rh_z -0.05
+3360 rh_y 0.02
+3361 rh_z -0.10
+3361 rh_y 0.05
+3362 rh_z -0.15
+3362 rh_y 0.08
+3363 rh_z -0.20
+3363 rh_y 0.11
+3364 rh_z -0.25
+3364 rh_y 0.13
+3364 right_trigger 0
+3365 rh_z -0.30
+3365 rh_y 0.15
+3380 shot far-1
+3440 shot far-2
+3500 rh_z 0
+3500 rh_y 0
+# Held and let go without moving: kept in the glove.
+3600 right_trigger 1
+3660 right_trigger 0
+3680 shot kept
+# A gentle lob, about 1.5 m/s: it lands a step ahead.
+3800 right_trigger 1
+3860 rh_z -0.02
+3861 rh_z -0.04
+3862 rh_z -0.06
+3863 rh_z -0.08
+3863 right_trigger 0
+3864 rh_z -0.10
+3900 shot lob-1
+3960 shot lob-2
+4000 rh_z 0
+# The hand rolled and pitched as it throws, the trigger let go mid-turn.
+4100 right_trigger 1
+4150 hand_roll 60
+4155 hand_pitch 30
+4160 rh_z -0.05
+4161 rh_z -0.10
+4162 rh_z -0.15
+4163 rh_z -0.20
+4163 right_trigger 0
+4164 rh_z -0.25
+4200 shot turned-1
+4260 shot turned-2
+4300 rh_z 0
+4300 hand_roll 0
+4300 hand_pitch 0
+# The grip's wrench swung hard, let go, and a mine thrown at once after it.
+4400 right_grip 1
+4440 rh_x 0.30
+4442 rh_x 0.15
+4444 rh_x 0.0
+4446 rh_x -0.15
+4448 rh_x -0.30
+4460 right_grip 0
+4470 rh_x 0
+4480 right_trigger 1
+4540 rh_z -0.05
+4541 rh_z -0.10
+4542 rh_z -0.15
+4543 rh_z -0.20
+4543 right_trigger 0
+4544 rh_z -0.25
+4580 shot after-wrench-1
+4640 shot after-wrench-2
+4700 rh_z 0
+# Looking down at where they lie.
+4760 head_pitch -35
+4800 shot down-1
+4900 shot down-2
+5000 quit 0

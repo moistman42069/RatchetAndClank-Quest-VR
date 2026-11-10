@@ -1,0 +1,42 @@
+# 0.1.18: the PCVR tester's own wall, Orxon's first magnet wall (their 0.1.17 log: on at (270.9 323.9 33.5), stood on it
+# at z 40, fell; third person held to the top at (277.5 332.0 44.6)). QUEST_SIM_OWN=6 QUEST_SIM_GIVE=28 QUEST_SIM_AT=270.7,323.0,33.6,78
+# on --level 10: he walks onto it and up, stands still on it, and goes on along the tester's path in first person, the
+# head turned as a player would: up and right round the wall's bend (normal (0.72 -0.69 0)), level along it to its end
+# (289.9 345.0 45.7), up the end wall and right over its top onto the flat ground (about (291.7 350.9 59.6)), where he
+# stands to the end. The stick held ahead all the way. QUEST_STATE_TRACE: no 0x79 (slipping off), no fall (6) or death
+# (0x7C); QUEST_WALK_TRACE's surface lines: mode 1, magnet 1 up to the end wall. An Orxon enemy may hit him on the way
+# (0x16), and its timing moves the turns a little. No press once he has control: he starts beside his ship, where
+# Triangle opens the map of planets. The sim's frame is about the log's tick + 580.
+600 y 1
+606 y 0
+1000 y 1
+1006 y 0
+3000 shot foot
+3010 left_y 1
+3200 left_y 0
+3230 shot stopped
+3560 shot waited
+3590 head_yaw -5
+3595 head_yaw -10
+3600 head_yaw -13
+3600 left_y 1
+3680 head_yaw -20
+3690 head_yaw -28
+3700 shot again
+3700 head_yaw -36
+3710 head_yaw -45
+3720 head_yaw -55
+3730 head_yaw -62
+3745 head_yaw -70
+3760 head_yaw -78
+3775 head_yaw -81
+3790 head_yaw -81
+4110 head_yaw -60
+4116 head_yaw -40
+4122 head_yaw -20
+4128 head_yaw -8
+4285 head_yaw -25
+4295 head_yaw -45
+4430 left_y 0
+4440 shot top
+4560 quit 0

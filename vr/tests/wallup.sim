@@ -1,6 +1,9 @@
 # Wall run and jump, up the wall (QUEST_VR_OPTIONS="wall_moves 1", at Kerwan's start, a tunnel). Looking at the side wall, he walks
 # to it, and a jump with the stick still pushed into the wall: [vr-wall] "a run up the wall"; his height goes well past a jump's.
-# Then, the stick let go, "on the wall"; the jump button with the head looking up the tunnel: "a wall jump" from up there.
+# Then, the stick let go, he holds on the wall; the jump button with the head looking up the tunnel: "a wall jump" from up there,
+# its "at" well above the ground's z 54.5. A run up the wall climbs for about 36 ticks, holds for 45 more and then slides (kWallClimb*,
+# kWallHoldTicks, kWallHoldMost): the stick is let go as the climb ends and the jump comes while he holds. 0.1.18: at the old times
+# (the stick let go at 3480, the jump at 3570) he was already down ("off the wall after 145 ticks: on the ground"), from 0.1.14 on.
 600 y 1
 606 y 0
 3000 shot before
@@ -8,11 +11,11 @@
 3110 left_y 1
 3320 a 1
 3330 a 0
-3380 shot running-up
-3480 left_y 0
-3500 shot on-it
-3560 head_yaw 0
-3570 a 1
-3576 a 0
-3590 shot leapt
-3900 quit 0
+3345 shot running-up
+3362 left_y 0
+3368 head_yaw 0
+3372 shot on-it
+3380 a 1
+3386 a 0
+3400 shot leapt
+3700 quit 0

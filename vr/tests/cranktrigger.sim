@@ -1,0 +1,17 @@
+# 0.1.18: Turning bolts, Trigger or hand (Moves, the default; a tester's 0.1.17: walking round a bolt was "so nauseating").
+# Seated as crank.sim (Ratchet beside the bolt, class 280: QUEST_SIM_NEAR=280 QUEST_SIM_NEAR_AT=1.2,0, --level 1), the
+# trigger held turns it by itself, Ratchet standing still: "[vr-crank] turned N%" rising to "done: the game finishes it". The
+# trigger throws no wrench while it sits on the bolt (no "[vr-wrench] thrown"). With 'QUEST_VR_OPTIONS=bolt_walk 1' the trigger
+# does nothing to it (and the stick walks him round, crankstick.sim).
+600 y 1
+606 y 0
+3100 right_grip 1
+3200 shot wrench
+3300 hand_pitch -20
+3320 rh_z -0.5
+3400 shot seated
+3450 right_trigger 1
+3600 shot turning
+4200 right_trigger 0
+4250 shot done
+4400 quit 0

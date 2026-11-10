@@ -67,6 +67,11 @@ public final class PcLauncher {
     private int tab = 0;
     /** What became of the last mod file picked, shown on the Game tab. */
     private String modNote = "";
+    /** OpenRAC's mod list once Browse has read it (ModIndex), what Browse is doing, and the mod being added from it. */
+    private volatile ModIndex modIndex;
+    private String browseNote = "";
+    private boolean browsing = false, reading = false;
+    private String adding = "";
     /** Why the last update did not finish, if it did not. */
     private String updateNote = "";
     private volatile Process game;
@@ -113,16 +118,54 @@ public final class PcLauncher {
             });
             System.exit(0);
         }
-        // One launcher at a time: two would set the game up, or start it, over each other.
+        // One launcher at a time: two would set the game up, or start it, over each other. A shortcut's game (--play)
+        // holds the same lock while it runs.
         paths.home.mkdirs();
         RandomAccessFile lockFile = new RandomAccessFile(new File(paths.home, "launcher.lock"), "rw");
         FileLock lock = lockFile.getChannel().tryLock();
         if (lock == null) {
-            JOptionPane.showMessageDialog(null, "The " + TITLE + " launcher is already open.", TITLE,
-                JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(null, "The " + TITLE + " launcher, or the game from one of its shortcuts, is "
+                + "already open.", TITLE, JOptionPane.INFORMATION_MESSAGE);
             return;
         }
+        // A shortcut's start (Play page, Shortcut: a tester keeps all their VR games in Playnite): the game straight away,
+        // with what the launcher has chosen, and no launcher window. Not set up yet: the launcher, which says what to do.
+        if (args.length >= 1 && (args[0].equals(PLAY_VR) || args[0].equals(PLAY_2D))) {
+            String version = PcSetup.installedVersion(paths);
+            if (version != null && Discs.byVersion(version) != null) {
+                System.exit(playDirect(paths, Discs.byVersion(version), args[0].equals(PLAY_VR)));
+            }
+        }
         SwingUtilities.invokeLater(() -> new PcLauncher(paths).open());
+    }
+
+    static final String PLAY_VR = "--play", PLAY_2D = "--play-2d";
+
+    /**
+     * The game as Play starts it (the settings, the mods and the cards the launcher has chosen, its output kept for the
+     * run's log), from a shortcut: waits for it, keeps its log, and says why if VR could not start, as the Play page does.
+     */
+    static int playDirect(PcPaths paths, Discs.Disc disc, boolean vr) {
+        PcRunLog.saveLastRun(paths, "was closed while the launcher was not open, or the launcher was closed first");
+        try {
+            Process process = startGame(paths, new PcConfig(paths), disc, vr, null);
+            int code = process.waitFor();
+            PcRunLog.saveLastRun(paths, "ended with exit code " + code);
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(null, "The game could not be started: " + e.getMessage(), TITLE,
+                JOptionPane.ERROR_MESSAGE);
+            return 1;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return 1;
+        }
+        File status = paths.statusFile();
+        if (status.isFile()) {
+            JOptionPane.showMessageDialog(null, "VR could not start: " + PcRunLog.read(status).trim() + "\n\nThe full "
+                + "report is in " + paths.logs + ". Open the launcher for more.", TITLE, JOptionPane.WARNING_MESSAGE);
+            return 1;
+        }
+        return 0;
     }
 
     private void open() {
@@ -390,11 +433,106 @@ public final class PcLauncher {
         test.add(new Btn("Play in 2D", false, () -> play(disc, false)));
         page.add(test);
 
+        showShortcutCard();
+
         Card other = card();
         other.add(text("Another disc", 16, PcArtwork.INK, true));
         other.add(text("Sets the game up again from another supported disc. Saves are kept.", 14, PcArtwork.MUTED, false));
         other.add(new Btn("Choose another disc image", false, this::chooseDisc));
         page.add(other);
+    }
+
+    // A shortcut that starts the game itself, the launcher's choices and all (a tester: "I'm odd and like to put all my VR
+    // games in a Playnite Setup"): on the desktop, or anywhere, or its command for Playnite or Steam.
+    private void showShortcutCard() {
+        File exe = new File(paths.install, PcPaths.EXE);
+        Card card = card();
+        card.add(text("Shortcut", 16, PcArtwork.INK, true));
+        card.add(text("A shortcut that starts the game straight away, in VR or in 2D, with everything chosen here (Options, "
+            + "Game, Mods): no launcher on the way. Change a choice here and the shortcut plays with it next time. For "
+            + "Playnite, Steam or another library, add " + PcPaths.EXE + " with the command's argument.", 14,
+            PcArtwork.MUTED, false));
+        if (!exe.isFile()) {
+            card.add(text("Only the release's " + PcPaths.EXE + " makes shortcuts.", 13, PcArtwork.MUTED, false));
+            page.add(card);
+            return;
+        }
+        card.add(gap(6));
+        card.add(new Btn("Desktop shortcut: play in VR", false, () -> makeShortcut(exe, PLAY_VR, null)));
+        card.add(gap(4));
+        card.add(new Btn("Desktop shortcut: play in 2D", false, () -> makeShortcut(exe, PLAY_2D, null)));
+        card.add(gap(4));
+        card.add(new Btn("Save a VR shortcut somewhere else", false, () -> {
+            FileDialog pick = new FileDialog(frame, "Save the shortcut", FileDialog.SAVE);
+            pick.setFile(SHORTCUT_VR + ".lnk");
+            pick.setVisible(true);
+            if (pick.getFile() != null) {
+                String name = pick.getFile().toLowerCase(java.util.Locale.ROOT).endsWith(".lnk") ? pick.getFile()
+                    : pick.getFile() + ".lnk";
+                makeShortcut(exe, PLAY_VR, new File(pick.getDirectory(), name));
+            }
+        }));
+        card.add(gap(4));
+        String command = "\"" + exe.getPath() + "\" " + PLAY_VR;
+        card.add(new Btn("Copy the VR command", false, () -> {
+            java.awt.Toolkit.getDefaultToolkit().getSystemClipboard()
+                .setContents(new java.awt.datatransfer.StringSelection(command), null);
+            JOptionPane.showMessageDialog(frame, "Copied:\n" + command + "\n\nIn Playnite: Add Game, Manually; the game's "
+                + "Actions: this file, and " + PLAY_VR + " as its Arguments (" + PLAY_2D + " for 2D).", TITLE,
+                JOptionPane.INFORMATION_MESSAGE);
+        }));
+        page.add(card);
+    }
+
+    static final String SHORTCUT_VR = "Ratchet & Clank VR", SHORTCUT_2D = "Ratchet & Clank VR (2D)";
+
+    /** A Windows shortcut (.lnk) to `exe` with `argument`: `where`, or the desktop's. Says where it went, or why not. */
+    private void makeShortcut(File exe, String argument, File where) {
+        try {
+            File made = writeShortcut(exe, argument, where, argument.equals(PLAY_VR) ? SHORTCUT_VR : SHORTCUT_2D);
+            JOptionPane.showMessageDialog(frame, "Made " + made.getPath() + "\n\nIt starts the game "
+                + (argument.equals(PLAY_VR) ? "in VR" : "in 2D") + " with the launcher's choices.", TITLE,
+                JOptionPane.INFORMATION_MESSAGE);
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(frame, "The shortcut could not be made: " + e.getMessage(), TITLE,
+                JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    /**
+     * Writes the shortcut by Windows' own shell (WScript.Shell, in PowerShell): the paths go in by the environment, never
+     * into the command's text. The desktop is Windows' own for this user (a OneDrive desktop too).
+     */
+    static File writeShortcut(File exe, String argument, File where, String name) throws IOException {
+        String script = "$ErrorActionPreference = 'Stop'; "
+            + "$link = if ($env:RCVR_LINK) { $env:RCVR_LINK } else { Join-Path ([Environment]::GetFolderPath('Desktop')) "
+            + "($env:RCVR_NAME + '.lnk') }; "
+            + "$s = (New-Object -ComObject WScript.Shell).CreateShortcut($link); $s.TargetPath = $env:RCVR_EXE; "
+            + "$s.Arguments = $env:RCVR_ARGS; $s.WorkingDirectory = $env:RCVR_DIR; $s.IconLocation = $env:RCVR_EXE + ',0'; "
+            + "$s.Description = $env:RCVR_NAME; $s.Save(); Write-Output $link";
+        ProcessBuilder builder = new ProcessBuilder("powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script);
+        builder.environment().put("RCVR_EXE", exe.getPath());
+        builder.environment().put("RCVR_ARGS", argument);
+        builder.environment().put("RCVR_DIR", exe.getParent());
+        builder.environment().put("RCVR_NAME", name);
+        builder.environment().put("RCVR_LINK", where != null ? where.getPath() : "");
+        builder.redirectErrorStream(true);
+        Process process = builder.start();
+        String output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8).trim();
+        try {
+            if (process.waitFor() != 0) {
+                throw new IOException(output.isEmpty() ? "PowerShell said no" : output);
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IOException("stopped");
+        }
+        String[] lines = output.split("\\R");
+        File made = new File(lines[lines.length - 1].trim());
+        if (!made.isFile()) {
+            throw new IOException("Windows made no " + made.getPath());
+        }
+        return made;
     }
 
     private void showDiscNeeded() {
@@ -543,6 +681,10 @@ public final class PcLauncher {
         builder.environment().clear();
         builder.environment().putAll(paths.environment());
         builder.environment().put("QUEST_VR_STATUS", paths.statusFile().getPath());
+        // The Multiplayer name and this installation's key, as OpenRAC's launcher gives them (online mods read them).
+        PcMods named = new PcMods(paths);
+        builder.environment().put(PlayerName.ENV, named.playerName());
+        builder.environment().put(PlayerName.KEY_ENV, named.playerKey());
         return builder.start();
     }
 
@@ -679,14 +821,179 @@ public final class PcLauncher {
         about.add(text("Add a mod file takes another OpenRAC mod's .zip: a script mod, a data pack, or a native mod "
             + "with a windows-x86_64 build. Mods are programs: add only ones you trust. Made for a flat screen, some may "
             + "not suit VR.", 13, PcArtwork.MUTED, false));
-        about.add(new Btn("Add a mod file", false, this::chooseMod));
+        about.add(text(ModVr.PAD, 13, PcArtwork.MUTED, false));
+        JPanel buttons = PcWidgets.row(6);
+        buttons.add(new Btn(browsing ? "Hide OpenRAC's mod list" : "Browse OpenRAC's mods", false, this::browseMods));
+        buttons.add(new Btn("Add a mod file", false, this::chooseMod));
+        // The files each mod keeps (a seed, a spoiler log), as OpenRAC's launcher shows them.
+        buttons.add(new Btn("Mod files", false, () -> {
+            try {
+                paths.modFiles().mkdirs();
+                Desktop.getDesktop().open(paths.modFiles());
+            } catch (IOException | RuntimeException e) {
+                modNote = "Could not open the folder: " + paths.modFiles();
+                redraw();
+            }
+        }));
+        buttons.add(new Btn("openrac.dev/mods", false, () -> {
+            try {
+                Desktop.getDesktop().browse(java.net.URI.create(ModIndex.SITE));
+            } catch (IOException | RuntimeException e) {
+                modNote = "Could not open the browser: " + ModIndex.SITE;
+                redraw();
+            }
+        }));
+        about.add(buttons);
         if (!modNote.isEmpty()) {
             about.add(text(modNote, 13, PcArtwork.ORANGE, false));
         }
         page.add(about);
+        if (mods.usesPlayerName()) {
+            showPlayerName();
+        }
+        if (browsing) {
+            showModIndex();
+        }
         for (PcMods.Mod mod : mods.list()) {
             showMod(mod);
         }
+    }
+
+    /**
+     * The Multiplayer name (PlayerName), as OpenRAC's launcher shows it: only while a mod that is on uses it. A name
+     * that is not one is not kept; the last one stays.
+     */
+    private void showPlayerName() {
+        Card card = card();
+        card.add(text("Multiplayer name", 16, PcArtwork.INK, true));
+        card.add(text("What the other players see in Multiplayer. " + PlayerName.MIN + " to " + PlayerName.MAX
+            + " letters, digits or underscores (_), no spaces. Made up at random until you give yours.", 13,
+            PcArtwork.MUTED, false));
+        javax.swing.JTextField name = PcWidgets.field(mods.playerName(), PlayerName.MAX, mods::setPlayerName);
+        name.setToolTipText(null);
+        card.add(name);
+        page.add(card);
+    }
+
+    // ---- Browse: OpenRAC's mod list (ModIndex), each mod added as Add a mod file adds one ----
+
+    private void browseMods() {
+        // Each opening reads the list again, as OpenRAC's launcher does at Check for updates; the list from before
+        // stays on show until the new one is in.
+        browsing = !browsing;
+        if (browsing && !reading) {
+            reading = true;
+            browseNote = modIndex == null ? "Reading OpenRAC's mod list..." : "Checking OpenRAC's mod list again...";
+            new Thread(() -> {
+                String note = "";
+                ModIndex read = null;
+                try {
+                    read = ModIndex.fetch(new File(paths.home, "mod-index"), "RatchetQuestVR-pc-launcher/" + PcBuild.VERSION,
+                        PcMods.PLATFORM, PcMods.API_MAJOR, PcMods.API_MINOR, text -> Json.object(text));
+                } catch (IOException | RuntimeException e) {
+                    note = e.getMessage();
+                }
+                final ModIndex got = read;
+                final String said = note;
+                SwingUtilities.invokeLater(() -> {
+                    reading = false;
+                    if (got != null) {
+                        modIndex = got;
+                    }
+                    browseNote = said;
+                    redraw();
+                });
+            }, "mod-index").start();
+        }
+        redraw();
+    }
+
+    private void showModIndex() {
+        Card head = card();
+        head.add(text("OpenRAC's mods", 16, PcArtwork.INK, true));
+        ModIndex index = modIndex;
+        if (index == null) {
+            head.add(text(browseNote, 13, PcArtwork.MUTED, false));
+            page.add(head);
+            return;
+        }
+        head.add(text("From OpenRAC's own mod list, checked against OpenRAC's signature. Each is the newest version made for "
+            + "this game and this PC; Add puts it with your mods, on, from the game's next start. Mods are programs: "
+            + "add only ones you trust." + (index.offline ? " (Offline: the list from before. " + index.problem + ")" : "")
+            + (index.stale ? " This list is out of date." : ""), 13, PcArtwork.MUTED, false));
+        if (!browseNote.isEmpty()) {
+            head.add(text(browseNote, 13, PcArtwork.ORANGE, false));
+        }
+        page.add(head);
+        List<PcMods.Mod> have = mods.list();
+        for (boolean addable : new boolean[] {true, false}) {
+            for (ModIndex.Offer offer : index.offers) {
+                if ((offer.why == null) != addable) {
+                    continue;
+                }
+                Card card = card();
+                card.add(text(offer.name, 15, addable ? PcArtwork.INK : PcArtwork.MUTED, true));
+                String by = (offer.author.isEmpty() ? "" : "by " + offer.author + "  ") + (offer.version.isEmpty() ? "" : offer.version + "  ")
+                    + offer.kind + (offer.aiAssisted ? "  made with AI help" : "") + (offer.impact.contains("touches-saves") ? "  changes saves" : "")
+                    + (offer.impact.contains("online") ? "  goes online" : "");
+                card.add(text(by.trim(), 12, PcArtwork.MUTED, false));
+                if (!offer.description.isEmpty()) {
+                    card.add(text(offer.description, 13, PcArtwork.MUTED, false));
+                }
+                String vr = ModVr.controls(offer.id);
+                if (vr != null) {
+                    card.add(text(vr, 13, PcArtwork.ORANGE, false));
+                }
+                PcMods.Mod installed = null;
+                for (PcMods.Mod mod : have) {
+                    if (mod.id.equals(offer.id)) {
+                        installed = mod;
+                    }
+                }
+                if (!addable) {
+                    card.add(text(offer.why, 13, PcArtwork.MUTED, false));
+                } else if (installed != null && !installed.added) {
+                    card.add(text("Built in: it is with your mods below.", 13, PcArtwork.MUTED, false));
+                } else if (adding.equals(offer.id)) {
+                    card.add(text("Adding " + offer.name + "...", 13, PcArtwork.ORANGE, false));
+                } else {
+                    String label = installed == null ? "Add " + offer.name
+                        : installed.version.equals(offer.version) ? "Added (" + offer.version + "): add it again"
+                        : "Update to " + offer.version;
+                    card.add(new Btn(label, installed == null, () -> addFromIndex(offer)));
+                    String revoked = installed != null && !installed.version.isEmpty() ? index.revoked(offer.id, installed.version) : null;
+                    if (revoked != null) {
+                        card.add(text("OpenRAC took your version back: " + revoked, 13, PcArtwork.ORANGE, false));
+                    }
+                }
+                page.add(card);
+            }
+        }
+    }
+
+    private void addFromIndex(ModIndex.Offer offer) {
+        if (!adding.isEmpty()) {
+            return;
+        }
+        adding = offer.id;
+        browseNote = "";
+        redraw();
+        new Thread(() -> {
+            String note;
+            try {
+                byte[] bytes = ModIndex.download(offer, "RatchetQuestVR-pc-launcher/" + PcBuild.VERSION);
+                note = "Added " + mods.add(new java.io.ByteArrayInputStream(bytes)) + " " + offer.version
+                    + ". It counts from the game's next start.";
+            } catch (IOException | RuntimeException e) {
+                note = "Not added. " + e.getMessage();
+            }
+            final String said = note;
+            SwingUtilities.invokeLater(() -> {
+                adding = "";
+                browseNote = said;
+                redraw();
+            });
+        }, "add-mod").start();
     }
 
     private void chooseMod() {
@@ -716,8 +1023,12 @@ public final class PcLauncher {
 
     private void showMod(PcMods.Mod mod) {
         Card card = card();
-        card.add(text(mod.name, 16, PcArtwork.INK, true));
+        card.add(text(mod.name + (mod.version.isEmpty() ? "" : "  " + mod.version), 16, PcArtwork.INK, true));
         card.add(text(mod.description, 13, PcArtwork.MUTED, false));
+        String vr = ModVr.controls(mod.id);
+        if (vr != null) {
+            card.add(text(vr, 13, PcArtwork.ORANGE, false));
+        }
         boolean on = mods.on(mod);
         if (on) {
             String problem = PcMods.lastStart(paths.plugins(), mod);
@@ -737,13 +1048,20 @@ public final class PcLauncher {
         }));
         if (on) {
             if (!mod.presets.isEmpty()) {
+                // As OpenRAC's launcher: a Default button of its own (unless a preset is the default), the one whose
+                // values the settings have lit.
                 card.add(text("Presets", 14, PcArtwork.INK, true));
-                String[] names = new String[mod.presets.size()];
-                for (int i = 0; i < names.length; i++) {
-                    names[i] = mod.presets.get(i).name;
+                List<String> names = new ArrayList<>(), values = new ArrayList<>();
+                if (!PcMods.ownDefault(mod)) {
+                    names.add("Default");
+                    values.add(PcMods.DEFAULT);
                 }
-                card.add(choiceRow(names, names, "", value -> {
-                    mods.apply(mod, mod.presets.get(Arrays.asList(names).indexOf(value)));
+                for (int i = 0; i < mod.presets.size(); i++) {
+                    names.add(mod.presets.get(i).name);
+                    values.add(PcMods.presetValue(i));
+                }
+                card.add(choiceRow(names.toArray(new String[0]), values.toArray(new String[0]), mods.lit(mod), value -> {
+                    mods.apply(mod, value.equals(PcMods.DEFAULT) ? null : mod.presets.get(values.indexOf(value) - (PcMods.ownDefault(mod) ? 0 : 1)));
                     redraw();
                 }));
             }
@@ -752,13 +1070,17 @@ public final class PcLauncher {
                 if (!s.help.isEmpty()) {
                     card.add(text(s.help, 12, PcArtwork.MUTED, false));
                 }
-                String current = mods.get(mod, s);
+                String current = mods.shown(mod, s);
                 if (s.stepped()) {
                     card.add(stepper(s, current, value -> {
                         mods.set(mod, s, value);
                         redraw();
                     }));
-                } else if (s.type.equals("string")) {
+                } else if (s.type.equals("string") || s.type.equals("keybind")) {
+                    if (s.type.equals("keybind")) {
+                        card.add(text("Keyboard keys by name, comma-separated (KeyB, Space, MouseMiddle); the controllers "
+                            + "do not use them.", 12, PcArtwork.MUTED, false));
+                    }
                     card.add(PcWidgets.field(current, s.maxLength, value -> mods.set(mod, s, value)));
                 } else {
                     card.add(choiceRow(s.names, s.values, current, value -> {

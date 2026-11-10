@@ -1,0 +1,35 @@
+# 0.1.18, Grab moves: Throw them up high, hook them again up there, Slam them down. The Swingshot in the right hand
+# (QUEST_SIM_GIVE=12 QUEST_SIM_HOLD=12), a Novalis critter 6 units ahead (QUEST_SIM_NEAR=577 QUEST_SIM_NEAR_AT=6,0, --level 1).
+# Caught and reeled in, the hand swung up 30 cm in six frames with the trigger let go at its end: "[vr-grab] thrown up high";
+# it hangs at the top. The hand pitched up at it and the trigger pulled: "the hook out to it in the air", "caught in the air:
+# it hangs on the line". The hand yanked down: "slammed down from the line", then "slammed: the wrench's whole blow to it,
+# half to N near". With 'QUEST_VR_OPTIONS=grab_launch 0' the swing up is a plain throw; with grab_slam 0 the yank down does
+# nothing and it is reeled in after a second ("reeled in from up there").
+600 y 1
+606 y 0
+2600 shot before
+2660 right_trigger 1
+2700 shot held
+2720 rh_y 0.05
+2721 rh_y 0.10
+2722 rh_y 0.15
+2723 rh_y 0.20
+2724 rh_y 0.25
+2725 rh_y 0.30
+2725 right_trigger 0
+2740 shot up
+2745 hand_pitch 65
+2770 shot top
+2772 right_trigger 1
+2790 shot caught-up
+2800 rh_y 0.25
+2801 rh_y 0.20
+2802 rh_y 0.15
+2803 rh_y 0.10
+2804 rh_y 0.05
+2805 rh_y 0.0
+2812 shot slam
+2830 right_trigger 0
+2840 hand_pitch 0
+2860 shot slammed
+3000 quit 0

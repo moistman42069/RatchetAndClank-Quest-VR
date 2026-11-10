@@ -48,6 +48,12 @@ abstract class Options {
             + "Application SpaceWarp), so each picture has twice the time and 90 or 120 Hz holds. Fast moves can smear a "
             + "little at the edges of things. Off: the game draws every frame. On a PC your headset's own smoothing does this.",
         ON_OFF, TRUE_FALSE, "true");
+    static final Choice CPU_GPU_BOOST = new Choice("cpu_gpu_boost", "CPU and GPU boost",
+        "On: the Quest runs its processors at the highest speed it lets a game ask for, so fewer frames are missed. "
+            + "It uses more battery and the headset gets warmer; when it is too warm the Quest slows them again by itself. "
+            + "Off: the usual high speed. Apps such as Quest Games Optimizer can go higher still through developer mode, "
+            + "which a game cannot do on its own.",
+        ON_OFF, TRUE_FALSE, "true");
     static final Choice RESOLUTION = new Choice("resolution", "Eye resolution",
         "Of the headset's recommended size. The biggest effect on performance.",
         new String[] {"70%", "80%", "90%", "100%", "110%", "120%", "130%"},
@@ -81,7 +87,7 @@ abstract class Options {
         "Removes the thin stray lines on leaves and flowers, and the hard straight edge of the dark patch round a "
             + "tree's foot, which fades out instead. Off: those lines and that edge stay.",
         ON_OFF, TRUE_FALSE, "true");
-    static final Choice[] GRAPHICS = {PRESET, REFRESH, KEEP_REFRESH, SPACE_WARP, RESOLUTION, MSAA, FILTER, ANISOTROPY, ORIGINAL_LOD,
+    static final Choice[] GRAPHICS = {PRESET, REFRESH, KEEP_REFRESH, SPACE_WARP, CPU_GPU_BOOST, RESOLUTION, MSAA, FILTER, ANISOTROPY, ORIGINAL_LOD,
         MAX_DRAW, MATCHING_SHADOW, FADES_IN_VIEW, SMOOTH_PLANT_EDGES};
 
     // The port's own options for play (docs/port/SETTINGS.md), beside OpenRAC's mods on the Game tab.
@@ -101,7 +107,8 @@ abstract class Options {
             "a scene without him is seen from its camera. In VR: from the game's camera, in 3D around you. On a screen: the game's " +
             "own framing on a big screen ahead, kinder if camera moves bother you. Movies are always on the screen. " +
             "Through his eyes can now and then show a shot from an odd place, as his eyes are where the scene puts him even when " +
-            "its camera looks elsewhere. X during a cutscene steps through the three, and VR Options in the game has this row too; " +
+            "its camera looks elsewhere. X during a cutscene switches between Through his eyes and In VR (never to the screen), " +
+            "and VR Options in the game has this row too; " +
             "it changes only how cutscenes are seen, never the View you play in.",
         new String[] {"Through his eyes", "In VR", "On a screen"}, new String[] {"eyes", "vr", "screen"}, "eyes");
     static final Choice TURN = new Choice("turn", "Turning", "Smooth is the default. If it makes you queasy, Snap is kinder to most stomachs.",
@@ -247,6 +254,7 @@ abstract class Options {
         settings.put("refresh_hz", Integer.parseInt(get(REFRESH)));
         settings.put("keep_refresh", Boolean.parseBoolean(get(KEEP_REFRESH)));
         settings.put("space_warp", Boolean.parseBoolean(get(SPACE_WARP)));
+        settings.put("cpu_gpu_boost", Boolean.parseBoolean(get(CPU_GPU_BOOST)));
         settings.put("resolution", Double.parseDouble(get(RESOLUTION)));
         return settings;
     }

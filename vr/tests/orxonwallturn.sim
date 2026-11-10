@@ -1,0 +1,24 @@
+# 0.1.18: Orxon's electric barrier seen with the head turned from where the game's camera looks. The barrier's own update
+# adds its draw only while the game's bounding sphere test (FastBSphereCheck) finds it in view and it is within 80 units
+# of the game's camera (platforms_doors_and_bombthrower.c, data_processor_linked_effect_update). QUEST_SIM_OWN=6
+# QUEST_SIM_AT=224.0,289.0,35.2,-62 on --level 10: orxonwall.sim's place, his body turned 70 degrees left of the barrier
+# at (216.0 280.2 35.0); the head turned right onto it in steps, a shot at each. QUEST_STATE_TRACE=1 gives the game's
+# camera and the head ("camera ... head ..."), QUEST_DRAWN_TRACE=1 both each second. The strands in "turned70" as in
+# orxonwall's "ahead": the eye's view test stands for the game's; none there: the game's camera decides.
+# 0.1.18 before the fix (build 35): at turned70 [vr-drawn] head -2.27, camera -1.03 (the game's camera keeps his heading
+# in first person), and only the post's glow drawn, no strands: a barrier the player looks at, unseen. The port's sphere
+# test (wide_view.c, func_L00_00200290) took the eye's view only in the draw lists and three updates; now everywhere
+# under a headset.
+600 y 1
+606 y 0
+1000 y 1
+1006 y 0
+3000 shot ahead
+3010 head_yaw -20
+3020 head_yaw -40
+3030 head_yaw -55
+3040 head_yaw -70
+3060 shot turned70
+3070 head_yaw -35
+3090 shot turned35
+3100 quit 0

@@ -2,14 +2,15 @@
   "format": 2,
   "id": "quest-vr",
   "name": "Quest VR",
-  "version": "0.1.17",
+  "version": "0.1.18",
   "author": "Ratchet & Clank Quest VR contributors",
   "description": "Ratchet & Clank in a standalone headset through OpenXR: first person with head tracking, hand aiming and Touch controllers.",
   "license": "GPL-3.0-or-later",
   "api": "1.10",
   "games": { "rac1": ["pal", "ntsc"] },
+  "multiplayer": "input",
   "hooks": [
-    "rac1.vendor.menu_update",
+    "rac1.vendor.update",
     "rac1.vendor.open",
     "rac1.vendor.close",
     "rac1.menu.backdrop",
@@ -17,7 +18,7 @@
     "rac1.effect.glints_draw",
     "rac1.player.draw_glow",
     "rac1.player.take_damage",
-    "rac1.hud.quick_select_draw",
+    "rac1.hud.quick_select.draw",
     "rac1.hud.frame",
     "rac1.moby.wrench.update",
     "rac1.player.update_motion_input",
@@ -48,7 +49,7 @@
     "rac1.moby.mountable_turret.update",
     "rac1.moby.moby1267.update",
     "rac1.moby.cannon.update",
-    "rac1.hud.quick_select_update",
+    "rac1.hud.quick_select.update",
     "rac1.player.local_point",
     "rac1.text.print_center",
     "rac1.hud.orders_ring_update",
@@ -94,6 +95,7 @@
     { "key": "refresh_hz", "name": "Refresh rate", "type": "int", "default": 72, "min": 60, "max": 120 },
     { "key": "keep_refresh", "name": "Keep the refresh rate", "type": "bool", "default": true },
     { "key": "space_warp", "name": "Smoother frames (AppSW)", "type": "bool", "default": true },
+    { "key": "cpu_gpu_boost", "name": "CPU and GPU boost", "type": "bool", "default": true },
     { "key": "resolution", "name": "Resolution", "type": "float", "default": 1, "min": 0.5, "max": 1.5, "step": 0.05 }
   ]
 }

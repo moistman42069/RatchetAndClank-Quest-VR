@@ -21,8 +21,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 OPENRAC = ROOT / "third_party/OpenRAC"
-# OpenRAC 0.10.1 (develop, 2026-10-30), with patches/*.patch on top.
-OPENRAC_PIN = "293cb5cc05bcbffe06d3c59685488efc806d1bff"
+# OpenRAC develop (2026-11-09, mod interface 1.14), with patches/*.patch on top. Its decompilations are submodules:
+# `python tools/sources.py init` in third_party/OpenRAC checks them out and applies their patches (check_openrac).
+OPENRAC_PIN = "91b67c67b787af1cb8042d2e27ec54b6f2d60ccd"
 PATCHES = ROOT / "patches"
 BUILD_ROOT = Path(os.environ.get("QUEST_BUILD_ROOT", "C:/RACQuest/b"))
 PORT_BUILD = BUILD_ROOT / "port"
@@ -33,12 +34,20 @@ GAMES = ("rac1-pal", "rac1-ntsc")
 # against this OpenRAC's SDK beside the VR mod; the launcher's Game tab turns each on. A checkout at the pin
 # (RAC1_MODS). Their ids and the library each builds (its CMake target).
 RAC1_MODS = Path(os.environ.get("RAC1_MODS", "C:/RACQuest/upstream/rac1-mods"))
-RAC1_MODS_PIN = "6746c402589cec88ed46ccb3bd96dad9360f1983"
+RAC1_MODS_PIN = "458f2f79795e409a711549947ec6854893a34118"
 MODS_BUILD = BUILD_ROOT / "rac1-mods"
+# Multiplayer (Keros's, OpenRAC's online co-op) from 0.1.18, off until the player turns it on, as every bundled mod but
+# Ammo at the most.
 BUNDLED_MODS = {"difficulty": "difficulty", "item-randomizer": "item_randomizer", "ammo-max": "ammo_max",
-                "xbox-icons": "xbox_icons"}
+                "xbox-icons": "xbox_icons", "multiplayer": "multiplayer"}
 # Those that are scripts, with nothing to build: their folder and files.
 BUNDLED_SCRIPT_MODS = {"button-swap": ("openrac-mod.json", "main.luau")}
+# RAC-Board (github.com/mateuszklysz/RAC-Board, MIT): a hoverboard, from 0.1.18 bundled, off until turned on. A checkout
+# at the pin (RAC_BOARD); its package carries models and sounds (assets/) beside the library.
+RAC_BOARD = Path(os.environ.get("RAC_BOARD", "C:/RACQuest/upstream/RAC-Board"))
+RAC_BOARD_PIN = "a10575897243a90d3087271943dd2ff202283bcc"
+RAC_BOARD_ID, RAC_BOARD_TARGET = "rac-board", "rac_board"
+BOARD_BUILD = BUILD_ROOT / "rac-board"
 
 OPENXR_VERSION = "1.1.65"
 OPENXR_SHA1 = "b81c1049f63302428fbf473d1b310de51c32b969"
@@ -73,6 +82,11 @@ def check_openrac() -> None:
             run(["git", "-C", OPENRAC, "apply", patch])
         else:
             sys.exit(f"{patch.name} is neither applied to third_party/OpenRAC nor applies to it cleanly")
+    # The decompilations the games are built from (games/rac1/decomp, ntsc-decomp): without them a game is left out or,
+    # with an old build folder, built from what that folder kept of an older one.
+    for decomp in ("games/rac1/decomp", "games/rac1/ntsc-decomp"):
+        if not (OPENRAC / decomp / "src").is_dir() or not (OPENRAC / decomp / "include").is_dir():
+            sys.exit(f"third_party/OpenRAC/{decomp} is not checked out: run `python tools/sources.py init` there")
     # The launcher takes the level format from editor/port.py (android/app/build.gradle); the game
     # reads kManifestFormat. Apart, every set-up would be refused or never asked for again.
     tool = re.search(r"^FORMAT = (\d+)$", (OPENRAC / "editor/port.py").read_text(encoding="utf8"), re.M)
@@ -140,16 +154,28 @@ def check_rac1_mods() -> None:
     head = subprocess.run(["git", "-C", RAC1_MODS, "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
     if head != RAC1_MODS_PIN:
         sys.exit(f"{RAC1_MODS} is at {head or '(no checkout)'}, not the pinned {RAC1_MODS_PIN} (RAC1_MODS)")
+    board = subprocess.run(["git", "-C", RAC_BOARD, "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
+    if board != RAC_BOARD_PIN:
+        sys.exit(f"{RAC_BOARD} is at {board or '(no checkout)'}, not the pinned {RAC_BOARD_PIN} (RAC_BOARD)")
 
 
 def build_rac1_mods() -> None:
-    """The bundled mods (BUNDLED_MODS) for the headset, against third_party/OpenRAC/sdk."""
-    run(["cmake", "-S", RAC1_MODS, "-B", MODS_BUILD, "-G", "Ninja",
-         f"-DCMAKE_TOOLCHAIN_FILE={toolchain_file()}", "-DCMAKE_BUILD_TYPE=RelWithDebInfo",
-         "-DANDROID_ABI=arm64-v8a", "-DANDROID_PLATFORM=android-29", "-DANDROID_STL=c++_shared",
-         f"-DCMAKE_MAKE_PROGRAM={shutil.which('ninja')}", f"-DOPENRAC_SDK={(OPENRAC / 'sdk').as_posix()}",
-         "-DBUILD_TESTING=OFF", "-Wno-dev"])
-    run(["cmake", "--build", MODS_BUILD, "--target", *BUNDLED_MODS.values()])
+    """The bundled mods (BUNDLED_MODS, and RAC-Board) for the headset, against third_party/OpenRAC/sdk."""
+    for source, out, targets in ((RAC1_MODS, MODS_BUILD, list(BUNDLED_MODS.values())),
+                                 (RAC_BOARD, BOARD_BUILD, [RAC_BOARD_TARGET])):
+        run(["cmake", "-S", source, "-B", out, "-G", "Ninja",
+             f"-DCMAKE_TOOLCHAIN_FILE={toolchain_file()}", "-DCMAKE_BUILD_TYPE=RelWithDebInfo",
+             "-DANDROID_ABI=arm64-v8a", "-DANDROID_PLATFORM=android-29", "-DANDROID_STL=c++_shared",
+             f"-DCMAKE_MAKE_PROGRAM={shutil.which('ninja')}", f"-DOPENRAC_SDK={(OPENRAC / 'sdk').as_posix()}",
+             "-DBUILD_TESTING=OFF", "-Wno-dev"])
+        run(["cmake", "--build", out, "--target", *targets])
+
+
+def bundled_packages() -> dict:
+    """Each bundled native mod's id and its package folder (lib/android-arm64/<target>.so, the manifest, its files)."""
+    packages = {mod_id: (MODS_BUILD / "package" / target, target) for mod_id, target in BUNDLED_MODS.items()}
+    packages[RAC_BOARD_ID] = (BOARD_BUILD / "package" / RAC_BOARD_TARGET, RAC_BOARD_TARGET)
+    return packages
 
 
 def strip_tool() -> Path:
@@ -182,8 +208,8 @@ def stage_libraries(python_target: Path, openxr: Path) -> None:
     shutil.copy2(VR_BUILD / "quest_vr.so", dest / "libquest_vr.so")
     run([strip_tool(), "--strip-debug", dest / "libquest_vr.so"])
     # The bundled mods so too, each from its package (lib/android-arm64/<target>.so).
-    for target in BUNDLED_MODS.values():
-        library = MODS_BUILD / "package" / target / "lib/android-arm64" / f"{target}.so"
+    for package, target in bundled_packages().values():
+        library = package / "lib/android-arm64" / f"{target}.so"
         if not library.is_file():
             sys.exit(f"{library} was not built")
         shutil.copy2(library, dest / f"lib{target}.so")
@@ -222,14 +248,14 @@ def stage_texts() -> None:
     if not manifest:
         sys.exit("the mod's build has no packaged manifest")
     shutil.copy2(manifest[0], assets / "openrac-mod.json")
-    # The bundled mods' packaged manifests (their "plugin" names the library), the launcher's list of them.
+    # The bundled mods' packages but their libraries (stage_libraries): the manifest (its "plugin" names the library),
+    # the launcher's list of them, and each one's own files (RAC-Board's models and sounds), which the launcher copies
+    # to the game's plugins folder as they are.
     shutil.rmtree(assets / "mods", ignore_errors=True)
-    for mod_id, target in BUNDLED_MODS.items():
-        packaged = MODS_BUILD / "package" / target / "openrac-mod.json"
-        if not packaged.is_file():
-            sys.exit(f"{packaged} was not packaged")
-        (assets / "mods" / mod_id).mkdir(parents=True)
-        shutil.copy2(packaged, assets / "mods" / mod_id / "openrac-mod.json")
+    for mod_id, (package, _target) in bundled_packages().items():
+        if not (package / "openrac-mod.json").is_file():
+            sys.exit(f"{package} was not packaged")
+        shutil.copytree(package, assets / "mods" / mod_id, ignore=lambda folder, names: ["lib"] if "lib" in names else [])
     for mod_id, files in BUNDLED_SCRIPT_MODS.items():
         (assets / "mods" / mod_id).mkdir(parents=True)
         for file in files:
@@ -262,10 +288,12 @@ def verify_apk(apk: Path) -> None:
         names = {info.filename: info for info in z.infolist()}
     wanted = [f"lib/arm64-v8a/lib{name}.so" for name in (
         "openrac-rac1-pal", "openrac-rac1-ntsc", "openrac-rac1-pal-cli", "openrac-rac1-ntsc-cli",
-        "openrac-python", "python3.13", "SDL3", "c++_shared", "openxr_loader", "quest_vr", *BUNDLED_MODS.values())]
+        "openrac-python", "python3.13", "SDL3", "c++_shared", "openxr_loader", "quest_vr", *BUNDLED_MODS.values(),
+        RAC_BOARD_TARGET)]
     wanted += [f"assets/{name}" for name in (
         "openrac.zip", "openrac-mod.json", "credits.txt", "controls.txt", "menus.txt", "whats_new.txt", "third_party_notices.txt")]
-    wanted += [f"assets/mods/{mod_id}/openrac-mod.json" for mod_id in BUNDLED_MODS]
+    wanted += [f"assets/mods/{mod_id}/openrac-mod.json" for mod_id in bundled_packages()]
+    wanted += [f"assets/mods/{RAC_BOARD_ID}/assets/{name}" for name in ("board.glb", "board.png", "sounds/board-wind.wav")]
     missing = [name for name in wanted if name not in names]
     if missing:
         sys.exit(f"{apk.name} lacks: {missing}")

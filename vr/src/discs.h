@@ -120,7 +120,7 @@ typedef struct quest_disc {
     uint32_t vendor_close;
     uint32_t vendor_close_size;
     uint32_t hero_set_state;
-    /* Level 0's program's: the quick select ring's width and height (the draw's, Hud_QuickSelectDraw). */
+    /* Level 0's program's: the quick select ring's width and height (the draw's, Hud_QuickSelect_Draw). */
     uint32_t ring_size;
     /* A HUD icon's frame by its icon and variant, by name (get_icon_frame). */
     const char* icon_frame;

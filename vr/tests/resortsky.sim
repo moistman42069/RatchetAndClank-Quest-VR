@@ -1,0 +1,37 @@
+# 0.1.18: Pokitaru's sky (a tester's 0.1.17 video at the resort: the sky went flat cyan at some angles of the head).
+# Two class 1161 mobys there have rows thousands of units long (turned past the reach of the game's sine); the game
+# never draws them, and the port's draw-distance test kept them out for the game's camera only. The head turns all
+# the way round, level and looking up: no shot should show a flat cyan cover over the sky or the ground.
+3000 shot start
+3010 head_yaw 30
+3040 shot y30
+3050 head_yaw 60
+3080 shot y60
+3090 head_yaw 90
+3120 shot y90
+3130 head_yaw 120
+3160 shot y120
+3170 head_yaw 150
+3200 shot y150
+3210 head_yaw 180
+3240 shot y180
+3250 head_yaw -150
+3280 shot y210
+3290 head_yaw -120
+3320 shot y240
+3330 head_yaw -90
+3360 shot y270
+3370 head_yaw -60
+3400 shot y300
+3410 head_yaw -30
+3440 shot y330
+3450 head_yaw 0
+3451 head_pitch 35
+3480 shot up
+3490 head_yaw 90
+3520 shot up90
+3530 head_yaw 180
+3560 shot up180
+3570 head_yaw -90
+3600 shot up270
+3610 quit 0

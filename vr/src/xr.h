@@ -30,6 +30,10 @@ struct XrSettings {
     // Smoother frames (Application SpaceWarp, XR_FB_space_warp, from 0.1.17): the game draws every other frame and the
     // headset makes the ones between from the last and how its pixels moved. Where the runtime has it (the Quest's).
     bool space_warp = true;
+    // CPU and GPU boost (0.1.18, the owner's ask for Quest Games Optimizer's highest speeds): the processors at the
+    // highest level the runtime lets an app ask for (XR_EXT_performance_settings' boost) rather than sustained high. Tools
+    // such as Quest Games Optimizer go further through the developer shell, which no app can do itself.
+    bool cpu_gpu_boost = true;
 };
 
 // Smoother frames: an eye's motion and depth images to draw this frame (GL textures of the game's context).
@@ -114,6 +118,9 @@ public:
 
     // What this frame's motion pass drew, told before its finish_frame; not told: nothing.
     virtual void space_warp(const SpaceWarpFrame& warp) { (void)warp; }
+
+    // In how many nanoseconds the next frame begin_frame begins is predicted to be shown; 0: it cannot say.
+    virtual std::int64_t next_display_in() { return 0; }
 
     virtual void haptic(Hand hand, float strength, float seconds, float hertz) = 0;
 

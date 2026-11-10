@@ -1,0 +1,35 @@
+# 0.1.18: scenery ahead of a flown ship (a PCVR tester's 0.1.17 log on Pokitaru: "during ship flight a building popped
+# into existence seconds before i crashed into it"). Boarded as shipboard.sim boards it (QUEST_SIM_NEAR at the ship, the
+# pilot's helmet given, item 7), then flown straight ahead from the cockpit, a shot every third of a second: what shows
+# far ahead in one shot should show in the next, nothing appearing close. Run again with OPENRAC_PVS_OFF=1 to compare.
+600 y 1
+606 y 0
+2950 right_click 1
+2958 right_click 0
+3700 shot seated
+3720 shot f00
+3740 shot f01
+3760 shot f02
+3780 shot f03
+3800 shot f04
+3820 shot f05
+3840 shot f06
+3860 shot f07
+3880 shot f08
+3900 shot f09
+3920 shot f10
+3940 shot f11
+3960 shot f12
+3980 shot f13
+4000 shot f14
+4020 shot f15
+4040 shot f16
+4060 shot f17
+4080 shot f18
+4100 shot f19
+4120 shot f20
+4140 shot f21
+4160 shot f22
+4180 shot f23
+4200 shot f24
+4300 quit 0

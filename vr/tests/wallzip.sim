@@ -3,6 +3,10 @@
 # aimed at the tunnel's side wall, the trigger held: "a pull to", then [vr-wall] "on the wall", and he stays up, no stick touched.
 # Looking back along the tunnel, the jump button: "a wall jump", its way the look's, and when he lands "came down", a degree or two off
 # its way. The second zip's arrival has the stick along the wall: "a wall run", still going level after a second.
+# 0.1.18, both runs (the start as 0.1.17's and 2 degrees off it): zip, "on the wall", the wall jump and "came down ... 0.0
+# degrees off its way" as above, but the leap lands him at about (259.3 93.3), back out of the tunnel's start, and the second
+# zip, aimed where the side wall is inside, says "nothing within the reach of the aim": no wall run. The wall jump's code is
+# 0.1.17's; no older summary of this run is kept to compare. The second zip wants an aim from where he lands.
 600 y 1
 606 y 0
 3000 shot before

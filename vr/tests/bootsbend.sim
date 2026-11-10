@@ -1,0 +1,52 @@
+# 0.1.18: the boots on bent legs (a tester on 0.1.17, the Grindboots: "the angle on the ankle part is cursed"). As boots.sim,
+# QUEST_SIM_GIVE=28 owns the Magneboots (worn as the Grindboots are; 29 is not on the grid's first cell), equipped by the hand on the Gadgets page's Foot Items grid; back in play the hands
+# out to the sides, the head straight down at the feet: standing, then the head 15 cm lower (his knees bend, not yet a
+# crouch) and 25 cm lower; then from his right side (xr_sim view_free) standing, 15 and 25 cm lower, and 25 cm lower from his left. Each shot: the boot's cuff along his shin, its sole on the ground.
+600 y 1
+606 y 0
+3000 y 1
+3006 y 0
+3120 hand_pitch 23.4
+3180 right_trigger 1
+3186 right_trigger 0
+3320 hand_pitch -12.9
+3320 hand_yaw 17
+3360 right_trigger 1
+3366 right_trigger 0
+3460 shot boots-equipped
+3480 b 1
+3486 b 0
+3580 y 1
+3586 y 0
+3700 hand_pitch 0
+3700 hand_yaw 0
+3720 rh_x 0.45
+3720 lh_x -0.45
+3740 head_pitch -80
+3800 shot feet
+3820 head_y -0.15
+3880 shot feet-low
+3900 head_y -0.25
+3960 shot feet-lower
+3980 head_y 0
+3990 head_pitch -45
+4040 shot feet-ahead
+4060 head_pitch 0
+4070 view_free 1
+4071 view_x 1.3
+4072 view_y -0.5
+4073 view_yaw 90
+4074 view_pitch -20
+4120 shot side
+4140 head_y -0.15
+4141 view_y -0.35
+4200 shot side-low
+4220 head_y -0.25
+4221 view_y -0.25
+4280 shot side-lower
+4300 view_x -1.3
+4301 view_yaw -90
+4360 shot side-lower-left
+4380 head_y 0
+4381 view_free 0
+4420 quit 0

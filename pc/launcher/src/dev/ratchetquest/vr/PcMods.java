@@ -27,7 +27,7 @@ final class PcMods {
     /** Those on unless the player turns them off: a convenience that changes no rule of the game. */
     private static final List<String> ON_BY_DEFAULT = Arrays.asList("ammo-max");
     /** The mod interface this game offers (sdk/include/openrac/openrac_mod.h): a mod for a newer minor is refused. */
-    static final int API_MAJOR = 1, API_MINOR = 11;
+    static final int API_MAJOR = 1, API_MINOR = 14;
     /** The build a native mod needs on this PC, its manifest's "plugin" key. */
     static final String PLATFORM = "windows-x86_64";
     private static final String MANIFEST = "openrac-mod.json";
@@ -56,19 +56,20 @@ final class PcMods {
         boolean stepped() { return type.equals("int") || type.equals("float"); }
     }
 
-    /** A manifest's preset: some settings' values, the others back to their defaults. */
+    /** A manifest's preset: some settings' values, the others it covers back to their defaults (settings.md). */
     static final class Preset {
-        final String name;
+        final String id, name;
         final Map<String, String> values;
 
-        Preset(String name, Map<String, String> values) {
+        Preset(String id, String name, Map<String, String> values) {
+            this.id = id;
             this.name = name;
             this.values = values;
         }
     }
 
     static final class Mod {
-        final String id, name, description;
+        final String id, name, description, version;
         final List<Setting> settings;
         final List<Preset> presets;
         /** Its folder as it came: in the release's mods, or added-mods. */
@@ -76,10 +77,11 @@ final class PcMods {
         /** Added by the player from a file, not carried in the release. */
         boolean added;
 
-        Mod(String id, String name, String description, List<Setting> settings, List<Preset> presets) {
+        Mod(String id, String name, String description, String version, List<Setting> settings, List<Preset> presets) {
             this.id = id;
             this.name = name;
             this.description = description;
+            this.version = version;
             this.settings = settings;
             this.presets = presets;
         }
@@ -292,7 +294,10 @@ final class PcMods {
         List<Setting> settings = new ArrayList<>();
         List<Object> list = Json.array(manifest.get("settings"));
         for (int i = 0; list != null && i < list.size(); i++) {
-            settings.add(setting(Json.object(list.get(i))));
+            Setting s = setting(Json.object(list.get(i)));
+            if (s != null) {
+                settings.add(s);
+            }
         }
         List<Preset> presets = new ArrayList<>();
         List<Object> given = Json.array(manifest.get("presets"));
@@ -306,15 +311,21 @@ final class PcMods {
             for (Map.Entry<String, Object> entry : values.entrySet()) {
                 map.put(entry.getKey(), Json.plain(entry.getValue()));
             }
-            presets.add(new Preset(Json.string(preset, "name", Json.string(preset, "id", "")), map));
+            String presetId = Json.string(preset, "id", "");
+            presets.add(new Preset(presetId, Json.string(preset, "name", presetId), map));
         }
-        return new Mod(id, Json.string(manifest, "name", id), Json.string(manifest, "description", ""), settings,
-            presets);
+        return new Mod(id, Json.string(manifest, "name", id), Json.string(manifest, "description", ""),
+            Json.string(manifest, "version", ""), settings, presets);
     }
 
+    /** A setting of the manifest; null for one only other games show (settings.md: the mod gets its default here). */
     private static Setting setting(Map<String, Object> s) {
         if (s == null || !(s.get("key") instanceof String) || !(s.get("type") instanceof String)) {
             throw new IllegalArgumentException("a setting without a key or a type");
+        }
+        List<Object> games = Json.array(s.get("games"));
+        if (games != null && !games.contains("rac1")) {
+            return null;
         }
         String key = (String) s.get("key");
         String type = (String) s.get("type");
@@ -364,6 +375,9 @@ final class PcMods {
                 int maxLength = most instanceof BigDecimal ? ((BigDecimal) most).intValue() : 64;
                 return new Setting(key, name, type, help, fallback, new String[0], new String[0], maxLength);
             }
+            case "keybind":
+                // Keys and mouse buttons by name, comma-separated (settings.md: "KeyW,ArrowUp"), "" for none: a field.
+                return new Setting(key, name, type, help, fallback, new String[0], new String[0], 64);
             default:
                 throw new IllegalArgumentException("a setting of type " + type);
         }
@@ -380,7 +394,7 @@ final class PcMods {
     /** A setting's value: the stored one if the manifest still offers it, else its default. */
     String get(Mod mod, Setting s) {
         String value = prefs.getString(mod.id + "." + s.key, s.fallback);
-        if (s.type.equals("string")) {
+        if (s.type.equals("string") || s.type.equals("keybind")) {
             return value.length() > s.maxLength ? value.substring(0, s.maxLength) : value;
         }
         if (s.stepped()) {
@@ -394,18 +408,140 @@ final class PcMods {
     }
 
     void set(Mod mod, Setting s, String value) {
+        // The Multiplayer name typed back as it is shown stays the placeholder, so it follows the name (OpenRAC's
+        // set_setting).
+        if (named(s) && value.equals(playerName())) {
+            value = PlayerName.PLACEHOLDER;
+        }
         prefs.putString(mod.id + "." + s.key, value);
     }
 
-    /** A preset's values, the settings it does not name back to their defaults. */
+    // ---- The Multiplayer name and key (PlayerName), as OpenRAC's launcher keeps them ----
+
+    private static final String NAME = "#player_name", KEY = "#player_key";
+
+    /** A string setting whose default is the player's Multiplayer name. */
+    static boolean named(Setting s) {
+        return s.type.equals("string") && s.fallback.equals(PlayerName.PLACEHOLDER);
+    }
+
+    /** The player's Multiplayer name: a random one, kept, until they give their own. */
+    String playerName() {
+        String name = prefs.getString(NAME, "");
+        if (!PlayerName.valid(name)) {
+            name = PlayerName.random();
+            prefs.putString(NAME, name);
+        }
+        return name;
+    }
+
+    /** Gives the player's own name; why not, in their words, or null when it is theirs now. */
+    String setPlayerName(String name) {
+        String why = PlayerName.refusal(name);
+        if (why == null) {
+            prefs.putString(NAME, name);
+        }
+        return why;
+    }
+
+    /** This installation's key, made once. */
+    String playerKey() {
+        String key = prefs.getString(KEY, "");
+        if (!PlayerName.validKey(key)) {
+            key = PlayerName.newKey();
+            prefs.putString(KEY, key);
+        }
+        return key;
+    }
+
+    /** Whether a mod that is on uses the Multiplayer name (the bundled Multiplayer does): then the launcher shows it. */
+    boolean usesPlayerName() {
+        for (Mod mod : list()) {
+            if (on(mod) && mod.settings.stream().anyMatch(PcMods::named)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** A setting's value as the launcher shows it: the Multiplayer name in place of a placeholder still unset. */
+    String shown(Mod mod, Setting s) {
+        String value = get(mod, s);
+        return named(s) && value.equals(PlayerName.PLACEHOLDER) ? playerName() : value;
+    }
+
+    /** The Default button's value, and each preset's (presetValue). */
+    static final String DEFAULT = "#default";
+
+    static String presetValue(int index) {
+        return "#" + index;
+    }
+
+    /** A preset with the id `default` takes the place of the Default button (settings.md). */
+    static boolean ownDefault(Mod mod) {
+        for (Preset p : mod.presets) {
+            if (p.id.equals("default")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** What a preset covers (settings.md): every keybind, and each setting one of the mod's presets names. */
+    static boolean covered(Mod mod, Setting s) {
+        if (s.type.equals("keybind")) {
+            return true;
+        }
+        for (Preset p : mod.presets) {
+            if (p.values.containsKey(s.key)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** The value `preset` (null: the defaults) gives `s`, as get spells it. */
+    private static String presetGives(Preset preset, Setting s) {
+        String value = preset != null && preset.values.containsKey(s.key) ? preset.values.get(s.key) : s.fallback;
+        if (s.stepped()) {
+            try {
+                value = new BigDecimal(value).stripTrailingZeros().toPlainString();
+            } catch (NumberFormatException e) {
+                value = s.fallback;
+            }
+        }
+        return value;
+    }
+
+    /**
+     * A preset's values (null: the Default button's), the settings it covers but does not name back to their defaults;
+     * a setting no preset names (a Trace switch, a seed) keeps the player's value, as OpenRAC's launcher does.
+     */
     void apply(Mod mod, Preset preset) {
         for (Setting s : mod.settings) {
-            String value = preset.values.containsKey(s.key) ? preset.values.get(s.key) : s.fallback;
-            if (s.stepped()) {
-                value = new BigDecimal(value).stripTrailingZeros().toPlainString();
+            if (covered(mod, s)) {
+                prefs.putString(mod.id + "." + s.key, presetGives(preset, s));
             }
-            prefs.putString(mod.id + "." + s.key, value);
         }
+    }
+
+    /** The button whose values the settings have: DEFAULT, a presetValue, or "" for none. */
+    String lit(Mod mod) {
+        for (int i = 0; i < mod.presets.size(); i++) {
+            if (has(mod, mod.presets.get(i))) {
+                return presetValue(i);
+            }
+        }
+        return !ownDefault(mod) && has(mod, null) ? DEFAULT : "";
+    }
+
+    private boolean has(Mod mod, Preset preset) {
+        for (Setting s : mod.settings) {
+            if (covered(mod, s) && !get(mod, s).equals(presetGives(preset, s))) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /** The settings as the game reads them: each in its manifest's type. */

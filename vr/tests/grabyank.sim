@@ -1,0 +1,20 @@
+# 0.1.18, Grab moves: Fling while reeling in, its yank back ("get over here"). As grabfling.sim: the Swingshot in the
+# right hand (QUEST_SIM_GIVE=12 QUEST_SIM_HOLD=12), a Novalis critter 12 units ahead from its far side
+# (QUEST_SIM_NEAR=577 QUEST_SIM_NEAR_AT=12,0,180, --level 1), the trigger pulled at 2660. The hook catches it, and while
+# it still comes a yank back toward you (the hand back 30 cm in six frames) reels it in twice as fast: "[vr-grab] a yank
+# back at X m/s: it comes twice as fast". With 'QUEST_VR_OPTIONS=grab_fling 0' the yank does nothing.
+600 y 1
+606 y 0
+2600 shot before
+2660 right_trigger 1
+2670 rh_z 0.05
+2671 rh_z 0.10
+2672 rh_z 0.15
+2673 rh_z 0.20
+2674 rh_z 0.25
+2675 rh_z 0.30
+2680 shot yanked
+2710 rh_z 0
+2760 right_trigger 0
+2800 shot held
+3000 quit 0

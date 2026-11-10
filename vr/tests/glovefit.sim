@@ -1,0 +1,31 @@
+# 0.1.18: what is worn on a hand meets the forearm (the owner: the gloves and Grindboots fitted, "and any other similar
+# things"): run with an item in each hand (QUEST_SIM_GIVE, QUEST_SIM_HOLD the right's, QUEST_SIM_LEFT the left's): the
+# four throwing gloves (Bomb, Mine, Doom, Decoy), the Walloper's fist and the Swingshot's wrist housing. Both hands a
+# little up and ahead; shots through the eyes looking at them, then (xr_sim view_free) from each hand's own side, half a
+# metre off: the cuff or housing on the wrist, the forearm going into it, no gap and no wrung wrist.
+600 y 1
+606 y 0
+3000 rh_y 0.15
+3001 rh_z -0.1
+3002 lh_y 0.15
+3003 lh_z -0.1
+3050 head_pitch -20
+3100 shot eyes
+3110 view_free 1
+3111 view_x 0.75
+3112 view_y -0.25
+3113 view_z -0.35
+3114 view_yaw 90
+3115 view_pitch -5
+3160 shot right
+3170 view_x -0.75
+3171 view_yaw -90
+3220 shot left
+3230 view_x 0
+3231 view_y 0.25
+3232 view_z -0.9
+3233 view_yaw 180
+3234 view_pitch -25
+3280 shot front
+3290 view_free 0
+3350 quit 0

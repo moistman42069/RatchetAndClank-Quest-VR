@@ -100,6 +100,14 @@ struct PadContext {
     bool raw_stick = false;          // the stick steers a Visibomb missile: not turned by the head
     bool board = false;              // on the hoverboard: boost, tricks, and the stick steers it
     bool board_steers = false;       // on it and not spinning in a trick: the stick's x turns it about its own heading
+    // RAC-Board's board (vr/src/board.h; `board` above is the game's own hoverboard). Riding it, the hands are its
+    // buttons and nothing of the game's play: A its jump (Cross), the right trigger its spins and flips, the right grip
+    // its grind, the left trigger or grip its grab, each on the button its settings chose; Y the pause, X the map. In
+    // first person the stick is about the board's heading (RAC-Board's own frame), which the view follows: forward keeps on its way.
+    bool jet_board = false;
+    std::uint16_t jet_trick = 0, jet_grind = 0, jet_grab = 0;
+    std::uint16_t jet_toggle = 0;    // its "Board on and off", pressed now (a hand reached behind the back, its stick clicked)
+    float jet_yaw = 0;               // the board's heading (his, as RAC-Board turns him)
     bool third_person_walk = false;  // third person on foot: forward on the stick is where the head looks (rerac-vr-3p)
     float head_turn = 0;             // how far the head has turned from the game's camera's heading
     float board_yaw = 0;             // its heading
@@ -280,6 +288,30 @@ public:
         if (context.view_held) {
             c.x = false;
         }
+        if (context.jet_board) {
+            set(out, c.a, kPadCross);
+            if (right_fire) {
+                out.held = static_cast<std::uint16_t>(out.held | context.jet_trick);
+            }
+            if (wrench) {
+                out.held = static_cast<std::uint16_t>(out.held | context.jet_grind);
+            }
+            if (left_fire || left_squeeze) {
+                out.held = static_cast<std::uint16_t>(out.held | context.jet_grab);
+            }
+            set(out, c.y, kPadStart);
+            set(out, c.x, kPadSelect);
+            out.held = static_cast<std::uint16_t>(out.held | context.jet_toggle);
+            // The stick goes as it is: riding, RAC-Board takes it about the board's own heading (measured on PC: turned from
+            // the game's camera to the heading, forward turned the board round and round; as it is, forward keeps its way).
+            out.left_x = left_x;
+            out.left_y = left_y;
+            if (!context.first_person) {
+                out.right_x = right_x;
+                out.right_y = right_y;
+            }
+            return out;
+        }
 
         // At the vendor on foot the trigger and the right stick's click are the shop's, which the mod sends to its
         // update alone; a pull that was the shop's fires nothing after it, until let go (game_input.rs).
@@ -340,8 +372,13 @@ public:
         set(out, c.b, context.mounted || context.disguised ? kPadSquare : kPadR2);
         set(out, context.disguised && c.a, kPadSquare);
         set(out, c.x, context.mounted ? kPadCircle : kPadSelect);
-        // The ring's page takes the trigger: it fires nothing there, nor after until let go.
-        m_ring_trigger = fire && (m_ring_trigger || context.quick_select);
+        // The ring's page takes the trigger: it fires nothing there, nor after until let go. One already held as the ring
+        // opens is not the page's (the mod's s_page_trigger), and stays the game's fire until let go: hanging from the
+        // Swingshot, opening the wheel let go of it (0.1.18, a tester's ask).
+        const bool ring_opened = context.quick_select && !m_ring_was;
+        m_ring_was = context.quick_select;
+        m_ring_kept = fire && (m_ring_kept || (ring_opened && !m_ring_trigger));
+        m_ring_trigger = fire && !m_ring_kept && (m_ring_trigger || context.quick_select);
         // Hanging, the trigger is the free hand's gun's, which the mod runs: the game's fire would let go.
         if ((fire && !m_ring_trigger && !context.trigger_held_back && !context.throw_by_hand && !context.ledge) || context.punch) {
             out.held = static_cast<std::uint16_t>(out.held | (context.flying ? kPadSquare : kPadCircle));
@@ -381,6 +418,7 @@ public:
             out.right_x = right_x;
             out.right_y = right_y;
         }
+        out.held = static_cast<std::uint16_t>(out.held | context.jet_toggle);
 
         return out;
     }
@@ -412,6 +450,8 @@ private:
 
     Latch m_right_trigger, m_left_trigger, m_right_grip, m_left_grip;
     bool m_ring_trigger = false;
+    bool m_ring_was = false;   // the ring open the last time
+    bool m_ring_kept = false;  // the trigger held as the ring opened: the game's still
     bool m_shop_trigger = false;
     bool m_menu_trigger = false;
     bool m_utility_down = false, m_utility_spent = false;

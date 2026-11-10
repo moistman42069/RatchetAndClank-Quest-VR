@@ -1,0 +1,31 @@
+# 0.1.18, Grab moves: Zip to them in the air. The Swingshot in the right hand (QUEST_SIM_GIVE=12 QUEST_SIM_HOLD=12), an
+# enemy of a level with the game's Swingshot pull (not Novalis): Eudora's Blarg trooper (QUEST_SIM_NEAR=427 QUEST_SIM_NEAR_AT=6,0, --level 4; Y at 1150 skips its arrival movie; he is put before it at about frame 1990 and its troopers soon wear him down, so the pull comes at once), or another
+# by QUEST_SIM_NEAR. Caught, thrown up high, hooked again up there as in grabslam.sim; then the jump (A): "[vr-grab] the zip
+# up to it" and the game's pull ("[vr-swing] anywhere: a pull to"), then "the zip's blow: the wrench's whole blow to it" as
+# he reaches it, and he drops off the line. With 'QUEST_VR_OPTIONS=grab_zip 0' the jump is a jump, and it is reeled in.
+600 y 1
+606 y 0
+1150 y 1
+1156 y 0
+2050 shot before
+2110 right_trigger 1
+2150 shot held
+2170 rh_y 0.05
+2171 rh_y 0.10
+2172 rh_y 0.15
+2173 rh_y 0.20
+2174 rh_y 0.25
+2175 rh_y 0.30
+2175 right_trigger 0
+2195 hand_pitch 65
+2222 right_trigger 1
+2240 shot caught-up
+2245 a 1
+2250 a 0
+2260 shot zip
+2290 shot reached
+2330 right_trigger 0
+2340 hand_pitch 0
+2340 rh_y 0
+2400 shot after
+2550 quit 0

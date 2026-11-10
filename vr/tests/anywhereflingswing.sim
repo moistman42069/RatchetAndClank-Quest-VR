@@ -4,6 +4,8 @@
 # past its ceiling (62.7) or floor (54.5). A slow hand does nothing. Let go, the speed goes on.
 600 y 1
 606 y 0
+# 0.1.18: play keeps the arrival scene's heading (he turns to 0.67, not 1.57), so regress.sh begins Kerwan's runs as 0.1.17
+# did, recentred on his facing (QUEST_TEST_NO_HANDOVER=1, a PC test switch): the aims here were worked out for that.
 3000 shot before
 3400 hand_pitch 40
 3500 left_trigger 1

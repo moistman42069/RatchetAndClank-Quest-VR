@@ -1,0 +1,13 @@
+# 0.1.18: each level visited and looked round, for the port's rule against mobys with an axis 1000 units long (Pokitaru's
+# cyan sky): with Max draw distance on, nearly every moby of the level passes it, and each one left out is logged once,
+# "moby 0x... (class N) on level L left out". Run with --level for each level; only Pokitaru's two class 1161 should show.
+600 y 1
+606 y 0
+2300 head_yaw 90
+2340 head_yaw 180
+2380 head_yaw 270
+2420 head_yaw 0
+2440 head_pitch -50
+2480 head_pitch 40
+2520 head_pitch 0
+2600 quit 0

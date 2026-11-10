@@ -1,0 +1,42 @@
+# A mine that goes after an enemy, looked at as it goes (a tester's picture: "one of my mines became an oval", the mine
+# lying between them and the boss, where an armed mine seeks its target; mines.sim only looks at mines lying still).
+# QUEST_SIM_GIVE=17 QUEST_SIM_HOLD=17 QUEST_SIM_NEAR=427 QUEST_SIM_NEAR_AT=6,0 QUEST_ROWS_TRACE=74 on Eudora (--level 4):
+# a Blarg trooper 6 units ahead (Y at 1150 skips the arrival movie; Ratchet is put there about frame 1990). On Novalis
+# the critters run into the mine before it is armed, from 6 units and from 12, and it goes off at once (round in the air
+# and lying, in those shots). A mine is taken into the glove and lobbed about three units ahead; 120 ticks after the
+# release it is armed and seeks the nearest enemy in reach (the game's sequences 1 and 2, hopping). The shots are to be
+# looked at: is it round as it flies, lies and puts its spikes out? 0.1.18 on PC: "rows ... (even)", lean 0.000, round in
+# the air, lying and with its spikes out; it went off by the trooper as it armed, so it was not seen hopping.
+600 y 1
+606 y 0
+1150 y 1
+1156 y 0
+2040 shot before
+2050 right_trigger 1
+2090 head_pitch -15
+2104 rh_z -0.03
+2105 rh_z -0.06
+2106 rh_z -0.09
+2107 rh_z -0.12
+2107 right_trigger 0
+2108 rh_z -0.15
+2130 shot flying
+2160 shot lying-1
+2200 shot lying-2
+2224 shot armed-1
+2230 shot armed-2
+2236 shot seek-1
+2242 shot seek-2
+2248 shot seek-3
+2254 shot seek-4
+2260 shot seek-5
+2266 shot seek-6
+2272 shot seek-7
+2278 shot seek-8
+2284 shot seek-9
+2290 shot seek-10
+2296 shot seek-11
+2302 shot seek-12
+2310 rh_z 0
+2360 shot after
+2450 quit 0

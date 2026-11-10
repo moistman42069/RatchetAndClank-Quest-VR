@@ -1,0 +1,54 @@
+# 0.1.18, Grab moves: Stun when dropped. The Swingshot in the right hand (QUEST_SIM_GIVE=12 QUEST_SIM_HOLD=12), a Novalis
+# critter 6 units ahead (QUEST_SIM_NEAR=577 QUEST_SIM_NEAR_AT=6,0, --level 1). Caught and reeled in, the trigger let go with the
+# hand still: "[vr-grab] dropped", then "dropped: stunned for 1.5 s" as it lands, about two units before the hand. The right
+# grip takes the wrench, a step in and a sweep of the hand across, a second step in and two more sweeps, 18 ticks and more
+# apart: two critters stand a unit apart there, the other one comes at him, and one sweep and a single step hit only that
+# one (the stunned one's stun then wore off: "the stun wore off"). The hit on the stunned one: "[vr-wrench] hit slot N" with
+# N the slot of "the hook out to slot N", then "[vr-grab] slot N let go: a hit on it (record R): the game's to take" and
+# "[vr-hit] slot N after the hit". With 'QUEST_VR_OPTIONS=grab_stun 0' it lands and is let go at once ("it met the world").
+600 y 1
+606 y 0
+2600 shot before
+2660 right_trigger 1
+2700 shot held
+2720 right_trigger 0
+2724 right_grip 1
+2728 left_y 1
+2740 left_y 0
+2744 shot dropped
+2748 rh_z -0.25
+2748 rh_x 0.30
+2750 rh_x 0.225
+2751 rh_x 0.15
+2752 rh_x 0.075
+2753 rh_x 0.0
+2754 rh_x -0.075
+2755 rh_x -0.15
+2756 rh_x -0.225
+2757 rh_x -0.30
+2758 left_y 1
+2774 left_y 0
+2776 shot stepped
+2780 rh_x -0.225
+2781 rh_x -0.15
+2782 rh_x -0.075
+2783 rh_x 0.0
+2784 rh_x 0.075
+2785 rh_x 0.15
+2786 rh_x 0.225
+2787 rh_x 0.30
+2790 shot swung-2
+2804 rh_x 0.225
+2805 rh_x 0.15
+2806 rh_x 0.075
+2807 rh_x 0.0
+2808 rh_x -0.075
+2809 rh_x -0.15
+2810 rh_x -0.225
+2811 rh_x -0.30
+2814 shot swung-3
+2840 rh_x 0
+2840 rh_z 0
+2850 right_grip 0
+2900 shot after
+3000 quit 0

@@ -1,0 +1,29 @@
+# 0.1.18: on Batalia's magnet wall, the stick let go halfway up and pushed again (on 0.1.17 he slipped off, 0x79, the
+# very tick the stick was let go). As magnetturn.sim's set-up, the head square on to the wall (27 degrees right); run in
+# first person and with QUEST_SETTINGS='{"view": "screen"}' (the game's own camera and pad, which takes him off the
+# ramp's side before the wall, as it did before 0.1.18) to tell the game's way from the mod's. QUEST_WALK_TRACE and
+# QUEST_STATE_TRACE: he stands on the wall (0x0, magnet 1) with the stick let go about z 40.5, and climbs on after to about
+# z 42, short of where the strip leans off to -y near its top.
+600 y 1
+606 y 0
+1000 y 1
+1006 y 0
+1800 y 1
+1806 y 0
+3000 shot foot
+3010 left_y 1
+3050 head_yaw -5
+3060 head_yaw -10
+3070 head_yaw -15
+3085 head_yaw -19
+3090 head_yaw -23
+3095 head_yaw -27
+3170 shot climbing
+3180 left_y 0
+3230 shot stopped
+3330 shot held
+3340 left_y 1
+3370 shot again
+3385 left_y 0
+3450 shot stopped2
+3530 quit 0

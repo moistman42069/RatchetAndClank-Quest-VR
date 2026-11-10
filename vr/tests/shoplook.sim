@@ -1,0 +1,27 @@
+# The vendor on foot, looked round (0.1.18: the owner's video showed a grey model as big as the view at the vendor on
+# Kerwan, the item screen's spinning backdrop drawn in the world at the game's camera). The head turns and leans at the
+# open vendor; each shot should show the screens on the machine and nothing large before the eyes.
+600 y 1
+606 y 0
+3000 shot before
+3100 right_click 1
+3106 right_click 0
+3400 shot open
+3420 head_yaw 35
+3450 shot right
+3470 head_yaw -35
+3500 shot left
+3520 head_yaw 0
+3521 head_pitch 30
+3550 shot up
+3570 head_pitch -30
+3600 shot down
+3620 head_pitch 0
+3621 head_z 0.25
+3650 shot leant
+3670 head_z 0
+3671 head_x 0.25
+3700 shot aside
+3720 head_x 0
+3760 shot back
+3800 quit 0

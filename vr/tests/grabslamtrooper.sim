@@ -1,0 +1,36 @@
+# 0.1.18, Grab moves: Throw them up high, hook them again up there, Slam them down, on an enemy that stands alone:
+# Eudora's Blarg trooper (QUEST_SIM_GIVE=12 QUEST_SIM_HOLD=12 QUEST_SIM_NEAR=427 QUEST_SIM_NEAR_AT=6,0, --level 4; Y at
+# 1150 skips its arrival movie; he is put before it at about frame 1990). grabslam.sim does the same on Novalis, where two
+# critters stand a unit apart: from OpenRAC 91b67c67 with the eyes' own view test, the one thrown up can meet the other
+# on its way ("let go: it met another", half a blow each) and the slam is then not shown. Here: "[vr-grab] thrown up high",
+# "the hook out to it in the air", "caught in the air: it hangs on the line", the hand yanked down: "slammed down from the
+# line", "slot N let go: slammed into the ground", "slammed: the wrench's whole blow to it, half to N near". With
+# 'QUEST_VR_OPTIONS=grab_launch 0;grab_slam 0' the swing up is a plain throw.
+600 y 1
+606 y 0
+1150 y 1
+1156 y 0
+2050 shot before
+2110 right_trigger 1
+2150 shot held
+2170 rh_y 0.05
+2171 rh_y 0.10
+2172 rh_y 0.15
+2173 rh_y 0.20
+2174 rh_y 0.25
+2175 rh_y 0.30
+2175 right_trigger 0
+2195 hand_pitch 65
+2222 right_trigger 1
+2240 shot caught-up
+2250 rh_y 0.25
+2251 rh_y 0.20
+2252 rh_y 0.15
+2253 rh_y 0.10
+2254 rh_y 0.05
+2255 rh_y 0.0
+2262 shot slam
+2280 right_trigger 0
+2290 hand_pitch 0
+2310 shot slammed
+2450 quit 0
