@@ -133,6 +133,8 @@ final class PcSelfTest {
             check(fits, setting.getKey() + " is written as its manifest's " + type);
         }
         check("screen".equals(config.modSettings(true).get("view")), "2D mode is the big screen");
+        check("gamepad".equals(config.modSettings(false).get("third_person_controls")), "third person is a gamepad to start");
+        check("head".equals(config.modSettings(false).get("dpad")), "the D-pad by the head to start");
     }
 
     private static void writeForGame(PcPaths paths) throws IOException {
@@ -152,6 +154,11 @@ final class PcSelfTest {
             ammo |= Json.string(Json.object(one), "id", "").equals("ammo-max");
         }
         check(ammo, "Ammo max is on by default");
+        boolean xbox = false;
+        for (Object one : mods) {
+            xbox |= Json.string(Json.object(one), "id", "").equals("xbox-icons");
+        }
+        check(xbox, "Xbox button icons is on by default (0.1.19)");
         String ini = PcMods.read(paths.settingsFile());
         check(ini.contains("vsync = off\n") && ini.contains("volume = 100\n"), "the game's settings file");
     }
@@ -220,6 +227,80 @@ final class PcSelfTest {
             check(!new File(paths.addedMods(), "my-mod").exists() && !new File(paths.plugins(), "my-mod").exists(),
                 "a removed mod is gone");
         }
+
+        // 0.1.19, the owner: "we shouldnt have mismatches". OpenRAC's list's version of a built-in mod takes its place,
+        // keeps its on or off and goes to the game; removed, the built-in is back. RAC-Board keeps this release's changes.
+        check(ModIndex.compareVersions("0.12.10", "0.12.9") > 0 && ModIndex.compareVersions("0.8.0", "0.12.2") < 0
+            && ModIndex.compareVersions("1.0", "1.0.0") == 0, "versions compare number by number");
+        check(ModIndex.keepsBuiltIn("rac-board") && !ModIndex.keepsBuiltIn("multiplayer"), "only RAC-Board keeps its built-in");
+        List<PcMods.Mod> before = mods.list();
+        PcMods.Mod swap = null;
+        for (PcMods.Mod mod : before) {
+            if (mod.id.equals("button-swap")) {
+                swap = mod;
+            }
+        }
+        if (swap != null) {
+            boolean wasOn = mods.on(swap);
+            ByteArrayOutputStream newer = new ByteArrayOutputStream();
+            try (ZipOutputStream out = new ZipOutputStream(newer)) {
+                out.putNextEntry(new ZipEntry("button-swap/openrac-mod.json"));
+                out.write(("{\"format\": 2, \"id\": \"button-swap\", \"name\": \"Button Swap\", \"type\": \"script\", \"version\": "
+                    + "\"9.9.9\", \"api\": \"1.1\", \"scripts\": [\"main.luau\"], \"games\": {\"rac1\": [\"pal\", \"ntsc\"]}}")
+                    .getBytes(StandardCharsets.UTF_8));
+                out.putNextEntry(new ZipEntry("button-swap/main.luau"));
+                out.write("-- the list's".getBytes(StandardCharsets.UTF_8));
+            }
+            check("Button Swap".equals(mods.add(new ByteArrayInputStream(newer.toByteArray()))), "the list's Button Swap is taken");
+            List<PcMods.Mod> after = mods.list();
+            PcMods.Mod taken = null;
+            boolean same = before.size() == after.size();
+            for (int i = 0; same && i < after.size(); i++) {
+                same = before.get(i).id.equals(after.get(i).id);
+                if (after.get(i).id.equals("button-swap")) {
+                    taken = after.get(i);
+                }
+            }
+            check(same && taken != null && taken.added && "9.9.9".equals(taken.version) && swap.version.equals(taken.builtIn),
+                "it takes the built-in's place in the list");
+            if (taken != null) {
+                check(mods.on(taken) == wasOn, "it keeps the built-in's on or off");
+                mods.setOn(taken, true);
+                new PcConfig(paths).writeForGame(false);
+                check(PcMods.read(new File(paths.plugins(), "button-swap/openrac-mod.json")).contains("9.9.9")
+                    && PcMods.read(new File(paths.plugins(), "button-swap/main.luau")).equals("-- the list's"),
+                    "the game gets the list's version");
+                mods.remove(taken);
+                PcMods.Mod back = null;
+                for (PcMods.Mod mod : mods.list()) {
+                    if (mod.id.equals("button-swap")) {
+                        back = mod;
+                    }
+                }
+                check(back != null && !back.added && swap.version.equals(back.version), "removed, the built-in is back");
+                new PcConfig(paths).writeForGame(false);
+                check(!PcMods.read(new File(paths.plugins(), "button-swap/openrac-mod.json")).contains("9.9.9"),
+                    "and the game has the built-in again");
+                mods.setOn(back, wasOn);
+            }
+        } else {
+            System.out.println("(no Button Swap here: the list's version is checked in the release)");
+        }
+        ByteArrayOutputStream board = new ByteArrayOutputStream();
+        try (ZipOutputStream out = new ZipOutputStream(board)) {
+            out.putNextEntry(new ZipEntry("openrac-mod.json"));
+            out.write(("{\"format\": 2, \"id\": \"rac-board\", \"name\": \"RAC-Board\", \"type\": \"script\", \"api\": \"1.1\","
+                + " \"scripts\": [\"main.luau\"]}").getBytes(StandardCharsets.UTF_8));
+            out.putNextEntry(new ZipEntry("main.luau"));
+            out.write('-');
+        }
+        boolean kept = false;
+        try {
+            mods.add(new ByteArrayInputStream(board.toByteArray()));
+        } catch (IOException e) {
+            kept = e.getMessage().contains("own changes");
+        }
+        check(kept, "RAC-Board keeps this release's changes");
 
         ByteArrayOutputStream escape = new ByteArrayOutputStream();
         try (ZipOutputStream out = new ZipOutputStream(escape)) {

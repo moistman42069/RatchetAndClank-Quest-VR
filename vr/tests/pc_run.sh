@@ -5,7 +5,8 @@ set -u
 NAME=$1; shift
 TESTS=/c/RACQuest/RatchetQuestVR/vr/tests
 DATA=C:/RACQuest/pc/data
-GAME=/c/RACQuest/RatchetQuestVR/third_party/OpenRAC/port/build/release/openrac-rac1-pal.exe
+# QUEST_GAME: another build of the game (an older release's exe), for a before and after.
+GAME=${QUEST_GAME:-/c/RACQuest/RatchetQuestVR/third_party/OpenRAC/port/build/release/openrac-rac1-pal.exe}
 OUT=C:/RACQuest/pc/out/$NAME
 mkdir -p "$OUT" "$DATA/plugins/quest-vr/lib/windows-x86_64"
 # QUEST_MOD_PACKAGE: another build of the mod, for a before and after.
@@ -41,6 +42,7 @@ fi
 cat > "$DATA/plugins/plugins.json" <<JSON
 {"format": 1, "mods": [{"id": "quest-vr", "enabled": true, "settings": ${QUEST_SETTINGS:-{\}}}${QUEST_MODS:-}${BOARD_ENTRY}]}
 JSON
+# QUEST_INI: more lines for the port's settings file ("enhanced_graphics = false"), as docs/port/SETTINGS.md names them.
 # 60 frames a second whatever the display runs at: the sims move the hands by the frame, so a slower display made
 # every motion slower (a 31 Hz desktop on 5 November halved a throw's speed). "display" was the rate before.
 cat > "$DATA/quest-settings.ini" <<INI
@@ -61,6 +63,7 @@ fades_in_view = ${QUEST_FADES_IN_VIEW:-true}
 smooth_plant_edges = ${QUEST_SMOOTH_PLANTS:-true}
 skip_any_movie = ${QUEST_SKIP_ANY_MOVIE:-true}
 volume = ${QUEST_VOLUME:-100}
+${QUEST_INI:-}
 INI
 export QUEST_SIM_SCRIPT="C:/RACQuest/RatchetQuestVR/vr/tests/$NAME.sim" QUEST_SIM_OUT="$OUT" QUEST_VR_STATUS="$OUT/status.txt"
 # VR Options start at their defaults each run: the file a run saves beside its status is not the next run's. A test

@@ -1,0 +1,32 @@
+# 0.1.19: a Swingshot swing (not a pull) from RAC-Board's board (Weapons on the board, its default), at swingfeel.sim's
+# place: on Kerwan's pull target's platform facing the swing target (QUEST_SIM_GIVE=12 QUEST_SIM_HOLD=12 QUEST_SIM_NEAR=803
+# QUEST_SIM_NEAR_AT=11.3,-5.6,-95, --level 3). The board out (the right hand behind the back, its stick clicked) and the
+# trigger pulled at once: RAC-Board's trace "the Swingshot from the board: a target in sight", "off the board for a
+# Swingshot swing, the board kept at his feet", [vr-jetboard] off, the swing (QUEST_STATE_TRACE: 0x2C). Let go in the
+# air: "back on the board after the swing" with the swing's speed, [vr-jetboard] riding again; landed first, the same.
+# Seen from ahead of him mid-swing ("feet", the eyes alone moved out), the board is at his feet.
+600 y 1
+606 y 0
+2800 shot stand
+2900 rh_z 0.6
+2901 rh_y 0.15
+2930 right_click 1
+2936 right_click 0
+2960 rh_z 0
+2961 rh_y 0
+2990 shot board
+3000 right_trigger 1
+3030 shot hooked
+3150 shot swinging
+3180 view_free 1
+3181 view_z -1.8
+3182 view_y -0.5
+3183 view_yaw 180
+3184 view_pitch -15
+3220 shot feet
+3250 view_free 0
+3300 right_trigger 0
+3320 shot let-go
+3450 shot after
+3600 shot later
+3700 quit 0

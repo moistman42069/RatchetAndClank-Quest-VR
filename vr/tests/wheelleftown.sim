@@ -1,0 +1,44 @@
+# 0.1.19: Left hand wheel, Its own slots (Weapon wheel, Left hand wheel; the owner: "a seperate settings area for the
+# weapon slots on the left hand ... leave an option for it to match the main hand"). Akimbo's left wheel as
+# wheelleft.sim points round it, on its first page (no page turn): run with left_own_slots 1 and the eight left_slot
+# rows (QUEST_VR_OPTIONS), its icons are those, where the right hand's wheel keeps the game's own layout; the right-hand
+# icon taken goes to the left hand ("[vr-akimbo] left hand: N"). Run as it starts (Same as right hand), the left wheel
+# shows the game's layout, as before 0.1.19.
+600 y 1
+606 y 0
+3000 shot before
+3100 left_click 1
+3160 shot open
+3200 hand_yaw 11.7
+3201 hand_pitch 12.8
+3260 shot top
+3280 hand_yaw 4.0
+3281 hand_pitch 10.3
+3340 shot topright
+3360 hand_yaw 0.7
+3361 hand_pitch 3.4
+3420 shot right
+3440 hand_yaw 4.0
+3441 hand_pitch -3.6
+3500 shot bottomright
+3520 hand_yaw 11.7
+3521 hand_pitch -6.3
+3580 shot bottom
+3600 hand_yaw 19.0
+3601 hand_pitch -3.4
+3660 shot bottomleft
+3680 hand_yaw 21.9
+3681 hand_pitch 3.2
+3740 shot left
+3760 hand_yaw 19.0
+3761 hand_pitch 9.7
+3820 shot topleft
+# Back to the right-hand icon, and let go: it comes out in the left hand.
+3840 hand_yaw 0.7
+3841 hand_pitch 3.4
+3880 shot chosen
+3900 left_click 0
+3920 hand_yaw 0
+3921 hand_pitch 0
+4000 shot after
+4100 quit 0

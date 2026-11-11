@@ -1,0 +1,16 @@
+# 0.1.19: Aridia's channel by the Gadgetron vendor, where the owner's 0.1.18 video showed it black past the near bank (the
+# liquid grid's blocks left out; the bridge's pillars hanging in nothing). Put by the vendor facing away from
+# the channel (QUEST_SIM_AT=221.5,158.0,26.0,-138): the game's camera faces his body's way, the head turned to the
+# channel and past it. Until 0.1.19 the grid was culled to the game's camera's view.
+3000 head_pitch -10
+3040 shot body
+3050 head_yaw 45
+3090 shot h45
+3100 head_yaw 90
+3140 shot h90
+3150 head_yaw 135
+3190 shot h135
+3200 head_yaw 180
+3240 shot h180
+3250 head_yaw 0
+3290 quit 0

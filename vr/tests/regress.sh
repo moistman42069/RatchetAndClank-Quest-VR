@@ -81,9 +81,13 @@ run quick-akimbooff quick 1 $G=10,15,16,11,13,9,18,19,20,17,21,23 'QUEST_VR_OPTI
 # wheel slows too, its stick the game's.
 run wheelpoint wheelpoint 1 $G=10,15,16,11,13,9,18,19 KEEP=1
 run wheelcentre wheelcentre 1 $G=10,15,16,11,13,9,18,19 'QUEST_VR_OPTIONS=akimbo 0;akimbo_chosen 1' KEEP=1
+# 0.1.19: let go in the wheel's middle (a tester's "releasing in the middle of the weapon wheel should go back to fists"):
+# the right hand's Blaster put away and brought back by the trigger, a quick pass through the middle keeps the weapon, and
+# the left hand's Pyrocitor put away.
+run wheelmiddle wheelmiddle 1 $G=10,15,16,11,13,9,18,19 $H=15 $L=16 KEEP=1
 run wheelquiet wheelpoint 1 $G=10,15,16,11,13,9,18,19 'QUEST_VR_OPTIONS=wheel_slow 1'
 run wheeloff wheelpoint 1 $G=10,15,16,11,13,9,18,19 'QUEST_VR_OPTIONS=wheel_slow 2;wheel_reach 1'
-run wheelthird wheelpoint 1 $G=10,15,16,11,13,9,18,19 'QUEST_SETTINGS={"view":"third"}'
+run wheelthird wheelpoint 1 $G=10,15,16,11,13,9,18,19 'QUEST_SETTINGS={"view":"third","third_person_controls":"vr"}'
 # 0.1.17: Feet on the floor (VR Body, off to start): the view lifted to the head's real height over the floor.
 run feetfloor hands 1 $G=15,16,21 $H=21 'QUEST_VR_OPTIONS=feet_on_floor 1' KEEP=1
 # 0.1.17: the water from right beside it, where the owner stood: whole, whichever way the head turns.
@@ -157,10 +161,10 @@ run wrenchfar wrenchfar 3 $G=15 $H=15 'QUEST_VR_OPTIONS=wrench_far 3'
 run wrenchfar-normal wrenchfar 3 $G=15 $H=15
 run wrenchcall wrenchcall 3 $G=15,10,16 $H=15 'QUEST_VR_OPTIONS=wrench_far 2;wrench_stay 1' KEEP=1
 run wrenchbuttons wrenchbuttons 3 $G=15 $H=15 'QUEST_VR_OPTIONS=button_moves 1;wrench_far 2;wrench_stay 1' QUEST_STATE_TRACE=1
-run wrenchthird wrenchthird 3 $G=15 $H=15 'QUEST_VR_OPTIONS=wrench_far 2;wrench_stay 1' 'QUEST_SETTINGS={"view":"third"}' QUEST_STATE_TRACE=1
+run wrenchthird wrenchthird 3 $G=15 $H=15 'QUEST_VR_OPTIONS=wrench_far 2;wrench_stay 1' 'QUEST_SETTINGS={"view":"third","third_person_controls":"vr"}' QUEST_STATE_TRACE=1
 run wrenchlead wrenchlead 3 $G=15,12 $H=15 $L=12 'QUEST_VR_OPTIONS=swing_anywhere 1;wrench_far 2;wrench_stay 1' QUEST_STATE_TRACE=1
 run wrenchdeath wrenchdeath 3 $G=15 $H=15 QUEST_SIM_KILL=2300 'QUEST_VR_OPTIONS=wrench_far 2;wrench_stay 1' QUEST_STATE_TRACE=1
-run wallrun-third wallrun 3 QUEST_STATE_TRACE=1 'QUEST_VR_OPTIONS=wall_moves 1' 'QUEST_SETTINGS={"view":"third"}'
+run wallrun-third wallrun 3 QUEST_STATE_TRACE=1 'QUEST_VR_OPTIONS=wall_moves 1' 'QUEST_SETTINGS={"view":"third","third_person_controls":"vr"}'
 # All of it on against what it could take the hands or buttons from: ledges by hand, a pull up, the shimmy, swimming, the Heli-Pack, grinding.
 OPTS_ALL="swing_anywhere 1;wall_moves 1;swing_reach 2;wrench_far 3;wrench_stay 1"
 run on-ledge ledge 9 $N=500 $A=0.95,2.6 "QUEST_VR_OPTIONS=$OPTS_ALL"
@@ -257,7 +261,7 @@ run crank-seated crank 1 $N=280 $A=1.2,0 'QUEST_VR_OPTIONS=seated 1'
 run socket socket 2 $G=26 $H=26 $N=615 $A=2.2,0
 run puzzle puzzle 2 $G=26 $H=26 $N=615 $A=2.2,0 KEEP=1
 # 0.1.17: the same in third person, the game's own way (a tester could not see the rings on PC VR): on the floor pad, the fire button.
-run puzzlethird puzzlethird 2 $G=26 $H=26 $N=615 $A=0.1,0 'QUEST_SETTINGS={"view":"third"}' KEEP=1
+run puzzlethird puzzlethird 2 $G=26 $H=26 $N=615 $A=0.1,0 'QUEST_SETTINGS={"view":"third","third_person_controls":"vr"}' KEEP=1
 run sockethydro sockethydro 5 $G=22 $H=22 $N=341 $A=1.3,0
 run swim swim 1 $N=695 $A=2.0,0 QUEST_STATE_TRACE=1
 # 0.1.17: the left trigger dives at the surface (a tester: "how do you dive?"); under, the head looks down and up with the stick.
@@ -266,7 +270,7 @@ run dive dive 1 $N=695 $A=2.0,0 QUEST_STATE_TRACE=1 QUEST_SWIM_TRACE=1
 # (to 0.1.16 Seated lifted the hands 45 cm, out of the water) and standing; the left trigger's dive in third person too.
 run divehands divehands 1 $N=695 $A=2.0,0 QUEST_STATE_TRACE=1 QUEST_SWIM_TRACE=1
 run divehands-seated divehands 1 $N=695 $A=2.0,0 QUEST_STATE_TRACE=1 QUEST_SWIM_TRACE=1 'QUEST_VR_OPTIONS=seated 1'
-run dive-third dive 1 $N=695 $A=2.0,0 QUEST_STATE_TRACE=1 QUEST_SWIM_TRACE=1 'QUEST_SETTINGS={"view":"third"}'
+run dive-third dive 1 $N=695 $A=2.0,0 QUEST_STATE_TRACE=1 QUEST_SWIM_TRACE=1 'QUEST_SETTINGS={"view":"third","third_person_controls":"vr"}'
 run water water 1 $N=695 $A=10,0 KEEP=1
 # The body, the view, scenes, turrets, ships
 run body body 10
@@ -286,8 +290,8 @@ run scene scene 1
 # Rerac-vr's DrawScreenFade) come with its director's short cutaways, such as Oltanis's grind race start, not in talks or
 # the arrival scenes: on the rail in third person, "[vr-view] the game's black bars were wanted (height 1): hidden" and no
 # opaque black strips on the panel shots; Off, none of that line and opaque black strips top and bottom on r2 to r5.
-run bars rail 14 $G=29 QUEST_SIM_RAIL=2,0.3,3 QUEST_SIM_ALIGN=2620 'QUEST_SETTINGS={"view":"third"}' KEEP=1
-run bars-off rail 14 $G=29 QUEST_SIM_RAIL=2,0.3,3 QUEST_SIM_ALIGN=2620 'QUEST_SETTINGS={"view":"third"}' 'QUEST_VR_OPTIONS=hide_bars 0' KEEP=1
+run bars rail 14 $G=29 QUEST_SIM_RAIL=2,0.3,3 QUEST_SIM_ALIGN=2620 'QUEST_SETTINGS={"view":"third","third_person_controls":"vr"}' KEEP=1
+run bars-off rail 14 $G=29 QUEST_SIM_RAIL=2,0.3,3 QUEST_SIM_ALIGN=2620 'QUEST_SETTINGS={"view":"third","third_person_controls":"vr"}' 'QUEST_VR_OPTIONS=hide_bars 0' KEEP=1
 # The same in first person (the owner's word: the bars show there too): the same line and shots.
 run bars-first rail 14 $G=29 QUEST_SIM_RAIL=2,0.3,3 QUEST_SIM_ALIGN=2620 KEEP=1
 run bars-first-off rail 14 $G=29 QUEST_SIM_RAIL=2,0.3,3 QUEST_SIM_ALIGN=2620 'QUEST_VR_OPTIONS=hide_bars 0' KEEP=1
@@ -298,9 +302,29 @@ run landing landing 1 $G=10 $H=10 QUEST_SHIP_TRACE=1 KEEP=1
 # before he climbs out), then Skid's scene where the tester had it (QUEST_SCENE_TRACE: his drawn flag 0x80 comes and
 # goes as the game's camera cuts; not fixed, the scene's own draw test)
 run aridia aridiascene 2 QUEST_SIM_AT=250.8,270.8,25.5,-20 QUEST_SHIP_TRACE=1 QUEST_SCENE_TRACE=1 KEEP=1
+# 0.1.19: Aridia's landing climbed out of in first person (the owner's "clips through the ship before exiting"): the view
+# in the seat through his duck, eased out as he springs out.
+run aridialand aridialand 2 QUEST_SHIP_TRACE=1 QUEST_SCENE_EYE_TRACE=1
+# 0.1.19: the seas wherever the head turns (wide_view.c: the liquid grid's cull opened under a headset; the owner's 0.1.18
+# video). Aridia's sand sea and channel with the head turned from the game's camera, each liquid level's start swept
+# round, and the first level walked with Max draw distance.
+run aridiaback aridiaback 2 QUEST_SIM_AT=210.41,170.35,25.34,-48 KEEP=1
+run aridiachannel aridiachannel 2 QUEST_SIM_AT=221.5,158.0,26.0,-138 KEEP=1
+run aridiawater aridiawater 2
+run watersweep-aridia watersweep 2
+run watersweep-kerwan watersweep 3
+run watersweep-rilgar watersweep 5
+run watersweep-umbris watersweep 7
+run watersweep-batalia watersweep 8
+run watersweep-gaspar watersweep 9
+run watersweep-oltanis watersweep 14
+run maxdraw maxdraw 1
 run screen screen 1
 # 0.1.17: the left menu button held a second switches first and third person (a tester's ask); a tap only recentres.
 run viewhold viewhold 1 KEEP=1
+# Third person with Gamepad, its default from 0.1.19: an Xbox controller, the D-pad by the head (RAC-Board on D-pad Up),
+# Start as the menu button is let go, the hold back to first person, the Xbox mod's icons pointed for each view.
+run thirdpad thirdpad 1 QUEST_RACBOARD=1 QUEST_JET_TRACE=1 QUEST_STATE_TRACE=1 'QUEST_SETTINGS={"view":"third"}' 'QUEST_MODS=, {"id": "xbox-icons", "enabled": true}' KEEP=1
 run t1 t1 1
 run t2 t2 1
 # How far the eyes see, the head turned from the game's camera: the ship must show in turned and turned2. QUEST_LOD=true,
@@ -400,6 +424,9 @@ run skipscene skipscene 1 QUEST_STATE_TRACE=1
 run tworings tworings 1 $G=15,16,19,21 $H=16 $L=15 'QUEST_VR_OPTIONS=wheel_reach 1'
 run tworings2 tworings2 1 $G=15,16,19,21 $H=16 $L=15 'QUEST_VR_OPTIONS=wheel_reach 1'
 run tworings3 tworings3 1 $G=10,15,16,11,13,9,18,19,20,17,21,23,14,24,25,12,22,26,27 $H=16 $L=15 'QUEST_VR_OPTIONS=wheel_reach 1'
+# 0.1.19: the two rings with Pick by pointing (the wheel's default): two lasers, one from each hand ("[sim] pointer: ...
+# second beam 1 dot 1" while both are open), and no bomb in the right palm after its page turn (ring_pull).
+run tworings-point tworings 1 $G=15,16,19,21 $H=16 $L=15 KEEP=1
 # 0.1.17: pointing at every slot of the left hand's wheel; the Trespasser's pickup with Help Desk forced on; Help Desk turned by the hand
 # through the real menu (on to start from 0.1.17, so the presses turn it off); a real new game from the title with Help Desk on
 # ("voice 1 text 1"); the title's scene staying behind the main menu and Load Game.
@@ -451,12 +478,18 @@ run swingwheel swingwheel 3 $G=12 $H=12 $N=758 $A=10,1,180 QUEST_STATE_TRACE=1
 PUNCH='QUEST_VR_OPTIONS=hand_punch 1'
 run handpunch handpunch 1 $G=15 $H=15 $N=500 $A=1.2,0 "$PUNCH"
 run handpunch-off handpunch 1 $G=15 $H=15 $N=500 $A=1.2,0
+# 0.1.19: the right jab with the Swingshot in the hand (a tester on 0.1.18: weapon melee "just cant do it when you have the
+# hookshot equipped"): "Ratchet's right punch" and the crate hit, as with the Blaster.
+run handpunch-swingshot handpunch 1 $G=12 $H=12 $N=500 $A=1.2,0 "$PUNCH"
 # 0.1.18: Swingshot grabs enemies and its Grab moves (Moves, each off to start: the owner's call). GRAB turns them all
 # on; a row named after it is that one off.
 GRAB='swing_grab 1;grab_fling 1;grab_stun 1;grab_launch 1;grab_slam 1;grab_zip 1;grab_hazards 1'
 # A Novalis critter caught, yanked in and thrown; and as it starts, nothing caught.
 run swinggrab swinggrab 1 $G=12 $H=12 $N=577 $A=6,0,180 "QUEST_VR_OPTIONS=$GRAB" KEEP=1
 run swinggrab-off swinggrab 1 $G=12 $H=12 $N=577 $A=6,0,180
+# 0.1.19: the same with Punch with your hands on too: the Swingshot's jab is a punch only with its hook home, so the catch,
+# the yank and the throw are the grab's, with no [vr-fist] punch while it holds the critter.
+run swinggrab-punch swinggrab 1 $G=12 $H=12 $N=577 $A=6,0,180 "QUEST_VR_OPTIONS=$GRAB;hand_punch 1"
 # Grab moves, each on, and each off. From the critter's far side and early, as swinggrab:
 # from OpenRAC 91b67c67 the critters are on him by about 2790 some runs, and hurt, he cannot fire (grabfling's pull at
 # 2900 from the near side caught one in one run and nothing in the next; grabslam's throw up met another of them).
@@ -514,19 +547,59 @@ run magnetstop magnetstop 8 $G=28 QUEST_SIM_AT=279.0,274.6,37.2,-163 QUEST_STATE
 run magnetstop-flat magnetstopflat 8 $G=28 QUEST_SIM_AT=279.0,274.6,37.2,-163 QUEST_STATE_TRACE=1 QUEST_WALK_TRACE=1 'QUEST_SETTINGS={"view": "screen"}'
 # 0.1.18: off the boots' surface the stick, throws and steps go where the view looks (a PCVR tester's 0.1.17: walking
 # directions broken after falling off the walk area): [vr-boots] off the surface, the turn the rig took.
-run magnetoff magnetoff 8 $G=28 QUEST_SIM_AT=279.0,274.6,37.2,-163 QUEST_STATE_TRACE=1 QUEST_WALK_TRACE=1
+# From 0.1.19 with Stay on magnet paths off: on, the guide would take him along the strip's lean instead of off it.
+run magnetoff magnetoff 8 $G=28 QUEST_SIM_AT=279.0,274.6,37.2,-163 QUEST_STATE_TRACE=1 QUEST_WALK_TRACE=1 'QUEST_VR_OPTIONS=magnet_paths 0'
 # What the tester saw: the turn left as 0.1.17 left it (a PC test switch), the walk trace's "view" off its "aim".
-run magnetoff-before magnetoff 8 $G=28 QUEST_SIM_AT=279.0,274.6,37.2,-163 QUEST_STATE_TRACE=1 QUEST_WALK_TRACE=1 QUEST_TEST_NO_BOOTS_FOLD=1
+run magnetoff-before magnetoff 8 $G=28 QUEST_SIM_AT=279.0,274.6,37.2,-163 QUEST_STATE_TRACE=1 QUEST_WALK_TRACE=1 QUEST_TEST_NO_BOOTS_FOLD=1 'QUEST_VR_OPTIONS=magnet_paths 0'
 # 0.1.18: the stick turned in the boots' surface's own plane (stick_camera_yaw): Batalia's wall stood on still while the
 # game's camera settles, then climbed on; and the PCVR tester's own Orxon wall walked end to end in first person.
 run magnetwait magnetwait 8 $G=28 QUEST_SIM_AT=279.0,274.6,37.2,-163 QUEST_STATE_TRACE=1 QUEST_WALK_TRACE=1
 run magnetorxon magnetorxon 10 QUEST_SIM_OWN=6 $G=28 QUEST_SIM_AT=270.7,323.0,33.6,78 QUEST_STATE_TRACE=1 QUEST_WALK_TRACE=1 QUEST_TIMEOUT=300 KEEP=1
+# 0.1.19: a tester on 0.1.18, first person: "when you get to where the ramp turns its like the magnet shuts off". The same
+# wall turned on the right stick (smooth, as the launcher has it) a little short of the head's turns, as a player does:
+# with Stay on magnet paths (on to start) he is taken round the bend; off, he steps off the strip's top edge at the bend
+# (0x6, then 0x7C), what the tester saw. And the stick alone held ahead from the foot, nothing turned.
+run magnetorxon-turn magnetorxon-turn 10 QUEST_SIM_OWN=6 $G=28 QUEST_SIM_AT=270.7,323.0,33.6,78 QUEST_STATE_TRACE=1 QUEST_WALK_TRACE=1 QUEST_TIMEOUT=300 KEEP=1
+run magnetorxon-turn-off magnetorxon-turn 10 QUEST_SIM_OWN=6 $G=28 QUEST_SIM_AT=270.7,323.0,33.6,78 QUEST_STATE_TRACE=1 QUEST_WALK_TRACE=1 QUEST_TIMEOUT=300 'QUEST_VR_OPTIONS=magnet_paths 0'
+run magnetorxon-ahead magnetorxon-ahead 10 QUEST_SIM_OWN=6 $G=28 QUEST_SIM_AT=270.7,323.0,33.6,78 QUEST_STATE_TRACE=1 QUEST_WALK_TRACE=1 QUEST_TIMEOUT=300 KEEP=1
+# 0.1.19: Weapons on the board (RAC-Board's setting, on to start; the owner: "make the board compatible with
+# weapons/gadgets as well, so weapons can be used/equipped while riding. including wrench"). First person: the Blaster
+# fired, the quick select opened from the board, a trick, the wrench swung by hand; third person (the controllers a
+# pad): X swings the board's wrench at a crate, B fires; and the Swingshot from the board at Kerwan's first target
+# (swingwheel.sim's place): the pull, set down back on the board and held still there; a swing, back on as it lets go.
+# Weapons on the board off: racboardweapons-off.sim (the wrench in his hand as before 0.1.19, the grip taking nothing
+# from him, the trigger the board's spins, nothing fired).
+run racboardweapons racboardweapons 1 $G=15,12,16,10 $H=15 $N=511 QUEST_RACBOARD=1 QUEST_JET_TRACE=1 QUEST_STATE_TRACE=1 'QUEST_RACBOARD_SETTINGS={"trace": true}' KEEP=1
+run racboardweapons-off racboardweapons-off 1 $G=15,12,16,10 $H=15 $N=511 QUEST_RACBOARD=1 QUEST_JET_TRACE=1 QUEST_STATE_TRACE=1 'QUEST_RACBOARD_SETTINGS={"trace": true, "weapons": false}'
+run racboardwrench3 racboardwrench3 1 $G=15 $H=15 $N=511 QUEST_RACBOARD=1 QUEST_JET_TRACE=1 QUEST_STATE_TRACE=1 'QUEST_RACBOARD_SETTINGS={"trace": true}' 'QUEST_SETTINGS={"view":"third"}' KEEP=1
+run racboardswing racboardswing 3 $G=12 $H=12 $N=758 $A=10,1,180 QUEST_RACBOARD=1 QUEST_JET_TRACE=1 QUEST_STATE_TRACE=1 'QUEST_RACBOARD_SETTINGS={"trace": true}' KEEP=1
+run racboardswing2 racboardswing2 3 $G=12 $H=12 $N=803 $A=11.3,-5.6,-95 QUEST_RACBOARD=1 QUEST_JET_TRACE=1 QUEST_STATE_TRACE=1 'QUEST_RACBOARD_SETTINGS={"trace": true}' KEEP=1
+# 0.1.19: the Weapon wheel page (More controls' last row): Swap at full speed (on to start: wheelpoint's pick comes out
+# with the wheel up, "[vr-ring] Swap at full speed"), off; Slow motion speed 10 times slower ("time comes back: N ticks
+# in S s", against wheelswap-off's at 3 times: both with Swap at full speed off, whose full-speed moments add ticks);
+# and Left hand wheel, Its own slots (wheelleftown.sim), as it starts and with eight set.
+run wheelswap-off wheelpoint 1 $G=10,15,16,11,13,9,18,19 'QUEST_VR_OPTIONS=wheel_swap_fast 0'
+run wheelslow10 wheelpoint 1 $G=10,15,16,11,13,9,18,19 'QUEST_VR_OPTIONS=wheel_speed 2;wheel_swap_fast 0'
+run wheelleftown wheelleftown 1 $G=10,15,16,11,13,9,18,19 $H=16 $L=15 'QUEST_VR_OPTIONS=left_own_slots 1;left_slot1 19;left_slot2 18;left_slot3 9;left_slot4 11;left_slot5 16;left_slot6 10;left_slot7 15;left_slot8 0' KEEP=1
+run wheelleftsame wheelleftown 1 $G=10,15,16,11,13,9,18,19 $H=16 $L=15
+# 0.1.19: Throw strength Light and Throw follows your swing off (Grab moves): swinggrab's throw slower than Full's.
+run swinggrab-light swinggrab 1 $G=12 $H=12 $N=577 $A=6,0,180 "QUEST_VR_OPTIONS=$GRAB;grab_throw_strength 3"
+run swinggrab-nofollow swinggrab 1 $G=12 $H=12 $N=577 $A=6,0,180 "QUEST_VR_OPTIONS=$GRAB;grab_throw_follow 0"
 # 0.1.18: scenery ahead of a flown ship on Pokitaru (a PCVR tester's building that popped in), and without the level's
 # own visibility data to compare.
 run shipfly shipfly 11 $G=7 $N=1242 $A=2,0 QUEST_STATE_TRACE=1 KEEP=1
 run shipfly-nopvs shipfly 11 $G=7 $N=1242 $A=2,0 OPENRAC_PVS_OFF=1 KEEP=1
 # 0.1.18: RAC-Board in the headset (bundled, off): got out by reaching behind the back, ridden, flipped, put away.
 run racboard racboard 1 QUEST_RACBOARD=1 QUEST_JET_TRACE=1 QUEST_STATE_TRACE=1 'QUEST_RACBOARD_SETTINGS={"trace": true}'
+# 0.1.19: RAC-Board in first person steered to the gaze (the owner's "make sure it follows head direction"): after each
+# turn of the head the heading meets its yaw and stays met.
+run racboardhead racboardhead 1 QUEST_RACBOARD=1 QUEST_JET_TRACE=1 'QUEST_RACBOARD_SETTINGS={"trace": true}'
+# 0.1.19: racboard's ride with 0.1.18's right trigger, which with Weapons on is the Bomb Glove's: his own bomb's hit is
+# not taken on the board ("his own weapon's hit: not taken on the board", no target-board-hit).
+run racboardbomb racboardbomb 1 QUEST_RACBOARD=1 QUEST_JET_TRACE=1 QUEST_STATE_TRACE=1 'QUEST_RACBOARD_SETTINGS={"trace": true}'
+# 0.1.19: the Swingshot's grab while riding RAC-Board (the owner: "fling people while staying on the board with the
+# swingshot"): an enemy hooked, yanked in and thrown, and the ride goes on to the left hand's reach.
+run racboardgrab racboardgrab 1 $G=12 $H=12 $N=577 $A=6,0,180 "QUEST_VR_OPTIONS=$GRAB" QUEST_RACBOARD=1 QUEST_JET_TRACE=1 QUEST_STATE_TRACE=1 'QUEST_RACBOARD_SETTINGS={"trace": true}'
 # 0.1.18: the wrench thrown where the controller pointed as the hand opened, 15 degrees up, and along the swing.
 run wrenchthrow-angle wrenchthrow 1 $G=15 $H=15 'QUEST_VR_OPTIONS=wrench_angle 15'
 run wrenchthrow-swing wrenchthrow 1 $G=15 $H=15 'QUEST_VR_OPTIONS=wrench_aim 1'

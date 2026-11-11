@@ -1,5 +1,6 @@
 # VR Options' View row, live: first person, paused, the row stepped to Third person, back in play his whole body shown from
 # the game's camera with a level horizon, walking toward where the head looks; then the row stepped back.
+# In third person with Gamepad (the default from 0.1.19) the pause is the menu button, Start as it is let go (Y is Triangle).
 600 y 1
 606 y 0
 2950 shot first
@@ -34,8 +35,8 @@
 4200 a 1
 4212 a 0
 4240 shot third-jump
-4320 y 1
-4326 y 0
+4320 menu 1
+4326 menu 0
 4440 hand_pitch 0
 4460 hand_pitch 28
 4520 hand_pitch -5.4

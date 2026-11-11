@@ -1,0 +1,862 @@
+diff --git a/README.md b/README.md
+index 0297f28..a2a6c55 100644
+--- a/README.md
++++ b/README.md
+@@ -63,7 +63,7 @@ The board takes these buttons only while Ratchet rides. On foot the game's contr
+ | Grind a rail | Hold R1 or R2 with Cross | Circle or Square |
+ | Duck, duck jump, grabs in the air | L1 | L1 |
+ 
+-- No weapons or gadgets on the board: Ratchet puts his away and takes the wrench as he gets on, and Circle and Triangle do nothing while he rides. Square keeps the game's job.
++- Weapons on the board (on by default; the Quest VR build's patch): Ratchet keeps his weapon, gadget or wrench as he rides. Circle fires it, Triangle opens the quick select to change it, Square swings the wrench (the board's own swing: his upper body twists and the wrench hits the enemies and crates in reach ahead). The Swingshot keeps him on the board: he swings and is pulled with the board at his feet and rides on as the swing ends, let go in the air or landed; a pull sets him down on the board at a standstill, held there until you push the stick. The board's button puts it away. Off: he puts his away and takes the wrench as he gets on, and Circle and Triangle do nothing while he rides.
+ - In a trick a faint ring under Ratchet points where the board's nose is (the light orange pointer), and a dot shows where he is going: land with the two together for the boost. Within 40 degrees counts, and the board eases straight as it lands.
+ - The spin, grind and duck buttons can be changed in the mod's settings (Jak II's layout too).
+ - **Board camera** (off by default) is Jak II's camera. The right stick swings it round.
+diff --git a/openrac-mod.json b/openrac-mod.json
+index f62e144..9055604 100644
+--- a/openrac-mod.json
++++ b/openrac-mod.json
+@@ -143,6 +143,14 @@
+       ],
+       "description": "Hold it to duck (and jump higher), or in the air with the stick for a grab."
+     },
++    {
++      "key": "weapons",
++      "name": "Weapons on the board",
++      "type": "bool",
++      "default": true,
++      "multiplayer": "own",
++      "description": "Keeps his weapons, gadgets and wrench while he rides: Circle fires, Triangle opens the quick select, Square swings the wrench. The Swingshot keeps him on the board: he swings and is pulled with it at his feet and rides on after; a pull sets him down at a standstill until you push the stick. Off: he puts his away and takes the wrench as he gets on, as before."
++    },
+     {
+       "key": "trick_display",
+       "name": "Trick names and points",
+diff --git a/src/rac1/context.cpp b/src/rac1/context.cpp
+index c9d211a..f3910d7 100644
+--- a/src/rac1/context.cpp
++++ b/src/rac1/context.cpp
+@@ -60,6 +60,7 @@ void load_settings(openrac::Mod& m) {
+     s.trick_display = m.setting<bool>("trick_display");
+     s.board_camera = m.setting<bool>("board_camera");
+     s.heat_haze = m.setting<bool>("heat_haze");
++    s.weapons = m.setting<bool>("weapons");
+     s.trace = m.setting<bool>("trace");
+ }
+ 
+diff --git a/src/rac1/context.hpp b/src/rac1/context.hpp
+index 6f0d092..db2151f 100644
+--- a/src/rac1/context.hpp
++++ b/src/rac1/context.hpp
+@@ -38,6 +38,9 @@ struct Settings {
+     bool trick_display = true; // trick names and points on screen
+     bool board_camera = true;  // Jak II's board camera while riding
+     bool heat_haze = true;     // the jet's heat haze behind the board
++    // Weapons on the board (setting weapons): his weapons, gadgets and wrench while he rides, the
++    // game's item update run each frame of the ride (rac1/ride.cpp run_items).
++    bool weapons = true;
+     bool trace = false;        // log states and hits
+ };
+ 
+diff --git a/src/rac1/interaction.cpp b/src/rac1/interaction.cpp
+index df92ba3..09cb3f8 100644
+--- a/src/rac1/interaction.cpp
++++ b/src/rac1/interaction.cpp
+@@ -154,6 +154,13 @@ int on_moby_hit(void*, const openrac_hit* hit) {
+     trace("hit " + std::to_string(hit->victim) + " by " + std::to_string(hit->attacker) + " mask " +
+           std::to_string(hit->mask) + " damage " + std::to_string(hit->damage));
+     if (interaction().target == nullptr || hit->victim < 0 || hit->victim != mod().figure_slot(-1)) return 0;
++    // His own weapons' hits (mask 0x10000, as the wrench's and the Blaster's carry) are not his on the board: with
++    // Weapons on the board he rode into the blast of a bomb he had just fired and lost a hit point (racboard.sim,
++    // 0.1.19). Taken back, so his own update never reads it either.
++    if (hit->mask & 0x10000u) {
++        trace("his own weapon's hit: not taken on the board");
++        return 1;
++    }
+     // His last hit point: the game's own hit, which kills him, as the board cannot (off the board).
+     openrac_pose pose{};
+     if (mod().hero_pose(pose) && pose.health <= 1) {
+@@ -202,13 +209,15 @@ bool deliver_hit(jak::Target& t) {
+ }
+ 
+ // Each creature he rides into gets the board's 'touched, as Jak II's collision sends it: a spin or
+-// a kick attacks it (target-send-attack), the board alone knocks it (send-board-attack).
++// a kick attacks it (target-send-attack), the board alone knocks it (send-board-attack). Not one a
++// mod drives (OPENRAC_MOBY_DRIVEN): the Quest build's Swingshot grab holds an enemy at his hand and
++// throws it, and the board's touch knocked it out of the hand before it could be thrown.
+ void touch_creatures(jak::Target& t) {
+     float hero[3];
+     to_game_point(t.control.trans, hero);
+     const int self = mod().figure_slot(-1);
+     for (const openrac_moby& m : mod().moby_list()) {
+-        if (!(m.flags & OPENRAC_MOBY_CREATURE) || (m.flags & OPENRAC_MOBY_DEAD) || m.slot == self) continue;
++        if (!(m.flags & OPENRAC_MOBY_CREATURE) || (m.flags & (OPENRAC_MOBY_DEAD | OPENRAC_MOBY_DRIVEN)) || m.slot == self) continue;
+         const float dx = m.position[0] - hero[0], dy = m.position[1] - hero[1], dz = m.position[2] - hero[2];
+         if (dx * dx + dy * dy > 1.2f * 1.2f || dz < -1.0f || dz > 2.0f) continue;
+         auto it = g_touched.find(m.slot);
+diff --git a/src/rac1/mod.cpp b/src/rac1/mod.cpp
+index d62eb03..1e271b7 100644
+--- a/src/rac1/mod.cpp
++++ b/src/rac1/mod.cpp
+@@ -26,6 +26,39 @@ namespace {
+ 
+ using namespace rac1;
+ 
++// With Weapons on the board the Swingshot keeps him on it (the owner: "should always be on the board
++// unless chosen to put it away"). The game's swing and pull are states of his own update, so for one
++// the ride hands him to the game (its item fired from the board, or the game's own move into one),
++// with the board drawn at his feet all along (show_board_at_feet), and takes him back as it ends:
++// let go in the air, with the swing's speed (racboardswing2.sim), or landed; after a pull (the
++// Swingshot's 0x24 to 0x26) where the game sets him down, at a standstill and held there until the
++// stick moves the board (racboardswing.sim: its targets stand on small platforms). The board's button
++// pressed meanwhile puts it away; a hit, a ledge, a death or a scene after the swing, and he is on
++// foot, as Jak II's want-to-board? would refuse it too.
++bool g_swing_ride = false;
++bool g_swing_pulled = false;
++int g_swing_refused = 0; // frames want-to-board? said no since the swing ended
++
++void swing_ride_over(const char* why) {
++    g_swing_ride = false;
++    g_swing_pulled = false;
++    g_swing_refused = 0;
++    hide_board();
++    trace(why);
++}
++
++// After a swing taken from the board: 1 to get back on now, 0 not yet (the swing goes on), -1 on foot.
++int back_on_after_swing() {
++    if (!g_swing_ride) return -1;
++    openrac_pose pose{};
++    if (!playing() || !mod().hero_pose(pose)) return 0;
++    if (swing_state(pose.state)) {
++        if (pose.state >= 0x24 && pose.state <= 0x26) g_swing_pulled = true;
++        return 0;
++    }
++    return air_state(pose.state) || ground_state(pose.state) ? 1 : -1;
++}
++
+ // rac1.player.update: the board's frame while riding, the game's otherwise.
+ void hero_update(const openrac::Original<void()>& original) {
+     // Under the pause menu (the port runs the level on under it) the board stands still, as the
+@@ -37,31 +70,73 @@ void hero_update(const openrac::Original<void()>& original) {
+     ctx().clock += frame_ticks();
+     effects().warm();
+     bool toggle = toggle_pressed();
++    const bool wrench = wrench_pressed();
++    const ItemButtons items = item_buttons();
+     if (ride_level_changed()) {
+         camera_stop(true);
+         end_ride();
+         effects().clear_particles();
++        if (g_swing_ride) swing_ride_over("a new level: the swing's board put away");
+     }
+     // The board's particles live on after he gets off, until they fade.
+     effects().update();
+     camera_blend_tick();
+     if (!riding()) {
+-        if (!(toggle && try_start_ride())) {
++        if (g_swing_ride && toggle) {
++            // The board's button during a swing taken from the board: the player puts it away.
++            swing_ride_over("the board put away during the swing");
++            toggle = false;
++        }
++        const int after = back_on_after_swing();
++        const bool again = !toggle && after > 0;
++        const bool pulled = g_swing_pulled;
++        if (!((toggle || again) && try_start_ride(again, again && pulled))) {
+             note_on_foot();
+             original();
+             pose_out_tick();
++            if (g_swing_ride) {
++                // Jak II's want-to-board? can refuse a frame or two as he lands: tried again for a quarter second.
++                g_swing_refused = again ? g_swing_refused + 1 : 0;
++                if (after < 0) {
++                    swing_ride_over("on foot after the swing: his state is the game's");
++                } else if (g_swing_refused > 15) {
++                    swing_ride_over("on foot after the swing: no board there");
++                } else {
++                    show_board_at_feet();
++                }
++            }
+             return;
+         }
++        if (again) trace(pulled ? "back on the board after the pull" : "back on the board after the swing");
++        g_swing_ride = false;
++        g_swing_pulled = false;
++        g_swing_refused = 0;
+         toggle = false; // the press that got on is not also the one that gets off
+     }
+-    const RideStep step = tick_ride(toggle);
++    RideStep step = tick_ride(toggle);
++    // The Swingshot fired at a target in sight: off the board, and his own update below swings.
++    const bool swing = step == RideStep::riding && swing_from_board(items);
++    if (swing) step = RideStep::left;
+     if (step != RideStep::taken) show_ride(step == RideStep::left);
++    if (step == RideStep::riding) {
++        // His weapon, gadget or wrench, as his own update would (Weapons on the board): what his state
++        // machine does with Circle and Triangle, the board's wrench swing, and the game's item update.
++        use_item(items);
++        strike(wrench);
++        run_items();
++    }
+     if (step == RideStep::taken) camera_stop(true); // the game's scene has its own camera
+     if (step != RideStep::riding) {
++        openrac_pose pose{};
++        g_swing_pulled = false;
++        g_swing_refused = 0;
++        g_swing_ride = swing || (step == RideStep::taken && settings().weapons && mod().hero_pose(pose) && swing_state(pose.state));
++        if (g_swing_ride) trace("off the board for a Swingshot swing, the board kept at his feet");
+         // Off the board: the game's update goes on from where the board (or the game) left Ratchet.
+         end_ride();
+         original();
+         pose_out_tick();
++        if (g_swing_ride) show_board_at_feet();
+     }
+ }
+ 
+diff --git a/src/rac1/pad.cpp b/src/rac1/pad.cpp
+index 8896e26..98e0d2b 100644
+--- a/src/rac1/pad.cpp
++++ b/src/rac1/pad.cpp
+@@ -91,13 +91,40 @@ void on_pad(int port, uint8_t* report, int size) {
+     // are nobody's: he rides with the wrench put away, so no weapon or gadget comes out and the quick
+     // select stays shut. The game, and other mods (lock-strafe turns the camera ahead on L2 or R2),
+     // see them released until he gets off. The board read them above. The pause menu keeps them.
++    // With Weapons on the board, Circle and Triangle stay the game's (his weapon fires, the quick
++    // select opens), but for a grind put on Circle or Square, which is the board's then.
+     if (riding() && mod().play_status().phase != OPENRAC_PLAY_MENU) {
+-        constexpr uint16_t kept = jak::pad::l1 | jak::pad::l2 | jak::pad::r1 | jak::pad::r2 |
+-                                  jak::pad::circle | jak::pad::triangle;
++        uint16_t kept = jak::pad::l1 | jak::pad::l2 | jak::pad::r1 | jak::pad::r2;
++        if (settings().weapons) {
++            kept |= static_cast<uint16_t>(settings().grind.bits() & (jak::pad::circle | jak::pad::square));
++        } else {
++            kept |= jak::pad::circle | jak::pad::triangle;
++        }
+         release(report, kept);
+     }
+ }
+ 
++bool wrench_pressed() {
++    static bool was = false;
++    const bool held = g_pad.valid && (g_pad.held & jak::pad::square) &&
++                      !(settings().grind.bits() & jak::pad::square);
++    const bool pressed = held && !was;
++    was = held;
++    return pressed;
++}
++
++ItemButtons item_buttons() {
++    static bool fire_was = false, select_was = false;
++    ItemButtons b;
++    b.fire_held = g_pad.valid && (g_pad.held & jak::pad::circle) && !(settings().grind.bits() & jak::pad::circle);
++    b.fire_pressed = b.fire_held && !fire_was;
++    fire_was = b.fire_held;
++    const bool select = g_pad.valid && (g_pad.held & jak::pad::triangle);
++    b.select_pressed = select && !select_was;
++    select_was = select;
++    return b;
++}
++
+ bool toggle_pressed() {
+     const bool held = g_pad.valid && toggle_held(g_pad.held);
+     bool pressed = held && !g_was_held;
+@@ -110,6 +137,13 @@ bool toggle_pressed() {
+ 
+ uint8_t pad_right_x() { return g_pad.valid ? g_pad.sticks[0] : 128; }
+ 
++bool pad_moves_board() {
++    if (!g_pad.valid) return false;
++    const int x = g_pad.sticks[2] - 128, y = g_pad.sticks[3] - 128;
++    const uint32_t board = jak::pad::x | jak::pad::r1 | jak::pad::r2 | jak::pad::l1 | jak::pad::l2 | settings().grind.bits();
++    return x * x + y * y > 40 * 40 || (g_pad.held & board) != 0;
++}
++
+ void feed_pad(jak::Target& t, bool toggle) {
+     jak::cpad_set_hw(t.pad, jak_buttons(toggle), g_pad.sticks[0], g_pad.sticks[1], g_pad.sticks[2], g_pad.sticks[3]);
+     std::memcpy(t.pad.abutton, g_pad.pressure, sizeof t.pad.abutton);
+diff --git a/src/rac1/pad.hpp b/src/rac1/pad.hpp
+index 0e7dfe5..33d017e 100644
+--- a/src/rac1/pad.hpp
++++ b/src/rac1/pad.hpp
+@@ -13,8 +13,22 @@ namespace rac1 {
+ void on_pad(int port, uint8_t* report, int size);
+ // The board's button (or key) went down this frame. Call once a frame.
+ bool toggle_pressed();
++// Square went down this frame (once a frame): the wrench, with Weapons on the board, but for a grind
++// put on Square.
++bool wrench_pressed();
++// Circle (his weapon's button, but for a grind put on Circle) held and gone down this frame, and
++// Triangle (the quick select) gone down this frame, for Weapons on the board. Call once a frame.
++struct ItemButtons {
++    bool fire_held = false;
++    bool fire_pressed = false;
++    bool select_pressed = false;
++};
++ItemButtons item_buttons();
+ // The right stick's x as port 0 last sent it (128 the middle), for the board's camera.
+ uint8_t pad_right_x();
++// The left stick pushed, or a button of the board's own held (the jump, its tricks, grind and grabs):
++// what moves a board held still after a Swingshot pull (ride.cpp, Ride::parked).
++bool pad_moves_board();
+ // The pad into the target's cpad for one frame (read-pad's input), the board's button as R2.
+ void feed_pad(jak::Target& t, bool toggle);
+ 
+diff --git a/src/rac1/ride.cpp b/src/rac1/ride.cpp
+index 5fce344..b204b0e 100644
+--- a/src/rac1/ride.cpp
++++ b/src/rac1/ride.cpp
+@@ -4,6 +4,7 @@
+ 
+ #include <algorithm>
+ #include <cmath>
++#include <cstdio>
+ #include <cstring>
+ #include <memory>
+ #include <string>
+@@ -63,11 +64,17 @@ struct Ride {
+     // The animation Ratchet had as he got on, the one his state (kept through the ride) plays.
+     uint32_t start_seq = 0;
+     float start_speed = 1.0f;
++    // Set down on the board by a Swingshot pull (try_start_ride's `still`): held where it was set down until the
++    // stick or a button of the board moves it (pad_moves_board). A pull's targets stand on small platforms, and the
++    // board, left to itself there, slid off the rim of Kerwan's first one to a fall (racboardswing.sim's first tries).
++    bool parked = false;
++    jak::Vec parked_at{};
+ };
+ Ride g_ride;
+ World g_world;
+ int g_board_prop = -1;
+ float g_board_nose[2] = {1.0f, 0.0f}; // where the board's nose points, flat, as drawn last
++float g_board_drop = 0.0f;            // how far below his feet the board was drawn last (in his scale)
+ // The trick guide: a faint ring under him in the air with a pointer at the board's nose, and a dot
+ // where he is going, so a spin is easier to end facing the way he travels (and land the boost).
+ int g_guide_prop = -1;
+@@ -245,6 +252,218 @@ bool grounded(jak::StateId st) {
+ }
+ 
+ // Ratchet's body: his place and heading, held in his standing pose, the riding pose over it.
++// ---- Weapons on the board (setting weapons) ----
++
++// The game's update of what his hand holds (HeroItemsUpdate: the item made, attached, swapped and
++// updated, which fires it and makes its hits), which his own update runs after his state's. The ride
++// takes that update, so run_items runs this part of it. One C function for every level, per disc.
++using ItemsFn = void (*)();
++ItemsFn items_update() {
++    static const ItemsFn fn = mod().function<ItemsFn>(ctx().pal ? "func_L00_00210FE0" : "FUN_L00_00210928");
++    return fn;
++}
++
++// ---- What his state machine does with Circle and Triangle, which the ride skips ----
++// (update_hero_state_machine and process_hero_item_action_input, the NTSC decomp's names.) On foot,
++// Circle starts the held gun's own animation, which fires it as the item update plays it on, and
++// Triangle opens the quick select. Both are parts of his update, so on the board they are done here
++// as the game does them while he runs: no state of his is changed, which would end the ride.
++struct ItemFns {
++    using Void = void (*)();
++    using IntInt = int (*)(int);
++    using Int = int (*)();
++    using Queue = int (*)(int, int, int, int, int, int, int);
++    using Keep = void (*)(int, int);
++    Void start_item = nullptr;      // start_equipped_item_animation
++    IntInt ammo = nullptr;          // get_ammo(-1): the held item's
++    IntInt scale = nullptr;         // scale_game_frames: 60 Hz frames as this disc's
++    Queue queue = nullptr;          // queue_animation_update: a HUD panel's
++    Int health = nullptr;           // show_health_hud, kept up with the quick select
++    Keep keep = nullptr;            // hud_keep_visible
++    Void swing_target = nullptr;    // select_hero_grapple_swing_target
++    Void grapple_target = nullptr;  // select_hero_grapple_target
++};
++const ItemFns& item_fns() {
++    static const ItemFns fns = [] {
++        const bool pal = ctx().pal;
++        ItemFns f;
++        f.start_item = mod().function<ItemFns::Void>(pal ? "func_L00_0020EB60" : "FUN_L00_0020e4c8");
++        f.ammo = mod().function<ItemFns::IntInt>(pal ? "func_L00_00234718" : "FUN_L00_00233e98");
++        f.scale = mod().function<ItemFns::IntInt>(pal ? "func_001F98C0" : "FUN_001f96f8");
++        f.queue = mod().function<ItemFns::Queue>(pal ? "func_001FFB38" : "FUN_001ff308");
++        f.health = mod().function<ItemFns::Int>(pal ? "func_L00_00235790" : "FUN_L00_00234e00");
++        f.keep = mod().function<ItemFns::Keep>(pal ? "func_L00_002367A8" : "FUN_L00_00235e18");
++        f.swing_target = mod().function<ItemFns::Void>(pal ? "func_L00_00222668" : "FUN_L00_00221ee0");
++        f.grapple_target = mod().function<ItemFns::Void>(pal ? "func_L00_002228E0" : "FUN_L00_00222158");
++        return f;
++    }();
++    return fns;
++}
++
++// The quick select's panel: initialize_eight_slot_hud_selector at this code address on each level
++// (the decomp's functions.tsv, PAL and US), its update 0xB8 on and its drawing 0x7B8 on, on every
++// level. The game hands the HUD's queue these addresses, as his state machine does.
++constexpr uint32_t kSelectorPal[19] = {0x00238478, 0x0024DA88, 0x0023B0D8, 0x00227BB0, 0x0022B9D8, 0x00261808, 0x00247970,
++                                       0x00260260, 0x00243660, 0x00258058, 0x0022BA60, 0x0025EE18, 0x00251C68, 0x00243EE0,
++                                       0x00240EE0, 0x00229000, 0x00233E88, 0x002337D8, 0x0023B9E8};
++constexpr uint32_t kSelectorUs[19] = {0x00237AE8, 0x0024D180, 0x0023A7A8, 0x002272B8, 0x0022B0C8, 0x00260E60, 0x00247010,
++                                      0x0025F950, 0x00242D58, 0x002577C8, 0x0022B150, 0x0025E518, 0x00251358, 0x002435D0,
++                                      0x00240550, 0x002286E0, 0x00233570, 0x00232DD0, 0x0023B0C8};
++constexpr uint32_t kSelectorUpdate = 0xB8, kSelectorDraw = 0x7B8;
++
++// His fields (the NTSC decomp's hero.h, the same on both discs): the held item's slot and its parts.
++constexpr uint32_t kItemSlot = 0x1090u;  // items[0]: +0 its moby, +0x1C switch_lock, +0x20 ready_frames, +0x24 state (2 ready), +0x28 item_id
++constexpr uint32_t kVehicle = 0x20A4u, kSelectBlocked = 0x20A7u, kItemAnimating = 0x20A8u, kItemLocked = 0x20ACu;
++constexpr uint32_t kItemAnimFrames = 0x1BCu, kItemAnimRaised = 0x20AAu;  // item_anim_frames (s32), unk20AA (u8)
++constexpr uint32_t kSelectorTimer = 0x22D2u, kQuickSwapWindow = 0x22D6u;
++constexpr uint32_t kGrappleInSight = 0x968u, kSwingInSight = 0x99Eu, kGrappleLockout = 0x1E6u;
++constexpr uint32_t kHeroPos = 0x80u, kHeroHeading = 0x98u, kHeroStateNow = 0x2084u, kHeroControl = 0x208Cu;
++constexpr int32_t kItemWrench = 8, kItemSwingshot = 12;
++
++bool item_ready(const openrac::Memory& mem) {
++    return mem.read<uint8_t>(hero_field(kItemLocked)) == 0 && mem.read<uint8_t>(hero_field(kVehicle)) == 0 &&
++           mem.read<uint32_t>(hero_field(kItemSlot)) != 0 && mem.read<int32_t>(hero_field(kItemSlot + 0x24u)) == 2;
++}
++
++// Triangle: the quick select, as his state machine opens it (its locks, Novalis's help selector).
++void open_quick_select() {
++    const ItemFns& f = item_fns();
++    const int level = mod().loaded_level();
++    if (f.queue == nullptr || f.scale == nullptr || level < 0 || level > 18) return;
++    const openrac::Memory mem = mod().memory();
++    if (mem.read<uint8_t>(hero_field(kItemSlot + 0x1Cu)) == 2 || mem.read<uint8_t>(hero_field(kItemLocked)) != 0 ||
++        mem.read<uint8_t>(hero_field(kSelectBlocked)) != 0 || mem.read<uint8_t>(hero_field(kVehicle)) != 0) {
++        return;
++    }
++    if (level == 1 && mem.read<int32_t>(mod().relocate_level(1, ctx().pal ? 0x0015F674u : 0x0015F594u)) != 0) return;
++    const int window = mem.read<int16_t>(hero_field(kQuickSwapWindow)) != 0 ? 0x1B : 0xF;
++    mem.write<int16_t>(hero_field(kSelectorTimer), static_cast<int16_t>(f.scale(window)));
++    const int panel = static_cast<int>((ctx().pal ? kSelectorPal : kSelectorUs)[level]);
++    f.queue(3, 0, panel, panel + static_cast<int>(kSelectorUpdate), panel + static_cast<int>(kSelectorDraw), 0, 0);
++    if (f.health != nullptr && f.keep != nullptr) f.keep(f.health(), f.scale(0xB4));
++    trace("the quick select opened from the board");
++}
++
++// Circle: the held gun fired as his state machine fires it while he runs (its case for each item:
++// held or pressed, a press kept a few frames, or pressed alone). Items it has no case for fire from
++// their own update, which run_items runs; the wrench is the board's swing (strike), the Swingshot
++// takes him off the board (swing_from_board).
++// The held item's animation clock, which his update keeps and the ride skips: item_anim_frames counts
++// while item_anim_active is set, and the gun's own update fires on it (a gun only started, its frames
++// at 0, never shot: the Quest build's racboardweapons.sim, its rounds unspent). His animation is not
++// played on the board, so its end, which clears the flag on foot, is here: once Circle is up and the
++// shortest firing has played (18 frames, the Trespasser's shot at 17), as a held gun's arm comes down.
++void item_animation_tick(const ItemButtons& b, const openrac::Memory& mem, const ItemFns& f) {
++    if (mem.read<uint8_t>(hero_field(kItemAnimating)) == 0) {
++        mem.write<int32_t>(hero_field(kItemAnimFrames), 0);
++        return;
++    }
++    const int32_t frames = mem.read<int32_t>(hero_field(kItemAnimFrames)) + 1;
++    if (!b.fire_held && frames >= f.scale(0x12)) {
++        mem.write<uint8_t>(hero_field(kItemAnimating), 0);
++        mem.write<uint8_t>(hero_field(kItemAnimRaised), 0);
++        mem.write<int32_t>(hero_field(kItemAnimFrames), 0);
++        return;
++    }
++    mem.write<int32_t>(hero_field(kItemAnimFrames), frames);
++}
++
++void fire_item(const ItemButtons& b) {
++    static int age = 1000;  // frames since Circle went down
++    age = b.fire_pressed ? 0 : std::min(age + 1, 1000);
++    const ItemFns& f = item_fns();
++    if (f.start_item == nullptr || f.ammo == nullptr || f.scale == nullptr) return;
++    const openrac::Memory mem = mod().memory();
++    item_animation_tick(b, mem, f);
++    if (!item_ready(mem) || mem.read<uint8_t>(hero_field(kItemAnimating)) != 0) return;
++    const int32_t id = mem.read<int32_t>(hero_field(kItemSlot + 0x28u));
++    const int32_t ready = mem.read<int32_t>(hero_field(kItemSlot + 0x20u));
++    bool go = false;
++    switch (id) {
++    case 15: // held to fire
++        go = (b.fire_held && ready > f.scale(5)) || b.fire_pressed;
++        break;
++    case 10: case 17: case 20: case 24: case 25: // a press kept a few frames, or held a while
++        go = age < std::min(f.scale(7), ready) || (b.fire_held && ready > f.scale(8) && ready < f.scale(0x11));
++        break;
++    case 21: // pressed
++        go = b.fire_pressed;
++        break;
++    default:
++        break;
++    }
++    if (go && f.ammo(-1) != 0) {
++        f.start_item();
++        age = 1000;
++        trace("the board fires item " + std::to_string(id));
++    }
++}
++
++// The board's wrench swing, on Square as on foot (the game's own swing is a state of his update):
++// his upper body twists back, across and home, and the wrench hits what is in its reach ahead of him
++// once, a little into the swing, as the game's wrench does (the hit every enemy, crate and box reads).
++struct Strike {
++    float time = -1.0f; // seconds into the swing; below 0, none
++    bool hit = false;
++};
++Strike g_strike;
++constexpr float kStrikeTime = 0.36f;
++constexpr float kStrikeHitAt = 0.12f;
++constexpr float kStrikeReach = 2.6f;  // the game's units from him, flat
++constexpr float kStrikeHeight = 2.0f; // above or below him
++constexpr float kStrikeCos = 0.26f;   // within 75 degrees of his heading
++
++float smooth01(float x) {
++    x = std::clamp(x, 0.0f, 1.0f);
++    return x * x * (3.0f - 2.0f * x);
++}
++
++// His upper body's twist through the swing (radians about up, as the board's own upper-body turn).
++float strike_twist() {
++    if (g_strike.time < 0.0f) return 0.0f;
++    const float p = g_strike.time / kStrikeTime;
++    if (p < 0.25f) return -0.6f * smooth01(p / 0.25f);
++    if (p < 0.6f) return -0.6f + 1.6f * smooth01((p - 0.25f) / 0.35f);
++    return 1.0f - smooth01((p - 0.6f) / 0.4f);
++}
++
++void strike_hits(const openrac_pose& pose) {
++    if (!mod().has_world()) return;
++    const float c = std::cos(pose.rotation[2]), s = std::sin(pose.rotation[2]);
++    int hits = 0;
++    // A moby the game's hits reach (its flags +0x34, bit 0x4000: a crate, a box, an enemy), by its
++    // address: the slots are 0x100 apart, from his body's.
++    const openrac::Memory mem = mod().memory();
++    const uint32_t body = mem.read<uint32_t>(hero_field(0x2080u));
++    const int body_slot = body != 0 ? mod().moby_slot_of(body) : -1;
++    const int self = mod().figure_slot(-1);
++    for (const openrac_moby& m : mod().moby_list()) {
++        if ((m.flags & (OPENRAC_MOBY_HIDDEN | OPENRAC_MOBY_DRIVEN | OPENRAC_MOBY_DEAD)) || m.state >= 0x80 || m.slot == self ||
++            m.slot == body_slot) {
++            continue;
++        }
++        const bool hittable = body_slot >= 0 &&
++            (mem.read<uint16_t>(body + static_cast<uint32_t>(m.slot - body_slot) * 0x100u + 0x34u) & 0x4000u) != 0;
++        if (!(m.flags & OPENRAC_MOBY_CREATURE) && !hittable) continue;
++        const float dx = m.position[0] - pose.position[0], dy = m.position[1] - pose.position[1];
++        const float dz = m.position[2] - pose.position[2];
++        const float flat = std::sqrt(dx * dx + dy * dy);
++        if (flat > kStrikeReach || std::fabs(dz) > kStrikeHeight) continue;
++        if (flat > 0.3f && (dx * c + dy * s) / flat < kStrikeCos) continue;
++        openrac_hit h{};
++        h.size = sizeof h;
++        h.victim = m.slot;
++        h.attacker = mod().figure_slot(-1);
++        h.mask = 0x10000u;
++        h.damage = 1.0f;
++        std::copy(pose.position, pose.position + 3, h.position);
++        h.velocity[0] = 8.0f * c;
++        h.velocity[1] = 8.0f * s;
++        if (mod().moby_hit(h)) ++hits;
++    }
++    trace("wrench swing on the board: " + std::to_string(hits) + " hit");
++}
++
+ void show_ratchet(openrac_pose& pose, float yaw, bool last) {
+     const jak::Target& t = *g_ride.t;
+     to_game_point(drawn_trans(t), pose.position);
+@@ -327,6 +546,7 @@ void show_ratchet(openrac_pose& pose, float yaw, bool last) {
+     float upper = rt.upper_body.mode == jak::JointModMode::rotate ? -rt.upper_body.twist_y * (kTwoPi / 65536.0f)
+                                                                    : 0.0f;
+     spin_pose(mixed, upper, dt);
++    upper += strike_twist(); // the board's wrench swing (Weapons on the board)
+     g_ride.look.update(mixed, motion, spin + g_ride.spin_carry, upper, dt);
+     const std::vector<JointOut> js = g_ride.look.joints();
+     std::vector<openrac_joint_offset> offsets(js.size());
+@@ -375,6 +595,7 @@ void show_board(const openrac_pose& pose, float yaw) {
+     to_game(o, up);
+     const float place[3] = {bt[kPx] * scale, bt[kPy] * scale, bt[kPz] * scale};
+     to_game(place, o);
++    g_board_drop = o[2] / scale;
+     const float mat[16] = {size * left[0], size * left[1], size * left[2], 0.0f,
+                            size * up[0],   size * up[1],   size * up[2],   0.0f,
+                            size * nose[0], size * nose[1], size * nose[2], 0.0f,
+@@ -443,6 +664,29 @@ void show_guide(const openrac_pose& pose) {
+ 
+ bool riding() { return g_ride.t != nullptr; }
+ 
++void show_board_at_feet() {
++    openrac_pose pose{};
++    if (!mod().hero_pose(pose)) return;
++    const float scale = pose.scale > 0.0f ? pose.scale : 1.0f;
++    const float yaw = pose.rotation[2];
++    const float f[3] = {std::cos(yaw), std::sin(yaw), 0.0f}, l[3] = {-std::sin(yaw), std::cos(yaw), 0.0f};
++    const float* p = pose.position;
++    // Flat under him along his heading, open, as low under his feet as the ride last drew it.
++    const float mat[16] = {l[0], l[1], l[2], 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, f[0], f[1], f[2], 0.0f,
++                           p[0], p[1], p[2] + g_board_drop * scale, 1.0f};
++    if (g_board_prop < 0 || !mod().prop_pose(g_board_prop, mat)) {
++        g_board_prop = mod().prop_create("assets/board.glb");
++        if (g_board_prop >= 0) mod().prop_pose(g_board_prop, mat);
++    }
++    if (g_board_prop >= 0) mod().prop_hide(g_board_prop, false);
++    g_board_nose[0] = f[0];
++    g_board_nose[1] = f[1];
++}
++
++void hide_board() {
++    if (g_board_prop >= 0) mod().prop_hide(g_board_prop, true);
++}
++
+ void pose_out_tick() {
+     if (g_pose_out <= 0.0f) return;
+     g_pose_out -= frame_seconds();
+@@ -479,7 +723,7 @@ bool end_attack() {
+ 
+ } // namespace
+ 
+-bool try_start_ride() {
++bool try_start_ride(bool after_swing, bool still) {
+     openrac_pose pose{};
+     if (!playing() || !mod().hero_pose(pose)) return false;
+     auto t = std::make_unique<jak::Target>();
+@@ -506,6 +750,14 @@ bool try_start_ride() {
+     t->control.list_time_on_ground = g_ground_time;
+     t->board->board_time = g_board_time;
+     rt->board_setup = g_rode;
++    if (after_swing) {
++        // Back on as he lets go of a Swingshot swing taken from the board: Jak II wants the board's button, the
++        // ground touched since he got off and half a second gone; the swing was the board's own way off, in the air
++        // (racboardswing.sim: "no board in hero state 6" without this).
++        t->board->latch_p = jak::Symbol("#t");
++        t->control.list_time_on_ground = std::max(g_ground_time, g_board_time + 1);
++        rt->board_setup = false;
++    }
+     feed_pad(*t, true);
+     const bool ok = jak::want_to_board_p(*t);
+     rt->board_setup = false; // target-board-setup's own first time, as each ride makes a new target
+@@ -526,7 +778,7 @@ bool try_start_ride() {
+     t->control.quat = q;
+     jak::set_quaternion(*t, q);
+     jak::rot_to_dir_targ(*t);
+-    const jak::Vec v = to_jak_dir(pose.velocity);
++    const jak::Vec v = still ? jak::Vec{0.0f, 0.0f, 0.0f, 0.0f} : to_jak_dir(pose.velocity);
+     t->control.transv = jak::Vec{v.x * kUnit, v.y * kUnit, v.z * kUnit, 0.0f};
+     // Jak walks onto the board with his ground already found; get-on's hop is timed from it.
+     jak::CollideQuery cq;
+@@ -557,6 +809,9 @@ bool try_start_ride() {
+     g_ride.pose_in = g_pose_out / kPoseOut;
+     g_pose_out = 0.0f;
+     g_rode = true;
++    g_ride.parked = still;
++    g_ride.parked_at = g_ride.t->control.trans;
++    if (still) trace("on the board at a standstill after the pull: held there until the stick moves it");
+     jak::go(*g_ride.t, jak::StateId::target_board_start);
+     if (settings().board_camera) camera_start(*g_ride.t);
+     return true;
+@@ -598,8 +853,27 @@ RideStep tick_ride(bool toggle) {
+         mod().hero_hurt(1);
+     }
+     if (mod().has_world()) touch_creatures(t);
++    const jak::Vec before_carry = t.control.trans;
+     carry(t);
++    if (g_ride.parked && pad_moves_board()) {
++        g_ride.parked = false;
++        trace("the board moved on from its standstill");
++    }
++    if (g_ride.parked) {
++        // Held where the pull set him down, across (it still rises and settles onto the platform), and carried with
++        // a platform that moves.
++        g_ride.parked_at.x += t.control.trans.x - before_carry.x;
++        g_ride.parked_at.z += t.control.trans.z - before_carry.z;
++        t.control.trans.x = g_ride.parked_at.x;
++        t.control.trans.z = g_ride.parked_at.z;
++        t.control.transv.x = t.control.transv.z = 0.0f;
++    }
+     jak::board_tick(t);
++    if (g_ride.parked) {
++        t.control.trans.x = g_ride.parked_at.x;
++        t.control.trans.z = g_ride.parked_at.z;
++        t.control.transv.x = t.control.transv.z = 0.0f;
++    }
+     float feet[3];
+     to_game_point(t.control.trans, feet);
+     const Ground ground = ground_under(feet);
+@@ -628,7 +902,9 @@ RideStep tick_ride(bool toggle) {
+ void show_ride(bool last) {
+     const jak::Target& t = *g_ride.t;
+     openrac_pose pose{};
+-    if (mod().hero_pose(pose)) hold_hand(pose.item);
++    // With Weapons on the board what his hand holds stays there, the game's, and is drawn.
++    const bool weapons = settings().weapons;
++    if (mod().hero_pose(pose) && !weapons) hold_hand(pose.item);
+     jak::Vec fwd;
+     jak::vector_z_quaternion(fwd, t.control.quat);
+     const float yaw = jak_forward_to_yaw(fwd);
+@@ -640,6 +916,7 @@ void show_ride(bool last) {
+     } else {
+         show_guide(pose);
+     }
++    if (weapons) return;
+     // An item the game still gives his hand while he rides is put away too: its pieces found again.
+     // Its moby can come a few frames after the switch, so it is looked for over a quarter second.
+     if (pose.item != g_ride.held_item) {
+@@ -653,8 +930,80 @@ void show_ride(bool last) {
+     hide_hand(true);
+ }
+ 
++void run_items() {
++    if (!settings().weapons) return;
++    static bool said = false;
++    const ItemsFn fn = items_update();
++    if (!said) {
++        said = true;
++        mod().info(fn != nullptr ? "Weapons on the board: the game's item update found"
++                                 : "Weapons on the board: no item update in this build of the game");
++    }
++    if (fn != nullptr) fn();
++}
++
++void use_item(const ItemButtons& b) {
++    if (!settings().weapons) return;
++    if (b.select_pressed) open_quick_select();
++    fire_item(b);
++}
++
++bool swing_from_board(const ItemButtons& b) {
++    if (!settings().weapons || !b.fire_pressed) return false;
++    const ItemFns& f = item_fns();
++    const openrac::Memory mem = mod().memory();
++    if (f.swing_target == nullptr || f.grapple_target == nullptr || !item_ready(mem) ||
++        mem.read<int32_t>(hero_field(kItemSlot + 0x28u)) != kItemSwingshot) {
++        return false;
++    }
++    // As his state machine picks the Swingshot's target, then whether there is one to take.
++    f.swing_target();
++    f.grapple_target();
++    const bool target = mem.read<int16_t>(hero_field(kSwingInSight)) != 0 || mem.read<int32_t>(hero_field(kGrappleInSight)) != 0;
++    if (!target || mem.read<int16_t>(hero_field(kGrappleLockout)) != 0) {
++        // The game takes a target within 30 (a pull) or 45 degrees (a swing) of his heading and in reach: where he
++        // was and faced, for a report.
++        char where[160];
++        std::snprintf(where, sizeof where, " (at %.1f %.1f %.1f, heading %.2f, state 0x%X, control %d)",
++                      mem.read<float>(hero_field(kHeroPos)), mem.read<float>(hero_field(kHeroPos + 4u)),
++                      mem.read<float>(hero_field(kHeroPos + 8u)), mem.read<float>(hero_field(kHeroHeading)),
++                      mem.read<int32_t>(hero_field(kHeroStateNow)), mem.read<int32_t>(hero_field(kHeroControl)));
++        trace(std::string("the Swingshot from the board: no target in sight") + where);
++        return false;
++    }
++    trace("the Swingshot from the board: a target in sight, off the board for the game's swing");
++    return true;
++}
++
++void strike(bool pressed) {
++    openrac_pose pose{};
++    if (!settings().weapons || !mod().hero_pose(pose)) {
++        g_strike = Strike{};
++        return;
++    }
++    if (pressed && g_strike.time < 0.0f) {
++        g_strike = Strike{0.0f, false};
++        take_wrench(pose.item);
++        effects().sound_play("board-kick", 1.0f, 1.0f); // his wrench swing's whoosh
++    } else if (g_strike.time >= 0.0f) {
++        g_strike.time += frame_seconds();
++    }
++    if (g_strike.time >= kStrikeHitAt && !g_strike.hit) {
++        g_strike.hit = true;
++        strike_hits(pose);
++    }
++    if (g_strike.time >= kStrikeTime) g_strike = Strike{};
++}
++
++bool swing_state(int s) { return s == 0x1E || (s >= 0x24 && s <= 0x26) || s == 0x2C; }
++
++bool air_state(int s) { return hero_in_air(s); }
++
++bool ground_state(int s) { return hero_on_ground(s); }
++
+ void end_ride() {
+     if (!riding()) return;
++    g_strike = Strike{}; // a wrench swing of the board's ends with the ride
+     camera_stop(false);
+     g_board_time = g_ride.t->board->board_time;
+     // The riding pose eases out over the game's animation (pose_out_tick).
+@@ -668,6 +1017,7 @@ void end_ride() {
+     g_ride.spinning = false;
+     g_ride.has_yaw = false;
+     g_ride.has_shown = false;
++    g_ride.parked = false;
+     effects().stop_sounds();
+     forget_ground();
+     if (g_board_prop >= 0) mod().prop_hide(g_board_prop, true);
+diff --git a/src/rac1/ride.hpp b/src/rac1/ride.hpp
+index 7cc87af..2ad0f74 100644
+--- a/src/rac1/ride.hpp
++++ b/src/rac1/ride.hpp
+@@ -3,6 +3,8 @@
+ // The ride: Jak II's target on the board in Ratchet's place, from getting on to getting off.
+ #pragma once
+ 
++#include "rac1/pad.hpp"
++
+ namespace rac1 {
+ 
+ // Ratchet's scripted stand (hero state 0x72): the Trespasser puzzle's view, where the game turns
+@@ -12,8 +14,11 @@ constexpr int kHeroScriptedStand = 0x72;
+ bool riding();
+ // Gets on when want-to-board? says yes (the board's button pressed, Ratchet free and with room);
+ // false otherwise, and the game's update runs as usual. He gets on at once: a wrench swing under way
+-// ends, and a weapon or gadget in his hand is put away for the wrench as he rides.
+-bool try_start_ride();
++// ends, and a weapon or gadget in his hand is put away for the wrench as he rides (but with Weapons
++// on the board, which keeps it). after_swing: back on as a Swingshot swing or pull taken from the board
++// ends, with no press and no ground touched since. still: at a standstill, and held there until the
++// stick or a button of the board moves it (after a pull, set down on its target's small platform).
++bool try_start_ride(bool after_swing = false, bool still = false);
+ enum class RideStep {
+     riding, // still on the board
+     left,   // the board's code got off (or the board met one of the game's hazards)
+@@ -25,6 +30,28 @@ RideStep tick_ride(bool toggle);
+ // `last`: the ride's last frame, his animation handed back to the game's.
+ void show_ride(bool last);
+ void end_ride();
++// With Weapons on the board, once a frame of the ride after show_ride: the game's update of what his
++// hand holds (made, swapped, fired, its hits), a part of his own update, which the ride takes.
++void run_items();
++// With Weapons on the board, once a frame of the ride before run_items: what his state machine does
++// with Circle and Triangle (the ride skips it): Triangle opens the quick select, Circle fires the
++// gun he holds as it does while he runs.
++void use_item(const ItemButtons& b);
++// With Weapons on the board and the Swingshot in his hand: Circle pressed with a Swingshot target in
++// sight (the game's own pick of it). The ride then ends, and his own update this frame swings.
++bool swing_from_board(const ItemButtons& b);
++// With Weapons on the board, once a frame of the ride: Square pressed this frame (`pressed`) swings
++// the wrench, the board's swing (the game's is a state of his own update).
++void strike(bool pressed);
++// The Swingshot's states (its aim, pull and swing): a ride the game ends for one comes back as it
++// ends, in the air (air_state) or on the ground (ground_state), with Weapons on the board (mod.cpp).
++bool swing_state(int state);
++bool air_state(int state);
++bool ground_state(int state);
++// Off the board for a Swingshot swing or pull: the board drawn at his feet, flat along his heading, so he
++// keeps it all the way; hide_board puts it away if he does not get back on.
++void show_board_at_feet();
++void hide_board();
+ // A frame off the board: the riding pose eased out over the game's animation after a ride.
+ void pose_out_tick();
+ // A frame off the board: notes when Ratchet stands on the ground (want-to-board? needs it).
+diff --git a/src/rac1/world/hand.cpp b/src/rac1/world/hand.cpp
+index fbf5055..c4b6eed 100644
+--- a/src/rac1/world/hand.cpp
++++ b/src/rac1/world/hand.cpp
+@@ -71,6 +71,11 @@ void release_hold() {
+     g_held_request = 0;
+ }
+ 
++void take_wrench(int32_t item) {
++    // The game's own request, once: it puts the item away and takes the wrench, then clears it.
++    if (!hand_free(item)) mod().memory().write<uint8_t>(wrench_request(), 1);
++}
++
+ void find_hand(const float hero[3], bool add) {
+     if (!add) g_hand.clear();
+     openrac_held held;
+diff --git a/src/rac1/world/hand.hpp b/src/rac1/world/hand.hpp
+index f101d2e..5fba883 100644
+--- a/src/rac1/world/hand.hpp
++++ b/src/rac1/world/hand.hpp
+@@ -16,6 +16,9 @@ void hold_hand(int32_t item);
+ // The ride is over: the item asked for while he rode is asked for again, and a wrench request of the
+ // mod's still open is taken back.
+ void release_hold();
++// With Weapons on the board: the wrench into his hand for a swing, as the game takes it for one
++// on foot (nothing when it, or nothing, is in his hand already).
++void take_wrench(int32_t item);
+ 
+ // Finds the hand's pieces near `hero` (game units), by class: as the ride starts, and with `add`
+ // for an item he takes out while riding (added to those found).

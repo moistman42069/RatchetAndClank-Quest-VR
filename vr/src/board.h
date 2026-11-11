@@ -225,23 +225,35 @@ inline Quat board_view_turn(Quat turn) {
 
 // How the view turns with RAC-Board, from how it poses him, a frame at a time (quest_vr.cpp's follow_jet_board; all in
 // the frame's axes, y up):
-// - `heading`, his heading as the mod turns him (it turns him by it, the spins and flips by his joints): its change since
-//   the last frame turns the rig with him (`rig_turn`), as he carves. A change of more than kBoardHeadingJump at once is
-//   the mod's own at a spin's end (its heading jumps to the board's, his body drawn on as it was): no turn of the view.
+// - `heading`, his heading as the mod turns him (it turns him by it, the spins and flips by his joints). A carve turns
+//   nothing (0.1.19: the stick steers the board to where the player looks, pad.h; a view turned with the carve would keep
+//   the gaze off the heading and the board turning after it; to 0.1.18 the rig turned with him). A change of more than
+//   kBoardHeadingJump at once is the mod's own at a spin's end (its heading jumps to the board's, his body drawn on as it
+//   was): no turn of the view.
 // - `pelvis`, his pelvis's turn as drawn: its turn from `rest` (how he stands on the board, in his heading's frame, taken
 //   as the ride starts and eased to a new stance while he is near it) is the view's `turn` (the spins and flips).
-// - The yaw left in that turn when he is near level (a spin's end) goes to the rig a little at a time, the view the same:
-//   so `turn` is back to none and the next trick is measured from his stance.
+// - After a heading jump (a spin's end, a turn-around, a bounce), the yaw left in that turn goes to the rig a little at a
+//   time once he is near level, the view the same: so `turn` is back to none, the view along the board's new way, and the
+//   next trick is measured from his stance.
+// - Any other yaw in it is his stance or the ride's sway, never the rig's (0.1.19): getting on (the first
+//   kBoardMountSettle), all of it goes into `rest` at once; then, while under kBoardNearStance, eased into it. To 0.1.18
+//   every yaw went to the rig: getting on, RAC-Board turns his pelvis about 55 degrees from his standing pose to its
+//   stance in a second (racboardhead.sim), and the view faced that far off the board's nose, the stick, about the board,
+//   taking it 55 degrees from where the player looked; and the pelvis's yaw jitters a tenth of a radian a frame as he
+//   rides, which walked the view round a little at a time.
 inline constexpr float kBoardHeadingJump = 0.6f;     // radians in a frame: no carve turns him that fast
 inline constexpr float kBoardYawToRig = 0.25f;       // seconds: the yaw left in the turn, to a third
 inline constexpr float kBoardNearLevel = 0.30f;      // radians of tilt
 inline constexpr float kBoardNearStance = 0.35f;     // radians from the stance: a new stance, not a trick
 inline constexpr float kBoardStanceEase = 0.6f;      // seconds: a new stance, to a third
+inline constexpr float kBoardMountSettle = 1.2f;     // seconds from his first pose on the board: getting on
 
 struct BoardFollow {
     bool started = false;
     float heading = 0;
     Quat rest{};
+    float riding = 0;        // seconds since his first pose on the board (kBoardMountSettle)
+    bool trick_end = false;  // a heading jump's: the yaw in the turn is the rig's until it is gone
 
     // This frame's: how much to turn the rig (left positive) and the view's turn after it (`turn`, applied about his
     // middle, on top of the rig; left as it was while his pose is not seen).
@@ -260,18 +272,32 @@ struct BoardFollow {
         heading = heading_now;
         if (std::fabs(change) > kBoardHeadingJump) {
             rest = yaw_quat(-change) * rest;  // the stance in the world kept where it was: the view does not jump
-        } else {
-            rig_turn = change;
+            trick_end = true;
         }
         if (!pelvis_seen) {
             return rig_turn;  // `turn` as it was
         }
+        riding += std::max(seconds, 0.0f);
         turn = normalized(pelvis * conjugate(rest) * conjugate(facing));
-        const float yaw = yaw_part(turn);
+        float yaw = yaw_part(turn);
+        if (riding < kBoardMountSettle && !trick_end) {
+            // Getting on: his stance, all of it.
+            rest = yaw_quat(yaw) * rest;
+            turn = normalized(pelvis * conjugate(rest) * conjugate(facing));
+            yaw = yaw_part(turn);
+        }
         const Quat tilt = yaw_quat(-yaw) * turn;
-        if (seconds > 0.0f && angle_between(tilt, Quat{}) < kBoardNearLevel && std::fabs(yaw) > 1e-4f) {
-            const float step = yaw * (1.0f - std::exp(-seconds / kBoardYawToRig));
-            rig_turn += step;
+        if (trick_end) {
+            if (seconds > 0.0f && angle_between(tilt, Quat{}) < kBoardNearLevel && std::fabs(yaw) > 1e-4f) {
+                const float step = yaw * (1.0f - std::exp(-seconds / kBoardYawToRig));
+                rig_turn += step;
+                rest = yaw_quat(step) * rest;
+                turn = normalized(pelvis * conjugate(rest) * conjugate(facing));
+            }
+            trick_end = std::fabs(yaw_part(turn)) >= 0.02f;
+        } else if (seconds > 0.0f && std::fabs(yaw) < kBoardNearStance) {
+            // His stance or the ride's sway: into the rest, the rig not turned.
+            const float step = yaw * (1.0f - std::exp(-seconds / kBoardStanceEase));
             rest = yaw_quat(step) * rest;
             turn = normalized(pelvis * conjugate(rest) * conjugate(facing));
         }

@@ -5,6 +5,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import android.app.Application;
@@ -275,6 +276,8 @@ public class LauncherTest {
         allowed.put("original_lod", bools);
         allowed.put("max_draw_distance", bools);
         assertTrue("the port parses max_draw_distance", cpp.contains("key == \"max_draw_distance\""));
+        allowed.put("draw_distance", listed(h, "kDrawDistances"));
+        assertTrue("the port parses draw_distance", cpp.contains("key == \"draw_distance\""));
         allowed.put("matching_shadow", bools);
         assertTrue("the port parses matching_shadow", cpp.contains("key == \"matching_shadow\""));
         allowed.put("fades_in_view", bools);
@@ -358,6 +361,43 @@ public class LauncherTest {
         assertEquals("true", config.get(Config.MAX_DRAW));
         config.set(Config.MAX_DRAW, "false");
         assertEquals("false", new Config(app).get(Config.MAX_DRAW));
+        // The Draw distance is the launcher's too (0.1.19): never one the game's own menu left in the file. Max draw
+        // distance on is Unlimited whatever it says (settings.h draws_any_distance).
+        assertTrue(new Config(app).gameSettings().contains("draw_distance = 400\n"));
+    }
+
+    /** Foveated rendering (0.1.19, the owner's ask): Medium by default, High on Performance, Low on Quality, to the mod. */
+    @Test
+    public void foveatedRenderingIsMediumByDefaultAndFollowsThePresets() {
+        android.content.SharedPreferences options = app.getSharedPreferences("options", Context.MODE_PRIVATE);
+        options.edit().clear().commit();
+        Config config = new Config(app);
+        assertEquals("2", config.get(Config.FOVEATION));
+        assertEquals(2, config.modSettings(false).get("foveation"));
+        assertTrue("on the Graphics tab", Arrays.asList(Config.GRAPHICS).contains(Config.FOVEATION));
+        config.applyPreset("performance");
+        assertEquals(3, config.modSettings(false).get("foveation"));
+        config.applyPreset("quality");
+        assertEquals(1, config.modSettings(false).get("foveation"));
+        config.applyPreset("balanced");
+        assertEquals(2, config.modSettings(false).get("foveation"));
+        config.set(Config.FOVEATION, "0");
+        assertEquals("the player's own choice stays", 0, new Config(app).modSettings(false).get("foveation"));
+    }
+
+    /** Third person controls and the D-pad (0.1.19, the owner's ask): Gamepad and by the head to start, to the mod. */
+    @Test
+    public void thirdPersonIsAGamepadWithTheDpadByTheHead() {
+        app.getSharedPreferences("options", Context.MODE_PRIVATE).edit().clear().commit();
+        Config config = new Config(app);
+        assertEquals("gamepad", config.modSettings(false).get("third_person_controls"));
+        assertEquals("head", config.modSettings(false).get("dpad"));
+        assertTrue("on the VR tab", Arrays.asList(Config.VR).contains(Config.THIRD_PERSON_CONTROLS));
+        assertTrue("on the VR tab", Arrays.asList(Config.VR).contains(Config.DPAD));
+        config.set(Config.THIRD_PERSON_CONTROLS, "vr");
+        config.set(Config.DPAD, "thumb_rest");
+        assertEquals("vr", new Config(app).modSettings(false).get("third_person_controls"));
+        assertEquals("thumb_rest", new Config(app).modSettings(false).get("dpad"));
     }
 
     @Test
@@ -662,6 +702,63 @@ public class LauncherTest {
     }
 
     @Test
+    public void aBuiltInModTakesTheListsVersionAndGoesBack() throws Exception {
+        // 0.1.19, the owner: "we shouldnt have mismatches". The list's version of a built-in mod takes its place, keeps
+        // its on or off, goes to the game, and the built-in comes back when it is removed; RAC-Board's changes stay.
+        assertEquals(1, ModIndex.compareVersions("0.12.10", "0.12.9"));
+        assertEquals(1, ModIndex.compareVersions("0.12.3", "0.12.2"));
+        assertEquals(-1, ModIndex.compareVersions("0.8.0", "0.12.2"));
+        assertEquals(0, ModIndex.compareVersions("1.0", "1.0.0"));
+        assertTrue(ModIndex.keepsBuiltIn("rac-board"));
+        assertFalse(ModIndex.keepsBuiltIn("multiplayer"));
+        byte[] body = Files.readAllBytes(new File(INDEX_FIXTURES, "index.json").toPath());
+        String signature = new String(Files.readAllBytes(new File(INDEX_FIXTURES, "index.json.minisig").toPath()),
+            StandardCharsets.UTF_8);
+        ModIndex index = ModIndex.read(body, signature, INDEX_TEST_KEY, 0, "android-arm64", 1, 14, BundledMods::jsonMap, false, "");
+        assertNull("the same version: nothing to take", index.differing("ammo-max", "1.0.1", true));
+        ModIndex.Offer newer = index.differing("ammo-max", "1.0.0", true);
+        assertTrue(newer != null && "1.0.1".equals(newer.version));
+        assertEquals("Update to 1.0.1", ModIndex.takeLabel("1.0.0", newer));
+        assertEquals("Use 1.0.1, as OpenRAC's mod list has it", ModIndex.takeLabel("1.2.0", newer));
+        assertNull("not offered for a mod the list lacks", index.differing("no-such-mod", "1.0.0", true));
+
+        // Robolectric lists none of the APK's assets/mods (getAssets().list gives nothing here), so the built-ins are
+        // made from manifests; PcSelfTest takes a built-in's place, writes it for the game and brings it back with the
+        // release's real files (PcMods, the same rule).
+        app.getSharedPreferences("mods", Context.MODE_PRIVATE).edit().clear().commit();
+        BundledMods mods = new BundledMods(app);
+        java.util.List<BundledMods.Mod> list = new java.util.ArrayList<>();
+        for (String id : new String[] {"ammo-max", "button-swap", "rac-board"}) {
+            list.add(BundledMods.parse("{\"format\": 2, \"id\": \"" + id + "\", \"name\": \"" + id + "\", \"type\": \"script\","
+                + " \"version\": \"1.0.1\", \"api\": \"1.1\", \"scripts\": [\"main.luau\"], \"games\": {\"rac1\": [\"pal\"]}}"));
+        }
+        BundledMods.Mod builtIn = list.get(1);
+        boolean wasOn = mods.on(builtIn);
+        BundledMods.Mod taken = BundledMods.parse("{\"format\": 2, \"id\": \"button-swap\", \"name\": \"Button Swap\","
+            + " \"type\": \"script\", \"version\": \"9.9.9\", \"api\": \"1.1\", \"scripts\": [\"main.luau\"],"
+            + " \"games\": {\"rac1\": [\"pal\", \"ntsc\"]}}");
+        taken.added = true;
+        BundledMods.place(list, taken);
+        assertEquals("one Button Swap, in its place", 3, list.size());
+        assertSame(taken, list.get(1));
+        assertEquals("1.0.1", taken.builtIn);
+        assertEquals("it keeps the built-in's on or off", wasOn, mods.on(taken));
+        mods.setOn(builtIn, true);
+        assertTrue("the built-in's on is the list's one's", mods.on(taken));
+        BundledMods.Mod board = BundledMods.parse("{\"format\": 2, \"id\": \"rac-board\", \"name\": \"RAC-Board\","
+            + " \"type\": \"script\", \"version\": \"0.2.1\", \"api\": \"1.1\", \"scripts\": [\"main.luau\"]}");
+        board.added = true;
+        BundledMods.place(list, board);
+        assertTrue("RAC-Board keeps this release's changes", list.get(2).builtIn == null && !list.get(2).added);
+        BundledMods.Mod other = BundledMods.parse("{\"format\": 2, \"id\": \"swap\", \"name\": \"Swap\", \"type\": \"script\","
+            + " \"api\": \"1.1\", \"scripts\": [\"main.luau\"]}");
+        other.added = true;
+        BundledMods.place(list, other);
+        assertTrue("any other at the end", list.size() == 4 && list.get(3) == other && other.builtIn == null);
+        assertTrue("an added mod with no built-in is on from its adding", mods.on(other));
+    }
+
+    @Test
     public void aModFileTheGameWouldRefuseIsNotKept() throws Exception {
         assertNull(BundledMods.refusal(new JSONObject("{\"id\": \"a\", \"api\": \"1." + BundledMods.API_MINOR + "\"}")));
         assertTrue(BundledMods.refusal(new JSONObject("{\"id\": \"a\", \"api\": \"1."
@@ -909,6 +1006,9 @@ public class LauncherTest {
         }
         assertTrue(keys.contains("refresh_hz"));
         assertTrue(keys.contains("resolution"));
+        for (String key : new String[] {Config.FOVEATION.key, Config.SPACE_WARP.key, Config.CPU_GPU_BOOST.key}) {
+            assertTrue("the mod has " + key, keys.contains(key));
+        }
         // "Hide Ratchet's body" is gone (0.1.13): Off broke first person (a tester's report). Neither the mod nor the
         // launcher may have it again.
         assertFalse("the mod has no hide_body", keys.contains("hide_body"));

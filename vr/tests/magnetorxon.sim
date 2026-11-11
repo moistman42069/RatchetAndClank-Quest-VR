@@ -7,6 +7,9 @@
 # (0x7C); QUEST_WALK_TRACE's surface lines: mode 1, magnet 1 up to the end wall. An Orxon enemy may hit him on the way
 # (0x16), and its timing moves the turns a little. No press once he has control: he starts beside his ship, where
 # Triangle opens the map of planets. The sim's frame is about the log's tick + 580.
+# 0.1.19, with Stay on magnet paths (its default): the strip is followed past the end wall's top, up onto the overhang,
+# where he stands to the end at about (296.4 341.9 58.0) (magnet walk 0x3F from the foot; an Orxon enemy hit him on the
+# way at (287.2 342.1 44.9) and on the overhang, 0x16 and back on his feet, no 0x79, no fall).
 600 y 1
 606 y 0
 1000 y 1

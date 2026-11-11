@@ -25,7 +25,9 @@ import java.util.zip.ZipInputStream;
  */
 final class PcMods {
     /** Those on unless the player turns them off: a convenience that changes no rule of the game. */
-    private static final List<String> ON_BY_DEFAULT = Arrays.asList("ammo-max");
+    // Xbox button icons from 0.1.19 (the owner: Xbox style buttons the normal; the VR mod points its icons at the buttons
+    // that do each thing in first person, vr/src/glyphs.h). A player who turned one off keeps it off.
+    private static final List<String> ON_BY_DEFAULT = Arrays.asList("ammo-max", "xbox-icons");
     /** The mod interface this game offers (sdk/include/openrac/openrac_mod.h): a mod for a newer minor is refused. */
     static final int API_MAJOR = 1, API_MINOR = 14;
     /** The build a native mod needs on this PC, its manifest's "plugin" key. */
@@ -76,6 +78,8 @@ final class PcMods {
         File folder;
         /** Added by the player from a file, not carried in the release. */
         boolean added;
+        /** An added mod in a built-in's place (the list's version, ModIndex.differing): that built-in's version; else null. */
+        String builtIn;
 
         Mod(String id, String name, String description, String version, List<Setting> settings, List<Preset> presets) {
             this.id = id;
@@ -113,13 +117,32 @@ final class PcMods {
                     Mod mod = parse(read(manifest));
                     mod.folder = folder;
                     mod.added = added;
-                    mods.add(mod);
+                    // One of a built-in's id takes its place, where it is in the list (the built-in comes back when it
+                    // is removed); one RAC-Board's changes keep (ModIndex.keepsBuiltIn) is not added, and not used here.
+                    int at = added ? builtInAt(mods, mod.id) : -1;
+                    if (at >= 0) {
+                        if (!ModIndex.keepsBuiltIn(mod.id)) {
+                            mod.builtIn = mods.get(at).version;
+                            mods.set(at, mod);
+                        }
+                    } else {
+                        mods.add(mod);
+                    }
                 } catch (IOException | IllegalArgumentException e) {
                     // Not offered: the game would refuse it too.
                 }
             }
         }
         return mods;
+    }
+
+    private static int builtInAt(List<Mod> mods, String id) {
+        for (int i = 0; i < mods.size(); i++) {
+            if (!mods.get(i).added && mods.get(i).id.equals(id)) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     /** Why a manifest cannot be added, in words for the player; null when it can. */
@@ -189,8 +212,8 @@ final class PcMods {
                 throw new IOException("That mod's manifest cannot be read: " + e.getMessage());
             }
             for (Mod other : list()) {
-                if (other.id.equals(mod.id) && !other.added) {
-                    throw new IOException(mod.name + " is already built in.");
+                if (other.id.equals(mod.id) && !other.added && ModIndex.keepsBuiltIn(mod.id)) {
+                    throw new IOException(mod.name + " is built in with this release's own changes: it stays as it is.");
                 }
             }
             Map<String, Object> plugin = Json.object(manifest.get("plugin"));
@@ -384,7 +407,8 @@ final class PcMods {
     }
 
     boolean on(Mod mod) {
-        return prefs.getBoolean(mod.id + ".on", mod.added || ON_BY_DEFAULT.contains(mod.id));
+        // An added mod is on from its adding; one in a built-in's place keeps the built-in's on or off.
+        return prefs.getBoolean(mod.id + ".on", (mod.added && mod.builtIn == null) || ON_BY_DEFAULT.contains(mod.id));
     }
 
     void setOn(Mod mod, boolean on) {

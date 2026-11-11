@@ -157,6 +157,31 @@ def check_rac1_mods() -> None:
     board = subprocess.run(["git", "-C", RAC_BOARD, "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
     if board != RAC_BOARD_PIN:
         sys.exit(f"{RAC_BOARD} is at {board or '(no checkout)'}, not the pinned {RAC_BOARD_PIN} (RAC_BOARD)")
+    apply_patches(RAC1_MODS, RAC1_MODS_PATCHES)
+    apply_patches(RAC_BOARD, RAC_BOARD_PATCHES)
+
+
+# The Quest build's changes to RAC-Board, applied to the pinned checkout's working tree (its HEAD stays the pin):
+# 0001, Weapons on the board (0.1.19, the owner's ask: weapons, gadgets and the wrench while riding; its setting each
+# player's own in a party, "multiplayer": "own", so a party with RAC-Board on matches RAC-Board 0.2.1 on PC).
+RAC_BOARD_PATCHES = sorted((ROOT / "patches" / "rac-board").glob("*.patch"))
+# The same for openrac-mods: 0001, Multiplayer back to its release 0.12.2 (tag multiplayer-v0.12.2, OpenRAC's mod list as
+# of 0.1.19). The pin's master had 0.12.3, unreleased (only its verbose log's folder moved), and a party needs the same
+# Multiplayer version in every game: a Quest host's game showed as "(differs)" in a PC player's Browse games, and the
+# other way round. Bring it to the list's release at each of ours.
+RAC1_MODS_PATCHES = sorted((ROOT / "patches" / "rac1-mods").glob("*.patch"))
+
+
+def apply_patches(checkout: Path, patches: list) -> None:
+    for patch in patches:
+        applied = subprocess.run(["git", "-C", checkout, "apply", "--reverse", "--check", patch], capture_output=True, text=True)
+        if applied.returncode == 0:
+            continue
+        check = subprocess.run(["git", "-C", checkout, "apply", "--check", patch], capture_output=True, text=True)
+        if check.returncode != 0:
+            sys.exit(f"{patch.name} neither applies to {checkout} nor is applied there:\n{check.stderr}")
+        run(["git", "-C", checkout, "apply", patch])
+        print(f"applied {patch.name} to {checkout}")
 
 
 def build_rac1_mods() -> None:

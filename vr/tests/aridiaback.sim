@@ -1,0 +1,14 @@
+# 0.1.19: Aridia's liquid grid (the sand sea, the brown channel by the landing pad) with the head turned from the game's
+# camera, which faces his body's way, not the head's (the owner's 0.1.18 video: the channel's surface ended in straight
+# edges, the bed beyond it bare). Put at the start facing away from the channel (QUEST_SIM_AT=210.41,170.35,25.34,-48):
+# ahead, then the head turned round to it behind and to each side. Until 0.1.19 the grid's cull was the game's camera's.
+3000 head_pitch -15
+3040 shot ahead
+3050 head_yaw 90
+3090 shot left90
+3100 head_yaw 180
+3140 shot behind
+3150 head_yaw -90
+3190 shot right90
+3200 head_yaw 0
+3240 quit 0

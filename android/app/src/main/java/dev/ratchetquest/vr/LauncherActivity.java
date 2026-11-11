@@ -48,11 +48,16 @@ public final class LauncherActivity extends Activity {
     private static final int REQUEST_MOD = 0x5244;
     /** What became of the last mod file picked, shown on the Game tab. */
     private String modNote = "";
-    /** OpenRAC's mod list once Browse has read it (ModIndex), what Browse is doing, and the mod being added from it. */
+    /**
+     * OpenRAC's mod list once read (ModIndex: by Browse, or at the start with Automatic checks on, for the mods' Update
+     * buttons), what Browse is doing, and the mod being added from it.
+     */
     private volatile ModIndex modIndex;
     private String browseNote = "";
     private boolean browsing = false, reading = false;
     private String adding = "";
+    /** The Game tab, with the mods (showTab). */
+    private static final int GAME_TAB = 3;
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private LinearLayout page;
@@ -97,6 +102,10 @@ public final class LauncherActivity extends Activity {
         showTab(0);
         showWhatsNewOnce();
         Updater.maybeCheck(this, this::updatesChanged);
+        // OpenRAC's mod list, for each mod's Update button (the Game tab), with Automatic checks on, as the APK's own.
+        if (Updater.network && Updater.automatic(this)) {
+            readModIndex();
+        }
     }
 
     // ---- What's new ----
@@ -256,7 +265,7 @@ public final class LauncherActivity extends Activity {
             case 0: showPlay(); break;
             case 1: showChoices(Config.GRAPHICS); break;
             case 2: showInGameOptions(); showChoices(Config.VR); break;
-            case 3: showGame(); break;
+            case GAME_TAB: showGame(); break;
             case 4: showControls(); break;
             case 5: showLogs(); break;
             default: showCredits(); break;
@@ -656,31 +665,41 @@ public final class LauncherActivity extends Activity {
         // Each opening reads the list again, as OpenRAC's launcher does at Check for updates; the list from before
         // stays on show until the new one is in.
         browsing = !browsing;
-        if (browsing && !reading) {
-            reading = true;
-            browseNote = modIndex == null ? "Reading OpenRAC's mod list..." : "Checking OpenRAC's mod list again...";
-            new Thread(() -> {
-                String note = "";
-                ModIndex read = null;
-                try {
-                    read = ModIndex.fetch(new File(getFilesDir(), "mod-index"), "RatchetQuestVR-launcher/" + BuildConfig.VERSION_NAME,
-                        "android-arm64", BundledMods.API_MAJOR, BundledMods.API_MINOR, BundledMods::jsonMap);
-                } catch (IOException | RuntimeException e) {
-                    note = e.getMessage();
-                }
-                final ModIndex got = read;
-                final String said = note;
-                runOnUiThread(() -> {
-                    reading = false;
-                    if (got != null) {
-                        modIndex = got;
-                    }
-                    browseNote = said;
-                    showTab(tab);
-                });
-            }, "mod-index").start();
+        if (browsing) {
+            readModIndex();
         }
         showTab(tab);
+    }
+
+    /** OpenRAC's mod list read again on a thread of its own; the Game tab drawn again when it is in, if it shows. */
+    private void readModIndex() {
+        if (reading) {
+            return;
+        }
+        reading = true;
+        browseNote = modIndex == null ? "Reading OpenRAC's mod list..." : "Checking OpenRAC's mod list again...";
+        new Thread(() -> {
+            String note = "";
+            ModIndex read = null;
+            try {
+                read = ModIndex.fetch(new File(getFilesDir(), "mod-index"), "RatchetQuestVR-launcher/" + BuildConfig.VERSION_NAME,
+                    "android-arm64", BundledMods.API_MAJOR, BundledMods.API_MINOR, BundledMods::jsonMap);
+            } catch (IOException | RuntimeException e) {
+                note = e.getMessage();
+            }
+            final ModIndex got = read;
+            final String said = note;
+            runOnUiThread(() -> {
+                reading = false;
+                if (got != null) {
+                    modIndex = got;
+                }
+                browseNote = said;
+                if (tab == GAME_TAB) {
+                    showTab(tab);
+                }
+            });
+        }, "mod-index").start();
     }
 
     private void showModIndex() {
@@ -727,14 +746,16 @@ public final class LauncherActivity extends Activity {
                 }
                 if (!addable) {
                     card.addView(text(offer.why, 13, Artwork.MUTED, false));
-                } else if (installed != null && !installed.added) {
-                    card.addView(text("Built in: it is with your mods below.", 13, Artwork.MUTED, false));
+                } else if (installed != null && !installed.added && index.differing(offer.id, installed.version, true) == null) {
+                    card.addView(text(ModIndex.keepsBuiltIn(offer.id) ? "Built in, with this release's own changes: it is "
+                        + "with your mods below." : "Built in: it is with your mods below.", 13, Artwork.MUTED, false));
                 } else if (adding.equals(offer.id)) {
                     card.addView(text("Adding " + offer.name + "...", 13, Artwork.ORANGE, false));
                 } else {
+                    // A built-in one at another version than the list's: the list's takes its place (ModIndex.differing).
                     String label = installed == null ? "Add " + offer.name
                         : installed.version.equals(offer.version) ? "Added (" + offer.version + "): add it again"
-                        : "Update to " + offer.version;
+                        : ModIndex.takeLabel(installed.version, offer);
                     card.addView(button(label, installed == null, view -> addFromIndex(offer)));
                     String revoked = installed != null && !installed.version.isEmpty() ? index.revoked(offer.id, installed.version) : null;
                     if (revoked != null) {
@@ -766,6 +787,9 @@ public final class LauncherActivity extends Activity {
             runOnUiThread(() -> {
                 adding = "";
                 browseNote = said;
+                if (!browsing) {
+                    modNote = said;  // an Update on a mod's card, Browse shut: said where the mods are
+                }
                 showTab(tab);
             });
         }, "add-mod").start();
@@ -816,8 +840,20 @@ public final class LauncherActivity extends Activity {
                 card.addView(text("At the game's last start it did not run: " + problem, 13, Artwork.ORANGE, false));
             }
         }
+        // OpenRAC's mod list at another version than this one (built in or added): take the list's, so a party's games
+        // match (the owner: "we shouldnt have mismatches"). Its archive is checked as Browse's are.
+        ModIndex index = modIndex;
+        ModIndex.Offer listed = index == null ? null : index.differing(mod.id, mod.version, !mod.added);
+        if (adding.equals(mod.id)) {
+            card.addView(text("Getting " + mod.name + " from OpenRAC's mod list...", 13, Artwork.ORANGE, false));
+        } else if (listed != null) {
+            boolean party = listed.impact.contains("gameplay") || listed.impact.contains("online");
+            card.addView(text("OpenRAC's mod list has " + listed.version + "." + (party ? " In Multiplayer every game "
+                + "needs the same version of it." : ""), 13, Artwork.ORANGE, false));
+            card.addView(button(ModIndex.takeLabel(mod.version, listed), true, view -> addFromIndex(listed)));
+        }
         if (mod.added) {
-            card.addView(button("Remove this mod", false, view -> {
+            card.addView(button(mod.builtIn != null ? "Back to the built-in " + mod.builtIn : "Remove this mod", false, view -> {
                 mods.remove(mod, tools.plugins());
                 showTab(tab);
             }));

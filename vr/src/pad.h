@@ -19,9 +19,15 @@
 // memory card questions ask for Yes with Circle. B goes back (Triangle), either stick moves, the left
 // grip and trigger are the page shoulders L1 and R1.
 //
-// On the big screen (the launcher's 2D mode) the controllers are simply a pad: A Cross, B Circle,
-// X Square, Y Triangle, triggers L1 and R1, grips L2 and R2, the menu button Start, the left stick's
-// click Select, and the sticks are its sticks.
+// On the big screen (the launcher's 2D mode) the controllers are simply a pad, an Xbox controller's
+// layout: A Cross, B Circle, X Square, Y Triangle, the grips L1 and R1, the triggers L2 and R2 (to
+// 0.1.18 the other way round), the menu button Start, the left stick's click Select, the right's R3,
+// and the sticks are its sticks. So are they in third person with the launcher's Third person controls
+// on Gamepad (0.1.19, the owner's ask; its default), in the menus too, where A and the trigger still
+// answer as in VR (the pointer). The pad's D-pad (the launcher's "D-pad"): a stick is it while its
+// controller is held up by the side of the head, or the right stick while the left thumb rests on its
+// thumb rest; that stick is then nothing else, and its click is L3 or R3. First person keeps the table
+// above.
 
 #pragma once
 
@@ -66,6 +72,7 @@ struct Controls {
     // The controllers' touch sensors: a first finger on the trigger, a thumb on a button, the stick or the thumb rest.
     bool left_first_touch = false, right_first_touch = false;
     bool left_thumb_touch = false, right_thumb_touch = false;
+    bool left_rest_touch = false;  // the left thumb on its thumb rest, that sensor alone (the D-pad's "Left thumb rest")
 };
 
 // What the mod knows of the moment.
@@ -105,6 +112,12 @@ struct PadContext {
     // its grind, the left trigger or grip its grab, each on the button its settings chose; Y the pause, X the map. In
     // first person the stick is about the board's heading (RAC-Board's own frame), which the view follows: forward keeps on its way.
     bool jet_board = false;
+    // Its "Weapons on the board" (0.1.19, the owner: "make the board compatible with weapons/gadgets as well, so weapons
+    // can be used/equipped while riding. including wrench"): the hands keep their weapons as on foot (the right trigger
+    // fires, the right grip is the wrench, the sticks' clicks the wheels), and the board takes what play on foot leaves
+    // free: B its spins and flips, and with A by a rail its grind (both R1 or R2 in its defaults), the left grip its grab,
+    // and the left trigger too unless the left hand holds a gun.
+    bool jet_weapons = false;
     std::uint16_t jet_trick = 0, jet_grind = 0, jet_grab = 0;
     std::uint16_t jet_toggle = 0;    // its "Board on and off", pressed now (a hand reached behind the back, its stick clicked)
     float jet_yaw = 0;               // the board's heading (his, as RAC-Board turns him)
@@ -131,6 +144,13 @@ struct PadContext {
                                      // (the planet's infobot), as their icons there say
     bool skip_held = false;          // Y skipped a scene and is still down: it does nothing else until let go
     bool view_held = false;          // X switched a scene's view and is still down: no map (Select) until let go
+    // Third person with Third person controls on Gamepad: the controllers are a plain pad, as on the big screen (0.1.19,
+    // the owner: "map the quest controllers to gamepad inputs"; RAC-Board's board as well); in the menus B, X, Y, the
+    // menu button, the grips and the left trigger are the pad's, A and the right trigger answer as in VR.
+    bool gamepad = false;
+    // Where the controllers are a plain pad (the big screen, `gamepad`), out of the menus: the stick that is the D-pad now
+    // (the launcher's "D-pad": its controller up by the side of the head; or the right one, the left thumb on its rest).
+    bool left_dpad = false, right_dpad = false;
 };
 
 // The pad as it comes out.
@@ -169,6 +189,15 @@ inline void turn_stick(float& x, float& y, float head_yaw, float camera_yaw) {
     y = turned_y;
 }
 
+// Riding RAC-Board in first person: how far the stick is turned, from the board's heading to the head's, at most
+// kBoardSteerMost either way (0.1.19, racboardhead.sim: with the gaze 130 degrees off the heading, forward turned that far
+// was a stick pulled back, and the board went round the long way, past behind him, until the game's own turn about took
+// it). Past that the board carves at the most the short way round to the gaze, and within it the stick is as before.
+inline constexpr float kBoardSteerMost = 1.4f;  // radians: 80 degrees
+inline float board_stick_turn(float head_yaw, float board_yaw) {
+    return std::clamp(wrap_angle(head_yaw - board_yaw), -kBoardSteerMost, kBoardSteerMost);
+}
+
 // One side of an analog control read as a button, with a gap so that it does not chatter.
 struct Latch {
     bool on = false;
@@ -203,6 +232,24 @@ struct Salute {
     void reset() { *this = Salute{}; }
 };
 
+// A controller held up by the side of the head, as a phone at the ear (the D-pad's "Controller by your head", 0.1.19):
+// in the head's own frame, out on its own side kBySideNear to kBySideFar from the eyes' middle, at most kBySideDown below
+// them or kBySideUp above, from kBySideFront ahead of them to kBySideBack behind (short of where a hand reaches behind
+// the back, board.h's kBackBehind, so the two never meet). Once in, the place is kBySideLeave larger every way, so a
+// hand at its edge does not come and go. `head` and `hand` in tracking space; `left` for the left hand.
+inline constexpr float kBySideNear = 0.06f, kBySideFar = 0.32f;
+inline constexpr float kBySideDown = 0.22f, kBySideUp = 0.20f;
+inline constexpr float kBySideFront = 0.12f, kBySideBack = 0.08f;
+inline constexpr float kBySideLeave = 0.03f;
+
+inline bool hand_by_head(const Pose& head, Vec3 hand, bool left, bool was_in) {
+    const Vec3 p = rotate(conjugate(head.orientation), hand - head.position);
+    const float grow = was_in ? kBySideLeave : 0.0f;
+    const float out = left ? -p.x : p.x;
+    return out > kBySideNear - grow && out < kBySideFar + grow && p.y > -(kBySideDown + grow) && p.y < kBySideUp + grow
+           && p.z > -(kBySideFront + grow) && p.z < kBySideBack + grow;
+}
+
 class PadMapper {
 public:
     VirtualPad map(const Controls& given, const PadContext& context) {
@@ -222,23 +269,10 @@ public:
         const bool left_squeeze = m_left_grip.update(c.left_grip);
 
         if (context.screen) {
-            set(out, c.a, kPadCross);
-            set(out, c.b, kPadCircle);
-            set(out, c.x, kPadSquare);
-            set(out, c.y, kPadTriangle);
-            set(out, fire, kPadR1);
-            set(out, left_fire, kPadL1);
-            set(out, wrench, kPadR2);
-            set(out, left_squeeze, kPadL2);
-            set(out, c.menu, kPadStart);
-            set(out, c.left_click, kPadSelect);
+            plain_pad(out, c, fire, left_fire, wrench, left_squeeze, context, left_x, left_y, right_x, right_y);
             if (context.in_menu) {
                 directions(out, left_x, left_y, right_x, right_y);
             }
-            out.left_x = left_x;
-            out.left_y = left_y;
-            out.right_x = right_x;
-            out.right_y = right_y;
             return out;
         }
 
@@ -247,25 +281,39 @@ public:
             // A answers a pointed key label as the trigger does; at the vendor A stays Cross, which buys, as its screen says.
             const bool a_keyed = keyed && !context.menu_aimed;
             const bool confirm = (c.a && !a_keyed) || (fire && !keyed && !context.menu_aimed);
+            // Third person with Gamepad: B, X and Y are the plain pad's (Circle, Square, Triangle), as the hints' Xbox
+            // icons say, with the menu button Start, the grips L1 and R1, the left trigger L2, the right stick's click R3.
+            // A and the right trigger answer as in VR, the pointer's pull among them.
+            const bool pad = context.gamepad;
+            const bool circle = pad ? c.b : c.x;
             if (context.menu_map) {
                 // The map takes Cross for its missions page and Circle for the planet's infobot, which closes the
                 // menu: both at once (A's confirm), the infobot won over the missions (a tester's, 0.1.12).
                 set(out, c.a && !a_keyed, kPadCross);
-                set(out, (fire && !keyed) || c.x, kPadCircle);
+                set(out, (fire && !keyed) || circle, kPadCircle);
             } else {
                 set(out, confirm, kPadCross);
-                set(out, confirm || c.x, kPadCircle);
+                set(out, confirm || circle, kPadCircle);
             }
             if ((keyed && fire) || (a_keyed && c.a)) {
                 out.held = static_cast<std::uint16_t>(out.held | context.menu_key);
             }
             out.held = static_cast<std::uint16_t>(out.held | context.menu_pulse);
-            set(out, c.b || c.right_click, kPadTriangle);
-            set(out, c.y, kPadStart);
             set(out, c.left_click, kPadSelect);
-            set(out, wrench, kPadSquare);
             set(out, left_squeeze, kPadL1);
-            set(out, left_fire, kPadR1);
+            if (pad) {
+                set(out, c.y, kPadTriangle);
+                set(out, c.x, kPadSquare);
+                set(out, c.menu, kPadStart);
+                set(out, c.right_click, kPadR3);
+                set(out, wrench, kPadR1);
+                set(out, left_fire, kPadL2);
+            } else {
+                set(out, c.b || c.right_click, kPadTriangle);
+                set(out, c.y, kPadStart);
+                set(out, wrench, kPadSquare);
+                set(out, left_fire, kPadR1);
+            }
             if (context.menu_pointing) {
                 m_menu_trigger = fire;
                 return out;  // the game's lists also move by the analog sticks
@@ -288,7 +336,7 @@ public:
         if (context.view_held) {
             c.x = false;
         }
-        if (context.jet_board) {
+        if (context.jet_board && !context.jet_weapons) {
             set(out, c.a, kPadCross);
             if (right_fire) {
                 out.held = static_cast<std::uint16_t>(out.held | context.jet_trick);
@@ -302,8 +350,14 @@ public:
             set(out, c.y, kPadStart);
             set(out, c.x, kPadSelect);
             out.held = static_cast<std::uint16_t>(out.held | context.jet_toggle);
-            // The stick goes as it is: riding, RAC-Board takes it about the board's own heading (measured on PC: turned from
-            // the game's camera to the heading, forward turned the board round and round; as it is, forward keeps its way).
+            // Riding, RAC-Board takes the stick about the board's own heading (measured on PC: turned from the game's camera
+            // to the heading, forward turned the board round and round; as it is, forward keeps its way). In first person
+            // forward is where the player looks, as on foot (0.1.19, the owner: "make sure it follows head direction"; the
+            // stick about the board alone was hard to steer): turned from the board's heading to the head's, so forward
+            // brings the board round to the gaze and holds it there (BoardFollow no longer turns the view with a carve).
+            if (context.first_person) {
+                turn_stick(left_x, left_y, board_stick_turn(context.head_yaw, context.jet_yaw), 0.0f);
+            }
             out.left_x = left_x;
             out.left_y = left_y;
             if (!context.first_person) {
@@ -338,6 +392,19 @@ public:
             c.y = c.right_click = fire = false;
         }
 
+        // Third person with Gamepad: the plain pad, as on the big screen; RAC-Board's board takes it as its settings say,
+        // as from an Xbox controller on PC (its defaults: a spin or flip on R1, the right grip; the grind on R2, the right
+        // trigger; the grab on L1, the left grip; the board on and off on D-pad Up, besides the reach behind the back).
+        // The left stick walks where the head looks still (third_person_walk).
+        if (context.gamepad) {
+            if (context.third_person_walk && !context.left_dpad) {
+                turn_stick(left_x, left_y, context.head_turn, 0.0f);
+            }
+            plain_pad(out, c, fire, left_fire, wrench, left_squeeze, context, left_x, left_y, right_x, right_y);
+            out.held = static_cast<std::uint16_t>(out.held | context.jet_toggle);
+            return out;
+        }
+
         if (context.ledge) {
             set(out, (c.a && context.ledge_climb) || context.ledge_press, kPadCross);
             set(out, context.ledge_drop, kPadR1);
@@ -368,8 +435,20 @@ public:
                 set(out, dives, kPadSquare);
             }
         }
+        // RAC-Board with its weapons (jet_weapons): the left grip is its grab, and the left trigger unless it fires a gun;
+        // B its spins and flips, and its grind with A. The game sees none of them while he rides (RAC-Board's own pad).
+        const bool jet = context.jet_board && context.jet_weapons;
+        if (jet) {
+            out.held = static_cast<std::uint16_t>(out.held & ~kPadR1);
+            if (left_squeeze || (left_fire && !context.left_weapon)) {
+                out.held = static_cast<std::uint16_t>(out.held | context.jet_grab);
+            }
+            if (c.b) {
+                out.held = static_cast<std::uint16_t>(out.held | context.jet_trick | context.jet_grind);
+            }
+        }
         set(out, c.y, kPadStart);
-        set(out, c.b, context.mounted || context.disguised ? kPadSquare : kPadR2);
+        set(out, c.b && !jet, context.mounted || context.disguised ? kPadSquare : kPadR2);
         set(out, context.disguised && c.a, kPadSquare);
         set(out, c.x, context.mounted ? kPadCircle : kPadSelect);
         // The ring's page takes the trigger: it fires nothing there, nor after until let go. One already held as the ring
@@ -390,15 +469,21 @@ public:
         // person too with Arm moves on Buttons). A turret has no wrench to swing, and a hand on a ledge is
         // climbing: a shove with the right grip closed is not a swing, which would knock him off.
         const bool turret = context.mounted && !context.flying;
-        const bool swung = context.first_person ? context.swing || (context.button_moves && wrench) : wrench;
+        // Riding RAC-Board in first person the hand's own swing is the hit (the mod's): Square would add the board's.
+        const bool swung = context.first_person ? (context.swing && !jet) || (context.button_moves && wrench) : wrench;
         set(out, !turret && !context.ledge && swung, kPadSquare);
         set(out, context.dive, kPadSquare);
         set(out, context.left_ring, kPadTriangle);
 
         if (context.first_person && !context.raw_stick && !context.board) {
-            turn_stick(left_x, left_y, context.head_yaw, context.camera_yaw);
+            // Riding RAC-Board, about the board's heading, which it takes the stick by (as in the branch above).
+            if (jet) {
+                turn_stick(left_x, left_y, board_stick_turn(context.head_yaw, context.jet_yaw), 0.0f);
+            } else {
+                turn_stick(left_x, left_y, context.head_yaw, context.camera_yaw);
+            }
         }
-        if (context.third_person_walk) {
+        if (context.third_person_walk && !jet) {
             turn_stick(left_x, left_y, context.head_turn, 0.0f);
         }
         // Rerac-vr's board steering: the stick's x turns the board about its own heading, a quarter turn off it at
@@ -448,6 +533,55 @@ private:
         }
     }
 
+    // The controllers as a plain pad (the big screen; third person with Gamepad), laid out as an Xbox controller is on a
+    // PlayStation pad (OpenRAC's own pad defaults, docs/port/CONTROLS.md; the Xbox button icons the hints show): A Cross,
+    // B Circle, X Square, Y Triangle, the grips (its bumpers) L1 and R1, the triggers L2 and R2, the menu button Start,
+    // the left stick's click Select, the right's R3, the sticks the pad's. To 0.1.18 the big screen had the triggers on
+    // L1 and R1, the grips on L2 and R2. A stick that is the D-pad now (context.left_dpad, right_dpad) gives the D-pad
+    // and none of its own, and its click is L3 (the left) or R3.
+    void plain_pad(VirtualPad& out, const Controls& c, bool fire, bool left_fire, bool wrench, bool left_squeeze,
+                   const PadContext& context, float left_x, float left_y, float right_x, float right_y) {
+        set(out, c.a, kPadCross);
+        set(out, c.b, kPadCircle);
+        set(out, c.x, kPadSquare);
+        set(out, c.y, kPadTriangle);
+        set(out, wrench, kPadR1);
+        set(out, left_squeeze, kPadL1);
+        set(out, fire, kPadR2);
+        set(out, left_fire, kPadL2);
+        set(out, c.menu, kPadStart);
+        set(out, c.left_click && !context.left_dpad, kPadSelect);
+        set(out, c.left_click && context.left_dpad, kPadL3);
+        set(out, c.right_click, kPadR3);
+        dpad_stick(out, m_dpad_on[0], context.left_dpad, left_x, left_y);
+        dpad_stick(out, m_dpad_on[1], context.right_dpad, right_x, right_y);
+        out.left_x = left_x;
+        out.left_y = left_y;
+        out.right_x = right_x;
+        out.right_y = right_y;
+    }
+
+    // A stick as the D-pad: pushed past kDpadOn (until back under kDpadOff), in eight ways, a diagonal two buttons, each
+    // way's share of the circle the same. Its own push is then nothing.
+    static constexpr float kDpadOn = 0.55f, kDpadOff = 0.4f;
+    static void dpad_stick(VirtualPad& out, bool& on, bool dpad, float& x, float& y) {
+        if (!dpad) {
+            on = false;
+            return;
+        }
+        const float length = std::sqrt(x * x + y * y);
+        on = on ? length > kDpadOff : length > kDpadOn;
+        if (on && length > 0.0f) {
+            constexpr float kEighth = 0.38268343f;  // sin 22.5 degrees: the edge between a way and a diagonal
+            set(out, x / length > kEighth, kPadRight);
+            set(out, x / length < -kEighth, kPadLeft);
+            set(out, y / length > kEighth, kPadUp);
+            set(out, y / length < -kEighth, kPadDown);
+        }
+        x = y = 0.0f;
+    }
+
+    bool m_dpad_on[2] = {};
     Latch m_right_trigger, m_left_trigger, m_right_grip, m_left_grip;
     bool m_ring_trigger = false;
     bool m_ring_was = false;   // the ring open the last time

@@ -1,0 +1,67 @@
+# 0.1.19: RAC-Board's Weapons on the board (the owner: "make the board compatible with weapons/gadgets as well, so
+# weapons can be used/equipped while riding. including wrench"), first person, on Novalis by the crate class 511
+# (QUEST_SIM_NEAR, as wrench.sim) with the Blaster in the hand (QUEST_SIM_GIVE=15,12,16,10 QUEST_SIM_HOLD=15). The board
+# out as racboard.sim does it (the right hand behind the back, its stick clicked), and while riding: the right trigger
+# fires the Blaster ("[sim] item 15: ... rounds" falls); B spins (RAC-Board's trick); the right grip takes the wrench
+# out and fast strokes across swing it by hand ([vr-wrench] lines); the grip let go, the trigger takes the Blaster back
+# out and fires again. The weapon wheel opened while riding (the right stick's click, the hand ahead) and its top icon
+# taken: "[vr-ring]" lines, the pick out (Swap at full speed). The left hand's reach puts the board away. RAC-Board's
+# log: "Weapons on the board: the game's item update found"; its trace (settings "trace"): its states. QUEST_JET_TRACE:
+# riding from the click to the left reach, not off between. With "weapons": false (racboardweapons-off) the wrench is
+# put away on the board and nothing fires, as before 0.1.19.
+600 y 1
+606 y 0
+2800 shot stand
+2900 rh_z 0.6
+2901 rh_y 0.15
+2930 right_click 1
+2936 right_click 0
+2960 rh_z 0
+2961 rh_y 0
+3100 shot board
+3150 right_trigger 1
+3190 right_trigger 0
+3200 shot fired
+3250 b 1
+3262 b 0
+3300 shot spun
+3400 right_grip 1
+3400 rh_y -0.25
+3440 shot wrench
+3460 rh_x -0.20
+3461 rh_x -0.10
+3462 rh_x 0.00
+3463 rh_x 0.10
+3464 rh_x 0.20
+3490 rh_x 0.10
+3491 rh_x 0.00
+3492 rh_x -0.10
+3493 rh_x -0.20
+3520 rh_x -0.10
+3521 rh_x 0.00
+3522 rh_x 0.10
+3523 rh_x 0.20
+3540 rh_x 0
+3541 rh_y 0
+3560 right_grip 0
+3600 right_trigger 1
+3606 right_trigger 0
+3700 right_trigger 1
+3740 right_trigger 0
+3760 shot again
+3800 right_click 1
+3820 hand_yaw -11.7
+3821 hand_pitch 12.8
+3880 shot wheel
+3900 right_click 0
+3901 hand_yaw 0
+3902 hand_pitch 0
+3980 shot swapped
+4000 lh_z 0.6
+4001 lh_y 0.15
+4030 left_click 1
+4036 left_click 0
+4060 lh_z 0
+4061 lh_y 0
+4160 shot off
+4200 quit 0

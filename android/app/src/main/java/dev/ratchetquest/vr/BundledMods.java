@@ -34,7 +34,9 @@ import java.util.Map;
  */
 final class BundledMods {
     /** Those on unless the player turns them off: a convenience that changes no rule of the game. */
-    private static final List<String> ON_BY_DEFAULT = Arrays.asList("ammo-max");
+    // Xbox button icons from 0.1.19 (the owner: Xbox style buttons the normal; the VR mod points its icons at the buttons
+    // that do each thing in first person, vr/src/glyphs.h). A player who turned one off keeps it off.
+    private static final List<String> ON_BY_DEFAULT = Arrays.asList("ammo-max", "xbox-icons");
     /** The mod interface this game offers (sdk/include/openrac/openrac_mod.h): a mod for a newer minor is refused. */
     static final int API_MAJOR = 1, API_MINOR = 14;
     private static final String MANIFEST = "openrac-mod.json";
@@ -81,6 +83,8 @@ final class BundledMods {
         final List<Preset> presets;
         /** Added by the player from a file, not carried in the APK. */
         boolean added;
+        /** An added mod in a built-in's place (the list's version, ModIndex.differing): that built-in's version; else null. */
+        String builtIn;
 
         Mod(String id, String name, String description, String library, String version, List<Setting> settings,
             List<Preset> presets) {
@@ -133,13 +137,37 @@ final class BundledMods {
                 try (InputStream in = Files.newInputStream(manifest.toPath())) {
                     Mod mod = parse(read(in));
                     mod.added = true;
-                    mods.add(mod);
+                    place(mods, mod);
                 } catch (IOException | JSONException | IllegalArgumentException e) {
                     // Not offered: the game would refuse it too.
                 }
             }
         }
         return mods;
+    }
+
+    /**
+     * An added mod into the list: one of a built-in's id takes its place, where it is in the list (Mod.builtIn: the
+     * built-in comes back when it is removed); one RAC-Board's changes keep (ModIndex.keepsBuiltIn) is not added, and
+     * not used here; any other goes at the end.
+     */
+    static void place(List<Mod> mods, Mod mod) {
+        int at = builtInAt(mods, mod.id);
+        if (at < 0) {
+            mods.add(mod);
+        } else if (!ModIndex.keepsBuiltIn(mod.id)) {
+            mod.builtIn = mods.get(at).version;
+            mods.set(at, mod);
+        }
+    }
+
+    private static int builtInAt(List<Mod> mods, String id) {
+        for (int i = 0; i < mods.size(); i++) {
+            if (!mods.get(i).added && mods.get(i).id.equals(id)) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     private File addedRoot() {
@@ -212,8 +240,8 @@ final class BundledMods {
                 throw new IOException("That mod's manifest cannot be read: " + e.getMessage());
             }
             for (Mod other : list()) {
-                if (other.id.equals(mod.id) && !other.added) {
-                    throw new IOException(mod.name + " is already built in.");
+                if (other.id.equals(mod.id) && !other.added && ModIndex.keepsBuiltIn(mod.id)) {
+                    throw new IOException(mod.name + " is built in with this release's own changes: it stays as it is.");
                 }
             }
             JSONObject plugin = manifest.optJSONObject("plugin");
@@ -410,7 +438,8 @@ final class BundledMods {
     }
 
     boolean on(Mod mod) {
-        return prefs.getBoolean(mod.id + ".on", mod.added || ON_BY_DEFAULT.contains(mod.id));
+        // An added mod is on from its adding; one in a built-in's place keeps the built-in's on or off.
+        return prefs.getBoolean(mod.id + ".on", (mod.added && mod.builtIn == null) || ON_BY_DEFAULT.contains(mod.id));
     }
 
     void setOn(Mod mod, boolean on) {

@@ -1,4 +1,188 @@
-NEW IN 0.1.18
+NEW IN 0.1.19
+
+THIRD PERSON IS AN XBOX CONTROLLER, WITH A D-PAD
+
+    In third person your controllers now work as one Xbox controller (VR tab, Third person controls: Gamepad, the
+    start): A jumps, B fires, X swings the wrench, Y is quick select, the grips are LB and RB (RB crouches), the
+    triggers LT and RT, the sticks walk and turn the camera, and the left menu button pauses as you let it go
+    (held a second, it takes you back to first person). The D-pad (VR tab, D-pad): hold a controller up beside
+    your head, as a phone at your ear, and its stick is the D-pad while it stays there (the hand buzzes as it gets
+    there); or, with Left thumb rest, rest your left thumb on its thumb rest and the right stick is the D-pad.
+    RAC-Board's board goes on and off with D-pad Up there, as on a pad. Play in 2D works the same way now (its
+    grips are LB and RB, its triggers LT and RT). First person keeps its VR controls, and Third person controls on
+    VR keeps them in third person too.
+
+XBOX-STYLE BUTTONS IN THE HINTS
+
+    The game's hints and menus now show Xbox-style buttons (A, B, X, Y, LB, RB, LT, RT), in first and third
+    person, each the button that does that thing in the view you play: in first person the wrench's hint shows
+    RB, the right grip. The Xbox button icons mod is now on to start (Game tab) and draws them; with it off, the
+    VR mod draws its own.
+
+THE SEAS, WHEREVER YOU LOOK
+
+    Aridia's sand sea had straight-edged holes, with the black under the level showing through, wherever your
+    head turned from the way Ratchet faced (by the Gadgetron vendor, for one). The game drew only the parts of a
+    sea its own camera could see; now it draws every part your eyes can. The same goes for the seas and lava of
+    Kerwan, Rilgar, Umbris, Batalia, Gaspar and Oltanis: we looked all round at each of them.
+
+MAX DRAW DISTANCE REACHES EVERYTHING
+
+    With Max draw distance on (Graphics, on to start), a sea is now drawn out to its edge, not only as far as the
+    game itself drew it (at Kerwan's start, 30 pieces of the sea instead of 4; Oltanis 30 instead of 7). The
+    level's own glows, lava layers and the lamps' light on the ground are drawn as far as you can see too, as the
+    enemies, crates and effects already were. The game's own Draw distance at Unlimited now does exactly the same
+    (it left out far effects), and a saved Unlimited now stays Unlimited the next time the game starts. The
+    lamps' light on the ground also shows with your head turned from the way Ratchet faces.
+
+THE CITY AND THE PLANTS ARE WHOLE AGAIN
+
+    0.1.18 left pieces out of the scenery: parts of Kerwan's city, and the leaves of plants on many levels. A
+    change of ours, for Ratchet's arms in first person, threw away anything not drawn with a skeleton. Fixed,
+    and we compared every level, looking all round, with 0.1.17 and with the original game.
+
+RAC-BOARD IN FIRST PERSON
+
+    The left stick now steers to where you look, as on foot: push ahead and the board comes round to face the way
+    you look and holds it. Your view no longer swings with each carve, starts the ride turned half to one side, or
+    drifts round with the board's sway; the spins and flips still turn it. Look far to one side or behind you
+    and the board carves round the short way, as hard as it can, until it faces where you look.
+
+WEAPONS ON THE RAC-BOARD (RAC-Board, on to start)
+
+    Ratchet keeps his weapon or gadget as he rides. The right trigger fires it (B in third person with Gamepad),
+    the wheel opens as on foot (Y, the quick select, in third person), and the wrench swings: in first person
+    take it out with the right grip and swing your hand, in third person press X and it hits the enemies and
+    crates in reach ahead. In first person B does the tricks and grinds, and the left grip (or the left trigger
+    with no gun in that hand) grabs. The Swingshot keeps him on the board: swing from a target, and as you let go
+    or land he rides on; pulled to a target, he is set down on the board there, held still until you push the
+    stick; and with Swingshot grabs enemies on, catch and throw them as you ride. He stays on until you put the
+    board away. RAC-Board's Weapons on the board setting (Game tab) turns it off: he takes the wrench as he gets
+    on, as in 0.1.18.
+
+GETTING OUT OF THE SHIP
+
+    The view now stays in the seat until Ratchet springs up out of it, and is his eyes from then on. It used to
+    slide forward with him into the dashboard as he ducked, back to the seat, and down through the hull. His arms
+    no longer hang in the dashboard while he ducks, and the small jumps the scene makes in where he stands are
+    smoothed out.
+
+MAGNEBOOTS: STAY ON MAGNET PATHS (More controls, on to start)
+
+    A tester on 0.1.18: where a magnet ramp turns, "its like the magnet shuts off". Nothing shut off: the strips
+    are narrow, and in first person a step past a turn took him over the strip's edge. Now, on a magnet wall or
+    ceiling in first person, where the ground ahead would not hold him, his way turns with the strip, as little as
+    it must. On Orxon's first magnet wall he stays on the strip round its bend and up the end wall, whether you
+    turn your head, turn with the right stick or only push ahead. Off, the stick alone steers, as in 0.1.18. Third
+    person is the game's own.
+
+THE WEAPON WHEEL HAS ITS OWN PAGE (More controls, Weapon wheel)
+
+    Wheel slow motion and Wheel pick moved here, and three new rows joined them. Slow motion speed: 3, 5 or 10
+    times slower. Swap at full speed (on to start): rest your hand on a weapon a moment and it comes out at full
+    speed while the wheel stays up, then time slows again. Left hand wheel (Akimbo): Same as right hand, or Its own
+    slots, eight rows to choose what the left hand's wheel holds.
+
+BACK TO AN EMPTY HAND FROM THE WHEEL
+
+    A tester asked for a way back to an empty hand after using a gun. Open the wheel, rest the dot in its middle
+    a moment and let go: the gun in that hand is put away and the hand is empty. The right grip still takes out
+    the wrench, and the trigger brings the gun back. The left hand's ring does the same (pick its gun on the ring
+    to have it back). In first person, with Wheel pick on Point (to start); pass through the middle quickly and
+    the weapon you let go on comes out, as before.
+
+PUNCHES WITH THE SWINGSHOT IN HAND (Punch with your hands on)
+
+    A jab with the hand holding the Swingshot now hits, as with the other guns; a tester found it did nothing.
+    While its hook is out, pulling you, swinging you or holding an enemy, a jab does nothing.
+
+THE SWINGSHOT'S GRAB
+
+    The chain now shows while it pulls an enemy in, and the hook makes its sound as it catches. Two new rows on
+    Grab moves: Throw strength (Full, the old strong throw, to start; Strong, Medium, Light) and Throw follows your
+    swing (on to start): a flick throws gently, a hard swing throws at the full strength.
+
+PERFORMANCE
+
+    Foveated rendering (new, Graphics, Medium to start, Quest): the edges of each eye's picture are drawn at a
+    lower resolution, where the lenses blur them anyway, so the game draws faster. High saves the most. The
+    Performance preset sets it to High, Quality to Low.
+
+    The game's helper threads are now made known to the Quest as the game's own, so it can keep them on its fast
+    cores.
+
+    CPU and GPU boost: the Quest picks each processor's level itself, from how busy it is, and a game gets at most
+    about level 4 of each, so OVR Metrics showing CPU 4 and GPU 4 is normal. Quest Games Optimizer and apps like
+    it go higher through developer mode, which a game cannot do on its own.
+
+    For the smoothest picture: 120 Hz with Eye resolution at 130% is more than the Quest 3's graphics chip can draw
+    in time. A log we were sent took 24 to 27 ms a picture, where 120 Hz with Smoother frames allows 16.7, so the
+    game drew 30 to 35 pictures a second and the motion wobbled. 130% is 69% more pixels than 100%. Try 90 Hz, Eye
+    resolution 100%, Foveated rendering High and Smoother frames on, then raise one thing at a time.
+
+    Your log now says how long the game took for each frame and how many the headset had to show without a new
+    picture (the lines starting [vr-perf]). If the motion still wobbles, please send it.
+
+MULTIPLAYER: WHO CAN PLAY WITH WHOM
+
+    Everyone on 0.1.19, on a Quest or on PC, sees each other's games in Browse games and can join them, as long
+    as the games match (below). Games go through OpenRAC's own server, so nobody has to open ports on their
+    router. We tried it live on OpenRAC's server with two of our PC games: each found the other's game in Browse
+    games, joined it from there, and both played in the host's level, each seeing the other. A Quest and a PC
+    together we could not try here; both carry the same OpenRAC and Multiplayer.
+
+    A game only takes players whose game matches the host's. In Browse games, a game that does not match yours
+    says "(differs)". Choosing it shows Can't join and what differs, such as Extra: Difficulty: press Leave
+    party, make your mods match the host's, and choose the game again. What has to match:
+
+    - Multiplayer's version. 0.1.19 has 0.12.2, the version on OpenRAC's mod list. 0.1.18 had 0.12.3, so 0.1.18
+      and 0.1.19 cannot play together: everyone needs 0.1.19. If OpenRAC's list offers a newer Multiplayer and
+      you press its Update button, everyone you play with needs to update too.
+    - The mods that change the game: Difficulty, Item randomizer, Ammo at the most and RAC-Board. Each has to be
+      on for everyone or off for everyone, at the same version, with the same game settings. RAC-Board's Weapons
+      on the board row does not have to match: it is each player's own.
+    - Nothing else: the VR mod, Button swap and the Xbox button icons change only your own game, and PAL and US
+      discs play together.
+
+    PC players without our build: OpenRAC's development build has the same Multiplayer and can play with you.
+    OpenRAC's stable 1.0.2 is offered an older Multiplayer (0.8.0), which cannot join.
+
+    Direct connect, without the server: the host has to forward port 7770 (TCP and UDP) on their router.
+
+MULTIPLAYER IN VR: SEE EACH OTHER, THE WHEEL, THE SWINGSHOT
+
+    With a host on 0.1.19 (on a Quest or on PC), each VR player in the party is shown with their own head and
+    hands: their figure's head turns as theirs does, its arms reach to where their hands are, a free hand closes
+    as they grip, and the weapon in their right hand is held where their hand holds it. A flat player's figure
+    stays the game's own. A gun in a VR player's left hand (Akimbo) is not shown to the others.
+
+    The weapon wheel in a party: holding it up slows only you, in the air, so a jump hangs while you choose; the
+    others and the world run on at full speed. When every player in the party has the wheel up at once, time
+    slows for everyone, as when you play alone. A player on another build (OpenRAC's own) never counts as having
+    the wheel up.
+
+    The Swingshot's grab (Grab moves) now works when you join a party too, as long as the host is on 0.1.19: your
+    hand moves the enemy, and the host's game, which runs the enemies, moves it with you, so everyone sees it.
+    With a host on another build it still does not catch enemies when you join.
+
+    All of this goes through the built-in Multiplayer mod, and games on other builds simply do not see it: they
+    play with you as before. If you press Multiplayer's Update button, these extras stop until you choose Back to
+    the built-in. We tried all three live on OpenRAC's server with two of our PC games and a simulated headset
+    each; a Quest in a party we could not try here.
+
+UPDATE BUTTONS FOR THE BUILT-IN MODS
+
+    When OpenRAC's mod list has another version of a mod you have, built in or added, its card on the Game tab
+    says so and has an Update button: the list's version, checked as Browse checks it, takes its place from the
+    game's next start, keeping its settings and whether it is on. Back to the built-in undoes it. The launcher
+    reads the list as it starts while Automatic checks is on (Play tab), and Browse reads it again. RAC-Board stays
+    as this release has it: its Weapons on the board are ours.
+
+FIXED
+
+    With a wheel at each hand, the left hand's laser and dot no longer vanish: both show.
+
+ALSO NEW: ALL OF 0.1.18, WHICH CAME OUT JUST BEFORE, IN CASE YOU MISSED IT
 
 NEW MOVES FOR YOU TO TURN ON: GRAB ENEMIES, GRAB MOVES, PUNCHES
 

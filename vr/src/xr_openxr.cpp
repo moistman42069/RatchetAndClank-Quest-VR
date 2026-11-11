@@ -21,6 +21,7 @@
 #if defined(__ANDROID__)
 #include <EGL/egl.h>
 #include <GLES3/gl32.h>
+#include <dirent.h>
 #include <dlfcn.h>
 #include <jni.h>
 #include <sched.h>
@@ -241,9 +242,20 @@ public:
         }
         m_frame_begun = true;
         m_frame_time = state.predictedDisplayTime;
+        // Displays this frame came too late for: more than the last frame's step since its display time (one period, two
+        // with smoother frames, finish_frame's m_frame_periods).
+        const XrDuration step = state.predictedDisplayPeriod * m_frame_periods;
+        if (m_last_display != 0 && state.predictedDisplayPeriod > 0
+            && state.predictedDisplayTime - m_last_display > step + state.predictedDisplayPeriod / 2) {
+            m_displays_missed += static_cast<long>(
+                (state.predictedDisplayTime - m_last_display + state.predictedDisplayPeriod / 2) / state.predictedDisplayPeriod
+                - m_frame_periods);
+        }
         note_display(state.predictedDisplayTime);
         const double after = now_seconds();
         m_wait_seconds += after - before;
+        m_work_start = after;
+        m_period_seconds = static_cast<double>(state.predictedDisplayPeriod) * 1e-9;
         ++m_frames;
 
         out.should_render = state.shouldRender == XR_TRUE;
@@ -318,7 +330,9 @@ public:
         XrCompositionLayerQuad notice{XR_TYPE_COMPOSITION_LAYER_QUAD};
         XrCompositionLayerQuad beam{XR_TYPE_COMPOSITION_LAYER_QUAD};
         XrCompositionLayerQuad dot{XR_TYPE_COMPOSITION_LAYER_QUAD};
-        const XrCompositionLayerBaseHeader* layers[5];
+        XrCompositionLayerQuad beam2{XR_TYPE_COMPOSITION_LAYER_QUAD};
+        XrCompositionLayerQuad dot2{XR_TYPE_COMPOSITION_LAYER_QUAD};
+        const XrCompositionLayerBaseHeader* layers[7];
         uint32_t count = 0;
 
         const bool have_eyes = eyes && m_views_valid && m_targets[kTargetLeftEye].acquired
@@ -391,7 +405,7 @@ public:
             layers[count++] = reinterpret_cast<const XrCompositionLayerBaseHeader*>(&notice);
         }
 
-        if ((m_pointer.beam || m_pointer.dot) && draw_pointer()) {
+        if ((m_pointer.beam || m_pointer.dot || m_pointer.beam2 || m_pointer.dot2) && draw_pointer()) {
             const auto fill = [&](XrCompositionLayerQuad& layer, const Pose& pose, float width, float height) {
                 layer.layerFlags = XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT;
                 layer.space = m_local;
@@ -408,12 +422,29 @@ public:
             if (m_pointer.dot) {
                 fill(dot, m_pointer.dot_pose, kDotSize, kDotSize);
             }
+            if (m_pointer.beam2) {
+                fill(beam2, m_pointer.beam2_pose, m_pointer.beam2_length, kBeamWidth);
+            }
+            if (m_pointer.dot2) {
+                fill(dot2, m_pointer.dot2_pose, kDotSize, kDotSize);
+            }
         }
 
 #if defined(_WIN32)
         test_shots();
 #endif
         release_targets();
+
+        // With smoother frames the headset paces the game at half its rate: each picture has two periods, and the next
+        // display is two periods on (begin_frame's count of missed displays).
+        m_frame_periods = warped ? 2 : 1;
+        if (m_work_start > 0.0) {
+            const double work = now_seconds() - m_work_start;
+            m_work_seconds += work;
+            m_work_most = std::max(m_work_most, work);
+            m_work_over += work > m_period_seconds * m_frame_periods ? 1 : 0;
+            m_work_start = 0.0;
+        }
 
         XrFrameEndInfo end{XR_TYPE_FRAME_END_INFO};
         end.displayTime = m_frame_time;
@@ -1192,6 +1223,7 @@ private:
         m_first_right = make_action(XR_ACTION_TYPE_BOOLEAN_INPUT, "first_right", "Right first finger", false);
         m_thumb_left = make_action(XR_ACTION_TYPE_BOOLEAN_INPUT, "thumb_left", "Left thumb", false);
         m_thumb_right = make_action(XR_ACTION_TYPE_BOOLEAN_INPUT, "thumb_right", "Right thumb", false);
+        m_rest_left = make_action(XR_ACTION_TYPE_BOOLEAN_INPUT, "rest_left", "Left thumb rest", false);
         m_haptic = make_action(XR_ACTION_TYPE_VIBRATION_OUTPUT, "haptic", "Vibration", true);
 
 #if defined(_WIN32)
@@ -1228,6 +1260,7 @@ private:
             {m_thumb_right, path("/user/hand/right/input/b/touch")},
             {m_thumb_right, path("/user/hand/right/input/thumbstick/touch")},
             {m_thumb_right, path("/user/hand/right/input/thumbrest/touch")},
+            {m_rest_left, path("/user/hand/left/input/thumbrest/touch")},
             {m_haptic, path("/user/hand/left/output/haptic")},
             {m_haptic, path("/user/hand/right/output/haptic")},
         };
@@ -1357,6 +1390,7 @@ private:
             {m_thumb_right, "/user/hand/right/input/b/touch"},
             {m_thumb_right, "/user/hand/right/input/thumbstick/touch"},
             {m_thumb_right, "/user/hand/right/input/thumbrest/touch"},
+            {m_rest_left, "/user/hand/left/input/thumbrest/touch"},
         };
         // The Index: its a and b are A and B on the right, X and Y on the left; a firm squeeze of the left
         // touchpad is the menu button (recentre).
@@ -1398,6 +1432,7 @@ private:
             {m_first_right, "/user/hand/right/input/trigger/touch"},
             {m_thumb_left, "/user/hand/left/input/thumbrest/touch"},
             {m_thumb_right, "/user/hand/right/input/thumbrest/touch"},
+            {m_rest_left, "/user/hand/left/input/thumbrest/touch"},
         });
         // Windows Mixed Reality and the Odyssey: sticks, and a touchpad for the buttons they lack.
         const std::vector<Binding> mixed = join(join(sticks, squeeze_click), {
@@ -1528,8 +1563,129 @@ private:
             }
         }
 #endif
+        m_threads_given.clear();
+        register_threads();
         set_refresh(m_settings.refresh_hz);
     }
+
+    // The port's threads by name (port/common/parallel.cpp's workers, "openrac-pool"; the sound engine's, "openrac-sound"),
+    // given to the runtime as the app's workers (XR_KHR_android_thread_settings), as the thread that draws is given as
+    // the renderer when the session begins. The Quest then runs them on its fast cores, not wherever the scheduler puts
+    // them: the frame's posing waits for the pool, and a pool on a slow core made some frames late (0.1.19, a tester's
+    // "microstutters"). Looked for again with each [vr-perf] line, as the pool starts with the first frame that poses.
+    void register_threads() {
+#if defined(__ANDROID__)
+        if (!m_thread_extension || !m_running) {
+            return;
+        }
+        auto set_thread = proc<PFN_xrSetAndroidApplicationThreadKHR>("xrSetAndroidApplicationThreadKHR");
+        DIR* tasks = set_thread != nullptr ? opendir("/proc/self/task") : nullptr;
+        if (tasks == nullptr) {
+            return;
+        }
+        while (const dirent* entry = readdir(tasks)) {
+            const int tid = std::atoi(entry->d_name);
+            if (tid <= 0 || std::find(m_threads_given.begin(), m_threads_given.end(), tid) != m_threads_given.end()) {
+                continue;
+            }
+            char path[64];
+            std::snprintf(path, sizeof path, "/proc/self/task/%d/comm", tid);
+            FILE* file = std::fopen(path, "r");
+            if (file == nullptr) {
+                continue;
+            }
+            char name[32] = {};
+            const bool read = std::fgets(name, sizeof name, file) != nullptr;
+            std::fclose(file);
+            if (!read || (std::strncmp(name, "openrac-pool", 12) != 0 && std::strncmp(name, "openrac-sound", 13) != 0)) {
+                continue;
+            }
+            m_threads_given.push_back(tid);
+            name[std::strcspn(name, "\n")] = '\0';
+            const XrResult result =
+                set_thread(m_session, XR_ANDROID_THREAD_TYPE_APPLICATION_WORKER_KHR, static_cast<uint32_t>(tid));
+            info("[openxr] thread " + std::to_string(tid) + " (" + name + ") given to the headset as a worker"
+                 + (XR_SUCCEEDED(result) ? "" : ": refused " + std::to_string(result)));
+        }
+        closedir(tasks);
+#endif
+    }
+
+#if defined(__ANDROID__)
+    // Foveated rendering (XrSettings::foveation), on the texture the port draws the eye into (GL_QCOM_texture_foveated,
+    // Qualcomm's: the tiles towards the picture's edges drawn at a lower resolution and scaled up as they are written
+    // out). The Quest's own foveation (XR_FB_foveation) is set on a swapchain's images, which the port does not draw
+    // into; this is the same thing on its own texture. Pixel density at a point d from the focal point (NDC) is
+    // 1 / max(gain^2 |d|^2 - area, 1), no less than the level's least.
+    void foveate(int eye, unsigned texture) override {
+        constexpr unsigned kFeatureBits = 0x8BFB, kMinDensity = 0x8BFC, kFeatureQuery = 0x8BFD;
+        constexpr int kEnable = 0x1, kScaledBins = 0x2;
+        struct Level {
+            float gain, area, least;
+            const char* name;
+        };
+        static constexpr Level kLevels[] = {{0, 0, 1, "off"},
+                                            {1.25f, 1.0f, 0.5f, "low"},
+                                            {1.75f, 0.5f, 0.4f, "medium"},
+                                            {2.5f, 0.25f, 0.25f, "high"}};
+        const int level = std::clamp(m_settings.foveation, 0, 3);
+        if (level == 0 || texture == 0 || eye < 0 || eye > 1) {
+            return;
+        }
+        if (!m_foveation_checked) {
+            m_foveation_checked = true;
+            if (has_gl_extension("GL_QCOM_texture_foveated")) {
+                m_foveate = reinterpret_cast<FoveateCall>(eglGetProcAddress("glTextureFoveationParametersQCOM"));
+            }
+            info(m_foveate != nullptr ? std::string("[openxr] foveated rendering: ") + kLevels[level].name
+                                      : "[openxr] foveated rendering: the graphics chip does not offer it (GL_QCOM_texture_foveated)");
+        }
+        if (m_foveate == nullptr) {
+            return;
+        }
+        // Straight ahead in the eye's picture: its fields of view are not even about it.
+        const XrFovf& fov = m_views[eye].fov;
+        const float left = std::tan(fov.angleLeft), right = std::tan(fov.angleRight);
+        const float up = std::tan(fov.angleUp), down = std::tan(fov.angleDown);
+        const float focal_x = right - left > 0.0f ? -(right + left) / (right - left) : 0.0f;
+        const float focal_y = up - down > 0.0f ? -(up + down) / (up - down) : 0.0f;
+        // The texture's own bits, each frame: the port makes its target anew at another size, and GL may give the new
+        // texture the old one's number.
+        GLint bound = 0;
+        glGetIntegerv(GL_TEXTURE_BINDING_2D, &bound);
+        glBindTexture(GL_TEXTURE_2D, texture);
+        GLint bits = 0;
+        glGetTexParameteriv(GL_TEXTURE_2D, kFeatureBits, &bits);
+        const bool fresh = (bits & kEnable) == 0 || m_foveated[eye] != texture;
+        if (!fresh && std::abs(focal_x - m_focal[eye][0]) < 0.01f && std::abs(focal_y - m_focal[eye][1]) < 0.01f) {
+            glBindTexture(GL_TEXTURE_2D, static_cast<GLuint>(bound));
+            return;
+        }
+        if ((bits & kEnable) == 0) {
+            GLint offered = 0;
+            glGetTexParameteriv(GL_TEXTURE_2D, kFeatureQuery, &offered);
+            if ((offered & (kEnable | kScaledBins)) != (kEnable | kScaledBins)) {
+                glBindTexture(GL_TEXTURE_2D, static_cast<GLuint>(bound));
+                warn("[openxr] foveated rendering: the eye's texture cannot be foveated (offered " + std::to_string(offered) + ")");
+                m_foveate = nullptr;
+                return;
+            }
+            glTexParameteri(GL_TEXTURE_2D, kFeatureBits, kEnable | kScaledBins);
+            glTexParameterf(GL_TEXTURE_2D, kMinDensity, kLevels[level].least);
+        }
+        m_foveate(texture, 0, 0, focal_x, focal_y, kLevels[level].gain, kLevels[level].gain, kLevels[level].area);
+        glBindTexture(GL_TEXTURE_2D, static_cast<GLuint>(bound));
+        if (fresh) {
+            char line[160];
+            std::snprintf(line, sizeof line, "[openxr] foveated rendering: eye %d's picture (texture %u), straight ahead at (%.2f %.2f)",
+                          eye, texture, focal_x, focal_y);
+            info(line);
+        }
+        m_foveated[eye] = texture;
+        m_focal[eye][0] = focal_x;
+        m_focal[eye][1] = focal_y;
+    }
+#endif
 
     void set_refresh(float hertz) {
         if (!m_refresh_extension) {
@@ -1757,6 +1913,7 @@ private:
         c.right_first_touch = read_bool(m_first_right);
         c.left_thumb_touch = read_bool(m_thumb_left);
         c.right_thumb_touch = read_bool(m_thumb_right);
+        c.left_rest_touch = read_bool(m_rest_left);
 #if defined(_WIN32)
         if (!m_first_sensed[kLeft]) {
             c.left_first_touch = c.left_trigger > 0.05f;
@@ -1941,15 +2098,25 @@ private:
         const double rate = m_frames / seconds;
         // Smoother frames: the share of frames given with motion, over which the headset paces the game at half its rate.
         const double warped = m_frames > 0 ? static_cast<double>(m_warp_frames) / static_cast<double>(m_frames) : 0.0;
-        char line[200];
+        // The frame's own work, and the displays missed: a frame longer than the period is shown a display late, which
+        // the headset's own counter (OVR Metrics) shows as a dip, the "small wobbles" a tester saw.
+        char line[320];
         std::snprintf(line, sizeof line,
-                      "[vr-perf] %.1f frames/s over %.0f s, period %.2f ms, waited %.2f ms a frame%s",
+                      "[vr-perf] %.1f frames/s over %.0f s, period %.2f ms, waited %.2f ms a frame, worked %.2f ms (most "
+                      "%.2f, %ld over the period), %ld displays missed%s",
                       rate, seconds, out.frame_seconds * 1000.0,
                       m_frames > 0 ? m_wait_seconds / m_frames * 1000.0 : 0.0,
+                      m_frames > 0 ? m_work_seconds / m_frames * 1000.0 : 0.0, m_work_most * 1000.0, m_work_over,
+                      m_displays_missed,
                       m_space_warp_ready ? (", smoother frames on " + std::to_string(static_cast<int>(warped * 100.0 + 0.5))
                                             + "% of them").c_str()
                                          : "");
         info(line);
+        m_work_seconds = 0;
+        m_work_most = 0;
+        m_work_over = 0;
+        m_displays_missed = 0;
+        register_threads();
         // Keep the refresh rate (on by default from 0.1.14, the owner's wish: smooth wherever the game keeps up) leaves
         // the chosen rate alone; off, a rate above 72 not held for two spells in a row goes back to 72. With smoother
         // frames the game is meant to draw half the rate.
@@ -2064,6 +2231,7 @@ private:
     XrAction m_squeeze_left = XR_NULL_HANDLE, m_squeeze_right = XR_NULL_HANDLE;
     XrAction m_first_left = XR_NULL_HANDLE, m_first_right = XR_NULL_HANDLE;
     XrAction m_thumb_left = XR_NULL_HANDLE, m_thumb_right = XR_NULL_HANDLE;
+    XrAction m_rest_left = XR_NULL_HANDLE;  // the left thumb rest's touch alone (the D-pad's "Left thumb rest")
     XrAction m_click_left = XR_NULL_HANDLE, m_click_right = XR_NULL_HANDLE;
     XrAction m_a = XR_NULL_HANDLE, m_b = XR_NULL_HANDLE, m_x = XR_NULL_HANDLE, m_y = XR_NULL_HANDLE;
     XrAction m_menu = XR_NULL_HANDLE;
@@ -2075,6 +2243,27 @@ private:
     double m_stats_start = 0;
     double m_wait_seconds = 0;
     long m_frames = 0;
+    // The frame's own work (from xrBeginFrame's return to xrEndFrame) since the last [vr-perf] line: in all, the most,
+    // the frames longer than the display's period, and the displays the frames came too late for (display times
+    // skipped between one frame and the next).
+    double m_work_start = 0;
+    double m_period_seconds = 1.0 / 72.0;
+    double m_work_seconds = 0;
+    double m_work_most = 0;
+    long m_work_over = 0;
+    long m_displays_missed = 0;
+    int m_frame_periods = 1;  // the last frame's display periods: 2 with smoother frames (the headset's half rate)
+
+    // Foveated rendering (foveate): GL_QCOM_texture_foveated's call, once looked for; each eye's texture set up last
+    // and the focal point it was given.
+    using FoveateCall = void (*)(unsigned, unsigned, unsigned, float, float, float, float, float);
+    bool m_foveation_checked = false;
+    FoveateCall m_foveate = nullptr;
+    unsigned m_foveated[2]{};
+    float m_focal[2][2]{};
+
+    // The port's threads named for the runtime (register_threads): the thread ids already given to it.
+    std::vector<int> m_threads_given;
 };
 
 }  // namespace

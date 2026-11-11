@@ -1,0 +1,48 @@
+# 0.1.19: RAC-Board with its Weapons on the board off ('QUEST_RACBOARD_SETTINGS={"weapons": false}'), first person, on
+# Novalis by the crate class 511 with the Blaster in the hand (racboardweapons.sim's start). As in RAC-Board 0.2.1 and
+# 0.1.18, he puts the Blaster away and takes the wrench as he gets on. The board out (the right hand behind the back,
+# its stick clicked), and while riding: the right grip and fast strokes across: the grip changes nothing (no "[vr-wrench]
+# let go slowly: put away", no "the trigger asks the last gun back": in 0.1.18 those took his item from the board and
+# ended the ride), and the wrench in his hand hits what it meets ([vr-wrench] lines); B; the trigger, the board's spins
+# and flips (R1: on the ground Jak II's board turns to the game's camera), nothing fired ("[sim] item 15" rounds stay);
+# the left hand's reach puts the board away. All within about 250 ticks of getting on: the crate stands by the water,
+# and the board left alone drifts into it ("ground hazard 0: off the board", the game's rule) in about 450.
+600 y 1
+606 y 0
+2800 shot stand
+2900 rh_z 0.6
+2901 rh_y 0.15
+2930 right_click 1
+2936 right_click 0
+2960 rh_z 0
+2961 rh_y 0
+2990 right_grip 1
+2990 rh_y -0.25
+3000 shot board
+3010 rh_x -0.20
+3011 rh_x -0.10
+3012 rh_x 0.00
+3013 rh_x 0.10
+3014 rh_x 0.20
+3030 rh_x 0.10
+3031 rh_x 0.00
+3032 rh_x -0.10
+3033 rh_x -0.20
+3040 shot wrench
+3050 rh_x 0
+3051 rh_y 0
+3060 right_grip 0
+3080 b 1
+3092 b 0
+3110 shot spun
+3120 right_trigger 1
+3126 right_trigger 0
+3140 shot fired
+3150 lh_z 0.6
+3151 lh_y 0.15
+3170 left_click 1
+3176 left_click 0
+3190 lh_z 0
+3191 lh_y 0
+3260 shot off
+3300 quit 0

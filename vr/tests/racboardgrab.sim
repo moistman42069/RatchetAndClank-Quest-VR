@@ -1,0 +1,40 @@
+# 0.1.19: the Swingshot's grab from RAC-Board's board (the owner: "ride the board and fling people while staying on the
+# board with the swingshot ... should always be on the board unless chosen to put it away"). swinggrab.sim's place on
+# Novalis (QUEST_SIM_GIVE=12 QUEST_SIM_HOLD=12 QUEST_SIM_NEAR=577 QUEST_SIM_NEAR_AT=6,0,180, the Grab moves on) with the
+# board out first, as racboard.sim gets it out (the right hand behind the back, its stick clicked), as soon as he is set
+# down there (he lands there about frame 2630). While he rides, the trigger hooks the critter ahead ("[vr-grab] the hook
+# out", "caught: yanked in"), held as long as swinggrab.sim holds it, then the hand flicked ahead throws it ("thrown",
+# "it landed"), and he rides on through it all: [vr-jetboard] riding from the click to the left hand's reach, with no
+# "off the board" between (RAC-Board's trace: no "off the board"). The board's touch leaves the one held alone (RAC-Board
+# skips a creature a mod drives): it knocked it out of the hand before ("let go: a hit on it").
+600 y 1
+606 y 0
+2400 shot stand
+2620 rh_z 0.6
+2621 rh_y 0.15
+2650 right_click 1
+2656 right_click 0
+2680 rh_z 0
+2681 rh_y 0
+2690 shot board
+2700 right_trigger 1
+2708 shot hook-out
+2740 shot caught
+2800 rh_z -0.05
+2801 rh_z -0.10
+2802 rh_z -0.15
+2803 rh_z -0.20
+2804 rh_z -0.25
+2805 rh_z -0.30
+2805 right_trigger 0
+2815 shot thrown
+2920 shot landed
+2960 rh_z 0
+3060 lh_z 0.6
+3061 lh_y 0.15
+3090 left_click 1
+3096 left_click 0
+3120 lh_z 0
+3121 lh_y 0
+3220 shot off
+3260 quit 0

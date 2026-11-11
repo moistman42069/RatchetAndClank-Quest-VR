@@ -34,6 +34,10 @@ struct XrSettings {
     // highest level the runtime lets an app ask for (XR_EXT_performance_settings' boost) rather than sustained high. Tools
     // such as Quest Games Optimizer go further through the developer shell, which no app can do itself.
     bool cpu_gpu_boost = true;
+    // Foveated rendering (0.1.19, the owner's ask): each eye's picture drawn at a lower resolution towards its edges,
+    // where the lenses blur it anyway (GL_QCOM_texture_foveated, the Quest's graphics chip). 0 off, 1 low, 2 medium,
+    // 3 high.
+    int foveation = 2;
 };
 
 // Smoother frames: an eye's motion and depth images to draw this frame (GL textures of the game's context).
@@ -79,13 +83,19 @@ struct PanelLayer {
     bool blend = false;          // uses the picture's alpha
 };
 
-// The menu pointer's beam from the hand and the dot where it lands, in tracking space.
+// The menu pointer's beam from the hand and the dot where it lands, in tracking space; a second pair for the other hand.
 struct PointerLayers {
     bool beam = false;
     Pose beam_pose;
     float beam_length = 0;
     bool dot = false;
     Pose dot_pose;
+    // The other hand's (0.1.19): with Akimbo both weapon wheels can be up at once, each hand pointing at its own.
+    bool beam2 = false;
+    Pose beam2_pose;
+    float beam2_length = 0;
+    bool dot2 = false;
+    Pose dot2_pose;
 };
 
 class Headset {
@@ -121,6 +131,13 @@ public:
 
     // In how many nanoseconds the next frame begin_frame begins is predicted to be shown; 0: it cannot say.
     virtual std::int64_t next_display_in() { return 0; }
+
+    // Foveated rendering: `texture` is the GL texture the port draws eye `eye`'s picture into, before it is copied to the
+    // eye's target; drawn foveated from the next frame, as XrSettings::foveation says. Called each frame the eye is drawn.
+    virtual void foveate(int eye, unsigned texture) {
+        (void)eye;
+        (void)texture;
+    }
 
     virtual void haptic(Hand hand, float strength, float seconds, float hertz) = 0;
 

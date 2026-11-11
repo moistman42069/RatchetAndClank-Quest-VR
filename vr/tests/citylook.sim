@@ -1,0 +1,38 @@
+# 0.1.19: a tester on 0.1.18 found the city missing pieces ("seems to be missing some geometry now", where 0.1.17 drew it
+# all). Kerwan (--level 3) looked round from where he lands, level and upward, each way a shot: the same script run on
+# 0.1.17's game and mod (QUEST_GAME, QUEST_MOD_PACKAGE), on 0.1.18's and on this build's, the shots compared side by side.
+# Only commands every build since 0.1.14 knows (y, head_yaw, head_pitch, shot, quit).
+600 y 1
+606 y 0
+1000 y 1
+1006 y 0
+3000 shot h000
+3040 head_yaw 45
+3080 shot h045
+3100 head_yaw 90
+3140 shot h090
+3160 head_yaw 135
+3200 shot h135
+3220 head_yaw 180
+3260 shot h180
+3280 head_yaw 225
+3320 shot h225
+3340 head_yaw 270
+3380 shot h270
+3400 head_yaw 315
+3440 shot h315
+3460 head_pitch 25
+3500 shot u315
+3520 head_yaw 0
+3560 shot u000
+3580 head_yaw 90
+3620 shot u090
+3640 head_yaw 180
+3680 shot u180
+3700 head_yaw 270
+3740 shot u270
+3760 head_pitch -25
+3800 shot d270
+3820 head_yaw 0
+3860 shot d000
+3900 quit 0

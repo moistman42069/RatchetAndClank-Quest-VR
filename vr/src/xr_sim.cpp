@@ -7,7 +7,7 @@
 //   QUEST_SIM_SCRIPT=<file>  a line each: <frame> <name> <value>, values holding until changed.
 //       a b x y left_click right_click: 0 or 1; left_x left_y right_x right_y left_trigger
 //       right_trigger left_grip right_grip: -1..1; left_first_touch right_first_touch left_thumb_touch
-//       right_thumb_touch: 0 or 1; head_yaw hand_yaw (degrees, left positive);
+//       right_thumb_touch left_rest_touch: 0 or 1; head_yaw hand_yaw (degrees, left positive);
 //       head_pitch hand_pitch hand_roll (degrees, up positive); head_x head_y head_z (metres); shot <name>: the eyes and panel as
 //       PNGs; quit 0: ends the run.
 //   QUEST_SIM_OUT=<folder>   where the PNGs go.
@@ -317,6 +317,7 @@ public:
         c.right_first_touch = number("right_first_touch") != 0;
         c.left_thumb_touch = number("left_thumb_touch") != 0;
         c.right_thumb_touch = number("right_thumb_touch") != 0;
+        c.left_rest_touch = number("left_rest_touch") != 0;
         return true;
     }
 
@@ -383,13 +384,16 @@ public:
     }
 
     void show_pointer(const PointerLayers& pointer) override {
-        if (pointer.dot != m_pointer_dot || pointer.beam != m_pointer_beam) {
+        if (pointer.dot != m_pointer_dot || pointer.beam != m_pointer_beam || pointer.dot2 != m_pointer_dot2 || pointer.beam2 != m_pointer_beam2) {
             m_pointer_dot = pointer.dot;
             m_pointer_beam = pointer.beam;
-            char line[120];
-            std::snprintf(line, sizeof line, "[sim] pointer: beam %d (%.2f m) dot %d at (%.2f %.2f %.2f)", pointer.beam ? 1 : 0,
-                          pointer.beam_length, pointer.dot ? 1 : 0, pointer.dot_pose.position.x, pointer.dot_pose.position.y,
-                          pointer.dot_pose.position.z);
+            m_pointer_dot2 = pointer.dot2;
+            m_pointer_beam2 = pointer.beam2;
+            char line[200];
+            std::snprintf(line, sizeof line, "[sim] pointer: beam %d (%.2f m) dot %d at (%.2f %.2f %.2f); second beam %d dot %d at (%.2f %.2f %.2f)",
+                          pointer.beam ? 1 : 0, pointer.beam_length, pointer.dot ? 1 : 0, pointer.dot_pose.position.x, pointer.dot_pose.position.y,
+                          pointer.dot_pose.position.z, pointer.beam2 ? 1 : 0, pointer.dot2 ? 1 : 0, pointer.dot2_pose.position.x,
+                          pointer.dot2_pose.position.y, pointer.dot2_pose.position.z);
             m_log(1, line);
         }
     }
@@ -500,7 +504,7 @@ private:
     float m_grip_tilt = 0;    // QUEST_SIM_GRIP_TILT, radians
     std::chrono::steady_clock::time_point m_frame_asked{};  // when begin_frame last ran
     long m_ready_frame = -1;  // the frame the set-up was done
-    bool m_pointer_dot = false, m_pointer_beam = false;
+    bool m_pointer_dot = false, m_pointer_beam = false, m_pointer_dot2 = false, m_pointer_beam2 = false;
     bool m_quit = false;
     // Smoother frames.
     bool m_space_warp = false;

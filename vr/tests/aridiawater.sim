@@ -1,0 +1,24 @@
+# 0.1.19: Aridia's water by the ship (the owner's 0.1.18 video on a Quest 3: the channel beside the landing pad was
+# bare brown ground in the eyes, while the water round the pad and far off was drawn). Out of the ship at the start,
+# the head turned round level and looking down, a shot each way. Run it in the eyes and with view screen (the game's
+# own flat picture on the panel) to see what the game itself draws there.
+3000 shot start
+3010 head_pitch -20
+3040 shot d0
+3050 head_yaw 45
+3080 shot d45
+3090 head_yaw 90
+3120 shot d90
+3130 head_yaw 135
+3160 shot d135
+3170 head_yaw 180
+3200 shot d180
+3210 head_yaw -135
+3240 shot d225
+3250 head_yaw -90
+3280 shot d270
+3290 head_yaw -45
+3320 shot d315
+3330 head_pitch 0
+3340 head_yaw 0
+3360 quit 0

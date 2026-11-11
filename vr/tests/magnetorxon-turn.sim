@@ -1,0 +1,50 @@
+# 0.1.19: a tester on 0.1.18, first person: "magnet walls seemingly don't break your move directions anymore but still
+# cant be traversed", "when you get to where the ramp turns its like the magnet shuts off". magnetorxon.sim's walk on
+# Orxon's first magnet wall (same start: QUEST_SIM_OWN=6 QUEST_SIM_GIVE=28 QUEST_SIM_AT=270.7,323.0,33.6,78, --level 10),
+# the head held still ahead and every turn magnetorxon.sim makes with the head made on the right stick instead, the
+# launcher's default smooth turn (140 degrees a second, about 2.7 a frame at full stick), as a seated player turns:
+# right 13 at the foot, right 68 round the bend, left 73 along the level, right 37 up the end wall. The stick held
+# ahead all the way. QUEST_STATE_TRACE: no 0x79 (slipping off), no fall (6) or death (0x7C).
+# 0.1.19, Stay on magnet paths on (its default): magnet walk 0x3F from the foot round the bend and up onto the overhang,
+# standing there to the end at about (297.7 340.7 58.0) (an Orxon enemy's hit there, 0x16, and back on his feet).
+# magnetorxon-turn-off runs it with the option off.
+600 y 1
+606 y 0
+1000 y 1
+1006 y 0
+3000 shot foot
+3010 left_y 1
+3200 left_y 0
+3230 shot stopped
+3560 shot waited
+3590 right_x 1
+3595 right_x 0
+3600 left_y 1
+3677 right_x 1
+3680 right_x 0
+3687 right_x 1
+3690 right_x 0
+3697 right_x 1
+3700 right_x 0
+3700 shot again
+3707 right_x 1
+3710 right_x 0
+3717 right_x 1
+3720 right_x 0
+3727 right_x 1
+3730 right_x 0
+3742 right_x 1
+3745 right_x 0
+3757 right_x 1
+3760 right_x 0
+3772 right_x 1
+3773 right_x 0
+3800 shot bend
+4105 right_x -1
+4132 right_x 0
+4200 shot level
+4283 right_x 1
+4297 right_x 0
+4430 left_y 0
+4440 shot top
+4560 quit 0

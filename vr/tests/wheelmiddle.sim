@@ -1,0 +1,45 @@
+# 0.1.19: let go in the wheel's middle (a tester on 0.1.18: "you cant go back to fist with your right hand once you use a
+# gun. Maybe just releasing in the middle of the weapon wheel should go back to fists?"). Akimbo (the default), Wheel pick
+# on Point (the default), eight weapons (QUEST_SIM_GIVE), the Blaster in the right hand (QUEST_SIM_HOLD=15) and the
+# Pyrocitor in the left (QUEST_SIM_LEFT=16), on Novalis.
+# The right hand's wheel: the dot to its middle (between wheelpoint.sim's icons: yaw -11.5, pitch 3.2), rested there and
+# let go: "[vr-ring] let go in the wheel's middle: the right hand's item 15 put away, the hand empty", the wrench on the
+# grip and put down. The trigger then: "[vr-wrench] the trigger asks the last gun back", the Blaster out again.
+# A quick pass, on the wheel's second page (the trigger turns it, as in wheelpoint.sim; the first page's slots are empty
+# here): the dot on the lower right icon a moment (slot 3, item 11: Swap at full speed takes it; the right icon,
+# slot 2, is the Pyrocitor the left hand holds, greyed for this hand), then to the middle and let go at once: nothing put
+# away, the hand keeps that weapon.
+# The left hand's wheel (wheelleft.sim's mirror, yaw 11.5): rested in its middle and let go: "[vr-ring] let go in the
+# wheel's middle: the left hand's gun put away, the hand empty".
+600 y 1
+606 y 0
+3000 shot before
+3100 right_click 1
+3200 hand_yaw -11.5
+3201 hand_pitch 3.2
+3260 shot middle
+3300 right_click 0
+3360 shot empty
+3400 right_trigger 1
+3406 right_trigger 0
+3460 shot back
+# The quick pass.
+3500 right_click 1
+3540 right_trigger 1
+3546 right_trigger 0
+3600 hand_yaw -19.0
+3601 hand_pitch -3.4
+3660 hand_yaw -11.5
+3661 hand_pitch 3.2
+3663 right_click 0
+3720 shot quick
+3800 hand_yaw 0
+3801 hand_pitch 0
+# The left hand's wheel.
+3900 left_click 1
+4000 hand_yaw 11.5
+4001 hand_pitch 3.2
+4060 shot left-middle
+4100 left_click 0
+4160 shot left-empty
+4300 quit 0

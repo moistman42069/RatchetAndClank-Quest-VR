@@ -1,0 +1,368 @@
+diff --git a/multiplayer/src/coop.cpp b/multiplayer/src/coop.cpp
+index f7ff81b..b6370d2 100644
+--- a/multiplayer/src/coop.cpp
++++ b/multiplayer/src/coop.cpp
+@@ -280,6 +280,11 @@ void Coop::handle(std::int32_t sender, const Bytes& bytes) {
+         return;
+     }
+ 
++    if (kind == GameKind::kPlayerExtra) {
++        on_extra(sender, bytes);
++        return;
++    }
++
+     if (kind == GameKind::kShotX) {
+         on_shotx(sender, bytes);
+         return;
+@@ -534,6 +539,7 @@ void Coop::tick(std::uint64_t now) {
+     }
+ 
+     send_pose(now, status);
++    tell_silent(now);
+     send_shots(status);
+ 
+     // The host out of a level has no pose of its own to go with the members': theirs go alone.
+diff --git a/multiplayer/src/coop.hpp b/multiplayer/src/coop.hpp
+index 21d1a97..6922596 100644
+--- a/multiplayer/src/coop.hpp
++++ b/multiplayer/src/coop.hpp
+@@ -150,7 +150,8 @@ enum class GameKind : std::uint8_t {
+     kPoses = kind::kPoses,
+     kPlace = kind::kPlace,
+     kPlaceAsk = kind::kPlaceAsk,
+-    kWaitVote = kind::kWaitVote
++    kWaitVote = kind::kWaitVote,
++    kPlayerExtra = kind::kPlayerExtra
+ };
+ 
+ /* What a skip was pressed in (SKIP's `what`), and where a member is with the host's scene
+@@ -180,6 +181,10 @@ constexpr std::size_t kMaxSaveBytes = 1u << 17;
+  * again, a figure made again after the level refused one; and a remote player's silence after
+  * which its figure goes. */
+ constexpr std::uint64_t kPoseMs = 50;
++/* The most bytes of a PLAYER_EXTRA's word (the Quest fork's OPENRAC_PLAYER_EXTRA_MAX). */
++constexpr std::size_t kPlayerExtraMost = 200;
++/* How often a member sends its PLAYER_EXTRA to the host: every other pose, with a tick to spare. */
++constexpr std::uint64_t kPlayerExtraMemberMs = 90;
+ constexpr std::uint64_t kLevelMs = 1000;
+ constexpr std::uint64_t kWantMs = 5000;
+ constexpr std::uint64_t kTravelMs = 4000;
+@@ -554,6 +559,11 @@ public:
+     /* What must agree for two games to share `level` as loaded (the port's sim digest); 0 when it
+      * is not known. */
+     virtual std::uint32_t sim_digest(int /*level*/) { return 0; }
++    /* Ratchet Quest VR's (openrac_api.player_extra_*, the Quest fork's): what a mod of this game says of its own player
++     * for the others (a VR player's head and hands), false or empty for nothing; and another player's word, or none
++     * (empty: that player says nothing), for its figure, moby `slot` in this game. */
++    virtual bool player_extra(Bytes& /*out*/) { return false; }
++    virtual void player_extra_deliver(int /*slot*/, const Bytes& /*bytes*/) {}
+     // --- end WP-CROSS ---
+     // --- WP-CODES ---
+     // --- end WP-CODES ---
+@@ -573,6 +583,7 @@ struct Remote {
+     TagSight sight;                 // whether the level leaves it in view, for its name tag
+     std::uint64_t retry_ms = 0;  // when a figure may be made again
+     std::uint64_t traced_ms = 0;  // when the verbose log last said how its poses are shown
++    std::uint64_t extra_ms = 0;   // when its word on itself (PLAYER_EXTRA, a VR player's) last came, or its silence was told
+     /* Its shots to fire, each when its figure is as far behind as its poses are played. */
+     struct PendingShot {
+         double due_ms = 0;
+@@ -852,7 +863,11 @@ private:
+     void on_pose(std::int32_t sender, const Bytes& bytes);
+     void on_poses(std::int32_t sender, Reader& r);
+     /* The host: the poses waiting to go out, with `own` when given, in as few datagrams as fit. */
+-    void send_poses(const Bytes* own);
++    void send_poses(const Bytes* own, const Bytes* own_extra = nullptr);
++    /* PLAYER_EXTRA: a player's word on itself, passed on by the host and given to its figure here. */
++    void on_extra(std::int32_t sender, const Bytes& bytes);
++    /* Each figure whose player says nothing of itself: told so, a few times a second. */
++    void tell_silent(std::uint64_t now);
+     void tick_host(std::uint64_t now, const GameStatus& status);
+     void tick_member(std::uint64_t now, const GameStatus& status);
+     void send_pose(std::uint64_t now, const GameStatus& status);
+@@ -1111,6 +1126,11 @@ private:
+     bool demoted_ = false;
+     /* The host: each member's newest pose not passed on yet, and when they last went. */
+     std::map<std::int32_t, Bytes> relay_;
++    /* The host: each member's newest PLAYER_EXTRA not passed on yet. */
++    std::map<std::int32_t, Bytes> relay_extra_;
++    std::uint64_t silent_ms_ = 0;
++    /* A member: when its PLAYER_EXTRA last went. */
++    std::uint64_t extra_ms_ = 0;
+     std::uint64_t relay_ms_ = 0;
+     /* WORLD's delivery: a member's own word for its next pose; the host, each member's latest. */
+     bool world_ack_ = false;
+diff --git a/multiplayer/src/coop_figures.cpp b/multiplayer/src/coop_figures.cpp
+index 5f42c05..ed26672 100644
+--- a/multiplayer/src/coop_figures.cpp
++++ b/multiplayer/src/coop_figures.cpp
+@@ -95,11 +95,75 @@ void Coop::on_poses(std::int32_t sender, Reader& r) {
+             b = r.u8();
+         }
+ 
+-        on_pose(sender, one);
++        // Ratchet Quest VR's: a player's word on itself rides with the poses (a build without it takes it for a POSE
++        // that does not decode, and leaves it).
++        if (one[0] == static_cast<std::uint8_t>(GameKind::kPlayerExtra)) {
++            on_extra(sender, one);
++        } else {
++            on_pose(sender, one);
++        }
++    }
++}
++
++void Coop::on_extra(std::int32_t sender, const Bytes& bytes) {
++    if (bytes.size() < 5 || bytes.size() > 5 + kPlayerExtraMost) {
++        return;
++    }
++
++    Reader r(bytes.data() + 1, bytes.size() - 1);
++    const std::int32_t owner = r.i32();
++
++    if (!r.ok() || owner == session_.id() || !member_of(session_, owner)) {
++        return;
++    }
++
++    if (session_.role().host()) {
++        // A member speaks for itself only; the host passes it on with the next poses that go.
++        if (sender != owner) {
++            return;
++        }
++
++        relay_extra_[owner] = bytes;
++    } else if (sender != session_.host()) {
++        return;
++    }
++
++    const auto it = remotes_.find(owner);
++
++    if (it == remotes_.end() || it->second.figure < 0 || it->second.hidden) {
++        return;
++    }
++
++    const int slot = game_.figure_slot(it->second.figure);
++
++    if (slot >= 0) {
++        it->second.extra_ms = clock_();
++        game_.player_extra_deliver(slot, Bytes(bytes.begin() + 5, bytes.end()));
++    }
++}
++
++void Coop::tell_silent(std::uint64_t now) {
++    if (now - silent_ms_ < 250) {
++        return;
++    }
++
++    silent_ms_ = now;
++
++    for (auto& [id, r] : remotes_) {
++        if (r.figure < 0 || r.hidden || now - r.extra_ms < 500) {
++            continue;
++        }
++
++        const int slot = game_.figure_slot(r.figure);
++
++        if (slot >= 0) {
++            r.extra_ms = now - 250;  // told again in a quarter of a second, as long as it says nothing
++            game_.player_extra_deliver(slot, Bytes{});
++        }
+     }
+ }
+ 
+-void Coop::send_poses(const Bytes* own) {
++void Coop::send_poses(const Bytes* own, const Bytes* own_extra) {
+     std::vector<const Bytes*> poses;
+ 
+     if (own != nullptr) {
+@@ -110,6 +174,23 @@ void Coop::send_poses(const Bytes* own) {
+         poses.push_back(&bytes);
+     }
+ 
++    // Ratchet Quest VR's: the players' words on themselves go after the poses, in the room the poses' own datagrams
++    // leave, and never in a datagram of their own (the host's state is mostly spent). One that finds no room goes
++    // with the next poses, unless a newer word from its player takes its place first.
++    const std::size_t pose_count = poses.size();
++
++    if (own_extra != nullptr) {
++        poses.push_back(own_extra);
++    }
++
++    const std::size_t relayed_from = poses.size();
++    std::vector<std::int32_t> relayed;
++
++    for (const auto& [id, bytes] : relay_extra_) {
++        poses.push_back(&bytes);
++        relayed.push_back(id);
++    }
++
+     // Nothing to pass on: the host's own, as a POSE. (With one member it hears only the host.)
+     if (poses.size() == 1 && own != nullptr) {
+         session_.send_state(kBroadcast, *own);
+@@ -118,8 +199,14 @@ void Coop::send_poses(const Bytes* own) {
+     }
+ 
+     const std::size_t room = kMaxDatagramBytes - kClientStateHeader;
++    std::size_t at = 0;
++
++    while (at < poses.size()) {
++        // A word starts no datagram.
++        if (at >= pose_count) {
++            break;
++        }
+ 
+-    for (std::size_t at = 0; at < poses.size();) {
+         Writer w;
+         std::size_t size = 2;
+         std::size_t end = at;
+@@ -141,6 +228,13 @@ void Coop::send_poses(const Bytes* own) {
+     }
+ 
+     relay_.clear();
++
++    // The words that went are done; one of a player no longer here, too.
++    for (std::size_t i = 0; i < relayed.size(); ++i) {
++        if (relayed_from + i < at || !member_of(session_, relayed[i])) {
++            relay_extra_.erase(relayed[i]);
++        }
++    }
+ }
+ 
+ void Coop::trace_hero(std::uint64_t now, const GameStatus& status) {
+@@ -202,22 +296,40 @@ void Coop::send_pose(std::uint64_t now, const GameStatus& status) {
+     pose_sent_ = true;
+     last_pose_ = m.pose;
+ 
++    // Ratchet Quest VR's: what a mod says of this player (a VR player's head and hands), with its pose.
++    Bytes extra;
++    Bytes said;
++
++    if (game_.player_extra(said) && !said.empty() && said.size() <= kPlayerExtraMost) {
++        Writer w;
++        w.u8(static_cast<std::uint8_t>(GameKind::kPlayerExtra)).i32(session_.id()).raw(said);
++        extra = w.bytes();
++    }
++
+     if (!session_.role().host()) {
+         m.world_ack = world_ack_;
+         m.world_newest = world_newest_;
+         m.world_bits = world_bits_;
+         session_.send_state(session_.host(), encode_pose(m));
++
++        // With every other pose (10 a second): a member's state also takes its shots, up to 20 a second, and all
++        // of it must stay under the 52.
++        if (!extra.empty() && now - extra_ms_ >= kPlayerExtraMemberMs && session_.send_state(session_.host(), extra)) {
++            extra_ms_ = now;
++        }
++
+         return;
+     }
+ 
+     // With one member there is no one to pass its poses on to.
+     if (session_.members().size() <= 2) {
+         relay_.clear();
++        relay_extra_.clear();
+     }
+ 
+     const Bytes own = encode_pose(m);
+     relay_ms_ = now;
+-    send_poses(&own);
++    send_poses(&own, extra.empty() ? nullptr : &extra);
+ }
+ 
+ void Coop::drop_figure(std::int32_t player, Remote& r, const char* why) {
+diff --git a/multiplayer/src/game_adapter.cpp b/multiplayer/src/game_adapter.cpp
+index f11a6de..213d152 100644
+--- a/multiplayer/src/game_adapter.cpp
++++ b/multiplayer/src/game_adapter.cpp
+@@ -8,6 +8,7 @@
+ #include "save_check.hpp"
+ 
+ #include <algorithm>
++#include <cstddef>
+ #include <cstdint>
+ #include <ctime>
+ 
+@@ -55,6 +56,32 @@ bool ModGame::save_usable(const mp::Bytes& save) {
+ 
+ std::uint32_t ModGame::sim_digest(int level) { return mod_.sim_digest(level); }
+ 
++/* Ratchet Quest VR's: the Quest fork's player_extra_* (openrac_mod.h), when the port has them. */
++bool ModGame::player_extra(mp::Bytes& out) {
++    const openrac_api& api = mod_.api();
++    if (api.size < offsetof(openrac_api, player_extra_read) + sizeof(void*) || api.player_extra_read == nullptr) {
++        return false;
++    }
++    std::uint8_t data[OPENRAC_PLAYER_EXTRA_MAX];
++    std::uint32_t stamp = 0;
++    const int size = api.player_extra_read(data, sizeof data, &stamp);
++    if (size <= 0 || size > static_cast<int>(sizeof data) || stamp == extra_stamp_) {
++        return false;
++    }
++    extra_stamp_ = stamp;
++    out.assign(data, data + size);
++    return true;
++}
++
++void ModGame::player_extra_deliver(int slot, const mp::Bytes& bytes) {
++    const openrac_api& api = mod_.api();
++    if (api.size < offsetof(openrac_api, player_extra_deliver) + sizeof(void*) || api.player_extra_deliver == nullptr
++        || bytes.size() > OPENRAC_PLAYER_EXTRA_MAX) {
++        return;
++    }
++    api.player_extra_deliver(slot, bytes.empty() ? nullptr : bytes.data(), static_cast<std::uint32_t>(bytes.size()));
++}
++
+ bool ModGame::start(int level, const mp::Bytes& save) {
+     return mod_.play_start(level, save) == OPENRAC_HOOK_OK;
+ }
+diff --git a/multiplayer/src/game_adapter.hpp b/multiplayer/src/game_adapter.hpp
+index 4942711..d1aa31e 100644
+--- a/multiplayer/src/game_adapter.hpp
++++ b/multiplayer/src/game_adapter.hpp
+@@ -35,6 +35,8 @@ public:
+     bool start(int level, const mp::Bytes& save) override;
+     bool save_usable(const mp::Bytes& save) override;
+     std::uint32_t sim_digest(int level) override;
++    bool player_extra(mp::Bytes& out) override;
++    void player_extra_deliver(int slot, const mp::Bytes& bytes) override;
+     bool has_card_filter() override;
+     bool card_filter(int mode) override;
+     void card_slot(int slot) override;
+@@ -178,6 +180,7 @@ private:
+     static void read_bytes(const openrac::Memory& memory, openrac::gaddr at, std::uint8_t* out, std::size_t n);
+ 
+     openrac::Mod& mod_;
++    std::uint32_t extra_stamp_ = 0;  // the player_extra publish last sent: one not said again is not sent again
+     std::map<std::string, int> indices_;
+     bool quiet_ = false;  // gifts without the game's banners (WP-JOIN)
+ };
+diff --git a/multiplayer/src/kinds.hpp b/multiplayer/src/kinds.hpp
+index d1b3d3a..1a3f215 100644
+--- a/multiplayer/src/kinds.hpp
++++ b/multiplayer/src/kinds.hpp
+@@ -74,6 +74,8 @@ constexpr std::uint8_t kShotX = 48;
+ constexpr std::uint8_t kScene = 20;
+ constexpr std::uint8_t kSceneState = 21;
+ constexpr std::uint8_t kPoses = 25;
++// Ratchet Quest VR's: a mod's word on its own player (openrac_api.player_extra_*: a VR player's head and hands)
++constexpr std::uint8_t kPlayerExtra = 84;
+ // The party's saves (cosave.hpp)
+ constexpr std::uint8_t kCoSave = 32;
+ constexpr std::uint8_t kCoSaveAck = 33;
+@@ -166,6 +168,7 @@ inline constexpr KindInfo kKinds[] = {
+     {kind::kProgress, "PROGRESS", Owner::kProgress},
+     {kind::kTaken, "TAKEN", Owner::kWorld},
+     {kind::kPoses, "POSES", Owner::kCoop},
++    {kind::kPlayerExtra, "PLAYER_EXTRA", Owner::kCoop},
+     {kind::kPlace, "PLACE", Owner::kJoin},
+     {kind::kPlaceAsk, "PLACE_ASK", Owner::kJoin},
+     {kind::kWaitVote, "WAIT_VOTE", Owner::kJoin},
+@@ -214,7 +217,7 @@ inline constexpr KindRange kReservedRanges[] = {
+     {80, 83, Owner::kComfort},
+ };
+ 
+-/* A kind's owner; kCount for a number nobody holds (0, 73 to 79, and 84 on). */
++/* A kind's owner; kCount for a number nobody holds (0, 73 to 79, and 85 on). */
+ constexpr Owner owner_of(std::uint8_t value) {
+     for (const KindInfo& k : kKinds) {
+         if (k.value == value) {

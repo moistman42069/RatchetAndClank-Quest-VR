@@ -269,6 +269,33 @@ index 839286170e00efa84922b9cad900d342a081b2a3..d52a2f3958f233fe822ca957615d7303
      Keys,
      LauncherVersion,
      Log,
+diff --git a/port/common/parallel.cpp b/port/common/parallel.cpp
+index 9b13c62e2fb24bc317fa8c6b93507be9cdf80fb8..9d479a82015ad20aa415d4f1a38e2798d580d073 100644
+--- a/port/common/parallel.cpp
++++ b/port/common/parallel.cpp
+@@ -13,6 +13,10 @@
+ #include <thread>
+ #include <vector>
+ 
++#if defined(__ANDROID__)
++#include <pthread.h>
++#endif
++
+ #include "common/joining_thread.h"
+ 
+ namespace openrac::parallel {
+@@ -104,6 +108,11 @@ private:
+     }
+ 
+     void work() {
++#if defined(__ANDROID__)
++        // Named, for a headset's runtime to be told of it (Quest VR: given to it as one of the app's workers, which it
++        // runs on its fast cores; the frame's posing waits for these threads).
++        pthread_setname_np(pthread_self(), "openrac-pool");
++#endif
+         std::uint64_t seen = 0;
+         for (;;) {
+             std::shared_ptr<Job> job;
 diff --git a/port/game/common/frontend.cpp b/port/game/common/frontend.cpp
 index 0dfc4bb7a46c17dd45b57a745b78adb282b0fc34..ca027c8384b023ef4bd818f48cd49783ddeb3b0b 100644
 --- a/port/game/common/frontend.cpp
@@ -372,7 +399,7 @@ index b9fe559b8ee0ce3322d4a5b81aaef3338d465074..bb1b21317ae25ab85eb73144ca8829f1
  // Window frames since the player got control in a scripted run (OPENRAC_PRESS's and OPENRAC_WRITE's
  // c entries), -1 before.
 diff --git a/port/game/common/frontend/frame.cpp b/port/game/common/frontend/frame.cpp
-index 1e9c151538a21b700c3b6ea7a4c1bdb67ea80049..3a070712fed858732143b81f22388a5540dc5505 100644
+index 1e9c151538a21b700c3b6ea7a4c1bdb67ea80049..75ecc0377b2c61e301ce278de69f5261b5c5c772 100644
 --- a/port/game/common/frontend/frame.cpp
 +++ b/port/game/common/frontend/frame.cpp
 @@ -30,6 +30,7 @@
@@ -393,7 +420,40 @@ index 1e9c151538a21b700c3b6ea7a4c1bdb67ea80049..3a070712fed858732143b81f22388a55
  namespace {
  
  // Bound consecutive omitted pictures so a heavily loaded game still presents regularly.
-@@ -1506,6 +1510,22 @@ TickMobys pose_mobys(
+@@ -993,6 +997,32 @@ void log_tick_state(
+         );
+     }
+     static const std::optional<std::uint64_t> fx_dump = env_frame(env::Var::FxDump);
++    // The strips (the seas, liquids and other callback meshes) once, at the dump's first frame: each one's
++    // vertex count, its box in world space and its first colour.
++    if (fx_dump && g->index == *fx_dump) {
++        for (const renderer::EffectStrip& s : g->kept->strips) {
++            float lo[3] = {1e30f, 1e30f, 1e30f}, hi[3] = {-1e30f, -1e30f, -1e30f};
++            std::uint32_t rgba = 0;
++            for (std::uint32_t i = 0; i < s.count; ++i) {
++                if (s.first + i >= g->kept->strip_vertices.size()) {
++                    break;
++                }
++                const renderer::EffectVertex& v = g->kept->strip_vertices[s.first + i];
++                const float p[3] = {v.x, v.y, v.z};
++                for (int k = 0; k < 3; ++k) {
++                    lo[k] = std::min(lo[k], p[k]);
++                    hi[k] = std::max(hi[k], p[k]);
++                }
++                if (i == 0) {
++                    rgba = v.rgba;
++                }
++            }
++            log::info("    strip {} verts, x {:.1f}..{:.1f} y {:.1f}..{:.1f} z {:.2f}..{:.2f} rgba {:#x} "
++                      "tex0 {:#x} alpha {:#x} fogged {} before_mobys {} z_written {}",
++                      s.count, lo[0], hi[0], lo[1], hi[1], lo[2], hi[2], rgba, s.tex0, s.alpha, s.fogged,
++                      s.before_mobys, s.z_written);
++        }
++    }
+     if (fx_dump && g->index >= *fx_dump && g->index < *fx_dump + 100) {
+         for (const renderer::EffectQuad& e : g->effects) {
+             log::info(
+@@ -1506,6 +1536,22 @@ TickMobys pose_mobys(
      // vendor's own) is read from its address; with the frame's camera (the item's hologram over the
      // vendor) it is drawn in the world.
      const std::size_t listed = state.mobys.size();
@@ -416,7 +476,7 @@ index 1e9c151538a21b700c3b6ea7a4c1bdb67ea80049..3a070712fed858732143b81f22388a55
      std::unordered_map<std::uint32_t, const host::GameState*> into_texture;
      // Over a world drawn under a menu (`under_menu`): the menu's mobys, drawn on the screen at their
      // markers in the 2D path with their own cameras, after the world.
-@@ -1550,7 +1570,8 @@ TickMobys pose_mobys(
+@@ -1550,7 +1596,8 @@ TickMobys pose_mobys(
                  narrow_buffers && marked(address, true) && frame_focal[0] > 0.0f
                      ? OwnCameraLayer::Texture
                      : own_camera_layer(
@@ -426,7 +486,7 @@ index 1e9c151538a21b700c3b6ea7a4c1bdb67ea80049..3a070712fed858732143b81f22388a55
                        );
              // A moby first drawn this tick, which the list (a tick behind) does not show yet: not
              // in the world this frame. Its layer is known from the next list. Placed in the world,
-@@ -1592,6 +1613,21 @@ TickMobys pose_mobys(
+@@ -1592,6 +1639,21 @@ TickMobys pose_mobys(
          attached_catalog.reset();
      }
  #endif
@@ -448,7 +508,7 @@ index 1e9c151538a21b700c3b6ea7a4c1bdb67ea80049..3a070712fed858732143b81f22388a55
      for (std::size_t index = 0; index < state.mobys.size(); ++index) {
          bool light_only = false;
          const host::LiveMoby& m = state.mobys[index];
-@@ -1621,12 +1657,20 @@ TickMobys pose_mobys(
+@@ -1621,12 +1683,20 @@ TickMobys pose_mobys(
              });
          std::optional<std::uint8_t> distance_fade = std::uint8_t{0x80};
          if (!extra && world_ran && m.address + 0x34 <= ram.size() && !own_camera) {
@@ -475,7 +535,7 @@ index 1e9c151538a21b700c3b6ea7a4c1bdb67ea80049..3a070712fed858732143b81f22388a55
              }
          }
          if (!distance_fade) {
-@@ -1652,6 +1696,49 @@ TickMobys pose_mobys(
+@@ -1652,6 +1722,49 @@ TickMobys pose_mobys(
              continue;
  #endif
          }
@@ -525,7 +585,7 @@ index 1e9c151538a21b700c3b6ea7a4c1bdb67ea80049..3a070712fed858732143b81f22388a55
          if (only_own_camera
              && std::none_of(g->moby_cameras.begin(), g->moby_cameras.end(), [&](const auto& c) {
                     return c.first == m.address;
-@@ -1888,7 +1975,16 @@ TickMobys pose_mobys(
+@@ -1888,7 +2001,16 @@ TickMobys pose_mobys(
              const auto directions = OPENRAC_DATA(g->profile->shadow_directions());
              shadow_state = scene::moby_shadow_state(ram, m.address, directions, state.view());
              if (shadow_state.enabled) {
@@ -543,7 +603,7 @@ index 1e9c151538a21b700c3b6ea7a4c1bdb67ea80049..3a070712fed858732143b81f22388a55
                  shadow_moby = m.address;
              }
              if (debug && g->index % 100 == 0) {
-@@ -2007,8 +2103,12 @@ TickMobys pose_mobys(
+@@ -2007,8 +2129,15 @@ TickMobys pose_mobys(
      // part of reading the scene, about 1.5 ms a tick for 180 mobys on a phone's fast core), then
      // given palette slots in the loop's order, as one thread gave them.
      std::vector<std::vector<assets::rac1::JointMatrix>> poses(pose_jobs.size());
@@ -551,17 +611,20 @@ index 1e9c151538a21b700c3b6ea7a4c1bdb67ea80049..3a070712fed858732143b81f22388a55
 +    std::vector<std::uint8_t> arms_rest;  // its joints whose skin is left out (one job writes it)
      parallel::for_each(pose_jobs.size(), [&](std::size_t i) {
 -        poses[i] = scene::moby_palette(ram, pose_jobs[i].address);
++        // The Quest fork's figure_arms: another VR player's figure, drawn whole, its arms to its hands.
++        const scene::MobyArms* figure = pose_jobs[i].target ? nullptr : scene::figure_arms_of(pose_jobs[i].address);
 +        poses[i] = pose_jobs[i].address == arms.moby && !pose_jobs[i].target
 +                       ? scene::moby_arms_palette(ram, arms, &arms_rest)
-+                       : scene::moby_palette(ram, pose_jobs[i].address);
++                   : figure != nullptr ? scene::moby_arms_palette(ram, *figure)
++                                       : scene::moby_palette(ram, pose_jobs[i].address);
      });
      for (std::size_t k = 0; k < pose_jobs.size(); ++k) {
          const PoseJob& job = pose_jobs[k];
-@@ -2018,9 +2118,15 @@ TickMobys pose_mobys(
+@@ -2018,9 +2147,15 @@ TickMobys pose_mobys(
          }
          scene::Instance& instance = job.target ? target_mobys[job.index].instance : live[job.index];
          instance.palette = static_cast<int>(palette.size());
-+        if (job.address == arms.moby && !job.target) {
++        if (!job.target && (job.address == arms.moby || scene::figure_arms_of(job.address) != nullptr)) {
 +            // Its arms are wherever the player's are, not within the moby's sphere.
 +            instance.world_sphere = {};
 +            instance.occlusion = scene::Pvs::always;
@@ -573,7 +636,7 @@ index 1e9c151538a21b700c3b6ea7a4c1bdb67ea80049..3a070712fed858732143b81f22388a55
          for (int j = 0; j < job.joints; ++j) {
              // Columns: the images of the axes, then the translation, which the palette has in
              // packed units (the mesh is in packed units / 1024).
-@@ -2036,7 +2142,11 @@ TickMobys pose_mobys(
+@@ -2036,7 +2171,11 @@ TickMobys pose_mobys(
                  c[12] = f[3][0] / 1024.0f;
                  c[13] = f[3][1] / 1024.0f;
                  c[14] = f[3][2] / 1024.0f;
@@ -586,7 +649,7 @@ index 1e9c151538a21b700c3b6ea7a4c1bdb67ea80049..3a070712fed858732143b81f22388a55
              }
              palette.push_back(c);
          }
-@@ -2839,8 +2949,27 @@ bool frame(std::span<const std::uint8_t> ram, std::uint32_t chain, std::uint32_t
+@@ -2839,8 +2978,27 @@ bool frame(std::span<const std::uint8_t> ram, std::uint32_t chain, std::uint32_t
          g->paused_from_play = g->kept->gameplay_camera;
      }
      g->kept->packets = std::move(packets.packets);
@@ -2322,10 +2385,10 @@ index a4acdc2174153277882e672d5a79de38805e9e49..e63981dba59153b37f4cd39fd99224f3
      stats::gauge("particle texture resolves", double(texture_resolves));
      stats::gauge("particle texture reuse", reuse_textures ? 1 : 0);
 diff --git a/port/game/common/include/openrac/game_host.h b/port/game/common/include/openrac/game_host.h
-index 89ac20fb08bef1e8c91702454c9b83789e2d3484..dac43002d50a365bb0e35ccdcfe9376ab448cc81 100644
+index 89ac20fb08bef1e8c91702454c9b83789e2d3484..1340f02bf24a8057991d30049a90aab64a3cacfe 100644
 --- a/port/game/common/include/openrac/game_host.h
 +++ b/port/game/common/include/openrac/game_host.h
-@@ -691,6 +691,13 @@ typedef struct openrac_game_play {
+@@ -691,6 +691,16 @@ typedef struct openrac_game_play {
      int (*mission_state_clear)(int level, const uint8_t* flags);
      /* Whether the destination is playing its landing scene. NULL when unsupported. */
      int (*landing)(int level);
@@ -2336,10 +2399,13 @@ index 89ac20fb08bef1e8c91702454c9b83789e2d3484..dac43002d50a365bb0e35ccdcfe9376a
 +    /* The Quest fork's (openrac_api.item_model_ok): 0 when the moby at `moby` draws from a decode
 +     * buffer another class has since been decoded into, 1 otherwise. NULL for a game without it. */
 +    int (*item_model_ok)(gaddr moby);
++    /* The Quest fork's (openrac_api.figure_hand_moby): the moby of the item in the hand of the figure at `figure`, 0
++     * for none. NULL for a game without it. */
++    gaddr (*figure_hand_moby)(gaddr figure);
  } openrac_game_play;
  
  #define OPENRAC_GAME_CAMERA_END_EASED (-1)
-@@ -931,6 +938,11 @@ float openrac_game_view_opened(void);
+@@ -931,6 +941,11 @@ float openrac_game_view_opened(void);
   * that a moby the window draws farther away is drawn to the game too, which keeps it active (the
   * moby loop updates a drawn moby whatever its update distance). */
  float openrac_game_draw_distance(void);
@@ -2351,7 +2417,7 @@ index 89ac20fb08bef1e8c91702454c9b83789e2d3484..dac43002d50a365bb0e35ccdcfe9376a
  
  /* A game fix's flag, by its setting key (port/game/<game>/differences.json, kind "fix";
   * game/common/fixes.h): nonzero while the port's fix is on, 0 for the console's behaviour. The
-@@ -1000,6 +1012,8 @@ uint32_t openrac_game_card_saves(void);
+@@ -1000,6 +1015,8 @@ uint32_t openrac_game_card_saves(void);
  /* --level N: the level a new game starts in (the game's own number), or -1 for the game's own
   * first level. For getting to a level directly, as the behaviour checker's level write does. */
  extern int openrac_game_start_level;
@@ -2402,7 +2468,7 @@ index 07e01ad38ff80061d0df4f7e0b9038855933014b..3302c88ab55c19ed196b4481a0ef5d9e
       "How far away things are still drawn. Original stops where the console did; the larger "
       "steps draw farther, and Unlimited draws everything in view. What the game hides from a "
 diff --git a/port/game/common/mod_play.cpp b/port/game/common/mod_play.cpp
-index 46e927800c89e69258f0dd05df69d18cd0a69965..17df457ae31ed849580269e87f51c73663ee4c55 100644
+index 46e927800c89e69258f0dd05df69d18cd0a69965..56a1f436ad82a03ac80ba0344114c4e35a1f4c33 100644
 --- a/port/game/common/mod_play.cpp
 +++ b/port/game/common/mod_play.cpp
 @@ -18,12 +18,15 @@
@@ -2457,7 +2523,7 @@ index 46e927800c89e69258f0dd05df69d18cd0a69965..17df457ae31ed849580269e87f51c736
      return OPENRAC_HOOK_OK;
  }
  
-@@ -732,6 +755,149 @@ int api_moby_hide(openrac_mod* mod, int slot, int hidden) {
+@@ -732,6 +755,245 @@ int api_moby_hide(openrac_mod* mod, int slot, int hidden) {
      return OPENRAC_HOOK_OK;
  }
  
@@ -2527,6 +2593,102 @@ index 46e927800c89e69258f0dd05df69d18cd0a69965..17df457ae31ed849580269e87f51c736
 +    return OPENRAC_HOOK_OK;
 +}
 +
++
++// The Quest fork's (openrac_mod.h): moby_arms for a figure; an entry not set again before a capture goes.
++std::array<bool, 8> g_figure_arms_set{};
++
++void copy_arms(const openrac_moby_arm* arms, scene::MobyArms& set) {
++    set.cut_only = arms[0].cut_only;
++    for (std::size_t c = 0; c < 3; ++c) {
++        set.body_shift[c] = arms[0].body_shift[c];
++    }
++    set.body_yaw = arms[0].body_yaw;
++    set.body_twist = arms[0].body_twist;
++    set.twist_root = arms[0].twist_root;
++    set.twist_joints = arms[0].twist_joints;
++    for (std::size_t w = 0; w < set.hide.size(); ++w) {
++        set.hide[w] = arms[0].hide[w];
++    }
++    set.head = arms[0].head != 0;
++    for (std::size_t r = 0; r < 3; ++r) {
++        for (std::size_t c = 0; c < 3; ++c) {
++            set.head_rows[r][c] = arms[0].head_rows[r][c];
++        }
++    }
++    for (std::size_t side = 0; side < set.arms.size(); ++side) {
++        const openrac_moby_arm& from = arms[side];
++        scene::MobyArm& to = set.arms[side];
++        to.shown = from.shown != 0;
++        to.root = from.root;
++        to.shoulder = from.shoulder;
++        to.joint = from.joint;
++        to.slide = from.slide != 0;
++        to.ik = from.ik != 0;
++        to.wrist = from.wrist;
++        to.reach = from.reach > 0.0f ? from.reach : 1.0f;
++        to.ankle = from.ankle;
++        to.fingers = from.fingers;
++        to.finger_count = from.finger_count;
++        to.finger_joints = from.finger_joints;
++        to.thumb = from.thumb;
++        to.thumb_joints = from.thumb_joints;
++        for (std::size_t r = 0; r < 3; ++r) {
++            for (std::size_t c = 0; c < 3; ++c) {
++                to.rows[r][c] = from.rows[r][c];
++            }
++            to.position[r] = from.position[r];
++        }
++        to.curl.clear();
++        for (int i = 0; i < from.curl_count && i < OPENRAC_ARM_CURLS; ++i) {
++            assets::rac1::JointModifier curl;
++            curl.joint = static_cast<std::uint8_t>(from.curl[i].joint);
++            curl.absolute = from.curl[i].absolute != 0;
++            for (std::size_t k = 0; k < 4; ++k) {
++                curl.quat[k] = from.curl[i].quat[k];
++            }
++            to.curl.push_back(curl);
++        }
++    }
++}
++
++int api_figure_arms(openrac_mod* mod, int slot, const openrac_moby_arm* arms) {
++    const gaddr m = moby_address(slot);
++    if (mod == nullptr || m == 0) {
++        return OPENRAC_HOOK_UNKNOWN;
++    }
++    auto& all = scene::figure_arms();
++    std::size_t at = all.size();
++    for (std::size_t i = 0; i < all.size(); ++i) {
++        if (all[i].moby == m) {
++            at = i;
++            break;
++        }
++        if (all[i].moby == 0 && at == all.size()) {
++            at = i;
++        }
++    }
++    if (arms == nullptr) {
++        if (at < all.size() && all[at].moby == m) {
++            all[at] = scene::MobyArms{};
++        }
++        return OPENRAC_HOOK_OK;
++    }
++    if (at == all.size()) {
++        return OPENRAC_HOOK_UNKNOWN;
++    }
++    scene::MobyArms set;
++    set.moby = m;
++    copy_arms(arms, set);
++    set.head_drawn = set.head;
++    all[at] = std::move(set);
++    g_figure_arms_set[at] = true;
++    return OPENRAC_HOOK_OK;
++}
++
++std::uint32_t api_figure_hand_moby(int slot) {
++    const gaddr m = moby_address(slot);
++    return m != 0 && g_play != nullptr && g_play->figure_hand_moby != nullptr ? g_play->figure_hand_moby(m) : 0;
++}
 +void api_quiet_new_game(int on) { openrac_game_quiet_new_game = on; }
 +
 +std::uint32_t api_second_item(int oclass) {
@@ -2607,11 +2769,13 @@ index 46e927800c89e69258f0dd05df69d18cd0a69965..17df457ae31ed849580269e87f51c736
  int api_moby_deletion(int slot, openrac_moby_deletion* out) {
      if (out == nullptr || out->size < sizeof(openrac_moby_deletion) || g_play == nullptr
          || g_play->moby_deletion == nullptr) {
-@@ -1810,6 +1976,15 @@ void fill_play_api(
+@@ -1810,6 +2072,17 @@ void fill_play_api(
      api.scene_playing = api_scene_playing;
      api.play_scene = api_play_scene;
      api.moby_hide = api_moby_hide;
 +    api.moby_arms = api_moby_arms;
++    api.figure_arms = api_figure_arms;
++    api.figure_hand_moby = api_figure_hand_moby;
 +    api.moby_joints = api_moby_joints;
 +    api.moby_joints_at = api_moby_joints_at;
 +    api.quiet_new_game = api_quiet_new_game;
@@ -2623,7 +2787,7 @@ index 46e927800c89e69258f0dd05df69d18cd0a69965..17df457ae31ed849580269e87f51c736
      api.moby_deletion = api_moby_deletion;
      api.camera_position = api_camera_position;
      api.moby_run = api_moby_run;
-@@ -2005,6 +2180,10 @@ bool overlay_shows_level() {
+@@ -2005,6 +2278,10 @@ bool overlay_shows_level() {
      return phase_now(&level) == OPENRAC_PLAY_PLAYING;
  }
  
@@ -2634,11 +2798,31 @@ index 46e927800c89e69258f0dd05df69d18cd0a69965..17df457ae31ed849580269e87f51c736
  void reset_play() {
      {
          const std::lock_guard<std::mutex> lock(g_notice_lock);
+@@ -2064,6 +2341,19 @@ void reset_play() {
+     openrac_game_metal_detect = nullptr;
+ }
+ 
++
++void figure_arms_frame_begin() {
++    g_figure_arms_set.fill(false);
++}
++
++void figure_arms_frame_end() {
++    auto& all = scene::figure_arms();
++    for (std::size_t i = 0; i < all.size(); ++i) {
++        if (!g_figure_arms_set[i]) {
++            all[i] = scene::MobyArms{};
++        }
++    }
++}
+ void drop_figures(const openrac_mod* mod) {
+     for (Figure& f : g_figures) {
+         if (f.mod == mod) {
 diff --git a/port/game/common/mod_play.h b/port/game/common/mod_play.h
-index d615ba5670f358b4a25dab396f86f7ffdb71df6b..4499bbeaa27653a4cc1010cf7d6e0f9155097dc2 100644
+index d615ba5670f358b4a25dab396f86f7ffdb71df6b..bbf0b51c8605e6f02153a43377d3a0d147130594 100644
 --- a/port/game/common/mod_play.h
 +++ b/port/game/common/mod_play.h
-@@ -33,6 +33,10 @@ void play_loading(const openrac_mod* mod);
+@@ -33,10 +33,19 @@ void play_loading(const openrac_mod* mod);
  // Whether the game shows a level with the player in it: no menu, no scene (openrac_overlay).
  bool overlay_shows_level();
  
@@ -2649,6 +2833,15 @@ index d615ba5670f358b4a25dab396f86f7ffdb71df6b..4499bbeaa27653a4cc1010cf7d6e0f91
  // Forgets the figures and a pending start or travel (mods::reset, the tests).
  void reset_play();
  
+ // Takes figures of `mod` back: they go with the mod that made them (a mod that failed to load).
+ void drop_figures(const openrac_mod* mod);
+ 
++// The Quest fork's figure_arms: each capture keeps only the entries a mod set again before it (before_capture's start
++// and end).
++void figure_arms_frame_begin();
++void figure_arms_frame_end();
++
+ }  // namespace openrac::mods
 diff --git a/port/game/common/mod_ui.cpp b/port/game/common/mod_ui.cpp
 index 95fb4200c2e56ba73e73e4fcbe041895d3de2471..6fd1b33558296b8a17af9168c752af63ac1ba360 100644
 --- a/port/game/common/mod_ui.cpp
@@ -2740,7 +2933,7 @@ index 95fb4200c2e56ba73e73e4fcbe041895d3de2471..6fd1b33558296b8a17af9168c752af63
      std::string shown = p.asking ? p.question : page.title;
      for (int i = 0; i < count; ++i) {
 diff --git a/port/game/common/mods.cpp b/port/game/common/mods.cpp
-index 0ebc03533643dc66cb910af38ab7ca254fecd8f8..c53bbaa704b18134b861b649bf879dd71aed720a 100644
+index 0ebc03533643dc66cb910af38ab7ca254fecd8f8..9d55395ec0409d1e50bc0aa9266d3214ccc37abc 100644
 --- a/port/game/common/mods.cpp
 +++ b/port/game/common/mods.cpp
 @@ -7,6 +7,7 @@
@@ -2759,17 +2952,20 @@ index 0ebc03533643dc66cb910af38ab7ca254fecd8f8..c53bbaa704b18134b861b649bf879dd7
  #include "mod_library.h"
  #include "mod_manifest.h"
  #include "mod_play.h"
-@@ -74,6 +76,9 @@ struct openrac_mod {
+@@ -74,6 +76,12 @@ struct openrac_mod {
      std::uint32_t party_version = 0;
      openrac_party_rules_fn party_fn = nullptr;
      void* party_user = nullptr;
 +    // The Quest fork's party_role: when another mod last read its rules (a host's multiplayer mod).
 +    bool party_read = false;
 +    std::chrono::steady_clock::time_point party_read_at{};
++    // The Quest fork's player_extra: who takes the other players' words (on_player_extra).
++    openrac_player_extra_fn extra_fn = nullptr;
++    void* extra_user = nullptr;
  };
  
  namespace {
-@@ -179,6 +184,7 @@ openrac_mod* g_loading = nullptr;  // the mod whose openrac_mod_load runs: hooks
+@@ -179,6 +187,7 @@ openrac_mod* g_loading = nullptr;  // the mod whose openrac_mod_load runs: hooks
  std::vector<std::unique_ptr<openrac_mod>> g_loaded;
  std::vector<fs::path> g_asset_roots;  // the loaded mods' assets folders, the last loaded first
  std::vector<FrameCallback> g_frames;
@@ -2777,7 +2973,7 @@ index 0ebc03533643dc66cb910af38ab7ca254fecd8f8..c53bbaa704b18134b861b649bf879dd7
  std::vector<PadCallback> g_pads;
  std::vector<MenuCallback> g_menus;
  std::vector<DeveloperMenu> g_developer_menus;
-@@ -493,6 +499,14 @@ int api_on_frame(openrac_mod* mod, openrac_frame_fn fn, void* user) {
+@@ -493,6 +502,14 @@ int api_on_frame(openrac_mod* mod, openrac_frame_fn fn, void* user) {
      return OPENRAC_HOOK_OK;
  }
  
@@ -2792,7 +2988,7 @@ index 0ebc03533643dc66cb910af38ab7ca254fecd8f8..c53bbaa704b18134b861b649bf879dd7
  int api_on_tick_boundary(openrac_mod* mod, openrac_tick_boundary_fn fn, void* user) {
      if (mod == nullptr || mod != g_loading || fn == nullptr) {
          return OPENRAC_HOOK_TOO_LATE;
-@@ -639,6 +653,14 @@ void* api_function_at(openrac_gaddr address) {
+@@ -639,6 +656,14 @@ void* api_function_at(openrac_gaddr address) {
      return reinterpret_cast<void*>(openrac_guest_function(address));
  }
  
@@ -2807,7 +3003,7 @@ index 0ebc03533643dc66cb910af38ab7ca254fecd8f8..c53bbaa704b18134b861b649bf879dd7
  openrac_gaddr api_relocate_data(openrac_gaddr address) {
      return OPENRAC_DATA(address);
  }
-@@ -1071,10 +1093,12 @@ int api_party_rules_publish(openrac_mod* mod, const void* data, uint32_t size, c
+@@ -1071,10 +1096,12 @@ int api_party_rules_publish(openrac_mod* mod, const void* data, uint32_t size, c
  }
  
  int api_party_rules_read(int index, void* out, uint32_t size, uint32_t* version) {
@@ -2821,7 +3017,7 @@ index 0ebc03533643dc66cb910af38ab7ca254fecd8f8..c53bbaa704b18134b861b649bf879dd7
      if (out != nullptr && !mod->party_rules.empty()) {
          std::memcpy(
              out, mod->party_rules.data(), std::min<std::size_t>(size, mod->party_rules.size())
-@@ -1110,6 +1134,16 @@ int api_party_rules_deliver(int index, const void* data, uint32_t size) {
+@@ -1110,6 +1137,61 @@ int api_party_rules_deliver(int index, const void* data, uint32_t size) {
      return OPENRAC_HOOK_OK;
  }
  
@@ -2835,10 +3031,55 @@ index 0ebc03533643dc66cb910af38ab7ca254fecd8f8..c53bbaa704b18134b861b649bf879dd7
 +    return read_lately ? 1 : 2;
 +}
 +
++// The Quest fork's (openrac_mod.h): this game's word on its own player, for a party's other games, and theirs passed on.
++std::vector<std::uint8_t> g_player_extra;
++std::uint32_t g_player_extra_stamp = 0;
++
++int api_player_extra_publish(openrac_mod* mod, const void* data, uint32_t size) {
++    if (mod == nullptr || (data == nullptr && size != 0) || size > OPENRAC_PLAYER_EXTRA_MAX) {
++        return OPENRAC_HOOK_UNKNOWN;
++    }
++    const auto* bytes = static_cast<const std::uint8_t*>(data);
++    g_player_extra.assign(bytes, bytes + size);
++    ++g_player_extra_stamp;
++    return OPENRAC_HOOK_OK;
++}
++
++int api_player_extra_read(void* out, uint32_t size, uint32_t* stamp) {
++    if (stamp != nullptr) {
++        *stamp = g_player_extra_stamp;
++    }
++    if (out != nullptr && !g_player_extra.empty()) {
++        std::memcpy(out, g_player_extra.data(), std::min<std::size_t>(size, g_player_extra.size()));
++    }
++    return static_cast<int>(g_player_extra.size());
++}
++
++int api_player_extra_deliver(int slot, const void* data, uint32_t size) {
++    if (size > OPENRAC_PLAYER_EXTRA_MAX || (data == nullptr && size != 0)) {
++        return OPENRAC_HOOK_UNKNOWN;
++    }
++    for (const auto& mod : g_loaded) {
++        if (mod != nullptr && mod->extra_fn != nullptr) {
++            mod->extra_fn(mod->extra_user, slot, data, size);
++        }
++    }
++    return OPENRAC_HOOK_OK;
++}
++
++int api_on_player_extra(openrac_mod* mod, openrac_player_extra_fn fn, void* user) {
++    if (mod == nullptr || mod != g_loading || fn == nullptr) {
++        return OPENRAC_HOOK_TOO_LATE;
++    }
++    mod->extra_fn = fn;
++    mod->extra_user = user;
++    return OPENRAC_HOOK_OK;
++}
++
  void api_party_replay(int on) {
      g_party_replay = on != 0;
  }
-@@ -1294,6 +1328,8 @@ void fill_api(const Host& host) {
+@@ -1294,6 +1376,8 @@ void fill_api(const Host& host) {
      g_api.on_pad = api_on_pad;
      g_api.function = api_function;
      g_api.function_at = api_function_at;
@@ -2847,7 +3088,7 @@ index 0ebc03533643dc66cb910af38ab7ca254fecd8f8..c53bbaa704b18134b861b649bf879dd7
      g_api.relocate_data = api_relocate_data;
      g_api.relocate_level_data = api_relocate_level_data;
      g_api.loaded_level = api_loaded_level;
-@@ -1313,6 +1349,7 @@ void fill_api(const Host& host) {
+@@ -1313,6 +1397,7 @@ void fill_api(const Host& host) {
      g_api.take_developer_menu_action = api_take_developer_menu_action;
      g_api.developer_menu_set_label = api_developer_menu_set_label;
      g_api.data_dir = api_data_dir;
@@ -2855,7 +3096,7 @@ index 0ebc03533643dc66cb910af38ab7ca254fecd8f8..c53bbaa704b18134b861b649bf879dd7
      g_api.savestate_size = snapshot_size;
      g_api.savestate_save = snapshot_save;
      g_api.savestate_load = snapshot_load;
-@@ -1329,6 +1366,7 @@ void fill_api(const Host& host) {
+@@ -1329,9 +1414,14 @@ void fill_api(const Host& host) {
      g_api.mod_setting = api_mod_setting;
      g_api.party_rules_publish = api_party_rules_publish;
      g_api.party_rules_read = api_party_rules_read;
@@ -2863,7 +3104,14 @@ index 0ebc03533643dc66cb910af38ab7ca254fecd8f8..c53bbaa704b18134b861b649bf879dd7
      g_api.party_rules_text = api_party_rules_text;
      g_api.on_party_rules = api_on_party_rules;
      g_api.party_rules_deliver = api_party_rules_deliver;
-@@ -1494,6 +1532,7 @@ void undo(openrac_mod* mod) {
++    g_api.player_extra_publish = api_player_extra_publish;
++    g_api.player_extra_read = api_player_extra_read;
++    g_api.player_extra_deliver = api_player_extra_deliver;
++    g_api.on_player_extra = api_on_player_extra;
+     g_api.party_replay = api_party_replay;
+     g_api.party_replaying = api_party_replaying;
+     g_api.on_overlay = api_on_overlay;
+@@ -1494,6 +1584,7 @@ void undo(openrac_mod* mod) {
      mod->taken.clear();
      mod->hooks.clear();
      std::erase_if(g_frames, [&](const FrameCallback& c) { return c.mod == mod; });
@@ -2871,20 +3119,22 @@ index 0ebc03533643dc66cb910af38ab7ca254fecd8f8..c53bbaa704b18134b861b649bf879dd7
      std::erase_if(g_pads, [&](const PadCallback& c) { return c.mod == mod; });
      std::erase_if(g_menus, [&](const MenuCallback& c) { return c.mod == mod; });
      std::erase_if(g_overlays, [&](const OverlayCallback& c) { return c.mod == mod; });
-@@ -1788,6 +1827,12 @@ void unload() {
+@@ -1788,6 +1879,14 @@ void unload() {
      }
  }
  
 +void before_capture() {
++    figure_arms_frame_begin();
 +    for (const FrameCallback& c : g_before_capture) {
 +        c.fn(c.user);
 +    }
++    figure_arms_frame_end();
 +}
 +
  void run_frame_callbacks() {
      for (const FrameCallback& c : g_frames) {
          c.fn(c.user);
-@@ -2016,6 +2061,7 @@ void reset() {
+@@ -2016,6 +2115,7 @@ void reset() {
      g_loaded.clear();
      g_asset_roots.clear();
      g_frames.clear();
@@ -3616,11 +3866,22 @@ index a1de694243a429913025ae60767b7ed5ede4dc58..2e62ff3bf6f3a11ca30de092d51e97d9
      apply_writes();
  #ifdef OPENRAC_FRONTEND
 diff --git a/port/game/common/settings.cpp b/port/game/common/settings.cpp
-index 5b008a8455c0988af391c5230477497fca548892..ccebfd9974c52f38d4438133eb2161dc4130e91c 100644
+index 5b008a8455c0988af391c5230477497fca548892..4496867ac4ddd8990baf94f1d3f19271c1c44690 100644
 --- a/port/game/common/settings.cpp
 +++ b/port/game/common/settings.cpp
-@@ -458,6 +458,16 @@ void load(const std::filesystem::path& file) {
-             known = parse_listed(value, kDrawDistances, s.draw_distance);
+@@ -455,9 +455,26 @@ void load(const std::filesystem::path& file) {
+         } else if (key == "original_lod") {
+             known = parse_bool(value, s.original_lod);
+         } else if (key == "draw_distance") {
+-            known = parse_listed(value, kDrawDistances, s.draw_distance);
++            // 0 is Unlimited here, not parse_listed's "off": that read it as 1, no step, so a saved Unlimited came
++            // back as the default (settings_test).
++            int number = 0;
++            known = parse_int(value, 0, 1000, number)
++                    && std::find(std::begin(kDrawDistances), std::end(kDrawDistances), number) != std::end(kDrawDistances);
++            if (known) {
++                s.draw_distance = number;
++            }
          } else if (key == "responsive_controls") {
              known = parse_bool(value, s.responsive_controls);
 +        } else if (key == "max_draw_distance") {
@@ -3636,7 +3897,7 @@ index 5b008a8455c0988af391c5230477497fca548892..ccebfd9974c52f38d4438133eb2161dc
          } else if (key == "low_latency_frames") {
              known = parse_bool(value, s.low_latency_frames);
          } else if (key == "fresh_input" || key == "camera_latch") {
-@@ -653,6 +663,11 @@ void save() {
+@@ -653,6 +670,11 @@ void save() {
          << "original_lod = " << (s.original_lod ? 1 : 0) << "\n"
          << "draw_distance = " << s.draw_distance << "\n"
          << "responsive_controls = " << (s.responsive_controls ? 1 : 0) << "\n"
@@ -3649,10 +3910,10 @@ index 5b008a8455c0988af391c5230477497fca548892..ccebfd9974c52f38d4438133eb2161dc
          << "skip_cutscenes = " << (s.skip_cutscenes ? 1 : 0) << "\n"
          << "volume = " << s.volume << "\n"
 diff --git a/port/game/common/settings.h b/port/game/common/settings.h
-index c69bf1fc91ee575cacc7081b0259e3804e65fa0d..bb1ce1d4ddefd4837126551879f58bae8b67fdcf 100644
+index c69bf1fc91ee575cacc7081b0259e3804e65fa0d..68aca1d89a35e3bad9833792de8ed3fa69d768e2 100644
 --- a/port/game/common/settings.h
 +++ b/port/game/common/settings.h
-@@ -167,8 +167,36 @@ struct Settings {
+@@ -167,8 +167,41 @@ struct Settings {
      // Commando's ties, shrubs and terrain (rac1's ties and shrubs follow Scenery detail).
      int draw_distance = 400;
  
@@ -3667,7 +3928,11 @@ index c69bf1fc91ee575cacc7081b0259e3804e65fa0d..bb1ce1d4ddefd4837126551879f58bae
 +    // moby's +0x32, a particle record's far): nothing pops in. For the mobys it is the Draw
 +    // distance's Unlimited (draw_distance_scale), whatever that is set to. The game counts a moby so
 +    // drawn as drawn and runs it (render_native.c), so it does not stand frozen. A moby the game
-+    // never draws (a draw distance of 0, hidden) still is not. Original overrides it.
++    // never draws (a draw distance of 0, hidden) still is not. Original overrides it. Rac1's level
++    // draws take it too (rac1/host/wide_view.c, through openrac_game_draw_distance's 0): the seas'
++    // grid (Aridia, Kerwan, Rilgar, ...) to its edge rather than its own reach, and the level's draw
++    // callbacks' sphere tests as far as the eyes see. The Draw distance's Unlimited does all the same
++    // (draws_any_distance), so the two never differ.
 +    bool max_draw_distance = true;
 +    // Shadow matches what you see (the Quest fork's; on by default): while a mod draws Ratchet as his arms alone
 +    // (openrac_api.moby_arms, a headset's hands), his shadow is cast by what is drawn of him, the arms at the
@@ -3686,8 +3951,9 @@ index c69bf1fc91ee575cacc7081b0259e3804e65fa0d..bb1ce1d4ddefd4837126551879f58bae
 +    // game plays to the end the first time (its readMpeg rule; program/movie.cpp). Off: only those the game lets go.
 +    bool skip_any_movie = true;
 +
-+    // Whether mobys and particles are drawn however far (max_draw_distance, unless Original).
-+    bool draws_any_distance() const { return max_draw_distance && !original_lod; }
++    // Whether mobys, particles and rac1's level draws are drawn however far: max_draw_distance (unless
++    // Original), or the Draw distance's Unlimited (which once left the particles at their own far).
++    bool draws_any_distance() const { return (max_draw_distance && !original_lod) || draw_distance == 0; }
  
      int anisotropy_samples(bool enhanced) const {
          return anisotropy ? anisotropy : enhanced ? 4 : 1;
@@ -3815,7 +4081,7 @@ index 3cf89fcb9a3547708a2fd0a4e525cd6b7a5ae40e..db1fa821e1ffe2b9c8a7a0ea1ce512a1
                  *(unsigned short*)cell = (unsigned short)fresh;
                  if (capacity) {
 diff --git a/port/game/rac1-ntsc/host/rac1_version.h b/port/game/rac1-ntsc/host/rac1_version.h
-index 0db43487dd6f120235863a430735c88a6169a569..96f45ac612b0be46809c92f936209ded1d3ebc71 100644
+index 0db43487dd6f120235863a430735c88a6169a569..b41bd441eaf41d5c89c753413a027d19b23a26d4 100644
 --- a/port/game/rac1-ntsc/host/rac1_version.h
 +++ b/port/game/rac1-ntsc/host/rac1_version.h
 @@ -56,8 +56,9 @@ static inline unsigned rac1_moby_vtbl_address(int level) {
@@ -3830,7 +4096,16 @@ index 0db43487dd6f120235863a430735c88a6169a569..96f45ac612b0be46809c92f936209ded
  #define RAC1_OMIT_func_00125328 1
  #define RAC1_OMIT_func_00125358 1
  
-@@ -187,6 +188,9 @@ static inline unsigned rac1_moby_vtbl_address(int level) {
+@@ -153,6 +154,8 @@ static inline unsigned rac1_moby_vtbl_address(int level) {
+ #define func_L09_002F0B48 func_L09_002EF7F8
+ #define func_L02_002A5238 game_FUN_L02_002a4058
+ #define RAC1_ADDR_L05_0x001672C0u 0x001671C0u
++/* Aridia's aridia_ocean_clip_culling_override (wide_view.c). */
++#define RAC1_ADDR_L02_0x0015F6E8u 0x0015F608u
+ #define RAC1_ADDR_L05_0x001B0CB0u 0x001B0930u
+ #define RAC1_ADDR_L09_0x001FCA00u 0x001FC740u
+ #define RAC1_ADDR_L09_0x002F0AA0u 0x002EF750u
+@@ -187,6 +190,9 @@ static inline unsigned rac1_moby_vtbl_address(int level) {
  #define func_L00_00255B90 game_FUN_L00_00254b58
  #define func_L00_00255B90__game game_FUN_L00_00254b58__game
  #define func_L00_00232C10__game game_FUN_L00_002323b8__game
@@ -3840,16 +4115,27 @@ index 0db43487dd6f120235863a430735c88a6169a569..96f45ac612b0be46809c92f936209ded
  #define RAC1_ADDR_0x0015EEB4u 0x0015EDB4u
  #define RAC1_ADDR_0x0015EEE0u 0x0015EDE0u
  #define RAC1_ADDR_L00_0x0015F044u 0x0015EF44u
-@@ -514,6 +518,8 @@ static inline unsigned rac1_moby_vtbl_address(int level) {
+@@ -469,6 +475,8 @@ static inline unsigned rac1_moby_vtbl_address(int level) {
+ #define func_L00_001FEF08 func_L00_001FEF58
+ #define func_L00_00200290 game_FUN_001fa728
+ #define func_L00_00200290__game game_FUN_001fa728__game
++#define func_001FA9E8 game_FUN_001fa820
++#define func_001FA9E8__game game_FUN_001fa820__game
+ #define func_L00_00201300 func_L00_00201350
+ #define func_L00_00209940 game_FUN_L00_002092c8
+ #define func_L00_002110C0 game_FUN_L00_00210a08
+@@ -514,6 +522,10 @@ static inline unsigned rac1_moby_vtbl_address(int level) {
  #define func_L02_00250720__game game_FUN_L02_0024f748__game
  #define func_L03_00216D38 game_FUN_L03_00216648
  #define func_L03_00216D38__game game_FUN_L03_00216648__game
 +#define func_L01_002BA380 game_FUN_L01_002b91c8
 +#define func_L01_002BA380__game game_FUN_L01_002b91c8__game
++#define func_L02_002EB480 game_FUN_L02_002ea048
++#define func_L02_002EB480__game game_FUN_L02_002ea048__game
  #define func_L03_00292AC0 game_FUN_L03_00291918
  #define func_L03_0029ED60 game_FUN_L03_0029dba8
  #define func_L03_0029ED60__hooked game_FUN_L03_0029dba8__hooked
-@@ -579,6 +585,8 @@ static inline unsigned rac1_moby_vtbl_address(int level) {
+@@ -579,6 +591,8 @@ static inline unsigned rac1_moby_vtbl_address(int level) {
  #define RAC1_ADDR_0x0015EE80u 0x0015ED80u
  #define RAC1_ADDR_0x0015EE84u 0x0015ED84u
  #define RAC1_ADDR_0x0015EE98u 0x0015ED98u
@@ -3903,7 +4189,7 @@ index 3a8a19071ef6844583784bcb9e0aad8b723b9afe..db54fda468796783915305d02a919ee9
      "FUN_0020fa90",
      "func_L00_00251CE8",
 diff --git a/port/game/rac1-ntsc/libraries.tsv b/port/game/rac1-ntsc/libraries.tsv
-index 3a93d5e0759896705fcf220f43c7eb67fe4cfff3..beb477ab884c58c475d718cec8e51e2a7c80b3ac 100644
+index 3a93d5e0759896705fcf220f43c7eb67fe4cfff3..4e3d563b7e4f0f3cf66735ed81ab92ff6f0ca7ca 100644
 --- a/port/game/rac1-ntsc/libraries.tsv
 +++ b/port/game/rac1-ntsc/libraries.tsv
 @@ -262,6 +262,7 @@ FUN_L00_001f19a0	game	FUN_L00_001f19a0	host	the port's own (rac1/host/collision.
@@ -3944,15 +4230,18 @@ index 3a93d5e0759896705fcf220f43c7eb67fe4cfff3..beb477ab884c58c475d718cec8e51e2a
  FUN_L00_00232670	hero	Hero_AdvanceAnimation	hook	Ratchet's animation advance, once a tick after his state's update: a hook point for mods (docs/port/MODS.md; the lock-strafe mod takes it); the game's C with none; PAL func_L00_00232EF0	void (void)
  FUN_L00_002070d0	hero	Hero_Update	hook	the hero's whole update each tick in levels 0, 4, 7, 9, 10, 13, 17 (the level loop's coordinate_hero_frame_update: his animation, the stick, his state machine and movement, ledges and rails, his body's easing, his moby, what he holds, his drawing): a hook point for mods, rac1.player.update with its copies in the other levels (docs/port/MODS.md; the RAC-Board mod takes it); the game's C with none; PAL func_L00_002076E8	void (void)
  FUN_L01_00228870	hero	Hero_Update	hook	the hero's whole update each tick in levels 1, 2, 5, 11, 12, 15 (the level loop's update_hero_frame: his animation, the stick, his state machine and movement, ledges and rails, his body's easing, his moby, what he holds, his drawing): a hook point for mods, rac1.player.update with its copies in the other levels (docs/port/MODS.md; the RAC-Board mod takes it); the game's C with none; PAL func_L01_00228E08	void (void)
-@@ -391,6 +408,7 @@ FUN_00226b08	memcard	Save_NewGamePlus	hook	challenge mode's start: level 0 with
+@@ -391,7 +408,10 @@ FUN_00226b08	memcard	Save_NewGamePlus	hook	challenge mode's start: level 0 with
  FUN_0020abb0	memcard	Save_Serialize	hook	the whole save into out, with no memory card access: a hook point for mods (docs/port/MODS.md; for mods that add weapons, issue 127); the game's C with none; PAL func_0020BA00	void (unsigned int)
  FUN_002093d8	memcard	Save_UpdateState	hook	the memory card's state machine, each tick: saves and loads: a hook point for mods (docs/port/MODS.md; for mods that add weapons, issue 127); the game's C with none; PAL func_00209E68	void (void)
  FUN_L02_0024f748	draw	func_L02_00250720	wrap	the liquid grid's cull (seas, lava, sand): in a picture wider than the game's, against the cull matrix opened by as much as the picture is wider, put back after it (rac1/host/wide_view.c); PAL func_L02_00250720
 +FUN_L01_002b91c8	draw	func_L01_002BA380	wrap	the ripple pools (render_water_grids): under a headset, their tiles are sent wherever the game's camera looks (rac1/host/wide_view.c); PAL func_L01_002BA380
++FUN_L02_002ea048	draw	func_L02_002EB480	wrap	Aridia's sand sea's draw callback (draw_aridia_ocean_parts), which draws each of its three parts only while the game's camera is inside that part's clip volume: under a headset, every part (rac1/host/wide_view.c); PAL func_L02_002EB480
  FUN_001fa728	draw	fast_bsphere_check	wrap	the bounding sphere view test: while a draw callback list, the nanotech cluster's update or Kerwan's air traffic's runs, in a picture wider than the game's, against clip constants opened by as much as the picture is wider, put back after it (rac1/host/wide_view.c); PAL func_L00_00200290
++FUN_001fa820	draw	fast_bsphere_check_alpha	wrap	the light flares' view test with a fade (draw_light_flare, US FUN_0022df40: a lamp's glow on the ground): under a headset, a flare an eye sees is in view wherever the game's camera looks, its fade from the eye's distance, at the game's own reach (a flare is set up only within 32 units of the camera) (rac1/host/wide_view.c); PAL func_001FA9E8
  FUN_L00_002d89f0	draw	nanotech_ball_update	wrap	the nanotech cluster's update (the orb on a nanotech crate), which draws it only while the bounding sphere test finds it in view: in a picture wider than the game's, that test against clip constants opened by as much as the picture is wider (rac1/host/wide_view.c); PAL func_L00_002D9EA0	void (unsigned int)
  FUN_L03_0029dba8	draw	Moby_RedShip1_Update	wrap	Kerwan's air traffic's update (classes 75, 115-120, 132, 795), which parks a group of ships for 5 ticks while the bounding sphere test finds none of them in view: in a picture wider than the game's, that test against clip constants opened by as much as the picture is wider (rac1/host/wide_view.c); PAL func_L03_0029ED60	void (unsigned int)
-@@ -425,12 +443,15 @@ FUN_L00_002adb30	moby	Moby_Class121_Update	hook	The update of class 121, each ti
+ FUN_L00_002d6f28	draw	particle_spawner_smoke_fire_update	wrap	the smoke and fire emitter's update (class 760: the fires and smoke of Oltanis's buildings and others), which spawns its flames and draws them only while the bounding sphere test finds it in view: in a picture wider than the game's, that test against clip constants opened by as much as the picture is wider (rac1/host/wide_view.c); PAL func_L00_002D83D8	void (unsigned int)
+@@ -425,12 +445,15 @@ FUN_L00_002adb30	moby	Moby_Class121_Update	hook	The update of class 121, each ti
  FUN_L00_002af5b8	moby	Moby_Class122_Update	hook	The update of class 122, each tick: a hook point for mods, rac1.moby.falling_spark.update (docs/port/MODS.md); retail with none
  FUN_L00_002afa48	moby	Moby_NanotechCrateFragment_Update	hook	The update of classes 149, nanotech_crate_fragment (348), nanotech_crate_fragment (349), metal_crate_fragment (354) and 7 more, each tick: a hook point for mods, rac1.moby.debris_bounce.update (docs/port/MODS.md); retail with none
  FUN_L00_002b03a0	moby	Moby_GoldDevastatorMissile_Update	hook	The update of class gold_devastator_missile (153), each tick: a hook point for mods, rac1.moby.missile.update (docs/port/MODS.md); retail with none
@@ -3968,7 +4257,7 @@ index 3a93d5e0759896705fcf220f43c7eb67fe4cfff3..beb477ab884c58c475d718cec8e51e2a
  FUN_L00_002bb400	moby	Moby_Class179_Update	hook	The update of class 179, each tick: a hook point for mods, rac1.moby.moby179.update (docs/port/MODS.md); retail with none
  FUN_L00_002bb558	moby	Moby_Walloper_Update	hook	The update of class walloper (180), each tick: a hook point for mods, rac1.moby.moby180.update (docs/port/MODS.md); retail with none
  FUN_L00_002bc7e8	moby	Moby_Morphoray_Update	hook	The update of class morphoray (185), each tick: a hook point for mods, rac1.moby.morphoray.update (docs/port/MODS.md); retail with none
-@@ -440,6 +461,7 @@ FUN_L00_002c1ad0	moby	Moby_MineGlove_Update	hook	The update of class mine_glove
+@@ -440,6 +463,7 @@ FUN_L00_002c1ad0	moby	Moby_MineGlove_Update	hook	The update of class mine_glove
  FUN_L00_002c26c8	moby	Moby_BombGlove_Update	hook	The update of class bomb_glove (192), each tick: a hook point for mods, rac1.moby.moby192.update (docs/port/MODS.md); retail with none
  FUN_L00_002c4380	moby	Moby_Decoy_Update	hook	The update of classes decoy (203), gold_decoy (1900), each tick: a hook point for mods, rac1.moby.thrown_object.update (docs/port/MODS.md); retail with none
  FUN_L00_002c53c0	moby	Moby_DevestatorAmmo_Update	hook	The update of classes devestator_ammo (204), tesla_claw_ammo (213), pyrocitor_ammo (214), visibomb_ammo (222) and 7 more, each tick: a hook point for mods, rac1.moby.ammo_pickup.update (docs/port/MODS.md); retail with none
@@ -4112,7 +4401,7 @@ index 95c7fb45f51692996961f752eba2900c4784ef04..dbfbc1386670b01a41eb32e5b397d5e7
      "func_001F7560",
      "func_001F75D0",
 diff --git a/port/game/rac1-pal/libraries.tsv b/port/game/rac1-pal/libraries.tsv
-index 62278892018ac6d8425b4310e15163e2973d035e..5cdcdbe7dab941b21c912c03dc9f408045b0b59d 100644
+index 62278892018ac6d8425b4310e15163e2973d035e..b905e7fb5dcf5474e3c0604f9c4892be066918b4 100644
 --- a/port/game/rac1-pal/libraries.tsv
 +++ b/port/game/rac1-pal/libraries.tsv
 @@ -366,6 +366,21 @@ func_002181F0	pad	Pad_ProcessReport	hook	the pad's report into its state, each p
@@ -4145,15 +4434,18 @@ index 62278892018ac6d8425b4310e15163e2973d035e..5cdcdbe7dab941b21c912c03dc9f4080
  func_L00_00232EF0	hero	Hero_AdvanceAnimation	hook	Ratchet's animation advance, once a tick after his state's update: a hook point for mods (docs/port/MODS.md; the lock-strafe mod takes it); the game's C with none	void (void)
  func_L00_002076E8	hero	Hero_Update	hook	the hero's whole update each tick in levels 0, 4, 7, 9, 10, 13, 17 (the level loop's coordinate_hero_frame_update: his animation, the stick, his state machine and movement, ledges and rails, his body's easing, his moby, what he holds, his drawing): a hook point for mods, rac1.player.update with its copies in the other levels (docs/port/MODS.md; the RAC-Board mod takes it); the game's C with none	void (void)
  func_L01_00228E08	hero	Hero_Update	hook	the hero's whole update each tick in levels 1, 2, 5, 11, 12, 15 (the level loop's update_hero_frame: his animation, the stick, his state machine and movement, ledges and rails, his body's easing, his moby, what he holds, his drawing): a hook point for mods, rac1.player.update with its copies in the other levels (docs/port/MODS.md; the RAC-Board mod takes it); the game's C with none	void (void)
-@@ -423,6 +439,7 @@ func_00227DB0	memcard	Save_NewGamePlus	hook	challenge mode's start: level 0 with
+@@ -423,7 +439,10 @@ func_00227DB0	memcard	Save_NewGamePlus	hook	challenge mode's start: level 0 with
  func_0020BA00	memcard	Save_Serialize	hook	the whole save into out, with no memory card access: a hook point for mods (docs/port/MODS.md; for mods that add weapons, issue 127); the game's C with none	void (unsigned int)
  func_00209E68	memcard	Save_UpdateState	hook	the memory card's state machine, each tick: saves and loads: a hook point for mods (docs/port/MODS.md; for mods that add weapons, issue 127); the game's C with none	void (void)
  func_L02_00250720	draw	func_L02_00250720	wrap	the liquid grid's cull (seas, lava, sand): in a picture wider than the game's, against the cull matrix opened by as much as the picture is wider, put back after it (rac1/host/wide_view.c)
 +func_L01_002BA380	draw	func_L01_002BA380	wrap	the ripple pools (render_water_grids): under a headset, their tiles are sent wherever the game's camera looks (rac1/host/wide_view.c)
++func_L02_002EB480	draw	func_L02_002EB480	wrap	Aridia's sand sea's draw callback (draw_aridia_ocean_parts), which draws each of its three parts only while the game's camera is inside that part's clip volume: under a headset, every part (rac1/host/wide_view.c)
  func_L00_00200290	draw	FastBSphereCheck	wrap	the bounding sphere view test: while a draw callback list, the nanotech cluster's update or Kerwan's air traffic's runs, in a picture wider than the game's, against clip constants opened by as much as the picture is wider, put back after it (rac1/host/wide_view.c)
++func_001FA9E8	draw	func_001FA9E8	wrap	the light flares' view test with a fade (draw_light_flare, func_0022DF40: a lamp's glow on the ground): under a headset, a flare an eye sees is in view wherever the game's camera looks, its fade from the eye's distance, at the game's own reach (a flare is set up only within 32 units of the camera) (rac1/host/wide_view.c)
  func_L00_002D9EA0	draw	NanotechBallUpdate	wrap	the nanotech cluster's update (the orb on a nanotech crate), which draws it only while the bounding sphere test finds it in view: in a picture wider than the game's, that test against clip constants opened by as much as the picture is wider (rac1/host/wide_view.c)	void (unsigned int)
  func_L03_0029ED60	draw	Moby_RedShip1_Update	wrap	Kerwan's air traffic's update (classes 75, 115-120, 132, 795), which parks a group of ships for 5 ticks while the bounding sphere test finds none of them in view: in a picture wider than the game's, that test against clip constants opened by as much as the picture is wider (rac1/host/wide_view.c)	void (unsigned int)
-@@ -457,12 +474,15 @@ func_L00_002AEDD0	moby	Moby_Class121_Update	hook	The update of class 121, each t
+ func_L00_002D83D8	draw	particle_spawner_smoke_fire_update	wrap	the smoke and fire emitter's update (class 760: the fires and smoke of Oltanis's buildings and others), which spawns its flames and draws them only while the bounding sphere test finds it in view: in a picture wider than the game's, that test against clip constants opened by as much as the picture is wider (rac1/host/wide_view.c)	void (unsigned int)
+@@ -457,12 +476,15 @@ func_L00_002AEDD0	moby	Moby_Class121_Update	hook	The update of class 121, each t
  func_L00_002B08A0	moby	Moby_Class122_Update	hook	The update of class 122, each tick: a hook point for mods, rac1.moby.falling_spark.update (docs/port/MODS.md); retail with none
  func_L00_002B0D30	moby	Moby_NanotechCrateFragment_Update	hook	The update of classes 149, nanotech_crate_fragment (348), nanotech_crate_fragment (349), metal_crate_fragment (354) and 7 more, each tick: a hook point for mods, rac1.moby.debris_bounce.update (docs/port/MODS.md); retail with none
  func_L00_002B1688	moby	Moby_GoldDevastatorMissile_Update	hook	The update of class gold_devastator_missile (153), each tick: a hook point for mods, rac1.moby.missile.update (docs/port/MODS.md); retail with none
@@ -4169,7 +4461,7 @@ index 62278892018ac6d8425b4310e15163e2973d035e..5cdcdbe7dab941b21c912c03dc9f4080
  func_L00_002BC708	moby	Moby_Class179_Update	hook	The update of class 179, each tick: a hook point for mods, rac1.moby.moby179.update (docs/port/MODS.md); retail with none
  func_L00_002BC860	moby	Moby_Walloper_Update	hook	The update of class walloper (180), each tick: a hook point for mods, rac1.moby.moby180.update (docs/port/MODS.md); retail with none
  func_L00_002BDAF0	moby	Moby_Morphoray_Update	hook	The update of class morphoray (185), each tick: a hook point for mods, rac1.moby.morphoray.update (docs/port/MODS.md); retail with none
-@@ -472,6 +492,7 @@ func_L00_002C2DD8	moby	Moby_MineGlove_Update	hook	The update of class mine_glove
+@@ -472,6 +494,7 @@ func_L00_002C2DD8	moby	Moby_MineGlove_Update	hook	The update of class mine_glove
  func_L00_002C39D0	moby	Moby_BombGlove_Update	hook	The update of class bomb_glove (192), each tick: a hook point for mods, rac1.moby.moby192.update (docs/port/MODS.md); retail with none
  func_L00_002C5688	moby	Moby_Decoy_Update	hook	The update of classes decoy (203), gold_decoy (1900), each tick: a hook point for mods, rac1.moby.thrown_object.update (docs/port/MODS.md); retail with none
  func_L00_002C6720	moby	Moby_DevestatorAmmo_Update	hook	The update of classes devestator_ammo (204), tesla_claw_ammo (213), pyrocitor_ammo (214), visibomb_ammo (222) and 7 more, each tick: a hook point for mods, rac1.moby.ammo_pickup.update (docs/port/MODS.md); retail with none
@@ -4257,7 +4549,7 @@ index 29959cf1dc0d2783d2c8366ce192f7d5cc020327..911ad9f46d1fb12fee88f9181b4068e3
      return g_updating;
  }
 diff --git a/port/game/rac1/host/figure_items.c b/port/game/rac1/host/figure_items.c
-index 8dcb2cdbc35ef3e52cec574cbc8ff1be183d9450..767b0e06aab5a5c93283491af042beee905bc565 100644
+index 8dcb2cdbc35ef3e52cec574cbc8ff1be183d9450..32a76f60046de5e7460f4fcae9d6c76e66ea08c3 100644
 --- a/port/game/rac1/host/figure_items.c
 +++ b/port/game/rac1/host/figure_items.c
 @@ -83,6 +83,8 @@
@@ -4442,6 +4734,30 @@ index 8dcb2cdbc35ef3e52cec574cbc8ff1be183d9450..767b0e06aab5a5c93283491af042beee
  static int same_piece(const openrac_game_held_piece* a, const openrac_game_held_piece* b) {
      return a->slot == b->slot && a->part == b->part && a->oclass == b->oclass;
  }
+@@ -664,6 +787,23 @@ void rac1_figure_items_tick(void) {
+     }
+ }
+ 
++/* The Quest fork's (openrac_api.figure_hand_moby): the moby of the item in `figure`'s hand (its slot 0, on a joint, not
++ * a glove), 0 for none. Put on its joint by rac1_figure_items_tick; a mod may place it after. */
++gaddr rac1_figure_hand_moby(gaddr figure) {
++    if (figure == 0 || !in_level()) {
++        return 0;
++    }
++    const uint32_t load = rac1_moby_generation();
++    for (int i = 0; i < RECORDS; ++i) {
++        const Record* r = &records[i];
++        if (r->figure == figure && r->load == load && r->piece.slot == 0 && (r->piece.flags & HELD_LOOSE) == 0
++            && !glove(r->piece.item) && alive(r->moby, r->piece.oclass)) {
++            return r->moby;
++        }
++    }
++    return 0;
++}
++
+ /* What the hero wears and holds: his slots' mobys, the hand first. */
+ int rac1_hero_held(openrac_game_held* out) {
+     memset(out, 0, sizeof *out);
 diff --git a/port/game/rac1/host/moby_pool.c b/port/game/rac1/host/moby_pool.c
 index 3f2f97a4a710a2e6679021c606b18a440fadddb0..dce47417ee8115307acb227c99261bee350bbbde 100644
 --- a/port/game/rac1/host/moby_pool.c
@@ -4521,21 +4837,22 @@ index 3f2f97a4a710a2e6679021c606b18a440fadddb0..dce47417ee8115307acb227c99261bee
      for (int gi = 0; gi != GROUPS; gi++) {
          /* No member of this group was active. */
 diff --git a/port/game/rac1/host/play.c b/port/game/rac1/host/play.c
-index 46252c5c79ee066da332bd48bc5b82c89fb60afe..6ebb8bf7afb32d6a55979571dce00833a6ec7448 100644
+index 46252c5c79ee066da332bd48bc5b82c89fb60afe..d5ed86a41215e858a2a08a758a9fa6c105a3eaf7 100644
 --- a/port/game/rac1/host/play.c
 +++ b/port/game/rac1/host/play.c
-@@ -792,6 +792,9 @@ const openrac_game_play rac1_play = {
+@@ -792,6 +792,10 @@ const openrac_game_play rac1_play = {
      .mission_state_read = rac1_mission_state_read,
      .mission_state_write = rac1_mission_state_write,
      .mission_state_clear = rac1_mission_state_clear,
 +    .second_item = rac1_second_item,
 +    .second_item_drop = rac1_second_item_drop,
 +    .item_model_ok = rac1_item_model_ok,
++    .figure_hand_moby = rac1_figure_hand_moby,
      .moby_spawn = rac1_world_moby_spawn,
      .hero_slot = rac1_world_hero_slot,
      .stand_in = rac1_world_stand_in,
 diff --git a/port/game/rac1/host/rac1.h b/port/game/rac1/host/rac1.h
-index 4467d06bcc75bd228f0c92e7f114f100668c32f1..6afb787b6790c958a4d6603d5154a2fea1b56609 100644
+index 4467d06bcc75bd228f0c92e7f114f100668c32f1..b5eacaa984670ea6818a942edeb6c64b9abdbf69 100644
 --- a/port/game/rac1/host/rac1.h
 +++ b/port/game/rac1/host/rac1.h
 @@ -159,6 +159,11 @@ int rac1_world_moby_run(int32_t slot, openrac_game_moby_run* out);
@@ -4550,13 +4867,14 @@ index 4467d06bcc75bd228f0c92e7f114f100668c32f1..6afb787b6790c958a4d6603d5154a2fe
  int32_t rac1_world_moby_spawn(int32_t oclass);
  int32_t rac1_world_hero_slot(void);
  void rac1_world_stand_in(const float position[3], gaddr moby);
-@@ -193,6 +198,9 @@ int rac1_hero_shots2(openrac_game_shot2* out, int max);
+@@ -193,6 +198,10 @@ int rac1_hero_shots2(openrac_game_shot2* out, int max);
  int rac1_figure_shot2(gaddr figure, const openrac_game_shot2* shot);
  void rac1_figure_shots_tick(void);
  void rac1_figure_shots_remove(gaddr figure);
 +gaddr rac1_second_item(int32_t oclass);
 +void rac1_second_item_drop(void);
 +int rac1_item_model_ok(gaddr moby);
++gaddr rac1_figure_hand_moby(gaddr figure);
  void rac1_figure_items_tick(void);
  void rac1_figure_items_remove(gaddr figure);
  int rac1_figure_owned(gaddr moby);
@@ -4676,7 +4994,7 @@ index 3360d7abd5dcd69f7f8fc09d2a9a8d126ee4e661..81d94fc1971800ac05f93f2ce2220fd8
      const gaddr state = OPENRAC_DATA(TRANSFER);
      /* Called during the flight update: restore the slots first, so each part finds its own. */
 diff --git a/port/game/rac1/host/wide_view.c b/port/game/rac1/host/wide_view.c
-index e9c70adf0c7cf4e61a78edfa4fa7c259b9dfa353..f8ebf2f3b6da9d7f2fd7dca548d37d43e0ff9c19 100644
+index e9c70adf0c7cf4e61a78edfa4fa7c259b9dfa353..c8713119b2e18bf09112719317c467f7571e8808 100644
 --- a/port/game/rac1/host/wide_view.c
 +++ b/port/game/rac1/host/wide_view.c
 @@ -32,7 +32,8 @@
@@ -4697,10 +5015,101 @@ index e9c70adf0c7cf4e61a78edfa4fa7c259b9dfa353..f8ebf2f3b6da9d7f2fd7dca548d37d43
  
  #define WIDE_CAMERA OPENRAC_DATA(RAC1_ADDR(0x00187040u))
  #define WIDE_VIEW OPENRAC_DATA(RAC1_ADDR(0x0018CE00u))
-@@ -126,11 +128,29 @@ void func_L02_00250720(gaddr grid) {
+@@ -85,6 +87,20 @@ static const unsigned char* g_fix_orbs;
+ static const unsigned char* g_fix_traffic;
+ static const unsigned char* g_fix_fires;
+ 
++/* Max draw distance (settings.h, max_draw_distance; the Draw distance's Unlimited does the same): what the level's draws
++ * reach instead of their own distance, the headset's eyes' far plane (host::kMaxDrawDistance, frontend/views.cpp's kFar),
++ * in game units. The moby and particle renderers take the setting themselves; these are the level code's draws, which
++ * cull by a distance of their own: the seas' grid (its reach, squared, at +0x0C of its record) and the sphere tests of the
++ * draw callback lists and of the three updates below whose test means "can the player see it". With the setting on, a
++ * player looking out over Aridia's or Kerwan's sea saw it end where the grid's reach did, and a level's draw callbacks
++ * (lava and other overlay layers, glows, env maps) end at theirs, while the mobys round them were drawn. The game's logic
++ * keeps its own distances: an update's test outside those three (a crate that respawns only out of view) is not
++ * changed. */
++#define WIDE_ANY_DISTANCE 2000.0f
++static int draws_any_distance(void) {
++    return !(openrac_game_draw_distance() > 0.0f);
++}
++
+ static void run_list(void (*run)(void)) {
+     float taller;
+     const float wider = wide_wider_for(&g_fix_liquids, "fix_wide_liquids", &taller);
+@@ -111,8 +127,30 @@ void func_001F4AF0(void) {
+     run_list(func_001F4AF0__game);
+ }
+ 
+-/* The liquid grid's cull: a flag per block into the scratchpad (0: not drawn). */
+-void func_L02_00250720(gaddr grid) {
++/* The liquid grid's cull: a flag per block into the scratchpad (0: not drawn).
++ *
++ * Quest VR: under a headset the test is the game's camera's, which faces Ratchet's body, wherever an eye looks. A block
++ * is left out when its four corners are past one plane of that view: a side, the top or bottom, the near or far plane.
++ * With the head turned from the camera, the blocks beside and behind it, and those under its view's bottom edge, were
++ * left out whole: Aridia's sand sea had straight-edged holes 18 units across with the black of the void under them and
++ * the pier's pillars hanging in it (a player's 0.1.18 video, by the Gadgetron vendor; tests/aridiachannel.sim, whose
++ * strips showed the missing blocks). As for the ripple pools below, the test's x, y and z come out 0, inside every
++ * plane, so every block within the grid's draw distance is drawn; the matrix is put back after. */
++static void cull_liquid(gaddr grid) {
++    float eye[3], rows[12], tangents[2];
++    if (openrac_game_eye_view(eye, rows, tangents)) {
++        const gaddr matrix = WIDE_CAMERA + WIDE_CULL_MATRIX;
++        wide_opened o;
++        o.count = 0;
++        for (int column = 0; column < 4; column++) {
++            for (int row = 0; row < 3; row++) {
++                wide_put(&o, matrix + (gaddr)column * 16u + (gaddr)row * 4u, 0.0f);
++            }
++        }
++        func_L02_00250720__game(grid);
++        wide_close_view(&o);
++        return;
++    }
+     float taller = g_taller;
+     const float wider =
+         g_lists > 0 ? g_wider : wide_wider_for(&g_fix_liquids, "fix_wide_liquids", &taller);
+@@ -126,11 +164,98 @@ void func_L02_00250720(gaddr grid) {
      wide_close_view(&o);
  }
  
++/* The liquid grid's cull, its reach first: with Max draw distance the eyes' far plane (WIDE_ANY_DISTANCE) where the
++ * grid's own is shorter, put back after. A block farther than that is past what the eyes draw anyway. */
++void func_L02_00250720(gaddr grid) {
++    const float any = WIDE_ANY_DISTANCE * WIDE_ANY_DISTANCE;
++    float reach;
++    memcpy(&reach, G(grid + 0x0Cu), sizeof reach);
++    if (!(reach < any) || !draws_any_distance()) {
++        cull_liquid(grid);
++        return;
++    }
++    memcpy(G(grid + 0x0Cu), &any, sizeof any);
++    cull_liquid(grid);
++    memcpy(G(grid + 0x0Cu), &reach, sizeof reach);
++}
++
++/* Quest VR: Aridia's sand sea (ocean_aridia, class 854; draw_aridia_ocean_parts, US FUN_L02_002ea048), its draw
++ * callback. The sea is three parts, and each is drawn only while the game's camera is inside that part's clip volume:
++ * the parts the camera's view can reach from where it is. A headset's eye is not the camera and looks where the head
++ * turns, so whole parts were missing in plain view, straight-edged holes in the sea with the black of the void under them
++ * and the pier's pillars hanging in it (a player's 0.1.18 video, by the Gadgetron vendor; tests/aridiachannel.sim). The
++ * game has a flag that draws every part (aridia_ocean_clip_culling_override, PAL 0x15F6E8); under a headset's eyes it is
++ * set for the call and put back after. Without them the parts are chosen as the game chose them. */
++#define ARIDIA_OCEAN_DRAW_ALL OPENRAC_LDATA(2, RAC1_LADDR(02, 0x0015F6E8u))
++void func_L02_002EB480(gaddr moby) {
++    float eye[3], rows[12], tangents[2];
++    if (!openrac_game_eye_view(eye, rows, tangents)) {
++        func_L02_002EB480__game(moby);
++        return;
++    }
++    int was;
++    memcpy(&was, G(ARIDIA_OCEAN_DRAW_ALL), sizeof was);
++    const int all = 1;
++    memcpy(G(ARIDIA_OCEAN_DRAW_ALL), &all, sizeof all);
++    func_L02_002EB480__game(moby);
++    memcpy(G(ARIDIA_OCEAN_DRAW_ALL), &was, sizeof was);
++}
++
 +/* Quest VR: whether a headset's eye sees the sphere (world units, the radius last), wherever the
 + * game's camera looks (openrac_game_eye_view). */
 +static int eye_sees(gaddr sphere, float far) {
@@ -4716,6 +5125,10 @@ index e9c70adf0c7cf4e61a78edfa4fa7c259b9dfa353..f8ebf2f3b6da9d7f2fd7dca548d37d43
  /* FastBSphereCheck: 1 in view, 0 in view but across the guard band's edge, -1 culled. */
  int func_L00_00200290(gaddr sphere, float far) {
 -    return wide_sphere(
++    /* Max draw distance: a draw callback list's test, or one of the three updates', as far as the eyes see. */
++    if ((g_lists > 0 || g_effects > 0) && far < WIDE_ANY_DISTANCE && draws_any_distance()) {
++        far = WIDE_ANY_DISTANCE;
++    }
 +    const int result = wide_sphere(
          func_L00_00200290__game, sphere, far, g_effects, g_effect_wider, g_effect_taller
      );
@@ -4725,10 +5138,38 @@ index e9c70adf0c7cf4e61a78edfa4fa7c259b9dfa353..f8ebf2f3b6da9d7f2fd7dca548d37d43
 +     * strands went undrawn with the head turned from the body's heading, and some forty others) would
 +     * otherwise leave it out of an eye looking away from the game's camera. */
 +    return result < 0 && eye_sees(sphere, far) ? 1 : result;
++}
++
++/* The light flares' view test (draw_light_flare, func_0022DF40, a draw callback: a lamp's glow lying on the ground, 32
++ * units' reach): FastBSphereCheck's test with a fade, the alpha in *alpha what is left of the reach past the sphere's
++ * depth in the view's units, over 128 and at most 128. As for the sphere test above, under a headset a flare an eye sees
++ * is in view wherever the game's camera looks, its alpha the eye's (the view's scale is the sphere view's w, +0x3C of it
++ * at +0x280 of the view block). Its reach stays the game's at any Draw distance: the glow fades out by it, and its owner
++ * registers it only within 32 units of the camera (update_moby_proximity_interaction), so a longer reach would only
++ * make it pop off there at full strength. Without a headset the game's test, as it was. */
++#define WIDE_SPHERE_SCALE 0x2BCu
++int func_001FA9E8(gaddr sphere, gaddr alpha, float far) {
++    const int result = func_001FA9E8__game(sphere, alpha, far);
++    float eye[3], rows[12], tangents[2], s[4];
++    if (result >= 0 || !openrac_game_eye_view(eye, rows, tangents)) {
++        return result;
++    }
++    memcpy(s, G(sphere), sizeof(s));
++    const float d[3] = {s[0] - eye[0], s[1] - eye[1], s[2] - eye[2]};
++    if (!moby_in_view(d, rows, s[3], far, tangents[0], tangents[1], 1.0f)) {
++        return result;
++    }
++    const float depth = d[0] * rows[0] + d[1] * rows[1] + d[2] * rows[2];
++    const float left = wide_get(WIDE_VIEW + WIDE_SPHERE_SCALE) * (far - depth + s[3]);
++    const int whole = left >= 2147483647.0f ? 0x7FFFFFFF : left <= 0.0f ? 0 : (int)left;
++    const unsigned fade = (unsigned)whole >> 7;
++    const int value = fade > 0x80u ? 0x80 : (int)fade;
++    memcpy(G(alpha), &value, sizeof value);
++    return 1;
  }
  
  /* NanotechBallUpdate: the nanotech cluster (the orb on a nanotech crate) draws only while its
-@@ -167,3 +187,27 @@ void func_L00_002D83D8(gaddr moby) {
+@@ -167,3 +292,27 @@ void func_L00_002D83D8(gaddr moby) {
      func_L00_002D83D8__hooked(moby);
      g_effects--;
  }
@@ -9881,7 +10322,7 @@ index 516ad167bea75fc59d6f51d90071a20ddcaab47a..9e02c46728b8ba71065ecc8429476487
      // it); until set, the level's exported sets.
      // Shared lighting for optional world materials outside the mesh renderer.
 diff --git a/port/scene/moby_pose.cpp b/port/scene/moby_pose.cpp
-index 351f1458f025593bc161842fcbb9eba1d2d97d34..7a4610f40058c165aa0364e92d77f68323d44d4c 100644
+index 351f1458f025593bc161842fcbb9eba1d2d97d34..0d0427a9b21b1fdf32bc49b9e9191e9bbcb0df33 100644
 --- a/port/scene/moby_pose.cpp
 +++ b/port/scene/moby_pose.cpp
 @@ -3,6 +3,8 @@
@@ -9905,7 +10346,7 @@ index 351f1458f025593bc161842fcbb9eba1d2d97d34..7a4610f40058c165aa0364e92d77f683
  
  }  // namespace
  
-@@ -93,16 +98,501 @@ void set_moby_layer_records(bool records) {
+@@ -93,16 +98,524 @@ void set_moby_layer_records(bool records) {
  }
  
  std::vector<rac1::JointMatrix> moby_palette(std::span<const std::uint8_t> ram, std::uint32_t moby) {
@@ -9921,6 +10362,23 @@ index 351f1458f025593bc161842fcbb9eba1d2d97d34..7a4610f40058c165aa0364e92d77f683
 +MobyArms& moby_arms() {
 +    static MobyArms arms;
 +    return arms;
++}
++
++std::array<MobyArms, 8>& figure_arms() {
++    static std::array<MobyArms, 8> arms;
++    return arms;
++}
++
++const MobyArms* figure_arms_of(std::uint32_t moby) {
++    if (moby == 0) {
++        return nullptr;
++    }
++    for (const MobyArms& arms : figure_arms()) {
++        if (arms.moby == moby) {
++            return &arms;
++        }
++    }
++    return nullptr;
 +}
 +
 +namespace {
@@ -10290,7 +10748,7 @@ index 351f1458f025593bc161842fcbb9eba1d2d97d34..7a4610f40058c165aa0364e92d77f683
 +    // skeleton's matrix), and kept where the body as drawn has it. The draw's palette (`bind`) never has it.
 +    bool head_posed = false;
 +    Move head_move;
-+    if (!bind && arms.head && arms.cut_only > 0 && arms.cut_only < joints) {
++    if ((!bind || arms.head_drawn) && arms.head && arms.cut_only > 0 && arms.cut_only < joints) {
 +        const int h = arms.cut_only;
 +        const auto skeleton = at<std::uint32_t>(ram, cls + 0x14);
 +        const auto& p = pose[static_cast<std::size_t>(h)];
@@ -10356,6 +10814,12 @@ index 351f1458f025593bc161842fcbb9eba1d2d97d34..7a4610f40058c165aa0364e92d77f683
 +            put(f, head_move);
 +            continue;
 +        }
++        if (side < 0 && arms.head_drawn && under(j, arms.cut_only) && !gone) {
++            if (whole) {
++                put(f, moves[static_cast<std::size_t>(j)]);  // a head drawn that could not be turned stays on the body
++            }
++            continue;
++        }
 +        if (side < 0) {
 +            // Closed onto its arm's elbow, so the skin blended across it ends there, else the other.
 +            const int near = under(j, arms.arms[1].shoulder) || !arms.arms[0].shown ? 1 : 0;
@@ -10410,7 +10874,7 @@ index 351f1458f025593bc161842fcbb9eba1d2d97d34..7a4610f40058c165aa0364e92d77f683
      const auto cls = at<std::uint32_t>(ram, moby + 0x24);
      if (!inside(ram, cls, 0x48)) {
          return {};
-@@ -182,6 +672,7 @@ std::vector<rac1::JointMatrix> evaluate_moby(std::span<const std::uint8_t> ram,
+@@ -182,6 +695,7 @@ std::vector<rac1::JointMatrix> evaluate_moby(std::span<const std::uint8_t> ram,
          }
          mods.push_back(m);
      }
@@ -10419,7 +10883,7 @@ index 351f1458f025593bc161842fcbb9eba1d2d97d34..7a4610f40058c165aa0364e92d77f683
      // front): Ratchet's weapon arm, its keys at +0x38 / +0x3C ready in his joint layout. Without them
      // his arms kept the unarmed idle and a gun hung from his lowered hand.
 diff --git a/port/scene/moby_pose.h b/port/scene/moby_pose.h
-index 4eddc635da5bd68d651d85d5bab9e27d2bc79632..9699946bf85eba201ea064a18a58ce6064eb45e1 100644
+index 4eddc635da5bd68d651d85d5bab9e27d2bc79632..799ed27902154d1c5a48f44f543e038b5e5e6113 100644
 --- a/port/scene/moby_pose.h
 +++ b/port/scene/moby_pose.h
 @@ -24,6 +24,7 @@
@@ -10430,7 +10894,7 @@ index 4eddc635da5bd68d651d85d5bab9e27d2bc79632..9699946bf85eba201ea064a18a58ce60
  #include <cstdint>
  #include <span>
  #include <vector>
-@@ -75,4 +76,69 @@ void set_extra_joint_modifiers(std::uint32_t moby, std::vector<assets::rac1::Joi
+@@ -75,4 +76,77 @@ void set_extra_joint_modifiers(std::uint32_t moby, std::vector<assets::rac1::Joi
   */
  std::vector<assets::rac1::JointModifier> extra_joint_modifiers(std::uint32_t moby);
  
@@ -10478,10 +10942,18 @@ index 4eddc635da5bd68d651d85d5bab9e27d2bc79632..9699946bf85eba201ea064a18a58ce60
 +    // facing `head_rows` in the world (forward, left, up).
 +    bool head = false;
 +    std::array<std::array<float, 3>, 3> head_rows{};
++    // The Quest fork's figure_arms: what cut_only leaves out is drawn too, turned to head_rows (another player's head).
++    bool head_drawn = false;
 +};
 +
 +/** The set in force: written before the capture, read by it, on the game's thread. */
 +MobyArms& moby_arms();
++
++/** The Quest fork's figure_arms: other mobys drawn as MobyArms (another VR player's figure), `moby` 0 for a free entry. */
++std::array<MobyArms, 8>& figure_arms();
++
++/** The entry of figure_arms() for the moby at `moby`, null for none. */
++const MobyArms* figure_arms_of(std::uint32_t moby);
 +
 +/**
 + * The palette of `arms.moby` as those arms; as moby_palette when it cannot be made. `rest`, when given, is
@@ -10725,10 +11197,10 @@ index a6463e7d2c0eab21d9122054e7934e1a147b3c81..8bbcd15750a7f479cccdc0061c84e714
  int rac1_level_mobys_current(void) {
      return 1;
 diff --git a/port/tests/mod_loader_test.cpp b/port/tests/mod_loader_test.cpp
-index 541d481304263fef7f002804e1e11f5467e161a6..b6f052cb38b032a0318e0675219bb65bb54295bc 100644
+index 541d481304263fef7f002804e1e11f5467e161a6..62c1e2721eeb5f6da2a7c5da64601f6bc5c86047 100644
 --- a/port/tests/mod_loader_test.cpp
 +++ b/port/tests/mod_loader_test.cpp
-@@ -26,6 +26,25 @@
+@@ -26,6 +26,29 @@
  #include "mods.h"
  #include "openrac/guest.h"
  #include "openrac/script_binding.h"
@@ -10750,11 +11222,15 @@ index 541d481304263fef7f002804e1e11f5467e161a6..b6f052cb38b032a0318e0675219bb65b
 +    static MobyArms arms;
 +    return arms;
 +}
++std::array<MobyArms, 8>& figure_arms() {
++    static std::array<MobyArms, 8> arms;
++    return arms;
++}
 +}  // namespace openrac::scene
  
  namespace fs = std::filesystem;
  using namespace openrac;
-@@ -1153,8 +1172,8 @@ void game_ui_pages_reach_the_front_end(const fs::path& plugins) {
+@@ -1153,8 +1176,8 @@ void game_ui_pages_reach_the_front_end(const fs::path& plugins) {
          && item->page == 0
      );
      CHECK(mods::ui_main_item(1) == nullptr && mods::ui_page(2) == nullptr);
@@ -10765,7 +11241,7 @@ index 541d481304263fef7f002804e1e11f5467e161a6..b6f052cb38b032a0318e0675219bb65b
      CHECK(
          mods::ui_pause_item(0) != nullptr && mods::ui_pause_item(0)->label == "Multiplayer"
          && mods::ui_pause_item(0)->page == 0
-@@ -1163,7 +1182,8 @@ void game_ui_pages_reach_the_front_end(const fs::path& plugins) {
+@@ -1163,7 +1186,8 @@ void game_ui_pages_reach_the_front_end(const fs::path& plugins) {
          mods::ui_pause_item(1) != nullptr && mods::ui_pause_item(1)->label == "Party"
          && mods::ui_pause_item(1)->page == 1
      );
@@ -10847,10 +11323,10 @@ index c89dc6df5e6b88e8658b468e0e2d9afcf6e2a598..abe3383df7f21a1cbc65e022a312fb28
      return 0;
  }
 diff --git a/port/tests/settings_test.cpp b/port/tests/settings_test.cpp
-index 3f0b44831270e1f4d0015a6cab7f955bd0620a53..e778090a6ea28046369bac9373129035563f603a 100644
+index 3f0b44831270e1f4d0015a6cab7f955bd0620a53..5f9c28d8d9466bc0833d24bb3bda30be713f8a83 100644
 --- a/port/tests/settings_test.cpp
 +++ b/port/tests/settings_test.cpp
-@@ -421,6 +421,84 @@ void test_menu_bar_key(const std::filesystem::path& file) {
+@@ -421,6 +421,98 @@ void test_menu_bar_key(const std::filesystem::path& file) {
      std::filesystem::remove(file);
  }
  
@@ -10871,6 +11347,20 @@ index 3f0b44831270e1f4d0015a6cab7f955bd0620a53..e778090a6ea28046369bac9373129035
 +    settings::load(file);
 +    CHECK(settings::get().max_draw_distance);
 +    CHECK(!settings::get().draws_any_distance());
++    // The Draw distance's Unlimited does what Max does (the particles too), and Max is Unlimited at any Draw distance;
++    // a finite Draw distance with Max off is a factor of the game's.
++    std::ofstream(file) << "max_draw_distance = false\ndraw_distance = 0\n";
++    settings::load(file);
++    CHECK(settings::get().draws_any_distance());
++    CHECK(settings::get().draw_distance_scale() == 0.0f);
++    std::ofstream(file) << "max_draw_distance = true\ndraw_distance = 400\n";
++    settings::load(file);
++    CHECK(settings::get().draws_any_distance());
++    CHECK(settings::get().draw_distance_scale() == 0.0f);
++    std::ofstream(file) << "max_draw_distance = false\ndraw_distance = 400\n";
++    settings::load(file);
++    CHECK(!settings::get().draws_any_distance());
++    CHECK(settings::get().draw_distance_scale() == 4.0f);
 +}
 +
 +// Shadow matches what you see: on by default, the launcher's false, kept through a save.
@@ -10935,7 +11425,7 @@ index 3f0b44831270e1f4d0015a6cab7f955bd0620a53..e778090a6ea28046369bac9373129035
  }  // namespace
  
  int main() {
-@@ -460,6 +538,13 @@ int main() {
+@@ -460,6 +552,13 @@ int main() {
      test_bindings_survive_a_save(file);
      test_first_start_display(file);
      test_menu_bar_key(file);
@@ -10998,7 +11488,7 @@ index 8476ed377a99bb5962415e3e3740ec705a6dd224..ba0a3b42ff4258096f46500186dea36e
      v_fog = v_fog_w.x / v_fog_w.y;
  #ifdef OPENRAC_SOLID
 diff --git a/port/viewer/shaders/mesh.vert b/port/viewer/shaders/mesh.vert
-index b0aabcf11c350c00a79a8b24f5b736a3f1f4989e..8c9194db81dd8f762e8d6c0657244539a1b583fd 100644
+index b0aabcf11c350c00a79a8b24f5b736a3f1f4989e..2658cbdddfbe7f0fc0cc206cef927bb0e7902ef8 100644
 --- a/port/viewer/shaders/mesh.vert
 +++ b/port/viewer/shaders/mesh.vert
 @@ -100,6 +100,10 @@ out vec3 v_emission_colour;
@@ -11012,14 +11502,17 @@ index b0aabcf11c350c00a79a8b24f5b736a3f1f4989e..8c9194db81dd8f762e8d6c0657244539
  
  const int kPaletteWidth = 1024;
  const int kLightWidth = 1024;
-@@ -139,13 +143,16 @@ void main() {
+@@ -137,6 +141,9 @@ void main() {
+         }
+     }
  #endif
++    // 1 for a mesh without a skin (the static scenery, OPENRAC_STATIC_COLOUR): all of it drawn. Set inside the skinning
++    // block alone, the leaves of the plants (their cutout pass) were thrown away by mesh.frag in 0.1.18.
++    v_kept = 1.0;
  #ifndef OPENRAC_STATIC_COLOUR
      float total = weights.x + weights.y + weights.z + weights.w;
-+    v_kept = 1.0;
      if (skinning != 0 && palette >= 0.0 && total > 0.0) {
-         int base = int(palette + 0.5);
-         mat4 skin = weights.x * joint_matrix(base + int(joints.x))
+@@ -145,7 +152,9 @@ void main() {
                    + weights.y * joint_matrix(base + int(joints.y))
                    + weights.z * joint_matrix(base + int(joints.z))
                    + weights.w * joint_matrix(base + int(joints.w));
@@ -11054,7 +11547,7 @@ index 06b9c545283509fcc6b3939680ff8c66207e739d..5bed61ccc5bcaf25744f2f565ff13e6c
          discard;
      }
 diff --git a/port/viewer/shaders/mesh_depth.vert b/port/viewer/shaders/mesh_depth.vert
-index e898318dc8e9bc1a453d00a364d7d2df8cb02765..b1561b5cb3b96a4d8a3883055c2793b0860f29f7 100644
+index e898318dc8e9bc1a453d00a364d7d2df8cb02765..139d201975069c16872dafb2d55c8d87dd685b9d 100644
 --- a/port/viewer/shaders/mesh_depth.vert
 +++ b/port/viewer/shaders/mesh_depth.vert
 @@ -33,6 +33,7 @@ uniform sampler2D light_texture;
@@ -11065,14 +11558,15 @@ index e898318dc8e9bc1a453d00a364d7d2df8cb02765..b1561b5cb3b96a4d8a3883055c2793b0
  #endif
  #ifndef OPENRAC_DEPTH_RIGID
  const int kPaletteWidth = 1024;
-@@ -57,13 +58,16 @@ void main() {
+@@ -55,6 +56,7 @@ void main() {
+ #ifdef OPENRAC_DEPTH_NORMALS
+     vec3 n = normal;
  #endif
++    float kept = 1.0;  // a rigid mesh (OPENRAC_DEPTH_RIGID) has no skin: all of it drawn
  #ifndef OPENRAC_DEPTH_RIGID
      float total = weights.x + weights.y + weights.z + weights.w;
-+    float kept = 1.0;
      if (skinning != 0 && palette >= 0.0 && total > 0.0) {
-         int base = int(palette + 0.5);
-         mat4 skin = weights.x * joint_matrix(base + int(joints.x))
+@@ -63,7 +65,9 @@ void main() {
                      + weights.y * joint_matrix(base + int(joints.y))
                      + weights.z * joint_matrix(base + int(joints.z))
                      + weights.w * joint_matrix(base + int(joints.w));
@@ -12087,7 +12581,7 @@ index 78fb9614f54e8abad25e84cb700ffaa4f371f406..054468ac92e004d1ca6efe2a6161fb60
      }  // namespace weapon
  }  // namespace hooks
 diff --git a/sdk/include/openrac/openrac_mod.h b/sdk/include/openrac/openrac_mod.h
-index 8b997beb8577baa2bfcf76e38a02cf1fbe45e42c..3aeb24abd11c0e26296eca83819668d7bdb28a7d 100644
+index 8b997beb8577baa2bfcf76e38a02cf1fbe45e42c..a9463e8b470d3ee22c7dbb0a6357b0d7f88be66e 100644
 --- a/sdk/include/openrac/openrac_mod.h
 +++ b/sdk/include/openrac/openrac_mod.h
 @@ -322,6 +322,78 @@ typedef struct openrac_view {
@@ -12279,7 +12773,19 @@ index 8b997beb8577baa2bfcf76e38a02cf1fbe45e42c..3aeb24abd11c0e26296eca83819668d7
  /* The most eyes (openrac_api.play_eyes). Since 1.9. */
  #define OPENRAC_EYES_MAX 8
  
-@@ -2072,6 +2218,71 @@ typedef struct openrac_api {
+@@ -1108,6 +1254,11 @@ typedef struct openrac_mod_setting {
+  * party went): the mod's own settings count again. Since 1.14. */
+ typedef void (*openrac_party_rules_fn)(void* user, const void* data, uint32_t size);
+ 
++/* The Quest fork's: another player's word on its own player (openrac_api.player_extra_deliver), `size`
++ * bytes as a mod published them in that player's game, for its figure, moby `slot` in this game. */
++#define OPENRAC_PLAYER_EXTRA_MAX 200
++typedef void (*openrac_player_extra_fn)(void* user, int slot, const void* data, uint32_t size);
++
+ /* ---- Interface 1.14: what a shared game needs of the port ---- */
+ 
+ /* What card_filter does with the game's writes to its memory card. Since 1.14. */
+@@ -2072,6 +2223,92 @@ typedef struct openrac_api {
       * bytes, nonzero for each) names; mission_state_write sets them again. Returns OPENRAC_HOOK_OK,
       * or OPENRAC_HOOK_UNKNOWN outside a level or for a port without it. Since 1.14. */
      int (*mission_state_clear)(int level, const uint8_t* flags);
@@ -12348,6 +12854,27 @@ index 8b997beb8577baa2bfcf76e38a02cf1fbe45e42c..3aeb24abd11c0e26296eca83819668d7
 +     * OPENRAC_HOOK_OK when posted, OPENRAC_HOOK_TAKEN when taken, or OPENRAC_HOOK_UNKNOWN for no
 +     * victim there. */
 +    int (*moby_hit_as_game)(openrac_mod* mod, const openrac_hit* hit);
++
++    /* The Quest fork's: a few bytes a mod says of its own player to the other games of a party (a VR player's head,
++     * hands and the item in them), at most OPENRAC_PLAYER_EXTRA_MAX, kept until it says again; size 0 says nothing.
++     * A multiplayer mod sends them with the player's pose. Returns OPENRAC_HOOK_OK. */
++    int (*player_extra_publish)(openrac_mod* mod, const void* data, uint32_t size);
++    /* The Quest fork's, for a multiplayer mod: what was last published into `out` (`size` bytes), its length returned
++     * (0: nothing), and how many publishes there have been into `stamp`. */
++    int (*player_extra_read)(void* out, uint32_t size, uint32_t* stamp);
++    /* The Quest fork's, for a multiplayer mod: another player's published bytes, for its figure, moby `slot` in this
++     * game: each mod's on_player_extra callback has them now, on the game's thread. */
++    int (*player_extra_deliver)(int slot, const void* data, uint32_t size);
++    /* The Quest fork's: `fn` gets each player_extra_deliver. Only during openrac_mod_load. */
++    int (*on_player_extra)(openrac_mod* mod, openrac_player_extra_fn fn, void* user);
++    /* The Quest fork's: moby_arms for another moby (a figure), up to OPENRAC_FIGURES_MAX at once, each kept until set
++     * again, cleared (`arms` null) or the level goes. Drawn whole, its arms bent to the hands (`ik`), its legs to its
++     * feet (`ankle`), and with `head` the joints from cut_only down turned to head_rows in the draw too. Only from
++     * on_before_capture. Returns OPENRAC_HOOK_OK, or OPENRAC_HOOK_UNKNOWN for no such moby or no room. */
++    int (*figure_arms)(openrac_mod* mod, int slot, const openrac_moby_arm* arms);
++    /* The Quest fork's: the moby of the item in the hand of the figure that is moby `slot` (figure_held's), 0 for
++     * none. The port puts it on the figure's joint after the moby loop; a mod may place it before the capture. */
++    openrac_gaddr (*figure_hand_moby)(int slot);
  } openrac_api;
  
  /* ------------------------------------------------------------------------------------------ *

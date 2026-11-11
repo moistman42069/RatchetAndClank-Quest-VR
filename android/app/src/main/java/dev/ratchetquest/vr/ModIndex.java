@@ -123,6 +123,47 @@ final class ModIndex {
         return null;
     }
 
+    // ---- The list's version of a mod a player has, built in or added (0.1.19) ------------------------------------
+    // The owner: "we shouldnt have mismatches" (a party needs every game's Multiplayer, and each gameplay mod, at the same
+    // version: a release's built-in one fell behind OpenRAC's list, or went ahead of it). A mod's card offers the list's
+    // version whenever it differs from the one the player has; added, it takes a built-in's place (BundledMods, PcMods)
+    // until the player goes back to the built-in.
+
+    /** Built-in mods this project changes, which the list's version would undo: RAC-Board (its Weapons on the board). */
+    static boolean keepsBuiltIn(String id) {
+        return "rac-board".equals(id);
+    }
+
+    /** The list's version of a mod the player has at `have`, built in or added; null when there is none to take. */
+    Offer differing(String id, String have, boolean builtIn) {
+        Offer offer = get(id);
+        if (offer == null || offer.why != null || offer.version.isEmpty() || offer.version.equals(have)
+            || (builtIn && keepsBuiltIn(id))) {
+            return null;
+        }
+        return offer;
+    }
+
+    /** The button for it: "Update to 0.12.3", or, the list's being older than the one the player has, its own words. */
+    static String takeLabel(String have, Offer offer) {
+        return compareVersions(offer.version, have) > 0 ? "Update to " + offer.version
+            : "Use " + offer.version + ", as OpenRAC's mod list has it";
+    }
+
+    /** Versions number by number ("0.12.10" after "0.12.9"); a part that is not a number by its text. */
+    static int compareVersions(String a, String b) {
+        String[] x = a.split("[.+-]"), y = b.split("[.+-]");
+        for (int i = 0; i < Math.max(x.length, y.length); i++) {
+            String p = i < x.length ? x[i] : "0", q = i < y.length ? y[i] : "0";
+            int c = p.matches("\\d{1,18}") && q.matches("\\d{1,18}") ? Long.compare(Long.parseLong(p), Long.parseLong(q))
+                : p.compareTo(q);
+            if (c != 0) {
+                return c < 0 ? -1 : 1;
+            }
+        }
+        return 0;
+    }
+
     // ---- Fetching, with the copy kept ----------------------------------------------------------------------------
 
     /**

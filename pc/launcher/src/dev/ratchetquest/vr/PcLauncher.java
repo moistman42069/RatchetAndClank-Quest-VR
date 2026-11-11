@@ -67,11 +67,16 @@ public final class PcLauncher {
     private int tab = 0;
     /** What became of the last mod file picked, shown on the Game tab. */
     private String modNote = "";
-    /** OpenRAC's mod list once Browse has read it (ModIndex), what Browse is doing, and the mod being added from it. */
+    /**
+     * OpenRAC's mod list once read (ModIndex: by Browse, or at the start with Automatic checks on, for the mods' Update
+     * buttons), what Browse is doing, and the mod being added from it.
+     */
     private volatile ModIndex modIndex;
     private String browseNote = "";
     private boolean browsing = false, reading = false;
     private String adding = "";
+    /** The Game tab, with the mods (showTab). */
+    private static final int GAME_TAB = 3;
     /** Why the last update did not finish, if it did not. */
     private String updateNote = "";
     private volatile Process game;
@@ -192,6 +197,10 @@ public final class PcLauncher {
         frame.setVisible(true);
         showWhatsNewOnce();
         PcUpdater.maybeCheck(paths, this::updatesChanged);
+        // OpenRAC's mod list, for each mod's Update button (the Game tab), with Automatic checks on, as the release's own.
+        if (PcUpdater.network && PcUpdater.automatic(paths)) {
+            readModIndex();
+        }
     }
 
     private void close() {
@@ -336,7 +345,7 @@ public final class PcLauncher {
             case 0: showPlay(); break;
             case 1: showChoices(Options.GRAPHICS); break;
             case 2: showInGameOptions(); showChoices(Options.VR); break;
-            case 3: showGame(); break;
+            case GAME_TAB: showGame(); break;
             case 4: showControls(); break;
             case 5: showLogs(); break;
             default: showCredits(); break;
@@ -881,31 +890,41 @@ public final class PcLauncher {
         // Each opening reads the list again, as OpenRAC's launcher does at Check for updates; the list from before
         // stays on show until the new one is in.
         browsing = !browsing;
-        if (browsing && !reading) {
-            reading = true;
-            browseNote = modIndex == null ? "Reading OpenRAC's mod list..." : "Checking OpenRAC's mod list again...";
-            new Thread(() -> {
-                String note = "";
-                ModIndex read = null;
-                try {
-                    read = ModIndex.fetch(new File(paths.home, "mod-index"), "RatchetQuestVR-pc-launcher/" + PcBuild.VERSION,
-                        PcMods.PLATFORM, PcMods.API_MAJOR, PcMods.API_MINOR, text -> Json.object(text));
-                } catch (IOException | RuntimeException e) {
-                    note = e.getMessage();
-                }
-                final ModIndex got = read;
-                final String said = note;
-                SwingUtilities.invokeLater(() -> {
-                    reading = false;
-                    if (got != null) {
-                        modIndex = got;
-                    }
-                    browseNote = said;
-                    redraw();
-                });
-            }, "mod-index").start();
+        if (browsing) {
+            readModIndex();
         }
         redraw();
+    }
+
+    /** OpenRAC's mod list read again on a thread of its own; the Game tab drawn again when it is in, if it shows. */
+    private void readModIndex() {
+        if (reading) {
+            return;
+        }
+        reading = true;
+        browseNote = modIndex == null ? "Reading OpenRAC's mod list..." : "Checking OpenRAC's mod list again...";
+        new Thread(() -> {
+            String note = "";
+            ModIndex read = null;
+            try {
+                read = ModIndex.fetch(new File(paths.home, "mod-index"), "RatchetQuestVR-pc-launcher/" + PcBuild.VERSION,
+                    PcMods.PLATFORM, PcMods.API_MAJOR, PcMods.API_MINOR, text -> Json.object(text));
+            } catch (IOException | RuntimeException e) {
+                note = e.getMessage();
+            }
+            final ModIndex got = read;
+            final String said = note;
+            SwingUtilities.invokeLater(() -> {
+                reading = false;
+                if (got != null) {
+                    modIndex = got;
+                }
+                browseNote = said;
+                if (tab == GAME_TAB) {
+                    redraw();
+                }
+            });
+        }, "mod-index").start();
     }
 
     private void showModIndex() {
@@ -952,14 +971,16 @@ public final class PcLauncher {
                 }
                 if (!addable) {
                     card.add(text(offer.why, 13, PcArtwork.MUTED, false));
-                } else if (installed != null && !installed.added) {
-                    card.add(text("Built in: it is with your mods below.", 13, PcArtwork.MUTED, false));
+                } else if (installed != null && !installed.added && index.differing(offer.id, installed.version, true) == null) {
+                    card.add(text(ModIndex.keepsBuiltIn(offer.id) ? "Built in, with this release's own changes: it is "
+                        + "with your mods below." : "Built in: it is with your mods below.", 13, PcArtwork.MUTED, false));
                 } else if (adding.equals(offer.id)) {
                     card.add(text("Adding " + offer.name + "...", 13, PcArtwork.ORANGE, false));
                 } else {
+                    // A built-in one at another version than the list's: the list's takes its place (ModIndex.differing).
                     String label = installed == null ? "Add " + offer.name
                         : installed.version.equals(offer.version) ? "Added (" + offer.version + "): add it again"
-                        : "Update to " + offer.version;
+                        : ModIndex.takeLabel(installed.version, offer);
                     card.add(new Btn(label, installed == null, () -> addFromIndex(offer)));
                     String revoked = installed != null && !installed.version.isEmpty() ? index.revoked(offer.id, installed.version) : null;
                     if (revoked != null) {
@@ -991,6 +1012,9 @@ public final class PcLauncher {
             SwingUtilities.invokeLater(() -> {
                 adding = "";
                 browseNote = said;
+                if (!browsing) {
+                    modNote = said;  // an Update on a mod's card, Browse shut: said where the mods are
+                }
                 redraw();
             });
         }, "add-mod").start();
@@ -1036,8 +1060,20 @@ public final class PcLauncher {
                 card.add(text("At the game's last start it did not run: " + problem, 13, PcArtwork.ORANGE, false));
             }
         }
+        // OpenRAC's mod list at another version than this one (built in or added): take the list's, so a party's games
+        // match (the owner: "we shouldnt have mismatches"). Its archive is checked as Browse's are.
+        ModIndex index = modIndex;
+        ModIndex.Offer listed = index == null ? null : index.differing(mod.id, mod.version, !mod.added);
+        if (adding.equals(mod.id)) {
+            card.add(text("Getting " + mod.name + " from OpenRAC's mod list...", 13, PcArtwork.ORANGE, false));
+        } else if (listed != null) {
+            boolean party = listed.impact.contains("gameplay") || listed.impact.contains("online");
+            card.add(text("OpenRAC's mod list has " + listed.version + "." + (party ? " In Multiplayer every game "
+                + "needs the same version of it." : ""), 13, PcArtwork.ORANGE, false));
+            card.add(new Btn(ModIndex.takeLabel(mod.version, listed), true, () -> addFromIndex(listed)));
+        }
         if (mod.added) {
-            card.add(new Btn("Remove this mod", false, () -> {
+            card.add(new Btn(mod.builtIn != null ? "Back to the built-in " + mod.builtIn : "Remove this mod", false, () -> {
                 mods.remove(mod);
                 redraw();
             }));

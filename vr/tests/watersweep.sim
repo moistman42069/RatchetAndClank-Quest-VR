@@ -1,0 +1,12 @@
+# 0.1.19: the liquid grid's levels (Kerwan, Rilgar, Umbris, Batalia, Gaspar's lava, Oltanis; Aridia's sand sea) from
+# the level's start, the head turned round and looking down: no block of a sea left out where the game's camera does
+# not look (wide_view.c, the grid's cull opened on every plane under a headset). Run with --level N.
+3000 head_pitch -15
+3040 shot ahead
+3050 head_yaw 90
+3090 shot left
+3100 head_yaw 180
+3140 shot back
+3150 head_yaw -90
+3190 shot right
+3200 quit 0

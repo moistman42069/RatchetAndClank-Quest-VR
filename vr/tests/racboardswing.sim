@@ -1,0 +1,28 @@
+# 0.1.19: the Swingshot from RAC-Board's board (Weapons on the board, its default), at swing.sim's pull on Kerwan
+# (QUEST_SIM_GIVE=12 QUEST_SIM_HOLD=12 QUEST_SIM_NEAR=758 QUEST_SIM_NEAR_AT=10,1,180, --level 3; Novalis has no Swingshot
+# target). The board out (the right hand behind the back, its stick clicked) and the trigger pulled at once, before the
+# board drifts on the ground there: RAC-Board's trace "the Swingshot from the board: a target in sight", "off the board
+# for a Swingshot swing, the board kept at his feet", [vr-jetboard] off, and the pull (QUEST_STATE_TRACE: 0x24, 0x25).
+# Where the game sets him down he is back on the board (the owner: "should always be on the board unless chosen to put
+# it away"): "back on the board after the pull", "on the board at a standstill after the pull", [vr-jetboard] riding
+# again, and he stays on the target's small platform with the stick at rest (no "below the fall height", no "off the
+# board" after; left to itself there the board slid off its rim to a fall, 0.1.19's first tries). With no target,
+# RAC-Board's trace says where he was and faced.
+600 y 1
+606 y 0
+2800 shot stand
+2900 rh_z 0.6
+2901 rh_y 0.15
+2930 right_click 1
+2936 right_click 0
+2960 rh_z 0
+2961 rh_y 0
+2990 shot board
+3000 right_trigger 1
+3040 shot hooked
+3100 shot pulling
+3200 right_trigger 0
+3250 shot let-go
+3400 shot after
+3700 shot still
+3800 quit 0

@@ -3,11 +3,20 @@
 //
 // The headset's controls in place of the PS2 pad icons in the game's texts (Rerac-vr's
 // pad_glyphs.rs, npiriou, ISC): the icons (text bytes 0x10..0x19) of the three fonts, each a 24 x 16
-// cell of the font's texture, are painted again as the control that sends that button here (pad.h:
-// A Cross, the trigger Circle, the right stick's click Triangle, the right grip Square, the left
-// grip L1, the left trigger R1, X L2, B R2, and the two sticks). The game keeps its font textures
-// as 8-bit indices into 256 colours, so each texel painted takes the nearest colour the texture
-// has. Plain math (tests/rig_pad_test.cpp).
+// cell of the font's texture, show the control that sends that button here, named as an Xbox
+// controller's (0.1.19, the owner: Xbox style buttons the normal in first and third person; the
+// grips are its bumpers, LB and RB). In first person, pad.h's table: A Cross, the right trigger
+// Circle, the right stick's click Triangle, the right grip Square, the left grip L1, the left
+// trigger R1, X L2, B R2. Where the controllers are a plain pad (third person with Gamepad, the big
+// screen), the Xbox controller's own: A Cross, B Circle, X Square, Y Triangle, LB and RB L1 and R1,
+// LT and RT L2 and R2.
+//
+// With OpenRAC's Xbox button icons mod on (on by default from 0.1.19), the fonts already hold its
+// coloured Xbox buttons in the game's style, each on the PS2 button it stands for: then nothing is
+// painted, and in first person each icon's glyph record is pointed at the cell of the Xbox button
+// that does it there (kVrCells). Without it (off, or fonts it does not know), the icons are painted
+// here: the game keeps its font textures as 8-bit indices into 256 colours, so each texel painted
+// takes the nearest colour the texture has. Plain math (tests/rig_pad_test.cpp).
 
 #pragma once
 
@@ -31,19 +40,40 @@ struct Glyph {
     const char* label;
 };
 
-// The pad icon codes, with the control that sends each (Rerac-vr's table; pad.h's mapping is the same).
+// The pad icon codes, with the control that sends each in first person (Rerac-vr's table; pad.h's mapping is the same).
 inline constexpr std::array<Glyph, 10> kGlyphs = {{
     {0x10, Shape::Button, "A"},       // Cross: jump, confirm
     {0x11, Shape::Key, "RT"},         // Circle: weapons and gadgets
     {0x12, Shape::StickClick, "R"},   // Triangle: talk, the quick select, back
-    {0x13, Shape::Key, "RG"},         // Square: the wrench
-    {0x14, Shape::Key, "LG"},         // L1: the previous page in menus
+    {0x13, Shape::Key, "RB"},         // Square: the wrench (the right grip)
+    {0x14, Shape::Key, "LB"},         // L1: the previous page in menus (the left grip)
     {0x15, Shape::Key, "LT"},         // R1: crouch, the packs; the next page in menus
     {0x16, Shape::Button, "X"},       // L2
     {0x17, Shape::Button, "B"},       // R2: hover, strafe, the Hydro-Pack's boost
     {0x18, Shape::Stick, "R"},        // the right stick
     {0x19, Shape::Stick, "L"},        // the left stick
 }};
+
+// Where the controllers are a plain pad (pad.h's plain_pad): an Xbox controller's names, the grips its bumpers.
+inline constexpr std::array<Glyph, 10> kPadGlyphs = {{
+    {0x10, Shape::Button, "A"},       // Cross
+    {0x11, Shape::Button, "B"},       // Circle
+    {0x12, Shape::Button, "Y"},       // Triangle
+    {0x13, Shape::Button, "X"},       // Square
+    {0x14, Shape::Key, "LB"},         // L1: the left grip
+    {0x15, Shape::Key, "RB"},         // R1: the right grip
+    {0x16, Shape::Key, "LT"},         // L2: the left trigger
+    {0x17, Shape::Key, "RT"},         // R2: the right trigger
+    {0x18, Shape::Stick, "R"},        // the right stick
+    {0x19, Shape::Stick, "L"},        // the left stick
+}};
+
+// With the Xbox mod's buttons in the fonts (each on the PS2 button an Xbox controller has in its place), the icon whose
+// cell each icon shows in first person, from 0x10 on: Cross the A (its own), Circle the RT (R2's), Triangle the right
+// stick (the mod keeps the game's sticks: the click is shown as the stick), Square the RB (R1's), L1 the LB (its own),
+// R1 the LT (L2's), L2 the X (Square's), R2 the B (Circle's), the sticks their own. Where the controllers are a plain
+// pad, each its own.
+inline constexpr std::array<std::uint8_t, 10> kVrCells = {0x10, 0x17, 0x18, 0x15, 0x14, 0x16, 0x13, 0x11, 0x18, 0x19};
 
 // A cell being painted: straight colour and the GS's alpha (0..128), all clear to start.
 struct Cell {
@@ -148,6 +178,7 @@ inline constexpr Letter kLetters[] = {
     {'T', 6, {"######", "######", "..##..", "..##..", "..##..", "..##..", "..##..", "..##..", "..##.."}},
     {'G', 6, {".####.", "##..##", "##....", "##....", "##.###", "##..##", "##..##", "##..##", ".####."}},
     {'L', 6, {"##....", "##....", "##....", "##....", "##....", "##....", "##....", "######", "######"}},
+    {'Y', 7, {"##...##", "##...##", ".##.##.", "..###..", "..###..", "..###..", "..###..", "..###..", "..###.."}},
 };
 
 // The stick caps' smaller letters (seven rows).
@@ -246,6 +277,21 @@ inline std::uint8_t nearest(const std::uint8_t* palette, const float rgba[4]) {
         }
     }
     return static_cast<std::uint8_t>(best);
+}
+
+// Whether OpenRAC's Xbox button icons mod has painted a font: its A, on the Cross's cell (at u, v in the font's 8-bit
+// texture `width` wide), is green, where the game's Cross is blue and this port's own painting grey. At least
+// kGreenTexels of the cell's texels opaque and plainly green, `palette` as nearest() takes it.
+inline constexpr int kGreenTexels = 12;
+inline bool green_a(const std::uint8_t* texels, std::uint32_t width, std::uint32_t u, std::uint32_t v, const std::uint8_t* palette) {
+    int green = 0;
+    for (std::uint32_t y = 0; y < static_cast<std::uint32_t>(kCellH); ++y) {
+        for (std::uint32_t x = 0; x < static_cast<std::uint32_t>(kCellW); ++x) {
+            const std::uint8_t* p = palette + 4 * csm1(texels[(v + y) * width + u + x]);
+            green += p[3] >= 64 && p[1] >= 90 && p[1] > p[0] + 40 && p[1] > p[2] + 40 ? 1 : 0;
+        }
+    }
+    return green >= kGreenTexels;
 }
 
 }  // namespace quest::glyphs

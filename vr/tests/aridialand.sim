@@ -1,0 +1,15 @@
+# 0.1.19: Aridia's landing climbed out of in first person (the owner's 0.1.18 video: "ratchet still slides a bit and
+# clips through the ship before exiting"). QUEST_SHIP_TRACE=1 QUEST_SCENE_EYE_TRACE=1 give the place the view is taken
+# from each tick and which (his eyes or his seat): in the seat through his duck (no view in the dashboard, none of his
+# arms there), out of it eased as he springs out, his track's jump on the pad eased, then play.
+600 y 1
+606 y 0
+1700 shot seated
+1800 shot duck1
+1860 shot duck2
+1890 shot spring
+1920 shot over
+1960 shot wing
+2105 shot pad
+2200 shot stand
+2320 quit 0

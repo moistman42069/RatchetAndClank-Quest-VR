@@ -166,7 +166,7 @@ it worked (the log is in Download/RatchetQuestVR). PC-proven features are in STA
   - **Water (0.1.17):** stand right by a pool (Novalis's by the start) and look about: it stays whole.
   - **Title screen (0.1.17):** press Start, then move through the main menu, Load Game and Options: Ratchet, his ship and the crate stay in the scene behind the menu.
   - **Help Desk (0.1.17, on for a new game):** start a new game: the game's tips should play in voice and text on Veldin. Later pick up the Trespasser: say whether you hear its tip and see its text. On a save from before, turn them on first (Y, Options, HelpDesk, Voice and Text).
-  - **View switch (0.1.17):** in play, hold the left menu button a second: third person (`[vr-rig] the view is third person now: the left menu button held`); again: first person. A short press only recentres. Try it on the hoverboard and at a bolt crank.
+  - **View switch (0.1.17):** in play, hold the left menu button a second: third person (`[vr-rig] the view is third person now: the left menu button held`); again: first person. A short press only recentres (in third person with Gamepad, from 0.1.19, it pauses as you let go). Try it on the hoverboard and at a bolt crank.
   - **Dive (0.1.17):** in first person at the water's surface, pull the left trigger: he dives. Under the water look down and push the stick: he goes deeper; look up: he comes back up. Then stroke hard at the surface with the wrench out: he should not dive unless you push the water up with both hands. In third person the left trigger dives too.
   - **Dive by hand (0.1.17, a seated tester could not dive at all):** at the surface, holding the controllers as you do, push both hands up quickly: he dives (`[vr-swim] dive: the hands pushed up`). Come back up, look well down and stroke: he dives (`a stroke looking down`). Swim along at the surface with ordinary strokes, looking ahead: he must not dive. Do it standing and seated (Play position: Seated).
   - **Seated (0.1.17):** VR Options, Play position: Seated, sitting in a chair. Your eyes should be at Ratchet's, no higher (to 0.1.16 they were 45 cm above), and your hands where you hold them: in the water at the surface, at a bolt crank, at an enemy with the wrench. Lean forward in the chair: he does not crouch. The left trigger crouches.
@@ -187,6 +187,83 @@ it worked (the log is in Download/RatchetQuestVR). PC-proven features are in STA
   - **The start of the game:** after the intro movie the copyright lines show on the title's panel, steady as you move
     your head, with no warp. Load a save into a level that starts with a scene: no flash of the save select as it
     begins (`[vr-view] the eyes' last picture is of another place` at most once there).
+- **The owner's video and logs of 0.1.18, and a tester's (0.1.19).** PC-run with a simulated headset only, on the PAL disc.
+  - **Aridia's sand sea:** by the Gadgetron vendor, face away from the channel and turn your head to it and past it, then
+    look down: the sand is whole, with no straight-edged black holes and no pillars hanging in nothing. Look round at
+    Kerwan's, Rilgar's, Umbris's, Batalia's and Oltanis's seas and Gaspar's lava the same way.
+  - **Max draw distance (Graphics, on):** look out over a sea from a high place (Kerwan's city, Oltanis): it reaches
+    its edge rather than stopping short. Turn it off and say whether you see a difference. The lamps' glow on the
+    ground stays with your head turned from the way Ratchet faces.
+  - **RAC-Board in first person:** get on, hold the left stick ahead and turn your head: the board comes round to where
+    you look and holds it; the view does not swing with each carve, drift round with the sway, or start the ride
+    turned to one side. A spin and a flip still turn the view and bring it back. Look behind you with the stick ahead:
+    it carves round the short way, hard, to your gaze. Say how it steers.
+  - **Third person with Gamepad (the VR tab's Third person controls, to start):** in third person the controllers are an
+    Xbox controller: A jump, B fire, X wrench, Y quick select, RB (the right grip) crouch, RT (the right trigger) strafe,
+    the left stick click the map; the menu button pauses as you let it go, and held a second in play takes you back to
+    first person (the log: `[vr-rig] the view is first person now`). In the pause menu Y goes back, B is Circle, A and
+    the trigger pick what you point at. First person's controls are as before. Set it to VR and third person has first
+    person's again. The headset's own recentre (hold the Meta button) recentres in third person.
+  - **D-pad, Controller by your head (to start):** in third person hold the left controller up beside your head, as a
+    phone at your ear: it buzzes, and its stick is the D-pad (`[vr-dpad] the left controller by the head`); the same
+    with the right. Does it come on by mistake while you play (aiming high, a hand on your head)? With RAC-Board on,
+    D-pad Up there puts the board on and takes it off. **Left thumb rest:** rest your left thumb on its rest by X and Y:
+    the right stick is the D-pad (`[vr-dpad] the left thumb on its rest`); say whether your controllers sense it.
+  - **Xbox-style buttons in the hints (both views):** with the Xbox button icons mod on (the Game tab, on to start), a
+    hint's buttons are its coloured A, B, X, Y and pills: in first person the button that does it there (Circle's
+    hints say RT, the fire), in third person with Gamepad the Xbox layout's (`[vr-glyphs] font N: the Xbox button
+    icons mod's buttons, ...`). If the log says `icons painted` instead, the mod did not know the US disc's fonts:
+    the grey icons show the same names. Say which you see, and whether any hint shows the wrong button.
+  - **2D mode:** the grips are now L1 and R1 and the triggers L2 and R2 (RB crouches); the D-pad by your head works
+    there too.
+  - **Out of the ship:** land on Aridia (or any planet) in first person: the view stays in the seat as he ducks, with no
+    slide into the dashboard and no dip through the hull, then is his eyes from his spring out
+    (`[vr-scene] out of the seat: his eyes ... over it`). Compare it with Rerac-vr's if you can.
+  - **Foveated rendering (Graphics, Medium to start):** the log says `[openxr] foveated rendering: medium` and, for
+    each eye, `foveated rendering: eye N's picture (texture T), straight ahead at (x y)`. Try Off, Low, Medium and High:
+    the middle of your view stays sharp, the edges soften a little more each step, and the frame rate rises. Say if
+    anything flickers, shimmers or looks blocky at the edges. If the log says the chip does not offer it, say so.
+  - **The frame rate, as the log now tells it:** `[vr-perf] N frames/s over 10 s, period P ms, waited W ms a frame,
+    worked K ms (most M, n over the period), D displays missed`. "Over the period" and the missed displays count a
+    picture's time as one period, or two with Smoother frames on (the Quest then paces the game at half its rate), so
+    with it on "worked" should stay under twice the period. Send the log from a run at 90 Hz, 100%, Foveated rendering High, and one at your usual settings.
+  - **The game's threads:** `[openxr] thread N (openrac-pool) given to the headset as a worker`, three or so lines,
+    with no "refused".
+  - **CPU and GPU levels:** with CPU and GPU boost on and no Quest Games Optimizer profile, OVR Metrics' CPU and GPU
+    levels at 4 are what Meta allows a game; say if they ever go higher or lower.
+  - **The city and the plants (a tester on 0.1.18):** on Kerwan, look out over the city from the start and round the
+    station: no buildings or walkways missing; on Novalis and Aridia the plants have all their leaves. Say if any
+    level still has pieces missing that 0.1.17 showed.
+  - **Weapons on the RAC-Board (RAC-Board on; its Weapons on the board, on to start):** ride with a gun out: the right
+    trigger fires it (B in third person with Gamepad), B does the tricks and grinds in first person, the left grip (or
+    the left trigger with no left gun) grabs. Open the weapon wheel while riding and pick another weapon. In first
+    person take the wrench out with the right grip and swing your hand at a crate; in third person press X (RAC-Board's
+    log: `wrench swing on the board: N hit`). With the Swingshot, swing from a swing target: look down mid-swing and the
+    board is at his feet; let go in the air, and again landing first, and he rides on (`off the board for a Swingshot
+    swing, the board kept at his feet`, `back on the board after the swing`). From a pull target he is set down on the
+    board and stays put on the small platform until you push the stick (`back on the board after the pull`, `on the
+    board at a standstill`). With Swingshot grabs enemies on, hook, yank and throw one while riding: he stays on the
+    board. Turn the setting off: he takes the wrench as he gets on and nothing fires while you ride, as in 0.1.18.
+  - **Stay on magnet paths (More controls, on to start):** in first person, walk Batalia's and Orxon's magnet strips
+    round their bends looking where you go, then with the stick held and your head still: where the strip turns, his
+    way turns with it (`[vr-boots] Stay on magnet paths: the ground ahead would not hold him; his way turned N degrees`).
+    Say whether it ever turns you where you did not want to go. Off: the stick alone steers, as in 0.1.18.
+  - **Weapon wheel page (More controls, Weapon wheel):** Slow motion speed 3, 5 and 10; Swap at full speed on: rest your
+    hand on a weapon a moment and it comes out with the wheel still up, time at full speed for it, then slow again
+    (`[vr-ring] Swap at full speed: the new weapon is out, time slows again`). Akimbo: Left hand slots on Its own slots,
+    set a few slots, and open the left wheel: it holds what you chose.
+  - **Two wheels (Akimbo):** open both wheels at once: each hand has its own laser and dot, the left one no longer gone.
+  - **Back to an empty hand (a tester on 0.1.18):** with a gun in the right hand, open the wheel, rest the dot in its
+    middle a moment and let go: the gun goes and the hand is empty (`[vr-ring] let go in the wheel's middle: the right
+    hand's item N put away, the hand empty`); the trigger brings it back (`[vr-wrench] the trigger asks the last gun
+    back`), the grip still takes the wrench. The same with the left ring (`the left hand's gun put away`). Sweep through
+    the middle quickly to a weapon and let go: that weapon comes out, as before.
+  - **The Swingshot's jab (a tester on 0.1.18; Punch with your hands on):** with the Swingshot in the right hand, jab an
+    enemy: a hit (`[vr-fist] Ratchet's right punch`). Fire it at a target and swing: no punch while the hook is out.
+    The empty hand's melee is as in 0.1.18.
+  - **The Swingshot's grab (Moves, on):** the chain shows from the hand to the caught enemy as it comes in, and the hook
+    makes its sound as it catches. On Grab moves, Throw strength Light throws it short, Full far; with Throw follows your
+    swing on, a flick throws gently and a hard swing hard.
 - **Testers' and the owner's notes on 0.1.17 (0.1.18).** PC-run with a simulated headset only, on the PAL disc.
   - **Swingshot grabs enemies (Moves, off to start):** first check that nothing is caught and nothing punched as it starts; then turn it on, and on Novalis, aim the Swingshot at a small enemy away from any target and pull the trigger: the hook flies, catches it and yanks it in to hang before your hand (`[vr-grab] the hook out to slot N`, `caught: yanked in`). Move your hand about: it follows smoothly. Swing and let go: it flies that way and lands hurt (`thrown at X m/s`, `it landed: half the wrench's blow to it`); let go gently: it drops unhurt. Throw one into another enemy. Say how it feels, whether the hold looks steady, and anything that goes wrong with an enemy you caught (stuck, lost, still attacking). Off: the Swingshot is the game's.
   - **Punch with your hands (Moves, off to start):** turned on, with the left hand empty, jab an enemy, open hand and fist: a hit for half a wrench blow (`[vr-fist] Ratchet's left punch at X m/s`). The same with the right hand holding the Blaster. Walking with your hands moving, reaching for a ledge, holding a gun two-handed: no punch. Say whether it ever misses a real jab or fires on its own.
@@ -205,9 +282,19 @@ it worked (the log is in Download/RatchetQuestVR). PC-proven features are in STA
   - **Two hands steady:** hold the Pyrocitor (and the other two-handed guns) with both hands and walk: neither hand should turn or slide on the gun with his steps.
   - **What he wears:** the gloves, the Walloper and the Swingshot on his forearm with no gap at a few Empty hand angles; the Grindboots and Magneboots with your knees bent (crouch for real), and on a grind rail: the boot's cuff on his shin, his legs down to the boots.
   - **The weapon wheel at the hand:** with Akimbo, open the left wheel with the hand low and to the side: it opens there, in view, and stays while open (`[vr-ring] the left ring opens at its hand`). The same on the right.
-  - **RAC-Board (Game tab, on):** reach behind your back with either hand (a buzz), click its stick: on the board (`[vr-jetboard] riding RAC-Board's board`); the left stick ahead keeps the board's heading; A jumps, the right trigger with the stick back flips, and the view goes with it and comes back level; reach back and click again: off. No weapon wheel opens on those clicks.
+  - **RAC-Board (Game tab, on):** reach behind your back with either hand (a buzz), click its stick: on the board (`[vr-jetboard] riding RAC-Board's board`); in first person the left stick steers to where you look (0.1.19: hold it ahead and turn your head: the board comes round to your gaze and holds it there, the view not swinging with each carve or drifting with the sway, and not 55 degrees off the nose as you get on; racboardhead.sim), in third person ahead keeps the board's heading; A jumps, the right trigger with the stick back flips, and the view goes with it and comes back level; reach back and click again: off. No weapon wheel opens on those clicks.
   - **Multiplayer (Game tab, on):** host a party with a flat player, and join one: your wrench, punches and both hands' guns hurt enemies for both of you; as a member the Swingshot catches no enemy and the wheel does not slow time (`[vr-party]`). The Multiplayer item should be in the title's menu. Untried with two real players.
+    **0.1.19, with a PC player:** the Game tab says Multiplayer 0.12.2. Create match from the Quest: a PC player on
+    OpenRAC's development build, with Multiplayer 0.12.2 from its mod list and no gameplay mods on, finds your game in
+    Browse games with no "(differs)", joins it and says Ready; then the other way round, the PC hosting. Then the same
+    with RAC-Board on in both games (the Quest's Weapons on the board on). Say what a PC player on OpenRAC's stable
+    1.0.2 sees.
   - **Mods:** Browse OpenRAC's mods (Game tab): the list loads, a mod is fetched and added; offline, the last list shows. Mod files opens the Files app on Mod files (Quest) or the folder (PC).
+    **0.1.19, Update buttons:** with Automatic checks on, open the Game tab a moment after the launcher starts: a built-in
+    mod whose version OpenRAC's list does not have shows "OpenRAC's mod list has X" and an Update button (none, if every
+    built-in matches the list, as at this release). When one shows: Update, then the card says the new version and
+    "Back to the built-in"; its On or Off and settings are as they were; start the game (the mod runs), then go back to
+    the built-in and start again. RAC-Board never offers one.
   - **Aridia:** a Swingshot in each hand, the left leading again and again, then change the right hand's item: no crash.
   - **Magneboots in first person** (Orxon's first wall, Batalia's ramp): face the wall square on and push the stick ahead: he walks straight up it. Turn your head on the wall: he goes up and that way. Let go halfway up and push again: he stands, then goes on. Follow the strip with your head where it bends; note where, if anywhere, he slips off with your head along the strip (Batalia's top is not walked on PC).
   - **After the Magneboots** (Orxon's walkways or Batalia's wall): walk a magnet surface, round a corner if there is one, then drop or walk off it. On the ground, look ahead and push the stick ahead: he walks where you look, and a throw goes where you throw it. The log has `[vr-boots] off the surface` with the turn it put right.

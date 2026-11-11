@@ -50,14 +50,20 @@ abstract class Options {
         ON_OFF, TRUE_FALSE, "true");
     static final Choice CPU_GPU_BOOST = new Choice("cpu_gpu_boost", "CPU and GPU boost",
         "On: the Quest runs its processors at the highest speed it lets a game ask for, so fewer frames are missed. "
-            + "It uses more battery and the headset gets warmer; when it is too warm the Quest slows them again by itself. "
-            + "Off: the usual high speed. Apps such as Quest Games Optimizer can go higher still through developer mode, "
-            + "which a game cannot do on its own.",
+            + "The Quest still picks each one's level itself, from how busy it is, and a game gets at most about level 4 "
+            + "for each, so OVR Metrics showing CPU 4 and GPU 4 is normal. It uses more battery and the headset gets "
+            + "warmer; when it is too warm the Quest slows them again by itself. Off: the usual high speed. Apps such as "
+            + "Quest Games Optimizer can go higher still through developer mode, which a game cannot do on its own.",
         ON_OFF, TRUE_FALSE, "true");
     static final Choice RESOLUTION = new Choice("resolution", "Eye resolution",
         "Of the headset's recommended size. The biggest effect on performance.",
         new String[] {"70%", "80%", "90%", "100%", "110%", "120%", "130%"},
         new String[] {"0.7", "0.8", "0.9", "1.0", "1.1", "1.2", "1.3"}, "1.0");
+    static final Choice FOVEATION = new Choice("foveation", "Foveated rendering",
+        "Draws the edges of each eye's picture at a lower resolution, where the lenses blur it anyway, so the middle "
+            + "keeps its detail and the game runs faster. High saves the most, and you may see the edges are softer. "
+            + "Off: all of the picture at full resolution. On a PC it does nothing.",
+        new String[] {"Off", "Low", "Medium", "High"}, new String[] {"0", "1", "2", "3"}, "2");
     static final Choice MSAA = new Choice("msaa", "Anti-aliasing",
         "Smooths jagged edges. Cheap for the graphics chip, and well worth it in VR.",
         new String[] {"Off", "2×", "4×"}, new String[] {"1", "2", "4"}, "2");
@@ -71,9 +77,10 @@ abstract class Options {
         "On leaves out far scenery, as the PlayStation 2 did, for a little more frame rate. Off draws all of it.",
         ON_OFF, TRUE_FALSE, "false");
     static final Choice MAX_DRAW = new Choice("max_draw_distance", "Max draw distance",
-        "On draws everything as far as you can see: enemies, crates, plants, effects, so nothing pops in. "
-            + "Off draws each of those only as near as the game did. Costs some frame rate. Original draw distances "
-            + "On overrides it.",
+        "On draws everything as far as you can see: enemies, crates, effects, the seas and the level's own glows "
+            + "and lava, so nothing pops in or ends short. Off draws enemies and crates up to four times as far as the "
+            + "game did, and the rest only as far as the game did. Costs some frame rate. Original draw distances On "
+            + "overrides it.",
         ON_OFF, TRUE_FALSE, "true");
     static final Choice MATCHING_SHADOW = new Choice("matching_shadow", "Shadow matches what you see",
         "In first person Ratchet's shadow is cast by what you see of him: only your hands, or his body too with Player "
@@ -87,8 +94,8 @@ abstract class Options {
         "Removes the thin stray lines on leaves and flowers, and the hard straight edge of the dark patch round a "
             + "tree's foot, which fades out instead. Off: those lines and that edge stay.",
         ON_OFF, TRUE_FALSE, "true");
-    static final Choice[] GRAPHICS = {PRESET, REFRESH, KEEP_REFRESH, SPACE_WARP, CPU_GPU_BOOST, RESOLUTION, MSAA, FILTER, ANISOTROPY, ORIGINAL_LOD,
-        MAX_DRAW, MATCHING_SHADOW, FADES_IN_VIEW, SMOOTH_PLANT_EDGES};
+    static final Choice[] GRAPHICS = {PRESET, REFRESH, KEEP_REFRESH, SPACE_WARP, CPU_GPU_BOOST, RESOLUTION, FOVEATION, MSAA,
+        FILTER, ANISOTROPY, ORIGINAL_LOD, MAX_DRAW, MATCHING_SHADOW, FADES_IN_VIEW, SMOOTH_PLANT_EDGES};
 
     // The port's own options for play (docs/port/SETTINGS.md), beside OpenRAC's mods on the Game tab.
     static final Choice SKIP_ANY_MOVIE = new Choice("skip_any_movie", "Skip any movie",
@@ -102,6 +109,19 @@ abstract class Options {
     static final Choice VIEW = new Choice("view", "View",
         "First person is through Ratchet's eyes. Third person keeps the game's camera, with your head looking around. VR Options in the game switches it at any time.",
         new String[] {"First person", "Third person"}, new String[] {"first", "third"}, "first");
+    static final Choice THIRD_PERSON_CONTROLS = new Choice("third_person_controls", "Third person controls",
+        "Gamepad: in third person your controllers are an Xbox controller, as on the Big screen: A jump, B fire, X wrench, "
+            + "Y quick select, the grips LB and RB (RB crouches), the triggers LT and RT (RT strafes), the menu button "
+            + "pause, the left stick click the map, in the menus too. The headset's own recentre (hold its Meta button) "
+            + "recentres. VR: third person keeps first person's VR controls. First person always has its VR controls.",
+        new String[] {"Gamepad", "VR"}, new String[] {"gamepad", "vr"}, "gamepad");
+    static final Choice DPAD = new Choice("dpad", "D-pad",
+        "Where your controllers are an Xbox controller (third person with Gamepad, the Big screen). Controller by your "
+            + "head: hold a controller up beside your head, as a phone at your ear; it buzzes, and its stick is the D-pad "
+            + "while it stays there (its click is LS or RS). Left thumb rest: while your left thumb rests on its thumb "
+            + "rest, by X and Y, the right stick is the D-pad. RAC-Board's board goes on and off with D-pad Up.",
+        new String[] {"Controller by your head", "Left thumb rest", "Off"}, new String[] {"head", "thumb_rest", "off"},
+        "head");
     static final Choice CUTSCENES = new Choice("cutscenes", "Cutscenes",
         "Through Ratchet's eyes: you see the scene from his head, your own head free, his hands as the scene moves them; " +
             "a scene without him is seen from its camera. In VR: from the game's camera, in 3D around you. On a screen: the game's " +
@@ -166,8 +186,10 @@ abstract class Options {
             + "view, where it seems to float in front of you.",
         ON_OFF, TRUE_FALSE, "true");
     static final Choice GLYPHS = new Choice("glyphs", "Controller buttons in hints",
-        "The game's hints and menus show your controller's buttons (A, the trigger, the grips, the sticks) in place of "
-            + "the PlayStation's. Off: the PlayStation's.",
+        "The game's hints and menus show, in place of the PlayStation's, the Xbox-style button that does it on your "
+            + "controllers in the view you play: A, B, X, Y, RT and LT the triggers, RB and LB the grips, the sticks. In "
+            + "colour with the Xbox button icons mod on (the Game tab; on to start). Off: the game's own icons, the Xbox "
+            + "mod's where it is on, which are right only for an Xbox controller's layout (third person with Gamepad).",
         ON_OFF, TRUE_FALSE, "true");
     static final Choice PUZZLE_OVER_TOOL = new Choice("puzzle_over_tool", "The Trespasser's rings over the tool",
         "On: the puzzle hangs over the tool you plugged in. Off: it stays in front of your face.",
@@ -179,7 +201,7 @@ abstract class Options {
         "On: the pause menu stands in the level around you, each part at its own depth. Off: one flat panel on black.",
         ON_OFF, TRUE_FALSE, "true");
     static final Choice HAPTICS = new Choice("haptics", "Vibration", "", ON_OFF, TRUE_FALSE, "true");
-    static final Choice[] VR = {VIEW, CUTSCENES, TURN, SNAP, SMOOTH, WORLD, HUD, HAND_AIM, HAND_WEAPON, THROW_BY_HAND,
+    static final Choice[] VR = {VIEW, THIRD_PERSON_CONTROLS, DPAD, CUTSCENES, TURN, SNAP, SMOOTH, WORLD, HUD, HAND_AIM, HAND_WEAPON, THROW_BY_HAND,
         SWING_WRENCH, TWO_HANDED, SHOW_HANDS, GRAB_LEDGES, PUZZLE_OVER_TOOL, SHOP_ON_FOOT, MENU_IN_WORLD, ROOM_SCALE,
         SWIM_STROKES, SOLID_HANDS, WALL_FEEL, SPARKLES_IN_WORLD, GLYPHS, HAPTICS};
 
@@ -193,6 +215,7 @@ abstract class Options {
         switch (preset) {
             case "performance":
                 set(RESOLUTION, "0.8");
+                set(FOVEATION, "3");
                 set(MSAA, "1");
                 set(ANISOTROPY, "1");
                 set(FILTER, "normal");
@@ -202,6 +225,7 @@ abstract class Options {
                 break;
             case "quality":
                 set(RESOLUTION, "1.2");
+                set(FOVEATION, "1");
                 set(MSAA, "4");
                 set(ANISOTROPY, "8");
                 set(FILTER, "edge-aware");
@@ -211,6 +235,7 @@ abstract class Options {
                 break;
             default:
                 set(RESOLUTION, "1.0");
+                set(FOVEATION, "2");
                 set(MSAA, "2");
                 set(ANISOTROPY, "4");
                 set(FILTER, "normal");
@@ -228,6 +253,8 @@ abstract class Options {
     Map<String, Object> modSettings(boolean bigScreen) {
         Map<String, Object> settings = new LinkedHashMap<>();
         settings.put("view", bigScreen ? "screen" : get(VIEW));
+        settings.put("third_person_controls", get(THIRD_PERSON_CONTROLS));
+        settings.put("dpad", get(DPAD));
         settings.put("cutscenes", get(CUTSCENES));
         settings.put("turn", get(TURN));
         settings.put("snap_degrees", Double.parseDouble(get(SNAP)));
@@ -256,6 +283,7 @@ abstract class Options {
         settings.put("space_warp", Boolean.parseBoolean(get(SPACE_WARP)));
         settings.put("cpu_gpu_boost", Boolean.parseBoolean(get(CPU_GPU_BOOST)));
         settings.put("resolution", Double.parseDouble(get(RESOLUTION)));
+        settings.put("foveation", Integer.parseInt(get(FOVEATION)));
         return settings;
     }
 
@@ -278,6 +306,9 @@ abstract class Options {
             + "anisotropy = " + get(ANISOTROPY) + "\n"
             + "original_lod = " + get(ORIGINAL_LOD) + "\n"
             + "max_draw_distance = " + get(MAX_DRAW) + "\n"
+            // Written, so that no Draw distance left in the file by the game's own menu takes over from the launcher's:
+            // 400 (the port's default) with Max draw distance off; on, Max is Unlimited whatever this is.
+            + "draw_distance = 400\n"
             + "matching_shadow = " + get(MATCHING_SHADOW) + "\n"
             + "fades_in_view = " + get(FADES_IN_VIEW) + "\n"
             + "smooth_plant_edges = " + get(SMOOTH_PLANT_EDGES) + "\n"

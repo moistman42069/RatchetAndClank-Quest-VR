@@ -1,0 +1,23 @@
+# 0.1.19: Orxon's first magnet wall (magnetorxon.sim's start: QUEST_SIM_OWN=6 QUEST_SIM_GIVE=28
+# QUEST_SIM_AT=270.7,323.0,33.6,78, --level 10) with the stick held straight ahead from the foot to the top and nothing
+# turned, head or stick: what the game itself does with a player who only pushes ahead. Run in third person (the game's
+# camera) and in first person, side by side: where each comes off the strip, or not.
+# 0.1.19, first person with Stay on magnet paths on (its default): magnet walk 0x3F from the foot round the bend to the
+# overhang at about (297.6 340.7 58.0), no 0x79 and no fall (0.1.19's first try fell at the bend: Orxon's bare
+# corner faces beside the strips, surface 12, were taken for floor; never now).
+600 y 1
+606 y 0
+1000 y 1
+1006 y 0
+3000 shot foot
+3010 left_y 1
+3200 left_y 0
+3230 shot stopped
+3560 shot waited
+3600 left_y 1
+3700 shot again
+3800 shot bend
+4200 shot level
+4430 left_y 0
+4440 shot top
+4560 quit 0

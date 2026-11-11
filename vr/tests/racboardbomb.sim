@@ -1,0 +1,36 @@
+# 0.1.19: his own weapon's hit while riding RAC-Board with Weapons on the board (on by default). racboard.sim's ride as
+# 0.1.18 had it, the right trigger held through the jump: with the board's weapons on, the trigger is the Bomb Glove's
+# (his item at Novalis's start), a bomb into the right palm, and the hand let go of it slowly while he rides on. Before
+# the fix its blast took a hit point from him on the board (RAC-Board's trace: "hit ... mask 65536" and the board's
+# target-board-hit). Now RAC-Board's trace says "his own weapon's hit: not taken on the board" for any such hit, with no
+# target-board-hit and no hit point lost; the ride goes on to the left hand's reach.
+600 y 1
+606 y 0
+2800 shot stand
+2900 rh_z 0.6
+2901 rh_y 0.15
+2930 right_click 1
+2936 right_click 0
+2960 rh_z 0
+2961 rh_y 0
+3100 shot board
+3120 left_y 1
+3200 shot ride
+3250 a 1
+3256 a 0
+3260 right_trigger 1
+3261 left_y -1
+3275 shot bomb1
+3305 shot bomb2
+3340 right_trigger 0
+3341 left_y 1
+3500 shot after
+3520 left_y 0
+3600 lh_z 0.6
+3601 lh_y 0.15
+3630 left_click 1
+3636 left_click 0
+3660 lh_z 0
+3661 lh_y 0
+3800 shot off
+3900 quit 0

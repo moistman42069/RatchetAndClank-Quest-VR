@@ -2,7 +2,8 @@ Options are in two places: these tabs, before you play, and the pause menu, in t
 Many are only in the game, and that includes all the newest ones.
 
 THE WAY TO THE NEW MOVES (wall moves, the Swingshot's reach and grab, the wrench's throw, punches)
-1. In a level, press Y to pause. Pick Options. Pick VR Options.
+1. In a level, press Y to pause (the menu button in third person with Gamepad). Pick Options.
+   Pick VR Options.
 2. Hold your hand on the bottom row until VR Controls shows at the bottom. Pick it.
 3. Hold your hand on the bottom row until More controls shows at the bottom. Pick it.
 4. Pick Moves, the first row.
@@ -46,7 +47,12 @@ VR OPTIONS, VR CONTROLS
 VR OPTIONS, VR CONTROLS, MORE CONTROLS
               Moves, Ledge shimmy, Hide black bars, Menu pointer, Arm moves, Two-handed weapons,
               World collision, World vibration, Walk around your room, Sparkles on the bolts,
-              Wheel slow motion, Wheel pick
+              Stay on magnet paths. Last: Weapon wheel
+
+VR OPTIONS, VR CONTROLS, MORE CONTROLS, WEAPON WHEEL
+              Wheel slow motion, Slow motion speed (3, 5 or 10 times slower), Swap at full speed,
+              Wheel pick. Last: Left hand wheel (Akimbo: Left hand slots, Same as right hand or Its
+              own slots, then Slot 1 to Slot 8)
 
 VR OPTIONS, VR CONTROLS, MORE CONTROLS, MOVES
               Swingshot anywhere, Wall run and jump, Swingshot reach (how far the hook goes),
@@ -56,14 +62,18 @@ VR OPTIONS, VR CONTROLS, MORE CONTROLS, MOVES
 
 VR OPTIONS, VR CONTROLS, MORE CONTROLS, MOVES, GRAB MOVES
               Fling while reeling in, Stun when dropped, Throw them up high, Slam them down, Zip
-              to them in the air, Pits and lava finish them
+              to them in the air, Pits and lava finish them, Throw strength, Throw follows your
+              swing
 
 The game's own HelpDesk (its tips in voice and text, on for a new game), Save, Load, Sound, Video, Camera and Subtitles
 are in the Options list too.
 
 IN THE LAUNCHER
 
-GRAPHICS      CPU and GPU boost (Quest), Smoother frames (AppSW), Keep the refresh rate, and the rest
+VR            View, Third person controls (Gamepad or VR), D-pad (Controller by your head, Left
+              thumb rest or Off), Cutscenes, Turning and the rest
+GRAPHICS      Foveated rendering (Quest), CPU and GPU boost (Quest), Smoother frames (AppSW), Keep the
+              refresh rate, Max draw distance, and the rest
 GAME          Mods: each mod's switch and settings (RAC-Board and Multiplayer are built in, off to
-              start), Browse OpenRAC's mods, Add a mod file, Mod files
+              start; Xbox button icons on to start), Browse OpenRAC's mods, Add a mod file, Mod files
 PLAY (PC)     Shortcut: a desktop shortcut to play in VR or 2D, or the command for Playnite or Steam

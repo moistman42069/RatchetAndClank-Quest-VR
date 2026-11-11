@@ -1,0 +1,48 @@
+# 0.1.19: third person with Third person controls on Gamepad (the owner's ask; QUEST_SETTINGS={"view":"third"}, its default),
+# on Novalis's start, with RAC-Board (QUEST_RACBOARD=1) and the Xbox button icons mod (QUEST_MODS) on. The controllers are
+# an Xbox controller: A jumps (Cross), X swings the wrench (Square), RB, the right grip, crouches (R1). The left controller
+# held up beside the head (xr_sim's hand moved to 14 cm left of the eyes, 2 cm under, 3 cm behind) makes its stick the
+# D-pad ("[vr-dpad] the left controller by the head"): pushed up, D-pad Up, RAC-Board's "Board on and off" by default
+# ("[vr-jetboard] riding RAC-Board's board"); again off. The menu button tapped is Start as it is let go: the pause menu,
+# and again out of it, with no recentre of its own. Held a second it brings first person back with no pause ("the view
+# is first person now: the left menu button held"). The hints' icons: the Xbox mod's, each as it is in third person,
+# pointed as first person's after ("[vr-glyphs] ... the Xbox button icons mod's buttons").
+600 y 1
+606 y 0
+2800 shot stand
+2900 a 1
+2912 a 0
+3000 x 1
+3006 x 0
+3100 right_grip 1
+3160 right_grip 0
+3250 lh_x 0.06
+3251 lh_y 0.33
+3252 lh_z 0.33
+3300 left_y 1
+3312 left_y 0
+3330 lh_x 0
+3331 lh_y 0
+3332 lh_z 0
+3400 shot board
+3450 left_y 1
+3600 left_y 0
+3650 shot ridden
+3700 lh_x 0.06
+3701 lh_y 0.33
+3702 lh_z 0.33
+3720 left_y 1
+3732 left_y 0
+3750 lh_x 0
+3751 lh_y 0
+3752 lh_z 0
+3800 menu 1
+3806 menu 0
+3900 shot paused
+3950 menu 1
+3956 menu 0
+4050 shot unpaused
+4100 menu 1
+4280 menu 0
+4400 shot first
+4500 quit 0

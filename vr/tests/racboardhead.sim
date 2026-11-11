@@ -1,0 +1,32 @@
+# 0.1.19: RAC-Board steered by the head in first person (the owner's 0.1.18 report: "hard to control. make sure it
+# follows head direction"). On Novalis's start the right hand's reach gets the board out; the stick held ahead the whole
+# ride. Looking ahead the heading holds; the head turned 60 degrees left, the heading comes round to the gaze and holds
+# there (the view does not turn with the carve, so the gaze stays put); then 45 degrees right of where it began, the
+# same; the stick let go, the board off with the left hand's reach. QUEST_JET_TRACE's lines every 15 ticks give the
+# heading and the head's yaw: after each turn of the head they meet and stay met.
+600 y 1
+606 y 0
+2800 shot stand
+2900 rh_z 0.6
+2901 rh_y 0.15
+2930 right_click 1
+2936 right_click 0
+2960 rh_z 0
+2961 rh_y 0
+3100 shot board
+3120 left_y 1
+3240 shot ahead
+3250 head_yaw 60
+3480 shot left60
+3490 head_yaw -45
+3760 shot right45
+3770 head_yaw 0
+3900 left_y 0
+3950 lh_z 0.6
+3951 lh_y 0.15
+3980 left_click 1
+3986 left_click 0
+4010 lh_z 0
+4011 lh_y 0
+4100 shot off
+4150 quit 0

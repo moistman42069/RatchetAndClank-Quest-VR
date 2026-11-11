@@ -4,6 +4,7 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <string>
 
 #include "hand.h"
 #include "board.h"
@@ -781,6 +782,37 @@ void test_glyphs() {
     check(nearest(palette, rim) == 0x09, "the rim's grey");
     check(nearest(palette, body) == 0x12, "the body's grey");
     check(palette[4 * csm1(nearest(palette, letter))] == 255, "the letter's white");
+
+    // Xbox style (0.1.19): the plain pad's Y, a face button; the grips named as its bumpers in first person too.
+    Cell y;
+    check(paint(y, kPadGlyphs[2]) == 18, "the Y button's advance");
+    near_(y.rgba[3][6][0], 238, "the Y's left arm");
+    near_(y.rgba[11][9][0], 238, "the Y's stem");
+    check(std::string(kGlyphs[3].label) == "RB" && std::string(kGlyphs[4].label) == "LB", "first person's grips are RB and LB");
+    check(std::string(kPadGlyphs[1].label) == "B" && std::string(kPadGlyphs[7].label) == "RT", "the pad's Circle B, R2 RT");
+    // First person's cells from the Xbox mod's: each an icon's, Cross its own, Circle the RT (R2's), R2 the B (Circle's).
+    for (std::uint8_t cell : kVrCells) {
+        check(cell >= 0x10 && cell <= 0x19, "a cell of the icons");
+    }
+    check(kVrCells[0] == 0x10 && kVrCells[1] == 0x17 && kVrCells[7] == 0x11 && kVrCells[3] == 0x15, "first person's cells");
+    // The Xbox mod's green A on the Cross's cell, or not.
+    std::uint8_t greens[1024] = {};
+    std::uint8_t* g = greens + 4 * csm1(1);
+    g[0] = 40;
+    g[1] = 190;
+    g[2] = 50;
+    g[3] = 0x80;
+    std::uint8_t font[32 * 16] = {};
+    for (int i = 0; i < 20; ++i) {
+        font[(i / 10 + 4) * 32 + 5 + i % 10] = 1;
+    }
+    check(green_a(font, 32, 0, 0, greens), "the Xbox mod's A found");
+    std::uint8_t few[32 * 16] = {};
+    for (int i = 0; i < 5; ++i) {
+        few[6 * 32 + 5 + i] = 1;
+    }
+    check(!green_a(few, 32, 0, 0, greens), "a few green texels are not its A");
+    check(!green_a(font, 32, 0, 0, palette), "the white palette's: not green");
 }
 
 void test_disguise() {
@@ -1018,8 +1050,65 @@ void test_jet_board() {
     const VirtualPad out = riding.map(c, context);
     check((out.held & kPadR1) != 0 && (out.held & kPadCross) != 0, "riding: the right trigger its trick, A the jump");
     check((out.held & (kPadCircle | kPadSquare | kPadTriangle)) == 0, "riding: none of the game's own play");
-    near_(out.left_x, 0.0f, "riding: the stick as it is (RAC-Board reads it about the board)");
-    near_(out.left_y, 1.0f, "riding: forward on the stick is along the board, not the camera or the head");
+    // RAC-Board reads the stick about the board: in first person forward is turned from the board's heading to the head's,
+    // at most kBoardSteerMost (0.1.19): here the head is 147 degrees right of the board, so a full carve right.
+    near_(out.left_x, -std::sin(-kBoardSteerMost), "riding in first person, the head far right: forward a full carve that way (x)");
+    near_(out.left_y, std::cos(-kBoardSteerMost), "riding in first person, the head far right: forward a full carve that way (y)");
+    context.head_yaw = kPi / 2 + 0.6f;  // 34 degrees left of the board: within the most, turned as far as the head
+    PadMapper near_left;
+    const VirtualPad left_of = near_left.map(c, context);
+    near_(left_of.left_x, -std::sin(0.6f), "riding in first person, the head near: forward is where it looks (x)");
+    near_(left_of.left_y, std::cos(0.6f), "riding in first person, the head near: forward is where it looks (y)");
+    context.head_yaw = kPi / 2 - kPi + 0.1f;  // across the turn's wrap, 170 degrees right: the short way, right
+    PadMapper wrapped;
+    const VirtualPad round = wrapped.map(c, context);
+    near_(round.left_x, -std::sin(-kBoardSteerMost), "riding, the head behind on the right: a full carve right (x)");
+    context.head_yaw = kPi / 2;
+    PadMapper along;
+    const VirtualPad ahead = along.map(c, context);
+    near_(ahead.left_x, 0.0f, "the head along the board: the stick as it is");
+    near_(ahead.left_y, 1.0f, "the head along the board: forward keeps its way");
+    context.first_person = false;
+    context.head_yaw = -1.0f;
+    PadMapper third;
+    const VirtualPad behind = third.map(c, context);
+    near_(behind.left_y, 1.0f, "third person: the stick as it is, about the board");
+    context.first_person = true;
+
+    // RAC-Board's Weapons on the board (0.1.19): the right trigger fires (Circle), B is its trick and grind, the grips
+    // and the left trigger its grab; the left trigger fires a left-hand gun instead; a hand's swing in first person is
+    // no Square (the mod's hit, not the board's), the grip is in third person.
+    context.jet_weapons = true;
+    context.head_yaw = kPi / 2;
+    PadMapper armed;
+    Controls fire_c;
+    fire_c.right_trigger = 1.0f;
+    fire_c.a = true;
+    VirtualPad shot = armed.map(fire_c, context);
+    check((shot.held & kPadCircle) != 0 && (shot.held & kPadCross) != 0, "weapons on the board: the trigger fires, A jumps");
+    check((shot.held & (kPadR1 | kPadR2 | kPadL1)) == 0, "weapons on the board: the trigger is no trick");
+    Controls trick_c;
+    trick_c.b = true;
+    const VirtualPad tricked = PadMapper().map(trick_c, context);
+    check((tricked.held & (kPadR1 | kPadR2)) == (kPadR1 | kPadR2), "weapons on the board: B its spins, flips and grind");
+    Controls grab_c;
+    grab_c.left_trigger = 1.0f;
+    const VirtualPad grabbed = PadMapper().map(grab_c, context);
+    check((grabbed.held & kPadL1) != 0 && (grabbed.held & kPadR1) == 0, "weapons on the board: the left trigger grabs, no crouch");
+    context.left_weapon = true;
+    const VirtualPad left_gun = PadMapper().map(grab_c, context);
+    check((left_gun.held & kPadL1) == 0, "weapons on the board: a left-hand gun's trigger is the gun's");
+    context.left_weapon = false;
+    Controls swing_c;
+    context.swing = true;
+    check((PadMapper().map(swing_c, context).held & kPadSquare) == 0, "weapons on the board, first person: a swing is no Square");
+    context.swing = false;
+    context.first_person = false;
+    Controls grip_c;
+    grip_c.right_grip = 1.0f;
+    check((PadMapper().map(grip_c, context).held & kPadSquare) != 0, "weapons on the board, third person: the grip swings (Square)");
+    context.first_person = true;
+    context.jet_weapons = false;
 
     near_(yaw_part(yaw_quat(0.7f)), 0.7f, "a yaw's part about up");
     check(angle_between(axes_quat({2, 0, 0}, {0.1f, 3, 0}), Quat{}) < 1e-3f, "the axes as they are: no turn");
@@ -1035,8 +1124,12 @@ void test_jet_board() {
     float rig = follow.update(0.3f, yaw_quat(0.3f) * stance, true, dt, turn);
     near_(rig, 0.0f, "the ride's start turns nothing");
     check(angle_between(turn, Quat{}) < 1e-3f, "standing on it: no turn of the view");
+    for (int i = 0; i < 100; ++i) {  // past getting on (kBoardMountSettle)
+        rig += follow.update(0.3f, yaw_quat(0.3f) * stance, true, dt, turn);
+    }
+    near_(rig, 0.0f, "standing on it a while turns nothing");
     rig = follow.update(0.4f, yaw_quat(0.4f) * stance, true, dt, turn);
-    near_(rig, 0.1f, "a carve turns the rig with him");
+    near_(rig, 0.0f, "a carve turns no view: the head steers the board (0.1.19)");
     check(angle_between(turn, Quat{}) < 1e-3f, "a carve: no turn of the view besides");
     follow.update(0.4f, yaw_quat(0.4f) * pitch(1.2f) * stance, true, dt, turn);
     near_(angle_between(turn, Quat{}), 1.2f, "a flip turns the view as far", 2e-3f);
@@ -1051,6 +1144,27 @@ void test_jet_board() {
     }
     check(angle_between(turn, Quat{}) < 0.02f, "after the spin the turn goes to the rig");
     near_(wrap_angle(rig_total), wrap_angle(3.0f), "the rig has the spin", 0.03f);
+
+    // Getting on (0.1.19, racboardhead.sim): from his standing pose RAC-Board turns his pelvis about 55 degrees to its
+    // stance over half a second: his stance, taken into the rest, no turn of the rig or the view.
+    BoardFollow mount;
+    Quat mount_turn{};
+    float mount_rig = mount.update(0.3f, yaw_quat(0.3f), true, dt, mount_turn);
+    for (int i = 1; i <= 36; ++i) {
+        mount_rig += mount.update(0.3f, yaw_quat(0.3f + 0.95f * static_cast<float>(i) / 36.0f) * pitch(0.15f), true, dt, mount_turn);
+    }
+    for (int i = 0; i < 100; ++i) {
+        mount_rig += mount.update(0.3f, yaw_quat(0.3f + 0.95f) * pitch(0.15f), true, dt, mount_turn);
+    }
+    near_(mount_rig, 0.0f, "getting on: his stance's turn turns no rig", 1e-3f);
+    near_(yaw_part(mount_turn), 0.0f, "getting on: and no view's yaw", 2e-3f);
+    // Riding on, his pelvis's yaw jitters a tenth of a radian a frame: no turn of the rig, the view's yaw back to none.
+    for (int i = 0; i < 300; ++i) {
+        const float sway = (i % 2 == 0 ? 0.12f : -0.08f) * (i < 280 ? 1.0f : 0.0f);
+        mount_rig += mount.update(0.3f, yaw_quat(0.3f + 0.95f + sway) * pitch(0.15f), true, dt, mount_turn);
+    }
+    near_(mount_rig, 0.0f, "the ride's sway turns no rig", 1e-3f);
+    near_(yaw_part(mount_turn), 0.0f, "and leaves no yaw in the view", 0.02f);
 
     // What the view shows: a riding sway not, a trick all, the yaw all.
     check(angle_between(board_view_turn(pitch(0.12f)), Quat{}) < 1e-3f, "a sway of riding: the view stays level");
@@ -1071,6 +1185,129 @@ void test_jet_board() {
         view.update(pitch(1.0f), false, dt);
     }
     check(!view.on && angle_between(view.turn, Quat{}) < 1e-3f, "off the board: level again");
+}
+
+// Third person with Gamepad, the big screen's Xbox layout, the D-pad and the controller by the head (0.1.19).
+void test_gamepad() {
+    PadContext context;
+    context.gamepad = true;
+    Controls c;
+    c.a = c.b = c.x = c.y = c.menu = c.left_click = c.right_click = true;
+    c.left_y = 1;
+    c.right_x = -1;
+    PadMapper pad;
+    VirtualPad out = pad.map(c, context);
+    const std::uint16_t face = kPadCross | kPadCircle | kPadSquare | kPadTriangle | kPadStart | kPadSelect | kPadR3;
+    check((out.held & face) == face, "gamepad: A B X Y, menu Start, the clicks Select and R3");
+    check(!(out.held & (kPadL3 | kPadR2 | kPadUp)), "gamepad: nothing else");
+    near_(out.left_y, 1, "gamepad: the left stick");
+    near_(out.right_x, -1, "gamepad: the right stick, the game's camera");
+    c = Controls{};
+    c.right_grip = 1;
+    check(pad.map(c, context).held == kPadR1, "gamepad: the right grip RB, R1");
+    c = Controls{};
+    c.left_grip = 1;
+    check(pad.map(c, context).held == kPadL1, "gamepad: the left grip LB, L1");
+    c = Controls{};
+    c.left_trigger = 1;
+    check(pad.map(c, context).held == kPadL2, "gamepad: the left trigger LT, L2");
+    c = Controls{};
+    c.right_trigger = 1;
+    check(pad.map(c, context).held == kPadR2, "gamepad: the right trigger RT, R2");
+    // RAC-Board takes the plain pad: its own button pressed for the reach behind the back comes through.
+    context.jet_toggle = kPadUp;
+    check(pad.map(Controls{}, context).held == kPadUp, "gamepad: the board's button");
+    context.jet_toggle = 0;
+
+    // The left stick as the D-pad: its four ways and the diagonals, none of its own push; its click L3, not Select.
+    PadMapper dpad;
+    context.left_dpad = true;
+    c = Controls{};
+    c.left_y = 1;
+    c.left_click = true;
+    out = dpad.map(c, context);
+    check((out.held & (kPadUp | kPadL3)) == (kPadUp | kPadL3) && !(out.held & (kPadSelect | kPadLeft | kPadRight)), "D-pad up, L3");
+    near_(out.left_y, 0, "the D-pad's stick moves nothing");
+    c.left_click = false;
+    c.left_x = 0.7f;
+    c.left_y = -0.7f;
+    out = dpad.map(c, context);
+    check((out.held & (kPadRight | kPadDown)) == (kPadRight | kPadDown) && !(out.held & kPadUp), "D-pad diagonal");
+    c.left_x = 0.95f;
+    c.left_y = 0.2f;
+    check((dpad.map(c, context).held & (kPadRight | kPadUp | kPadDown)) == kPadRight, "D-pad right alone near the axis");
+    // Past 0.55 to press, under 0.4 to let go (of the stick past its dead zone, stretched).
+    c.left_x = 0;
+    c.left_y = 0;
+    check(!(dpad.map(c, context).held & kPadUp), "D-pad: let go at the middle");
+    c.left_y = 0.5f;
+    check(!(dpad.map(c, context).held & kPadUp), "D-pad: half a push is no press");
+    c.left_y = 0.9f;
+    check(dpad.map(c, context).held & kPadUp, "D-pad: pressed");
+    c.left_y = 0.55f;
+    check(dpad.map(c, context).held & kPadUp, "D-pad: held past the let-go");
+    c.left_y = 0.3f;
+    check(!(dpad.map(c, context).held & kPadUp), "D-pad: let go");
+    context.left_dpad = false;
+    context.right_dpad = true;
+    c = Controls{};
+    c.right_x = -1;
+    c.right_click = true;
+    out = dpad.map(c, context);
+    check((out.held & (kPadLeft | kPadR3)) == (kPadLeft | kPadR3), "the right stick as the D-pad");
+    near_(out.right_x, 0, "the camera stays");
+    context.right_dpad = false;
+
+    // The big screen has the same layout (to 0.1.18 the triggers were L1 and R1).
+    PadContext screen;
+    screen.screen = true;
+    c = Controls{};
+    c.right_trigger = 1;
+    c.left_grip = 1;
+    check(PadMapper{}.map(c, screen).held == (kPadR2 | kPadL1), "the big screen: RT R2, LB L1");
+
+    // In the menus: B Circle, X Square, Y Triangle, the menu button Start, as the icons say; A confirms.
+    PadMapper menu;
+    context.in_menu = true;
+    c = Controls{};
+    c.y = true;
+    check(menu.map(c, context).held == kPadTriangle, "gamepad menu: Y Triangle, back");
+    c = Controls{};
+    c.b = true;
+    check(menu.map(c, context).held == kPadCircle, "gamepad menu: B Circle");
+    c = Controls{};
+    c.x = true;
+    check(menu.map(c, context).held == kPadSquare, "gamepad menu: X Square");
+    c = Controls{};
+    c.menu = true;
+    check(menu.map(c, context).held == kPadStart, "gamepad menu: the menu button Start");
+    c = Controls{};
+    c.a = true;
+    check(menu.map(c, context).held & kPadCross, "gamepad menu: A confirms");
+    c = Controls{};
+    c.left_grip = 1;
+    check(menu.map(c, context).held == kPadL1, "gamepad menu: the left grip L1, the page");
+    // First person's menus keep theirs: B back (Triangle).
+    context.gamepad = false;
+    c = Controls{};
+    c.b = true;
+    check(menu.map(c, context).held == kPadTriangle, "VR menu: B back");
+
+    // The controller held up beside the head, as a phone at the ear, its own side.
+    const Pose head{{0, 1.6f, 0}, yaw_quat(0)};
+    check(hand_by_head(head, {-0.14f, 1.58f, 0.03f}, true, false), "the left controller at the left ear");
+    check(!hand_by_head(head, {-0.14f, 1.58f, 0.03f}, false, false), "the right hand there is across: no");
+    check(hand_by_head(head, {0.15f, 1.65f, -0.05f}, false, false), "the right controller at the right ear");
+    check(!hand_by_head(head, {0.02f, 1.55f, -0.10f}, false, false), "at the mouth: no");
+    check(!hand_by_head(head, {-0.2f, 1.25f, -0.3f}, true, false), "held out in play: no");
+    check(!hand_by_head(head, {-0.15f, 1.6f, 0.25f}, true, false) && hand_behind_back(head, {-0.15f, 1.6f, 0.25f}, false),
+          "behind the head is the board's place, not the D-pad's");
+    check(!hand_by_head(head, {-0.14f, 1.6f, 0.10f}, true, false) && hand_by_head(head, {-0.14f, 1.6f, 0.10f}, true, true),
+          "at the back edge: kept once in, not taken");
+    // Turned with the head: the ear goes round with it.
+    const Pose turned{{0, 1.6f, 0}, yaw_quat(1.5707964f)};
+    const Vec3 ear = turned.position + rotate(turned.orientation, Vec3{-0.14f, -0.02f, 0.03f});
+    check(hand_by_head(turned, ear, true, false), "the left ear, the head turned");
 }
 
 // The view's up on Magneboots and what is left when he comes off (rig.h's follow_up, give_up_turn_to_rig).
@@ -1441,6 +1678,7 @@ int main() {
     test_ledge_pad();
     test_dive_pad();
     test_jet_board();
+    test_gamepad();
     test_surface_turn();
     test_body_heading();
     if (g_failures == 0) {
