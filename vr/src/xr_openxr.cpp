@@ -171,6 +171,8 @@ constexpr const char* kRefreshExtension = "XR_FB_display_refresh_rate";
 // Meta's guide has them.
 constexpr int64_t kMotionFormat = 0x881A;       // GL_RGBA16F
 constexpr int64_t kMotionDepthFormat = 0x88F0;  // GL_DEPTH24_STENCIL8
+// The display's rate with smoother frames on (0.1.20): twice the game's 60 ticks a second, the game drawing one a tick.
+constexpr float kSmootherHz = 120.0f;
 constexpr int kInfo = 1;
 constexpr int kWarn = 2;
 constexpr int kError = 3;
@@ -474,7 +476,10 @@ public:
     void show_notice(const char* text) override {
         m_notice = text != nullptr ? text : "";
         m_notice_pixels.clear();
+        m_notice_alpha = 1.0f;
     }
+
+    void notice_alpha(float alpha) override { m_notice_alpha = std::clamp(alpha, 0.0f, 1.0f); }
 
     bool wants_exit() const override { return m_exiting; }
 
@@ -1565,7 +1570,29 @@ private:
 #endif
         m_threads_given.clear();
         register_threads();
-        set_refresh(m_settings.refresh_hz);
+        // Smoother frames: the headset at twice the game's own 60 ticks a second, so the game draws one picture a tick
+        // (0.1.20: a tester's micro stutters at 72 Hz, gone at 120. At 72 Hz with smoother frames the game drew 36
+        // pictures a second for its 60 ticks, and every launcher preset set 72). The Refresh rate row is for smoother
+        // frames off. A headset without 120 Hz gets the nearest below it.
+        if (m_space_warp_ready) {
+            info("[openxr] smoother frames: the headset at " + std::to_string(static_cast<int>(kSmootherHz))
+                 + " Hz, the game drawing one picture a tick (the Refresh rate row, "
+                 + std::to_string(static_cast<int>(m_settings.refresh_hz)) + " Hz, is for smoother frames off)");
+            set_refresh(kSmootherHz);
+        } else {
+            set_refresh(m_settings.refresh_hz);
+        }
+    }
+
+    // The rate the headset's display runs at now, or 0 where the runtime cannot say: a rate asked for is taken a moment
+    // later, or not at all (a tester's 0.1.19 log: 90 Hz asked, the frames 8.33 ms apart, 120 Hz, all along).
+    float display_rate() {
+        if (!m_refresh_extension) {
+            return 0.0f;
+        }
+        auto get = proc<PFN_xrGetDisplayRefreshRateFB>("xrGetDisplayRefreshRateFB");
+        float rate = 0.0f;
+        return get != nullptr && XR_SUCCEEDED(get(m_session, &rate)) ? rate : 0.0f;
     }
 
     // The port's threads by name (port/common/parallel.cpp's workers, "openrac-pool"; the sound engine's, "openrac-sound"),
@@ -1782,6 +1809,12 @@ private:
                 case XR_TYPE_EVENT_DATA_REFERENCE_SPACE_CHANGE_PENDING:
                     m_recentred = true;
                     break;
+                case XR_TYPE_EVENT_DATA_DISPLAY_REFRESH_RATE_CHANGED_FB: {
+                    const auto* change = reinterpret_cast<const XrEventDataDisplayRefreshRateChangedFB*>(&event);
+                    info("[openxr] the headset's display: " + std::to_string(static_cast<int>(change->fromDisplayRefreshRate + 0.5f))
+                         + " Hz to " + std::to_string(static_cast<int>(change->toDisplayRefreshRate + 0.5f)) + " Hz");
+                    break;
+                }
                 case XR_TYPE_EVENT_DATA_PERF_SETTINGS_EXT: {
                     const auto* perf = reinterpret_cast<const XrEventDataPerfSettingsEXT*>(&event);
                     warn("[openxr] performance notice: domain " + std::to_string(perf->domain)
@@ -2006,8 +2039,17 @@ private:
         glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
         glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
         glBindTexture(GL_TEXTURE_2D, m_notice_chain.images[m_notice_chain.index].image);
-        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, kNoticeWidth, kNoticeHeight, GL_RGBA, GL_UNSIGNED_BYTE,
-                        m_notice_pixels.data());
+        // Fading (notice_alpha): every channel scaled, as the compositor takes the layer's colours premultiplied.
+        const std::uint8_t* pixels = m_notice_pixels.data();
+        if (m_notice_alpha < 1.0f) {
+            m_notice_faded.resize(m_notice_pixels.size());
+            const int scale = static_cast<int>(m_notice_alpha * 256.0f);
+            for (std::size_t i = 0; i < m_notice_pixels.size(); ++i) {
+                m_notice_faded[i] = static_cast<std::uint8_t>(m_notice_pixels[i] * scale >> 8);
+            }
+            pixels = m_notice_faded.data();
+        }
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, kNoticeWidth, kNoticeHeight, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
         glBindTexture(GL_TEXTURE_2D, static_cast<GLuint>(texture));
         glPixelStorei(GL_UNPACK_ALIGNMENT, alignment);
         glBindBuffer(GL_PIXEL_UNPACK_BUFFER, static_cast<GLuint>(unpack_buffer));
@@ -2100,17 +2142,20 @@ private:
         const double warped = m_frames > 0 ? static_cast<double>(m_warp_frames) / static_cast<double>(m_frames) : 0.0;
         // The frame's own work, and the displays missed: a frame longer than the period is shown a display late, which
         // the headset's own counter (OVR Metrics) shows as a dip, the "small wobbles" a tester saw.
-        char line[320];
+        // The display's own rate as the runtime gives it (0.1.20), not the one asked for.
+        const float display = display_rate();
+        char line[360];
         std::snprintf(line, sizeof line,
                       "[vr-perf] %.1f frames/s over %.0f s, period %.2f ms, waited %.2f ms a frame, worked %.2f ms (most "
-                      "%.2f, %ld over the period), %ld displays missed%s",
+                      "%.2f, %ld over the period), %ld displays missed%s%s",
                       rate, seconds, out.frame_seconds * 1000.0,
                       m_frames > 0 ? m_wait_seconds / m_frames * 1000.0 : 0.0,
                       m_frames > 0 ? m_work_seconds / m_frames * 1000.0 : 0.0, m_work_most * 1000.0, m_work_over,
                       m_displays_missed,
                       m_space_warp_ready ? (", smoother frames on " + std::to_string(static_cast<int>(warped * 100.0 + 0.5))
                                             + "% of them").c_str()
-                                         : "");
+                                         : "",
+                      display > 0.0f ? (", the display at " + std::to_string(static_cast<int>(display + 0.5f)) + " Hz").c_str() : "");
         info(line);
         m_work_seconds = 0;
         m_work_most = 0;
@@ -2119,19 +2164,24 @@ private:
         register_threads();
         // Keep the refresh rate (on by default from 0.1.14, the owner's wish: smooth wherever the game keeps up) leaves
         // the chosen rate alone; off, a rate above 72 not held for two spells in a row goes back to 72. With smoother
-        // frames the game is meant to draw half the rate.
-        if (m_refresh_rate > 72.5f && m_focused) {
-            const double wanted = m_refresh_rate * (warped > 0.5 ? 0.5 : 1.0);
+        // frames the game is meant to draw half the rate. Judged by the display's own rate where the runtime gives it
+        // (0.1.20); and with smoother frames, only over spells mostly drawn with them (in play): the menus, loads and
+        // movies have none, so the game would have to draw every display there, and a tester's 0.1.19 went back to 72
+        // Hz from its menus as play began, where the game then drew 36 pictures a second.
+        const float running = display > 0.0f ? display : m_refresh_rate;
+        const bool judged = !m_space_warp_ready || warped > 0.5;
+        if (m_refresh_rate > 72.5f && running > 72.5f && m_focused && judged) {
+            const double wanted = running * (warped > 0.5 ? 0.5 : 1.0);
             m_refresh_misses = rate < wanted * 0.9 ? m_refresh_misses + 1 : 0;
             if (m_refresh_misses >= 2 && m_settings.keep_refresh) {
                 if (!m_refresh_kept_told) {
                     m_refresh_kept_told = true;
-                    info("[openxr] " + std::to_string(static_cast<int>(m_refresh_rate))
+                    info("[openxr] " + std::to_string(static_cast<int>(running + 0.5f))
                          + " Hz not held here: kept, as Keep the refresh rate asks");
                 }
                 m_refresh_misses = 0;
             } else if (m_refresh_misses >= 2) {
-                const float held_not = m_refresh_rate;
+                const float held_not = running;
                 m_refresh_misses = 0;
                 set_refresh(72.0f);
                 if (m_refresh_rate < held_not) {
@@ -2186,6 +2236,8 @@ private:
     bool m_pointer_ready = false;
     std::string m_notice;
     std::vector<std::uint8_t> m_notice_pixels;
+    std::vector<std::uint8_t> m_notice_faded;  // the pixels as the fade leaves them (notice_alpha)
+    float m_notice_alpha = 1.0f;
 
     bool m_refresh_extension = false;
     bool m_performance_extension = false;

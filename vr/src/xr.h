@@ -143,6 +143,8 @@ public:
 
     // A line of words ahead of the head until it is cleared with null or "" (notice.h).
     virtual void show_notice(const char* text) = 0;
+    // How much of the notice shows, 1 (all, as show_notice leaves it) to 0, for its fade (0.1.20).
+    virtual void notice_alpha(float alpha) { (void)alpha; }
 
     // Drawn over the panel in the next finish_frame.
     virtual void show_pointer(const PointerLayers& pointer) = 0;

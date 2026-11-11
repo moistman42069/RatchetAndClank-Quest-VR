@@ -1,0 +1,22 @@
+# 0.1.20 check (a tester: "blarg station windows act weird ... it seems to mainly be windows that are farthest from
+# view"): Blarg Station (--level 6) where play starts, in first person, the head turned about, a shot each 60 degrees, to
+# compare with the game's visibility left out (OPENRAC_PVS_OFF=1). Y at 1150 skips the arrival movie.
+600 y 1
+606 y 0
+1150 y 1
+1156 y 0
+2300 shot a0
+2340 head_yaw 60
+2360 shot a60
+2400 head_yaw 120
+2420 shot a120
+2460 head_yaw 180
+2480 shot a180
+2520 head_yaw -120
+2540 shot a-120
+2580 head_yaw -60
+2600 shot a-60
+2640 head_yaw 0
+2640 head_pitch 20
+2660 shot up20
+2700 quit 0

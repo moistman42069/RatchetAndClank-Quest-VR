@@ -9,7 +9,9 @@ port's new switches). Only a Quest can show how it looks: everything below was c
 Meta's `XR_FB_space_warp`. The game draws every other frame (36 a second at 72 Hz, 45 at 90, 60 at 120) and hands
 the headset, beside each eye's picture, two more images: how far each pixel moved since the last drawn frame (the
 motion vectors) and its depth. The headset makes the frames in between. At 120 Hz the game draws 60 a second, its
-own tick rate, with twice the time for each picture.
+own tick rate, with twice the time for each picture. From 0.1.20 smoother frames always run the headset at 120 Hz
+(xr_openxr.cpp kSmootherHz): a tester's micro stutters at 72 Hz (36 pictures for 60 ticks) were gone at 120, and every
+launcher preset had set 72.
 
 What Meta's guide asks for ([Application SpaceWarp Developer Guide](https://developers.meta.com/horizon/documentation/native/android/mobile-asw/)),
 and how it is met:

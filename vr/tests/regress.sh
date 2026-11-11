@@ -322,6 +322,9 @@ run maxdraw maxdraw 1
 run screen screen 1
 # 0.1.17: the left menu button held a second switches first and third person (a tester's ask); a tap only recentres.
 run viewhold viewhold 1 KEEP=1
+# 0.1.20: the view starts as the launcher says whatever vr-options.txt keeps (a tester's every start went third person),
+# and the notices fade after a couple of seconds (viewnotice.sim says what to expect).
+run viewnotice viewnotice 1 QUEST_STATE_TRACE=1 'QUEST_VR_OPTIONS=first_person 0;launcher_first 1'
 # Third person with Gamepad, its default from 0.1.19: an Xbox controller, the D-pad by the head (RAC-Board on D-pad Up),
 # Start as the menu button is let go, the hold back to first person, the Xbox mod's icons pointed for each view.
 run thirdpad thirdpad 1 QUEST_RACBOARD=1 QUEST_JET_TRACE=1 QUEST_STATE_TRACE=1 'QUEST_SETTINGS={"view":"third"}' 'QUEST_MODS=, {"id": "xbox-icons", "enabled": true}' KEEP=1
@@ -460,6 +463,9 @@ run akimborun akimborun 9 $G=15,11 $H=15 $L=11 QUEST_SIM_AT=218.2,308.9,26.03,98
 # with nothing to swing from, and a hand item the game made while the left hand led. No crash, the right item back each time.
 run akimbo-leadspam akimboleadspam 2 $G=12 $H=12 $L=12
 run akimbo-leadswitch akimboleadswitch 2 $G=15,12,16 $H=15 $L=12 QUEST_TEST_LEAD_SWITCH=16
+# 0.1.20: a tester's crash on Umbris (0.1.19 PC): drowned with the left Swingshot leading. Two deaths with the left
+# trigger held: each respawn drops the lead, never "the hand's slot held moby ...: deleted" (akimboleaddeath.sim).
+run akimboleaddeath akimboleaddeath 1 $G=15,12 $H=15 $L=12 QUEST_SIM_KILL=400
 # 0.1.18: the vendor's trigger is the shop's alone; the vendor looked round; Pokitaru's sky whole all the way round.
 run shoptrig shoptrig 3 $G=10,16 $H=10 $N=11 QUEST_SIM_BOLTS=9000 QUEST_POINTER_TRACE=1
 run shoplook shoplook 3 $G=10,16 $H=10 $N=11 QUEST_SIM_BOLTS=9000 KEEP=1

@@ -37,16 +37,20 @@ abstract class Options {
         new String[] {"Performance", "Balanced", "Quality"}, new String[] {"performance", "balanced", "quality"},
         "balanced");
     static final Choice REFRESH = new Choice("refresh_hz", "Refresh rate",
-        "Higher is smoother and costs more. Keep the refresh rate (below) says what happens where a rate is not held.",
+        "Higher is smoother and costs more. With Smoother frames on (below) the headset runs at 120 Hz whatever this "
+            + "says, so this is for Smoother frames off. Keep the refresh rate (below) says what happens where a rate is "
+            + "not held.",
         new String[] {"72 Hz", "80 Hz", "90 Hz", "120 Hz"}, new String[] {"72", "80", "90", "120"}, "72");
     static final Choice KEEP_REFRESH = new Choice("keep_refresh", "Keep the refresh rate",
         "On: the headset stays at the rate you chose, so anywhere the game can keep up it is that smooth. Off: where "
             + "the game cannot hold a rate above 72 for twenty seconds, the headset drops back to 72 Hz by itself.",
         ON_OFF, TRUE_FALSE, "true");
     static final Choice SPACE_WARP = new Choice("space_warp", "Smoother frames (AppSW)",
-        "On: the game draws every other frame and the Quest makes the ones between from how everything moved (Meta's "
-            + "Application SpaceWarp), so each picture has twice the time and 90 or 120 Hz holds. Fast moves can smear a "
-            + "little at the edges of things. Off: the game draws every frame. On a PC your headset's own smoothing does this.",
+        "On: the headset runs at 120 Hz and the game draws every other frame, 60 a second, one for each of the game's own "
+            + "60 steps a second; the Quest makes the ones between from how everything moved (Meta's Application "
+            + "SpaceWarp). Fast moves can smear a little at the edges of things. If the game cannot keep up (a stutter, or "
+            + "OVR Metrics under 60), lower Eye resolution. Off: the game draws every frame, at the Refresh rate. On a PC "
+            + "your headset's own smoothing does this.",
         ON_OFF, TRUE_FALSE, "true");
     static final Choice CPU_GPU_BOOST = new Choice("cpu_gpu_boost", "CPU and GPU boost",
         "On: the Quest runs its processors at the highest speed it lets a game ask for, so fewer frames are missed. "

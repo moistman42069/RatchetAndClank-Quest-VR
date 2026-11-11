@@ -1,0 +1,21 @@
+# 0.1.20: the view starts as the launcher's View says, whatever view was last switched to in play (a tester on 0.1.19
+# held the left menu button a second once, and from then on every start was third person with the launcher saying
+# first); the notices ahead of the head fade after a couple of seconds (the owner: "make sure the notices dont linger
+# though. they should fade away after a couple seconds"), and the hold's switch says how to switch back. Run with
+# vr-options.txt saying third person (QUEST_VR_OPTIONS="first_person 0;launcher_first 1"), the launcher's View first.
+# Expect: in play "first_person 1"; the hold's "the view is third person now" and "[vr-notice] faded out: THIRD PERSON
+# HOLD LEFT MENU FOR FIRST PERSON" about 3 s later; the left controller gone: "LEFT CONTROLLER NOT FOUND  CHECK IT IS
+# ON", then "[vr-notice] faded out: LEFT CONTROLLER ..." 3 s later while it is still gone; back: "the controllers are
+# back"; then the hold again: first person.
+600 y 1
+606 y 0
+3300 shot first
+3320 menu 1
+3420 menu 0
+3500 shot third
+3900 left_gone 1
+4500 left_gone 0
+4700 menu 1
+4800 menu 0
+4900 shot first-again
+5000 quit 0

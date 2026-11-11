@@ -1,0 +1,21 @@
+# 0.1.20: a death while the left hand leads (a tester's crash on 0.1.19: drowned at Qwark's base on Umbris, the left
+# trigger held with the Swingshot in the left hand). The right hand's item is kept aside while the left leads; the
+# respawn makes the level's mobys again and that address goes to another. Run on Novalis with
+# QUEST_SIM_GIVE=15,12 QUEST_SIM_HOLD=15 QUEST_SIM_LEFT=12 QUEST_SIM_KILL=400 (control comes about frame 2590, the kill
+# about 400 ticks later): the left trigger held from before his hit points are taken until after the respawn. The
+# sim's hit points stay none for 200 ticks, so he dies twice and the held trigger leads again between. Expect, at each
+# respawn, "[vr-akimbo] the level's mobys were made again while the left hand led" (the first: another class where the
+# kept item was; the second: the game's hand item made where it was), never "the hand's slot held moby ..., not the left
+# gun ...: deleted", and the run to its quit; then the right Blaster fires. 0.1.19's mod logs that "deleted" at both.
+600 y 1
+606 y 0
+2750 shot alive
+2800 left_trigger 1
+3050 shot dying
+3400 shot dead
+4300 shot respawned
+4500 left_trigger 0
+4600 right_trigger 1
+4640 shot right-fired
+4660 right_trigger 0
+4800 quit 0

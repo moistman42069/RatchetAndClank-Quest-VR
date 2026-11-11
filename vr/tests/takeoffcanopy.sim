@@ -1,0 +1,36 @@
+# 0.1.20 check (a tester: "durring planet transition cockpit window still tries to race against ship"): takeoff.sim's
+# way from Novalis to Kerwan, with shots close together as the ship climbs fast through the take-off scene (through
+# his eyes), the head turned along the ship (its heading 2.01, the view 77 degrees left of it), to see whether the
+# cockpit keeps its place in the eyes from frame to frame.
+3360 hand_yaw 29
+3360 hand_pitch 15.5
+3420 a 1
+3426 a 0
+3600 a 1
+3606 a 0
+3650 head_yaw -77
+3650 head_pitch -15
+3700 shot c3700
+3760 shot c3760
+3800 shot c3800
+3830 shot c3830
+3850 shot c3850
+3860 shot c3860
+3870 shot c3870
+3880 shot c3880
+3890 shot c3890
+3900 shot c3900
+3910 shot c3910
+3920 shot c3920
+3930 shot c3930
+3940 shot c3940
+3945 head_yaw 0
+3945 head_pitch 0
+3970 shot c3970
+4000 shot c4000
+4040 shot c4040
+4080 shot c4080
+4120 shot c4120
+4160 shot c4160
+4200 shot c4200
+4220 quit 0

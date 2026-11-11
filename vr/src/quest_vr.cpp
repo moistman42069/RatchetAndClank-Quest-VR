@@ -547,6 +547,12 @@ bool first_person_now(int phase) {
 // are a plain pad, in the menus too (pad.h). The left menu button is then Start, not the recentre: the headset's own
 // recentre (holding its Meta button) does that.
 bool gamepad_view() { return s_options.third_person_pad && !s_options.first_person && !s_options.screen; }
+// The view switched by the left menu button's hold, said ahead of the head for a few seconds (trace_input), with how to
+// switch back (0.1.20: a tester held it by chance and did not know why the game was third person, or how to leave it).
+const char* s_view_notice = nullptr;
+std::chrono::steady_clock::time_point s_view_notice_until{};
+// A notice ahead of the head (trace_input): held this long, seconds, then faded out over kNoticeFade.
+constexpr float kNoticeHold = 2.0f, kNoticeFade = 1.0f;
 // The controllers a plain pad: that, or the big screen. The hints' icons are the pad's (paint_glyphs).
 bool plain_pad_view() { return s_options.screen || gamepad_view(); }
 
@@ -831,6 +837,7 @@ void sample_hero() {
 // the game's own (item_available, weapon_ammo_counts; Rerac-vr's NTSC 0x13d4c0 / 0x13d428).
 bool readable(gaddr address, uint32_t bytes);
 Vec3 read_vec(gaddr at);
+Vec3 anchor_now(float alpha);  // the eyes' anchor (The frame, below): the surface trace's eyes line
 
 void sim_give() {
     static bool done = false;
@@ -998,6 +1005,13 @@ void sim_give() {
                               ref<int16_t>(h + 0x12E0u), ref<uint8_t>(h + 0x12EAu), ref<int16_t>(h + 0x308u), ref<int16_t>(h + 0x30Cu), ref<int16_t>(h + 0x30Eu),
                               get_float(h + 0x2DCu), now.x, now.y, now.z, n.x, n.y, n.z, up.x, up.y, up.z, dir.x, dir.y, dir.z, cf.x,
                               cf.y, cf.z, cu.x, cu.y, cu.z);
+                log_line(1, more);
+                // Where the eyes stand (0.1.20, magnetview.sim): his eye height off the ground along his up, none across.
+                const Vec3 eyes = frame_to_world(anchor_now(1.0f)), off = eyes - now;
+                const float along = dot(off, up);
+                const Vec3 across = off - up * along;
+                std::snprintf(more, sizeof more, "[sim] eyes tick %llu: at (%.2f %.2f %.2f), %.2f off the ground along his up, %.2f across it",
+                              static_cast<unsigned long long>(s_tick), eyes.x, eyes.y, eyes.z, along, length(across));
                 log_line(1, more);
             }
         }
@@ -14778,6 +14792,7 @@ uint64_t s_lead_ticks = 0;
 constexpr uint32_t kHeroSavedItem = 0x2310u;
 int32_t s_lead_kept_request = 0, s_lead_kept_saved = 0;
 gaddr s_lead_moby = 0;  // the hand's slot's moby as the lead began (the left gun)
+int16_t s_lead_kept_class = -1;  // the right hand's item kept aside: its class as the lead began (-1 none)
 
 // Ratchet's hands free for a lead: none of the hand's no-item flags, on his feet, not hanging or cranking.
 bool lead_free() {
@@ -14799,11 +14814,52 @@ void swap_lead_slots() {
     std::memcpy(s_left_slot, hand, kSlotBytes);
 }
 
-// The right hand's item kept aside while the left leads: its moby, or 0.
+// The right hand's item kept aside, its moby's place now another moby's: the level's mobys were made again while the
+// left hand led (0.1.20, a tester's crash on Umbris, 0.1.19 PC, the US disc: he drowned at Qwark's base with the left
+// hand's Swingshot leading, the game put him back with its mobys made anew, and the lead's end put the moby now in the
+// kept one's place back in the hand's slot, which the game's next item update read through). Ours has the class it
+// had and the moby loop's pass-by the lead gave it; a moby made there since has neither, or not both. Or the game's own
+// hand item was made in its place, the same class and passed by the loop as the game's hand items may be: it is in the
+// hand's slot (akimboleaddeath.sim's second respawn: the game made his Blaster again where the kept one had been). The
+// reason, or nullptr while it is still ours.
+const char* kept_right_change() {
+    gaddr moby = 0;
+    std::memcpy(&moby, s_left_slot, sizeof moby);
+    if (!s_leading || s_lead_kept_class < 0 || moby == 0 || s_mod->moby_slot_of(moby) < 0 || ref<uint8_t>(moby + kMobyState) >= 0x80) {
+        return nullptr;  // none kept, or gone: the lead's end empties the slot for the game to make it again (end_lead)
+    }
+    if (ref<gaddr>(s_disc->hero + kHeroSlot0) == moby) {
+        return "the game's hand item made where it was";
+    }
+    if (ref<int16_t>(moby + kMobyOclass) != s_lead_kept_class) {
+        return "another class where it was";
+    }
+    return (ref<uint16_t>(moby + kMobyMode) & kMobyNotRun) == 0 ? "a moby the game runs where it was" : nullptr;
+}
+bool kept_right_replaced() { return kept_right_change() != nullptr; }
+
+// The right hand's item kept aside while the left leads: its moby, or 0 (gone, or its place another's).
 gaddr kept_right_moby() {
     gaddr moby = 0;
     std::memcpy(&moby, s_left_slot, sizeof moby);
-    return moby != 0 && s_mod->moby_slot_of(moby) >= 0 && ref<uint8_t>(moby + kMobyState) < 0x80 ? moby : 0;
+    return moby != 0 && s_mod->moby_slot_of(moby) >= 0 && ref<uint8_t>(moby + kMobyState) < 0x80 && !kept_right_replaced() ? moby : 0;
+}
+
+// The lead given up where the level's mobys were made again (kept_right_replaced): nothing of its slots goes back, as
+// both of its mobys went with the level's; the hand's slot is the game's, as the game made it again, and the left gun is
+// made anew (place_left_gun). Circle's saved item is the hand's own again.
+void drop_lead_remade() {
+    const char* why = kept_right_change();
+    char line[240];
+    std::snprintf(line, sizeof line, "[vr-akimbo] the level's mobys were made again while the left hand led (a death or a respawn: %s): "
+                  "the lead dropped after %llu ticks, the hand's slot as the game made it", why != nullptr ? why : "?",
+                  static_cast<unsigned long long>(s_lead_ticks));
+    s_leading = false;
+    s_lead_kept_class = -1;
+    ref<int32_t>(s_disc->hero + kHeroSavedItem) = s_lead_kept_saved;
+    std::memset(s_left_slot, 0, sizeof s_left_slot);
+    s_left_moby = 0;
+    log_line(1, line);
 }
 
 // ---- A weapon's model decoded over ----
@@ -14886,7 +14942,9 @@ void start_lead() {
     s_lead_used = false;
     s_lead_ticks = 0;
     s_lead_moby = ref<gaddr>(hero + kHeroSlot0);
+    s_lead_kept_class = -1;  // until it is known (kept_right_moby, kept_right_replaced)
     if (const gaddr right = kept_right_moby()) {
+        s_lead_kept_class = ref<int16_t>(right + kMobyOclass);
         s_lead_kept_flags = ref<uint16_t>(right + kMobyMode);
         ref<uint16_t>(right + kMobyMode) = static_cast<uint16_t>(s_lead_kept_flags | kMobyNotRun);
         wrench_stop_for_lead(right);
@@ -14898,6 +14956,10 @@ void start_lead() {
 }
 
 void end_lead() {
+    if (kept_right_replaced()) {
+        drop_lead_remade();
+        return;
+    }
     const gaddr right = kept_right_moby();
     if (right != 0) {
         const uint16_t flags = ref<uint16_t>(right + kMobyMode);
@@ -14923,8 +14985,10 @@ void end_lead() {
     gaddr held[2];
     std::memcpy(held, s_left_slot, sizeof held);
     if (held[0] != s_lead_moby) {
+        // Never the moby the hand's slot holds now (0.1.20: one the game made where the kept one was is both).
+        const gaddr in_hand = ref<gaddr>(s_disc->hero + kHeroSlot0);
         for (const gaddr moby : held) {
-            if (moby != 0 && moby != s_left_moby) {
+            if (moby != 0 && moby != s_left_moby && moby != in_hand) {
                 drop_spoilt_moby(moby);
             }
         }
@@ -14950,6 +15014,12 @@ bool lead_tick() {
         s_leading = false;
         s_left_moby = 0;
         log_line(1, "[vr-akimbo] the left hand's lead dropped by a load");
+        return false;
+    }
+    // A death or a respawn made the level's mobys again (kept_right_replaced): given up at once, before the game's item
+    // update, whatever the phase.
+    if (kept_right_replaced()) {
+        drop_lead_remade();
         return false;
     }
     if (phase_now() != OPENRAC_PLAY_PLAYING) {
@@ -15349,7 +15419,13 @@ Vec3 anchor_now(float alpha) {
         return world_to_frame(s_eye_parked_at + Vec3{0, 0, s_eye_height * s_options.world_scale});
     }
     const Vec3 hero = s_hero_before + (s_hero_after - s_hero_before) * alpha;
-    return world_to_frame(hero + Vec3{0, 0, s_eye_height * s_options.world_scale}) + s_handover_offset;
+    // His eye height off the ground along his up: the world's, or on the Magneboots' walls and ceilings the surface's
+    // (s_up_turn, follow_surface). Until 0.1.20 it was the world's up always, the surface's turning only the head's
+    // moves about it, so on a wall the eyes stayed in the wall's face (a tester: "like if you was licking the magnet
+    // wall") and upside down they were his height above the ceiling, on its other side. Off a surface the turn is none
+    // and this is the world's up as before.
+    const Vec3 lift = rotate(s_up_turn, Vec3{0, s_eye_height * s_options.world_scale, 0});
+    return world_to_frame(hero) + lift + s_handover_offset;
 }
 
 Rig first_person_rig(float alpha);
@@ -15623,10 +15699,14 @@ void hide_black_bars() {
 }
 
 // The game's sprites and glows face its camera, which the player's eyes are not (Rerac-vr's: glow billboards face the
-// headset). A PC test aid, QUEST_SPRITES_OFF=1, leaves them to the game's camera, to compare.
+// headset). A PC test aid, QUEST_SPRITES_OFF=1, leaves them to the game's camera, to compare. In a scene seen through his
+// eyes they face those eyes (fill_eye's actor), not where the head was in play: until 0.1.20 a take-off's sprites faced
+// the pad he left, and the flight after it, seen from the game's camera, had them face the pad too, so they turned as
+// the ship moved. Any view from the game's camera leaves them to the game.
 void face_sprites() {
     const openrac_api& api = s_mod->api();
-    bool mine = s_have_frame && (s_steers || s_world_menu || s_scene_eyes);
+    const bool actor = s_scene_eyes && !s_steers && !s_world_menu && phase_now() == OPENRAC_PLAY_SCENE;
+    bool mine = s_have_frame && (s_steers || s_world_menu || actor);
 #if !defined(__ANDROID__)
     static const bool off = std::getenv("QUEST_SPRITES_OFF") != nullptr;
     mine = mine && !off;
@@ -15637,7 +15717,13 @@ void face_sprites() {
     }
     const Quat turn = yaw_quat(s_rig.yaw) * s_frame.head.orientation;
     const Vec3 left = frame_to_world(rotate(turn, {-1, 0, 0})), up = frame_to_world(rotate(turn, {0, 1, 0}));
-    const Vec3 eye = world_from_head(), camera = read_vec(camera_block() + kCameraEye);
+    Vec3 eye = world_from_head();
+    if (actor) {
+        Rig rig = s_rig;
+        rig.origin = s_scene_origin;
+        eye = frame_to_world(rig.to_frame(s_frame.head, world_to_frame(s_scene_after)).position);
+    }
+    const Vec3 camera = read_vec(camera_block() + kCameraEye);
     const float l[3] = {left.x, left.y, left.z}, u[3] = {up.x, up.y, up.z};
     const float e[3] = {eye.x, eye.y, eye.z}, c[3] = {camera.x, camera.y, camera.z};
     api.sprites_face(l, u, e, c);
@@ -15762,6 +15848,9 @@ void steer(const FrameInfo& frame, int phase) {
         save_vr_options();
         log_line(1, s_options.first_person ? "[vr-rig] the view is first person now: the left menu button held"
                                            : "[vr-rig] the view is third person now: the left menu button held");
+        s_view_notice = s_options.first_person ? "FIRST PERSON  HOLD LEFT MENU FOR THIRD PERSON"
+                                               : "THIRD PERSON  HOLD LEFT MENU FOR FIRST PERSON";
+        s_view_notice_until = std::chrono::steady_clock::now() + std::chrono::seconds(4);  // past its hold and fade
     }
     // A press begun as the pad's Start is no recentre press when the hold has brought first person back mid-press: the
     // switch's own recentre (s_recentre_wanted) is the one (thirdpad.sim).
@@ -15886,7 +15975,7 @@ void trace_input(const FrameInfo& frame) {
         log_line(1, line);
     }
 
-    // Three seconds with a controller gone, in focus: said on the game's picture, until it is back.
+    // Three seconds with a controller gone, in focus: said ahead of the head (faded after a couple of seconds, below).
     static int missing = 0;
     static const char* said = nullptr;
     const bool left = frame.stick_active[0] || frame.hand_valid[0];
@@ -15905,10 +15994,38 @@ void trace_input(const FrameInfo& frame) {
                                : "RIGHT CONTROLLER NOT FOUND  CHECK IT IS ON";
 #endif
     }
+    // Else the view just switched by the left menu button's hold (s_view_notice), for its few seconds.
+    static bool said_view = false;
+    const bool view = text == nullptr && s_view_notice != nullptr && std::chrono::steady_clock::now() < s_view_notice_until;
+    if (view) {
+        text = s_view_notice;
+    }
+    const auto now = std::chrono::steady_clock::now();
+    static std::chrono::steady_clock::time_point shown_at{};
+    static bool faded = false;
     if (text != said) {
+        // The view's own line is in the log already ("[vr-rig] the view is ... now"); its notice going is not the controllers.
+        if (!view && (text != nullptr || !said_view)) {
+            log_line(2, text != nullptr ? text : "the controllers are back");
+        }
         said = text;
+        said_view = view;
+        shown_at = now;
+        faded = false;
         s_headset->show_notice(text);
-        log_line(2, text != nullptr ? text : "the controllers are back");
+    }
+    // Each notice holds two seconds and fades in one, gone until another is said (0.1.20, the owner: "make sure the
+    // notices dont linger though. they should fade away after a couple seconds"): a controller still missing then is
+    // said again only once it has been back.
+    if (said != nullptr && !faded) {
+        const float age = std::chrono::duration<float>(now - shown_at).count();
+        const float alpha = std::clamp(1.0f - (age - kNoticeHold) / kNoticeFade, 0.0f, 1.0f);
+        s_headset->notice_alpha(alpha);
+        if (alpha <= 0.0f) {
+            faded = true;
+            s_headset->show_notice(nullptr);
+            log_line(1, (std::string("[vr-notice] faded out: ") + said).c_str());
+        }
     }
 }
 
@@ -18746,8 +18863,8 @@ int hud_height_of(int value) {
     return std::clamp((value + kHudHeightMax) / kHudHeightStep * kHudHeightStep - kHudHeightMax, -kHudHeightMax, kHudHeightMax);
 }
 
-// The launcher's View as it was when the row last saved: changed there since, the launcher's wins. Its HUD size and
-// Cutscenes so too.
+// The launcher's HUD size, Cutscenes and World scale as they were when VR Options last saved: one changed in the launcher
+// since, the launcher's wins. Its View too, only written now: the view starts as the launcher says (0.1.20).
 bool s_launcher_first = true;
 int s_launcher_hud = 100;
 int s_launcher_scenes = kSceneViewEyes;
@@ -18800,7 +18917,7 @@ void load_vr_options() {
     std::ifstream file(s_vr_file);
     std::string key;
     int value = 0;
-    int first_person = -1, launcher_first = -1, hud_size = -1, launcher_hud = -1, world_scale = -1, launcher_scale = -1;
+    int hud_size = -1, launcher_hud = -1, world_scale = -1, launcher_scale = -1;
     s_launcher_scale = world_scale_now();
     bool body_read = false, parts_read = false, chosen_read = false, akimbo_read = false, akimbo_chosen_read = false;
     bool empty_hand_read = false, empty_hand_chosen_read = false;
@@ -18841,10 +18958,6 @@ void load_vr_options() {
             s_vr.mirror_guns = value != 0;
         } else if (key == "left_ammo") {
             s_vr.left_ammo = value != 0;
-        } else if (key == "first_person") {
-            first_person = value;
-        } else if (key == "launcher_first") {
-            launcher_first = value;
         } else if (key == "helmet") {
             s_vr.helmet = value != 0;
         } else if (key == "boots") {
@@ -19055,9 +19168,11 @@ void load_vr_options() {
     if (turn_rate >= kSmoothMin && turn_rate <= kSmoothMax && rate_was == s_launcher_rate) {
         s_options.turn.smooth_rate = static_cast<float>(turn_rate) * kPi / 180.0f;
     }
-    if (first_person >= 0 && launcher_first == (s_launcher_first ? 1 : 0)) {
-        s_options.first_person = first_person != 0;
-    }
+    // The view always starts as the launcher's View says (0.1.20). Until then the view last switched in play (the left
+    // menu button held, or VR Options' View row) came back at the next start while the launcher's row was unchanged: a
+    // tester on 0.1.19 held the button a second in one session and from then on every start was third person, with the
+    // launcher saying first, and in third person the controllers are now a gamepad (Third person controls). The switch
+    // lasts until the game is closed; the file still keeps first_person, which nothing reads now.
     if (scene_view >= 0 && scene_view < kSceneViewCount && scenes_was == s_launcher_scenes) {
         set_scene_view(scene_view);
     }
@@ -19861,4 +19976,4 @@ void load(openrac::Mod& mod) {
 
 }  // namespace
 
-OPENRAC_MOD_CPP("quest-vr", "0.1.19", load)
+OPENRAC_MOD_CPP("quest-vr", "0.1.20", load)

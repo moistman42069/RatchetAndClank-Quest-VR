@@ -1,6 +1,71 @@
-# Ratchet & Clank Quest VR: release notes of 0.1.3 to 0.1.11
+# Ratchet & Clank Quest VR: release notes of 0.1.3 to 0.1.12
 
-As each release gave them. Since 0.1.19 the release page carries 0.1.12 onwards (`docs/release-notes.md`): GitHub limits how long a release's notes can be.
+As each release gave them. Since 0.1.20 the release page (`docs/release-notes.md`) carries 0.1.13 onwards (0.1.19's carried 0.1.12 onwards): GitHub limits how long a release's notes can be.
+
+## New in 0.1.12
+
+Two testers' lists and the owner's own, worked through, a body and hands of your own, and **mod support**: OpenRAC's mods in the launcher, five of them built in, and more from a file. Thanks for the videos and the logs.
+
+**A body and hands of your own** (all of it can be changed in the game)
+
+- **Arms with hands are the new start.** Ratchet's arms now run from his shoulders to your controllers and bend at the elbows, with a shadow to match. **A settings file from before changes once:** hands alone become arms with hands, and a **Player body** you had on becomes the whole of him.
+- **New page, VR Body** (VR Options, in play): **Player body**; **Body parts**: Everything, Arms and legs, Arms only, Legs only, Body and legs, Body and arms; **Tail**; **Arms bend to your hands**; **Legs bend**; **Body turns with your head**; **Body height**; **Body forward**; **Arm length**; **View height**. The shadow shows the parts you chose, where they are bent to.
+- **The whole body** stands under your head: your hips follow once you have turned well past them, your spine takes the rest, and your knees bend as your head goes down. His feet are where the game puts them, running included. When you walk around your room they slide along the ground, because his walk is not played for those steps. **Seated** and **View height** lift only your view: his body stays on its feet and his arms reach up to your hands. Neither the game nor Rerac-vr has this. Clank, Giant Clank and the Hologuise keep their own hands; only Ratchet's body bends.
+- **Your fingers follow yours** (VR Hands, **Fingers**: Tracked by default, or Static for the hands as they were). From the controllers' touch sensors: your first finger off the trigger points, your thumb off the buttons is a thumbs-up, the grip closes the other three together. Clank's hands too. A controller has no sensor for each of those three fingers, so they move as one.
+- **Fingers bend around the world** (VR Hands, on): they stop on what they meet, and bend back on it or curl round it, smoothly.
+- **World collision** (VR Controls, on): your hands and everything you hold, wrench, guns and gloves in either hand, stop at walls and the ground.
+- **World vibration** (VR Controls, on): a tap on touching, then a buzz that grows the further your hand is pushed in, fading out once you rest it there.
+- **Physical crouch** (VR Controls, on): lower your head and Ratchet crouches. **Crouch when head drops** sets how far, 10 to 60 cm (25 to start). Looking down is not a crouch: it is measured at your neck. A jump from low is the game's high jump. The game's crouch cannot walk, so the stick walks him with your head still low, and he crouches again when you stop. The left grip's crouch works as before. Rerac-vr has only that grip.
+- **New page, VR Controls** (VR Options, in play): Turning, Snap angle, Smooth turn speed, **Physical crouch** and **Crouch when head drops**, then the launcher's switches for your hands and body: Vibration, Aim with the right hand, Grab ledges with your hands, Swim with your arms, Swing the wrench for real, Throw by hand, Two-handed weapons, World collision, World vibration, Walk around your room and Sparkles on the bolts. A change here is saved. If you later change the same switch in the launcher, the launcher's wins.
+- **Hand size and Empty hand angle work with the bending arms.** The arm reaches the hand at any size; the forearm grows from your elbow to the hand's size at the wrist, and takes half of the hand's roll, so a wrist turned over stays whole.
+
+**Mods** (new: the launcher's Game tab)
+
+- **Mod support.** The launcher's new **Game** tab runs [OpenRAC's mods](https://github.com/OpenRAC/rac1-mods), built for the headset. Each one is turned on there, with its own settings and presets, and counts from the game's next start.
+- **Five come with it:** **Difficulty**, **Item randomizer**, **Xbox button icons** and **Button swap** (off until you turn them on) and **Ammo at the most** (on). A save made with the Item randomizer belongs to its seed.
+- **Add a mod file** takes another OpenRAC mod's .zip: a script mod, a data pack, or a native mod with a build for the headset (android-arm64), of mod interface 1.11 or older. The launcher says why if it cannot take one, and **Remove this mod** takes an added one out again. The game runs what it can load and says what it refused. Mods are programs: add only ones you trust. Some, made for a flat screen, may not suit VR.
+- **In VR:** the game's button pictures are already the Quest's, so **Xbox button icons** changes nothing you see in the headset. **Button swap** swaps the game's buttons after the Quest's are given: with Cross and Square swapped (its default), A swings the wrench instead of jumping, and A and the trigger no longer pick in the game's menus; the pictures stay as they were.
+
+**The Swingshot**
+
+- **Fixed: it faced the wrong way.** It was held rolled half a turn from Rerac-vr's. Its shell now sits on the back of your wrist, with the hook ahead of your hand.
+- **Fixed: its shell going see-through.** The game keeps a marker for each thing's place, to know when it is out of sight, and it set the one for a held item at Ratchet's own hand, not yours. Once that marker fell out of your view the shell was no longer drawn, and only its shine and the hook were left. The marker now follows your hand, for everything you hold.
+- **Fixed: a giant Swingshot, as far as we can tell.** The hook could be given the size meant for the wrench, about 18 times too big, when it took the wrench's place in the game's list. That write is gone, and the hook is now drawn at the shell's size. The cause comes from the code: we did not manage to make it happen here, so tell us if you still see it.
+- **Fixed: a rumble that would not stop.** After a swing, each time the Swingshot came back to your hand the controller buzzed as if its rope were out. It now buzzes only while the rope is out.
+
+**Crashes**
+
+- **Fixed: buying the Heli-Pack from Big Al on Kerwan could stop the game** (a tester on the US disc, the moment it was bought). **The fault was this port's:** **Max draw distance** (0.1.7) also kept alive some hidden makers of things, far past where the game lets them run. On Kerwan their rail cars froze and piled up in one square of the game's table of what stands where, until that square's count ran over, and the game stops itself when that table looks wrong. Left long enough, they could fill the list of things too, and then the shop's scene crashed reading something missing. Now only things with a shape to draw are kept running, so the hidden makers are left to the game, as in Rerac-vr, which keeps running only what the headset draws; a square that is too full no longer stops the game; and the shop's scene is safe with a full list (OpenRAC's fix). On PC with the European disc the pile-up is gone (45 in the fullest square, was 142), and buying the Heli-Pack works. **Not yet run on the US disc or on a Quest:** if you get there on the US disc, please send your log, even if all goes well.
+- **Closing the pause menu could stop the game** on some planets, in the same test of lines that 0.1.10 fixed elsewhere. Fixed.
+
+**Your hands and what they hold**
+
+- **Fixed: a smaller gun and a twisted left hand after loading a save, or after the ship** (normal again after the wrench). Sizes were read back from a moby that had already been resized; they now come from the game's own table. We did not manage to reproduce this one on PC either, so tell us if it is gone.
+- **Fixed: a giant gun when paused, and the let-go wrench coming back in the pause.** Your guns, left hand's too, stay as they are in play.
+- **Fixed: the Pyrocitor's pilot flame outside the gun.** It now moves with the gun and is in proportion at any Gun size.
+- **Fixed: a shaky two-handed hold.** The spot for your other hand followed Ratchet's animated palm, which sways up to several centimetres as he walks, and that swung the whole gun. The spot is now fixed once you take hold.
+- **New in VR Hands: Empty hand angle** (45 down to 45 up, in steps of 5). It tilts your hands when they hold nothing, if they feel turned too high. It starts at Default. **VR Hands now scrolls:** nine rows, eight at a time, like VR Options.
+- **New in VR Options: Cheats** (in play only). Invincible, Infinite ammo, Infinite bolts, Big heads, Trippy contrails, Give all weapons, Give all gadgets, Unlock all planets. All off until you turn them on, and saved.
+
+**What you see**
+
+- **Fixed: scenes seen from inside the ship.** A scene elsewhere on a planet, such as at Big Al's counter, could put you in the ship's seat, wherever the ship was. Only a scene at the ship, such as its take-off, landing or flight away, is now seen from it, as in Rerac-vr. Other scenes also start along your gaze, not Ratchet's body. A scene with no one to see through, such as a flyover or an infobot's message, is watched from the scene's camera.
+- **New: change how a cutscene is seen while it plays.** Press **X** during a cutscene to step through **Through his eyes**, **In VR** (the game's own camera, in 3D around you) and **On a screen**. **VR Options** now has the same **Cutscenes** row, after **View**, and the choice is kept for the scenes after it. It changes only cutscenes: when a scene ends, you play in the **View** you had, first or third person, and X is the map again.
+- **Fixed: the world vanishing behind the pause menu.** With fades on, the level round the menu could be lost, with your hands, and seas, lava and mud could go missing. They all stay now.
+- **New in the launcher's Graphics tab, all on by default:**
+  - **Shadow matches what you see:** Ratchet's shadow shows only what is drawn of him. Hands only, it is the hands'; with **Player body** on, it is the whole of him.
+  - **Fades fill your view:** the game's fades to black and its other full-screen colours cover the eyes, not just a flat picture.
+  - **Smooth plant edges:** the hard lines round low plants, such as the ring at the foot of Veldin's trees, are gone. It is a plant, not a shadow as we first thought.
+- Clank's antenna light and the Hologuise's glows are not drawn in front of your eyes in first person, as in Rerac-vr.
+
+**The launcher and the US disc**
+
+- **New Game tab in the launcher:** **Skip any movie** (on) and **Game volume**, beside the mods above.
+- **OpenRAC's fixes since our version, taken one by one:** the European disc's freeze after picking Quartu and drowning there; the landing and the vendor's scene with a full list of things; a grey Pyrocitor on the vendor's screen; screen fills reaching the edges; leaving out what the level's own visibility data says cannot be seen; Clank's shadow; the flight between planets; two small errors in the game's line tests; and the Difficulty and Item randomizer mods' own fixes.
+- **US disc:** a small maths function in the game did nothing on that disc, so some of the game's tests on things' joints read numbers never written. It now works.
+- **Ledges:** opening both hands drops you. Shorter logs too.
+
+Tested on PC with the European disc on Kerwan and other planets: the Swingshot's facing, a pull and a real swing with its rumble before and after; losing the shell when its marker is moved away; buying the Heli-Pack; the two-handed hold walking; Empty hand angle at 0 and 30 each way; scenes at Big Al's and the ship's take-off and landing; the pause on five planets. Also on PC: **Physical crouch** (looking down and a small dip do nothing, a real crouch does, and you can walk low and jump from it); the whole body and each **Body parts** choice, with **Seated** and **View height**, and their shadows; the fingers and their bend around walls; **World collision** and **World vibration** with a gun in each hand pushed into a wall and the ground, at about 8 line tests a game tick and 0.03 ms; walking around your room with the whole body; the weapon wheel; the VR Body, VR Controls and Cheats pages; X switching a cutscene's view three times over in the Novalis arrival, with play after it still in first person, and the new Cutscenes row; saving and loading with a gun in your hand; the level's own visibility data on Veldin, Novalis, Kerwan and Pokitaru, which leaves out nothing your head can see; the five bundled mods all on and loading beside the VR mod; the OpenRAC tests that this release's changes reach; and the launcher's tests. **Not yet tried on a Quest**, and nothing here has yet been run on the US disc on PC, because we only have the European one to test with here. Please tell us how all of it feels.
 
 ## New in 0.1.11
 

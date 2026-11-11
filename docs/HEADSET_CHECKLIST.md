@@ -166,7 +166,7 @@ it worked (the log is in Download/RatchetQuestVR). PC-proven features are in STA
   - **Water (0.1.17):** stand right by a pool (Novalis's by the start) and look about: it stays whole.
   - **Title screen (0.1.17):** press Start, then move through the main menu, Load Game and Options: Ratchet, his ship and the crate stay in the scene behind the menu.
   - **Help Desk (0.1.17, on for a new game):** start a new game: the game's tips should play in voice and text on Veldin. Later pick up the Trespasser: say whether you hear its tip and see its text. On a save from before, turn them on first (Y, Options, HelpDesk, Voice and Text).
-  - **View switch (0.1.17):** in play, hold the left menu button a second: third person (`[vr-rig] the view is third person now: the left menu button held`); again: first person. A short press only recentres (in third person with Gamepad, from 0.1.19, it pauses as you let go). Try it on the hoverboard and at a bolt crank.
+  - **View switch (0.1.17):** in play, hold the left menu button a second: third person (`[vr-rig] the view is third person now: the left menu button held`); again: first person. A short press only recentres (in third person with Gamepad, from 0.1.19, it pauses as you let go). Try it on the hoverboard and at a bolt crank. From 0.1.20 the switch lasts until the game closes: the next start is the launcher's View again.
   - **Dive (0.1.17):** in first person at the water's surface, pull the left trigger: he dives. Under the water look down and push the stick: he goes deeper; look up: he comes back up. Then stroke hard at the surface with the wrench out: he should not dive unless you push the water up with both hands. In third person the left trigger dives too.
   - **Dive by hand (0.1.17, a seated tester could not dive at all):** at the surface, holding the controllers as you do, push both hands up quickly: he dives (`[vr-swim] dive: the hands pushed up`). Come back up, look well down and stroke: he dives (`a stroke looking down`). Swim along at the surface with ordinary strokes, looking ahead: he must not dive. Do it standing and seated (Play position: Seated).
   - **Seated (0.1.17):** VR Options, Play position: Seated, sitting in a chair. Your eyes should be at Ratchet's, no higher (to 0.1.16 they were 45 cm above), and your hands where you hold them: in the water at the surface, at a bolt crank, at an enemy with the wrench. Lean forward in the chair: he does not crouch. The left trigger crouches.
@@ -187,6 +187,25 @@ it worked (the log is in Download/RatchetQuestVR). PC-proven features are in STA
   - **The start of the game:** after the intro movie the copyright lines show on the title's panel, steady as you move
     your head, with no warp. Load a save into a level that starts with a scene: no flash of the save select as it
     begins (`[vr-view] the eyes' last picture is of another place` at most once there).
+- **Testers' reports on 0.1.19 (0.1.20).** PC-run with a simulated headset only, on the PAL disc.
+  - **The launcher's View:** set View to first person in the launcher, start, hold the left menu button a second
+    (third person, and "THIRD PERSON  HOLD LEFT MENU FOR FIRST PERSON" ahead of you), close the game and start
+    again: first person (`first_person 1` in the first `[vr-state]` line in play).
+  - **Smoother frames at 120 Hz (Quest):** with Smoother frames on and Refresh rate at 72, start and play a minute:
+    `[openxr] smoother frames: the headset at 120 Hz`, then `[vr-perf]` lines with `period 16.67 ms` and `the
+    display at 120 Hz` in play. Walk and turn in first and third person: say whether the micro stutters are gone,
+    and whether any `displays missed` show in play. With Keep the refresh rate off, no "not held" from the menus.
+  - **Notices:** turn a controller off in play: "LEFT CONTROLLER NOT FOUND  CHECK IT IS ON" holds about two seconds
+    and fades over one (`[vr-notice] faded out`), even with the controller still off. Say whether the fade looks
+    smooth.
+  - **Magneboots in first person:** walk up Orxon's first magnet wall and under an overhang: your eyes at his height
+    off the wall, not in it, and upside down on his side of the surface.
+  - **Akimbo through a death:** the Swingshot in the left hand, hold the left trigger and fall in deadly water or die
+    some other way: he comes back, no crash (`[vr-akimbo] the level's mobys were made again while the left hand led`).
+  - **Take-off glows:** with Cutscenes on Through his eyes, watch a take-off and the flight after it: the glows and
+    sparks face you and do not turn as the ship moves.
+  - **Still to find:** the cockpit window "racing" the ship between planets, and Blarg station's far windows: if you
+    see either, a short clip or where you stood and faced.
 - **The owner's video and logs of 0.1.18, and a tester's (0.1.19).** PC-run with a simulated headset only, on the PAL disc.
   - **Aridia's sand sea:** by the Gadgetron vendor, face away from the channel and turn your head to it and past it, then
     look down: the sand is whole, with no straight-edged black holes and no pillars hanging in nothing. Look round at

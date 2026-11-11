@@ -2,6 +2,30 @@
 
 > **This is a test build, and we need your logs.** **Expect bugs.** Every log helps, including from runs that worked: **Send your log** below says how.
 
+## New in 0.1.20
+
+From testers' reports and logs on 0.1.19 (PC VR and a Quest 3), and the owner's asks.
+
+- **The game starts in the launcher's View.** A tester's game kept starting in third person with the launcher set to first person, and in third person the controllers are now a gamepad (**Third person controls**, **Gamepad** to start), so they could not find how to pause or get back. Holding the left menu button for a second in play switches the view, and until now the game kept that switch for its next start: hold it once by chance, while recentring say, and every start after that was third person. Now the game always starts in the launcher's **View** (VR tab). The hold still switches, until you close the game.
+- **The view switch says how to switch back:** "THIRD PERSON  HOLD LEFT MENU FOR FIRST PERSON" (or the reverse) ahead of you for a couple of seconds. In third person with **Gamepad**, the left menu button pressed and let go is Start (pause), and held a second takes you back to first person. If you like third person with the VR controls, set **Third person controls** to **VR**.
+- **Smoother frames: the game draws 60 pictures a second** (a tester: "I don't experience them when i set the hz to 120 in your app. Could it be that there is some kind of a vsync issue somewhere? Does the engine run at 60 fps natively"). Yes: the game takes 60 steps a second. With **Smoother frames (AppSW)** on, as it starts, the game draws every other frame and the Quest makes the ones between, so the picture rate is half the headset's: at 72 Hz, where every preset put **Refresh rate**, the game drew 36 pictures a second for its 60 steps (their logs: frames 27.8 ms apart), and at 120 Hz it drew 60, one a step (16.7 ms). Now Smoother frames always runs the headset at 120 Hz, and **Refresh rate** is for Smoother frames off. Their Quest 3 held it: 8.5 to 11 ms of work a picture, no displays missed. If yours cannot keep up (a stutter, or OVR Metrics under 60), lower **Eye resolution**, or turn Smoother frames off and pick a Refresh rate. Two more things their logs showed: the headset can run at another rate than the one asked for (90 Hz asked, 120 Hz given), so the log now says the display's own rate (`the display at 120 Hz` in each `[vr-perf]` line, and each change); and with **Keep the refresh rate** off, the menus and loads, which Smoother frames does not draw, counted as "not held" and dropped the headset to 72 Hz just as play began. Now, with Smoother frames on, only play counts.
+- **Notices fade away** (the owner: "make sure the notices dont linger though. they should fade away after a couple seconds"). The words shown ahead of you, such as a controller not found or the view switched, hold for two seconds and fade out over one, instead of staying.
+- **Magneboots in first person** (a tester: "your view in 1st person while magenet walking is like if you was licking the magnet wall and on the upside down segment my view was on the other side of it"). Your eyes were always lifted along the world's up from Ratchet's feet, so on a wall they stayed in the wall's face and upside down they ended up on the other side of the surface. They now sit at his eye height off whatever he walks on, along its up, walls and ceilings alike, as on the ground.
+- **A crash after drowning with something in the left hand** (a tester's log: 0.1.19 PC, US disc, drowned at Qwark's base on Umbris with the Swingshot in the left hand, Akimbo). While the left hand holds an item, the right hand's item is kept aside. A death makes the level's things again, and their addresses get reused: the kept-aside item's address now belonged to something else. When the hold ended, the right hand was given that address back and the game's new hand item was deleted, and the game then read unmapped memory. Now, if the kept-aside item is no longer ours while the left hand holds (the game made its own hand item at that address, or something of another kind or that the game runs is there), the hold is dropped and the right hand keeps what the game gave it; and the hold's end never deletes what is in the hand.
+- **Glows in the take-off and the flight.** With **Cutscenes** on **Through his eyes**, a take-off's glows and sparks faced where your head was in play (the pad you left), and the flight after it, seen from the game's camera, had them face the pad too, so they turned as the ship moved. They now face the eyes the scene is seen from, and the game's camera in the flight.
+- **Not reproduced yet:** a tester's "during planet transition cockpit window still tries to race against ship", and another's Blarg station windows acting strangely, mainly the ones farthest from view. In the simulated headset, the take-off and flight showed no window running ahead of the ship, and Blarg's first room drew its windows the same with the port's visibility culling on and off, in both eyes. A short clip, or the planet, room and direction, would let us find them.
+- **Multiplayer:** 0.1.19 and 0.1.20 play together (the same Multiplayer and party rules); 0.1.18 still cannot join either.
+
+**What we tested** (on this PC, with the simulated headset; nothing on a Quest or a real PC headset):
+
+- **The launcher's View:** with the saved options saying third person and the launcher first person, 0.1.19 started in third person (the bug) and 0.1.20 in first; the hold switched to third person and back.
+- **Notices:** the view notice and "LEFT CONTROLLER NOT FOUND" each faded out about three seconds after they showed, the controller still off for the second.
+- **Magneboots:** up Orxon's first magnet wall and under its overhang, the eyes stayed 1.09 to 1.10 off the surface along Ratchet's up, never more than 0.03 to the side; he took the same route as on 0.1.19.
+- **The crash:** a death with the left trigger held and the Swingshot in the left hand, twice in a row. 0.1.19 logged the same two lines as the tester's log just before their crash, at both respawns (it did not crash here); 0.1.20 dropped the hold at both, and the Blaster in the right hand fired after. The left hand's hold, pressed 120 times in a row, and with the game making a new item mid-hold, worked as before: every hold ended with the right item back.
+- **The take-off and the flight** with the glows' change: ran through to the flight, the pictures normal.
+- **Smoother frames at 120 Hz:** read from the tester's two logs (above); the change itself needs a Quest, as neither the simulated headset nor SteamVR has the Quest's refresh rates or SpaceWarp, so on PC it changes nothing.
+- **Not tried:** a drowning itself (the sim's death stands in), the glows fix up close in a picture (it is the same eye the scene is drawn from), anything on a headset or the US disc. As the owner asked, no regression run: only the runs above.
+
 ## New in 0.1.19
 
 From the owner's video and logs of 0.1.18 on a Quest 3, testers' reports on 0.1.18, and the owner's asks.
@@ -298,7 +322,7 @@ Everything from 0.1.15 and 0.1.14, which came out just before this, is below, so
 
 ## Also new: all of 0.1.14, which came out just before 0.1.15, in case you missed it
 
-**Now on PC VR too.** Beside the APK, this release has `RatchetQuestVR-0.1.19-windows.zip`: the Quest version on a Windows PC, with the same launcher (`RatchetClankVR.exe`: Play, Graphics, VR, Game, Controls, Logs and Credits, the disc check and set-up, the mods, the updates), the same options and the same game. **Install on PC** below says how. Rerac-vr is the original PC VR mod, and the one this port follows; this is for players who want the Quest version's launcher, options and mods on a PC.
+**Now on PC VR too.** Beside the APK, this release has `RatchetQuestVR-0.1.20-windows.zip`: the Quest version on a Windows PC, with the same launcher (`RatchetClankVR.exe`: Play, Graphics, VR, Game, Controls, Logs and Credits, the disc check and set-up, the mods, the updates), the same options and the same game. **Install on PC** below says how. Rerac-vr is the original PC VR mod, and the one this port follows; this is for players who want the Quest version's launcher, options and mods on a PC.
 
 - **Any OpenXR PC VR software:** SteamVR, Meta Horizon Link (Link and Air Link), Virtual Desktop, Pico Connect, Windows Mixed Reality and others. If the one set as your PC's OpenXR runtime cannot draw this game (it needs OpenGL, which Windows Mixed Reality's lacks), the game uses SteamVR's instead, by itself, when SteamVR is installed; Windows' setting is not changed.
 - **Your controllers, by themselves:** the game gives its bindings for Touch (Quest, Rift S, Quest Pro, Touch Plus), Index, Vive and Vive Cosmos, Vive Focus 3, Pico 4 and Neo 3, HP Reverb G2 and Windows Mixed Reality, so each runtime puts them on your controllers. Others, such as **PlayStation VR2**, the **Steam Frame** and **DPVR** headsets, come through SteamVR, which maps them to one of those (change it in SteamVR's **Manage controller bindings** if you like). The launcher's **Controls** tab says what each button is on each, and your log names the controllers it got (`[openxr] left hand:`).
@@ -397,74 +421,9 @@ The owner's list after playing 0.1.12 on a Quest 3, a tester's notes and logs on
 - **Arm moves on Buttons:** by a crate, the grip swung the wrench twice and broke it; at the top of a jump the grip gave the jump attack; fast swings with the grip open did nothing; the trigger brought the Blaster back, then fired it. The Walloper's trigger lunged and broke a crate, and a real punch did nothing. As Giant Clank the grip gave the game's punch. The Bomb Glove threw one bomb a pull; a fall by a ledge was caught with the hands doing nothing; at a bolt the grip seated the wrench. No swing, throw, ledge grab or stroke was taken from the hands. Not run on PC: swimming with the left stick on Buttons, and little Clank's punch.
 - **Everything else:** the Akimbo, wrench, Walloper, throw, swimming, Giant Clank, Swingshot, ledge, scene, menu, map, VR Hands and vendor runs gave what they did before, with the new lines above.
 
-## New in 0.1.12
+## 0.1.3 to 0.1.12
 
-Two testers' lists and the owner's own, worked through, a body and hands of your own, and **mod support**: OpenRAC's mods in the launcher, five of them built in, and more from a file. Thanks for the videos and the logs.
-
-**A body and hands of your own** (all of it can be changed in the game)
-
-- **Arms with hands are the new start.** Ratchet's arms now run from his shoulders to your controllers and bend at the elbows, with a shadow to match. **A settings file from before changes once:** hands alone become arms with hands, and a **Player body** you had on becomes the whole of him.
-- **New page, VR Body** (VR Options, in play): **Player body**; **Body parts**: Everything, Arms and legs, Arms only, Legs only, Body and legs, Body and arms; **Tail**; **Arms bend to your hands**; **Legs bend**; **Body turns with your head**; **Body height**; **Body forward**; **Arm length**; **View height**. The shadow shows the parts you chose, where they are bent to.
-- **The whole body** stands under your head: your hips follow once you have turned well past them, your spine takes the rest, and your knees bend as your head goes down. His feet are where the game puts them, running included. When you walk around your room they slide along the ground, because his walk is not played for those steps. **Seated** and **View height** lift only your view: his body stays on its feet and his arms reach up to your hands. Neither the game nor Rerac-vr has this. Clank, Giant Clank and the Hologuise keep their own hands; only Ratchet's body bends.
-- **Your fingers follow yours** (VR Hands, **Fingers**: Tracked by default, or Static for the hands as they were). From the controllers' touch sensors: your first finger off the trigger points, your thumb off the buttons is a thumbs-up, the grip closes the other three together. Clank's hands too. A controller has no sensor for each of those three fingers, so they move as one.
-- **Fingers bend around the world** (VR Hands, on): they stop on what they meet, and bend back on it or curl round it, smoothly.
-- **World collision** (VR Controls, on): your hands and everything you hold, wrench, guns and gloves in either hand, stop at walls and the ground.
-- **World vibration** (VR Controls, on): a tap on touching, then a buzz that grows the further your hand is pushed in, fading out once you rest it there.
-- **Physical crouch** (VR Controls, on): lower your head and Ratchet crouches. **Crouch when head drops** sets how far, 10 to 60 cm (25 to start). Looking down is not a crouch: it is measured at your neck. A jump from low is the game's high jump. The game's crouch cannot walk, so the stick walks him with your head still low, and he crouches again when you stop. The left grip's crouch works as before. Rerac-vr has only that grip.
-- **New page, VR Controls** (VR Options, in play): Turning, Snap angle, Smooth turn speed, **Physical crouch** and **Crouch when head drops**, then the launcher's switches for your hands and body: Vibration, Aim with the right hand, Grab ledges with your hands, Swim with your arms, Swing the wrench for real, Throw by hand, Two-handed weapons, World collision, World vibration, Walk around your room and Sparkles on the bolts. A change here is saved. If you later change the same switch in the launcher, the launcher's wins.
-- **Hand size and Empty hand angle work with the bending arms.** The arm reaches the hand at any size; the forearm grows from your elbow to the hand's size at the wrist, and takes half of the hand's roll, so a wrist turned over stays whole.
-
-**Mods** (new: the launcher's Game tab)
-
-- **Mod support.** The launcher's new **Game** tab runs [OpenRAC's mods](https://github.com/OpenRAC/rac1-mods), built for the headset. Each one is turned on there, with its own settings and presets, and counts from the game's next start.
-- **Five come with it:** **Difficulty**, **Item randomizer**, **Xbox button icons** and **Button swap** (off until you turn them on) and **Ammo at the most** (on). A save made with the Item randomizer belongs to its seed.
-- **Add a mod file** takes another OpenRAC mod's .zip: a script mod, a data pack, or a native mod with a build for the headset (android-arm64), of mod interface 1.11 or older. The launcher says why if it cannot take one, and **Remove this mod** takes an added one out again. The game runs what it can load and says what it refused. Mods are programs: add only ones you trust. Some, made for a flat screen, may not suit VR.
-- **In VR:** the game's button pictures are already the Quest's, so **Xbox button icons** changes nothing you see in the headset. **Button swap** swaps the game's buttons after the Quest's are given: with Cross and Square swapped (its default), A swings the wrench instead of jumping, and A and the trigger no longer pick in the game's menus; the pictures stay as they were.
-
-**The Swingshot**
-
-- **Fixed: it faced the wrong way.** It was held rolled half a turn from Rerac-vr's. Its shell now sits on the back of your wrist, with the hook ahead of your hand.
-- **Fixed: its shell going see-through.** The game keeps a marker for each thing's place, to know when it is out of sight, and it set the one for a held item at Ratchet's own hand, not yours. Once that marker fell out of your view the shell was no longer drawn, and only its shine and the hook were left. The marker now follows your hand, for everything you hold.
-- **Fixed: a giant Swingshot, as far as we can tell.** The hook could be given the size meant for the wrench, about 18 times too big, when it took the wrench's place in the game's list. That write is gone, and the hook is now drawn at the shell's size. The cause comes from the code: we did not manage to make it happen here, so tell us if you still see it.
-- **Fixed: a rumble that would not stop.** After a swing, each time the Swingshot came back to your hand the controller buzzed as if its rope were out. It now buzzes only while the rope is out.
-
-**Crashes**
-
-- **Fixed: buying the Heli-Pack from Big Al on Kerwan could stop the game** (a tester on the US disc, the moment it was bought). **The fault was this port's:** **Max draw distance** (0.1.7) also kept alive some hidden makers of things, far past where the game lets them run. On Kerwan their rail cars froze and piled up in one square of the game's table of what stands where, until that square's count ran over, and the game stops itself when that table looks wrong. Left long enough, they could fill the list of things too, and then the shop's scene crashed reading something missing. Now only things with a shape to draw are kept running, so the hidden makers are left to the game, as in Rerac-vr, which keeps running only what the headset draws; a square that is too full no longer stops the game; and the shop's scene is safe with a full list (OpenRAC's fix). On PC with the European disc the pile-up is gone (45 in the fullest square, was 142), and buying the Heli-Pack works. **Not yet run on the US disc or on a Quest:** if you get there on the US disc, please send your log, even if all goes well.
-- **Closing the pause menu could stop the game** on some planets, in the same test of lines that 0.1.10 fixed elsewhere. Fixed.
-
-**Your hands and what they hold**
-
-- **Fixed: a smaller gun and a twisted left hand after loading a save, or after the ship** (normal again after the wrench). Sizes were read back from a moby that had already been resized; they now come from the game's own table. We did not manage to reproduce this one on PC either, so tell us if it is gone.
-- **Fixed: a giant gun when paused, and the let-go wrench coming back in the pause.** Your guns, left hand's too, stay as they are in play.
-- **Fixed: the Pyrocitor's pilot flame outside the gun.** It now moves with the gun and is in proportion at any Gun size.
-- **Fixed: a shaky two-handed hold.** The spot for your other hand followed Ratchet's animated palm, which sways up to several centimetres as he walks, and that swung the whole gun. The spot is now fixed once you take hold.
-- **New in VR Hands: Empty hand angle** (45 down to 45 up, in steps of 5). It tilts your hands when they hold nothing, if they feel turned too high. It starts at Default. **VR Hands now scrolls:** nine rows, eight at a time, like VR Options.
-- **New in VR Options: Cheats** (in play only). Invincible, Infinite ammo, Infinite bolts, Big heads, Trippy contrails, Give all weapons, Give all gadgets, Unlock all planets. All off until you turn them on, and saved.
-
-**What you see**
-
-- **Fixed: scenes seen from inside the ship.** A scene elsewhere on a planet, such as at Big Al's counter, could put you in the ship's seat, wherever the ship was. Only a scene at the ship, such as its take-off, landing or flight away, is now seen from it, as in Rerac-vr. Other scenes also start along your gaze, not Ratchet's body. A scene with no one to see through, such as a flyover or an infobot's message, is watched from the scene's camera.
-- **New: change how a cutscene is seen while it plays.** Press **X** during a cutscene to step through **Through his eyes**, **In VR** (the game's own camera, in 3D around you) and **On a screen**. **VR Options** now has the same **Cutscenes** row, after **View**, and the choice is kept for the scenes after it. It changes only cutscenes: when a scene ends, you play in the **View** you had, first or third person, and X is the map again.
-- **Fixed: the world vanishing behind the pause menu.** With fades on, the level round the menu could be lost, with your hands, and seas, lava and mud could go missing. They all stay now.
-- **New in the launcher's Graphics tab, all on by default:**
-  - **Shadow matches what you see:** Ratchet's shadow shows only what is drawn of him. Hands only, it is the hands'; with **Player body** on, it is the whole of him.
-  - **Fades fill your view:** the game's fades to black and its other full-screen colours cover the eyes, not just a flat picture.
-  - **Smooth plant edges:** the hard lines round low plants, such as the ring at the foot of Veldin's trees, are gone. It is a plant, not a shadow as we first thought.
-- Clank's antenna light and the Hologuise's glows are not drawn in front of your eyes in first person, as in Rerac-vr.
-
-**The launcher and the US disc**
-
-- **New Game tab in the launcher:** **Skip any movie** (on) and **Game volume**, beside the mods above.
-- **OpenRAC's fixes since our version, taken one by one:** the European disc's freeze after picking Quartu and drowning there; the landing and the vendor's scene with a full list of things; a grey Pyrocitor on the vendor's screen; screen fills reaching the edges; leaving out what the level's own visibility data says cannot be seen; Clank's shadow; the flight between planets; two small errors in the game's line tests; and the Difficulty and Item randomizer mods' own fixes.
-- **US disc:** a small maths function in the game did nothing on that disc, so some of the game's tests on things' joints read numbers never written. It now works.
-- **Ledges:** opening both hands drops you. Shorter logs too.
-
-Tested on PC with the European disc on Kerwan and other planets: the Swingshot's facing, a pull and a real swing with its rumble before and after; losing the shell when its marker is moved away; buying the Heli-Pack; the two-handed hold walking; Empty hand angle at 0 and 30 each way; scenes at Big Al's and the ship's take-off and landing; the pause on five planets. Also on PC: **Physical crouch** (looking down and a small dip do nothing, a real crouch does, and you can walk low and jump from it); the whole body and each **Body parts** choice, with **Seated** and **View height**, and their shadows; the fingers and their bend around walls; **World collision** and **World vibration** with a gun in each hand pushed into a wall and the ground, at about 8 line tests a game tick and 0.03 ms; walking around your room with the whole body; the weapon wheel; the VR Body, VR Controls and Cheats pages; X switching a cutscene's view three times over in the Novalis arrival, with play after it still in first person, and the new Cutscenes row; saving and loading with a gun in your hand; the level's own visibility data on Veldin, Novalis, Kerwan and Pokitaru, which leaves out nothing your head can see; the five bundled mods all on and loading beside the VR mod; the OpenRAC tests that this release's changes reach; and the launcher's tests. **Not yet tried on a Quest**, and nothing here has yet been run on the US disc on PC, because we only have the European one to test with here. Please tell us how all of it feels.
-
-## 0.1.3 to 0.1.11
-
-Their notes, as each release gave them, are in [docs/release-history.md](https://github.com/moistman42069/RatchetAndClank-Quest-VR/blob/v0.1.19/docs/release-history.md) and on each release's page (GitHub limits how long a release's notes can be).
+Their notes, as each release gave them, are in [docs/release-history.md](https://github.com/moistman42069/RatchetAndClank-Quest-VR/blob/v0.1.20/docs/release-history.md) and on each release's page (GitHub limits how long a release's notes can be).
 
 ## What you need
 
@@ -482,9 +441,9 @@ Their notes, as each release gave them, are in [docs/release-history.md](https:/
 ## Install
 
 1. Put your Quest in **Developer Mode** (in the Meta Horizon app on your phone).
-2. Get `RatchetQuestVR-0.1.19.apk` onto the headset and install it. Either:
+2. Get `RatchetQuestVR-0.1.20.apk` onto the headset and install it. Either:
    - download it in the Quest's browser (or email it to yourself and download it there) and open it from the **Files** app, or
-   - sideload it with SideQuest or `adb install -r RatchetQuestVR-0.1.19.apk`.
+   - sideload it with SideQuest or `adb install -r RatchetQuestVR-0.1.20.apk`.
 3. Open **Ratchet & Clank Quest VR** from your Library's **Unknown Sources**.
 4. Copy your `.iso` to the headset's **Download** folder and choose it in the launcher. The first set-up copies the disc and prepares the levels: **up to half an hour, once. Keep the headset on charge.**
 5. Press **PLAY IN VR**. **Play in 2D** puts the game on a big flat screen, played with the Touch controllers as a PlayStation pad: if VR fails, try it and tell us, as it separates a game problem from a VR problem.
@@ -493,7 +452,7 @@ Their notes, as each release gave them, are in [docs/release-history.md](https:/
 
 ## Install on PC
 
-1. Download `RatchetQuestVR-0.1.19-windows.zip` and unzip it anywhere you can write: your Desktop, Documents or a games drive. Keep the `RatchetClankVR` folder together. Nothing is installed into Windows.
+1. Download `RatchetQuestVR-0.1.20-windows.zip` and unzip it anywhere you can write: your Desktop, Documents or a games drive. Keep the `RatchetClankVR` folder together. Nothing is installed into Windows.
 2. Start your headset's PC VR software (SteamVR, Meta Horizon Link, Virtual Desktop, Pico Connect, ...).
 3. Open `RatchetClankVR.exe`. Windows may warn about an app from the internet it does not know: **More info**, then **Run anyway**.
 4. **Choose your .iso file** and wait for the set-up, once: it checks the disc, then prepares the levels.
@@ -511,6 +470,7 @@ The log holds your headset's model and Android version, the game's own log, why 
 
 **Most useful right now:**
 
+- **0.1.20's changes:** the game starting in the launcher's **View**, the notices ahead of you fading after a couple of seconds, your view on the Magneboots' walls and ceilings in first person, on Quest **Smoother frames** at 120 Hz (whether the micro stutters are gone, and the `[vr-perf]` lines in play), a death with something in the left hand (Akimbo), and the glows in a take-off and the flight. If you see the cockpit window racing the ship between planets, or Blarg station's far windows acting strangely, a short clip or where you stood helps most.
 - **0.1.19's changes:** third person with **Gamepad** and the **D-pad** (by your head, or your left thumb on its rest: say whether your controllers sense the thumb rest); the Xbox-style buttons in the hints, and on the US disc which icons you see; Aridia's sand sea and the other seas with your head turned; the city and the plants; RAC-Board steered by your gaze, and with your weapons, the wrench and the Swingshot while you ride (swinging and pulled, and grabbing enemies, without leaving the board); getting out of the ship; **Stay on magnet paths** round the strips' bends; the **Weapon wheel** page, and letting go in its middle for an empty hand; the grab's chain and throw rows; a jab with the Swingshot in hand (Punch on); playing with PC players (Multiplayer 0.12.2) and the **Update** buttons; on Quest, **Foveated rendering** at each level and a log of the frame rate (`[vr-perf]` lines).
 - **0.1.18's changes:** the Swingshot's grabs, the Grab moves, punches and the wrench throw: how they feel, and whether they come only when you mean them. Ratchet's hands on the guns, and how the gloves and boots sit on him. The Magneboots in first person on Batalia and Orxon. The weapon wheel at your hand. Getting in and out of the ship. On Quest: whether **Smoother frames** still stutters, "Hey Meta", **Mod files** and adding a mod from OpenRAC's list. RAC-Board and Multiplayer, if you turn them on.
 - **0.1.17's changes:** on Quest, **Smoother frames**: whether play looks smoother with it on than off (launcher, Graphics), and any smearing you see. Seated: diving, the wrench, bolt cranks and the hoverboard. The hoverboard's view, Ahead or Side-on. Slow motion and pointing at the weapon wheel. The Help Desk's tips on a new game.
@@ -530,7 +490,7 @@ The log holds your headset's model and Android version, the game's own log, why 
 - If a bar in the headset says a controller is missing, tell us.
 - Anything that crashes, freezes or leaves you stuck: the log says why far more often than not.
 
-The full list of what to try is in [docs/HEADSET_CHECKLIST.md](https://github.com/moistman42069/RatchetAndClank-Quest-VR/blob/v0.1.19/docs/HEADSET_CHECKLIST.md).
+The full list of what to try is in [docs/HEADSET_CHECKLIST.md](https://github.com/moistman42069/RatchetAndClank-Quest-VR/blob/v0.1.20/docs/HEADSET_CHECKLIST.md).
 
 ## What is in it
 
@@ -594,7 +554,7 @@ In the game: pause, **Options**, **VR Options** (or **VR Options** on the title'
 - In third person the pause menu is a flat panel, not in the world.
 - The picture may rarely show one turned frame when you turn your head fast in a menu.
 - Direction defaults to Gaze here; Rerac-vr's default is Body. Please try wall jumps on both.
-- **Multiplayer:** a VR player's left-hand gun (Akimbo) is not shown to the others; their figure shows the right hand's. VR bodies and the Swingshot's grab for a member need the host on 0.1.19 with the built-in Multiplayer, and time slowing for everyone at the wheel needs every player on it. The enemies you see in someone else's party move about a third of a second behind the host's game (most of it the trip through OpenRAC's server), as OpenRAC's Multiplayer has them.
+- **Multiplayer:** a VR player's left-hand gun (Akimbo) is not shown to the others; their figure shows the right hand's. VR bodies and the Swingshot's grab for a member need the host on 0.1.19 or 0.1.20 with the built-in Multiplayer, and time slowing for everyone at the wheel needs every player on it. The enemies you see in someone else's party move about a third of a second behind the host's game (most of it the trip through OpenRAC's server), as OpenRAC's Multiplayer has them.
 
 ## If you play on PC
 
@@ -602,7 +562,7 @@ In the game: pause, **Options**, **VR Options** (or **VR Options** on the title'
 
 ## Credits and licence
 
-Built on **[Rerac-vr](https://github.com/npiriou/Rerac-vr)** by npiriou, the main base of this project and its VR design (ISC), and on **[OpenRAC](https://github.com/OpenRAC/OpenRAC)** and [rac1-mods](https://github.com/OpenRAC/rac1-mods) (GPL-3.0-or-later), and [RAC-Board](https://github.com/mateuszklysz/RAC-Board) by Mateusz Kłysz (MIT). Thanks also to the [ReRAC](https://github.com/re-rac/rerac) team. Full [credits](https://github.com/moistman42069/RatchetAndClank-Quest-VR/blob/v0.1.19/CREDITS.md) and [third-party notices](https://github.com/moistman42069/RatchetAndClank-Quest-VR/blob/v0.1.19/THIRD_PARTY_NOTICES.txt).
+Built on **[Rerac-vr](https://github.com/npiriou/Rerac-vr)** by npiriou, the main base of this project and its VR design (ISC), and on **[OpenRAC](https://github.com/OpenRAC/OpenRAC)** and [rac1-mods](https://github.com/OpenRAC/rac1-mods) (GPL-3.0-or-later), and [RAC-Board](https://github.com/mateuszklysz/RAC-Board) by Mateusz Kłysz (MIT). Thanks also to the [ReRAC](https://github.com/re-rac/rerac) team. Full [credits](https://github.com/moistman42069/RatchetAndClank-Quest-VR/blob/v0.1.20/CREDITS.md) and [third-party notices](https://github.com/moistman42069/RatchetAndClank-Quest-VR/blob/v0.1.20/THIRD_PARTY_NOTICES.txt).
 
 Please **report bugs in this port here**, not to Rerac-vr, ReRAC or OpenRAC.
 
@@ -612,5 +572,5 @@ This is free software under GPL-3.0-or-later, without any warranty. The source o
 
 | File | SHA-256 |
 | --- | --- |
-| `RatchetQuestVR-0.1.19.apk` (version code 20, 58 MB) | `01d6f3e39d65d882faa2a66de73876ee23ac8400bc2687dd798d4238dfe35f0e` |
-| `RatchetQuestVR-0.1.19-windows.zip` (71 MB) | `68acf0a2e8c870bbe3eecf69ea855e210507c0f0c85e6c16fae55762141216d4` |
+| `RatchetQuestVR-0.1.20.apk` (version code 21, 58 MB) | `8618684fc951ee17e6405a5ada7dfe35a7cf987e463706c7c28bfffac59b9af3` |
+| `RatchetQuestVR-0.1.20-windows.zip` (71 MB) | `6648b7a5ffe8394ef8fdf45953ce9654eb7182c92a004555638584acd815ab91` |
