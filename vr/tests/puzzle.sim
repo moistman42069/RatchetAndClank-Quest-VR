@@ -1,4 +1,7 @@
-# The Trespasser's rings (Rerac-vr's): plugged in as socket.sim, the stick turns them, a fresh trigger pull withdraws.
+# The Trespasser's rings (Rerac-vr's): plugged in as socket.sim. From 0.1.21 (puzzle.h) each push of a stick is one step of
+# the chosen ring, the push's first way kept until let go; held to the side, a step again after 0.45 s, then four a
+# second; up and down choose the ring, one a push; A a step clockwise, B anticlockwise, X the next ring round; a fresh
+# pull of the trigger withdraws. "[vr-puzzle]" lines say what was asked and what the lock did. Ring 1 is the outer.
 600 y 1
 606 y 0
 3000 shot before
@@ -36,18 +39,115 @@
 3325 rh_z -0.75
 3340 shot pushed
 3640 shot after
-# The rings: a stick turns them, then a fresh pull of the trigger withdraws the tool.
+# The rings: one step clockwise; up at the outer ring nothing; down the middle ring; one step back.
 3700 shot rings
 3710 left_x 1
 3722 left_x 0
 3760 shot turned
 3770 left_y 1
 3782 left_y 0
+3800 left_y -1
+3812 left_y 0
 3820 shot picked
 3830 left_x -1
 3842 left_x 0
 3880 shot turned-back
-3900 right_trigger 1
-3906 right_trigger 0
-4000 shot withdrawn
-4040 quit 0
+# Held to the side a second: four steps (the push, then 0.45 s on and every 0.25 s; the game ticks 60 a second), not twelve.
+3900 left_x 1
+3972 left_x 0
+# An arc of the thumb from the side to up: one step, the ring kept.
+4020 left_x 1
+4026 left_x 0.7
+4027 left_y 0.7
+4032 left_x 0
+4033 left_y 1
+4044 left_y 0
+# A a step clockwise, B one back, X the inner ring then the outer.
+4080 a 1
+4086 a 0
+4110 b 1
+4116 b 0
+4140 x 1
+4146 x 0
+4170 x 1
+4176 x 0
+4200 shot buttons
+# The grab (Grab the Trespasser's rings): the left hand over the middle ring's right (85% of the way from the eyes to
+# the panel), the grip closed: it takes the middle ring; taken round clockwise, down, past a quarter: three steps on
+# it; let go. Then over the outer ring's top, round anticlockwise a quarter: at least two steps back (the panel
+# is a little off the place this was worked out for, so a grab's first angle is a few degrees off).
+4250 lh_x 0.5387
+4251 lh_y 0.0219
+4252 lh_z 0.0830
+4270 left_grip 1
+4280 lh_x 0.5301
+4281 lh_y 0.0089
+4282 lh_z 0.0899
+4290 lh_x 0.5197
+4291 lh_y -0.0036
+4292 lh_z 0.0946
+4300 lh_x 0.5077
+4301 lh_y -0.0154
+4302 lh_z 0.0969
+4310 lh_x 0.4944
+4311 lh_y -0.0261
+4312 lh_z 0.0967
+4320 lh_x 0.4804
+4321 lh_y -0.0353
+4322 lh_z 0.0941
+4330 lh_x 0.4659
+4331 lh_y -0.0427
+4332 lh_z 0.0891
+4340 lh_x 0.4516
+4341 lh_y -0.0482
+4342 lh_z 0.0819
+4350 lh_x 0.4377
+4351 lh_y -0.0516
+4352 lh_z 0.0727
+4360 lh_x 0.4247
+4361 lh_y -0.0527
+4362 lh_z 0.0617
+4370 lh_x 0.4130
+4371 lh_y -0.0516
+4372 lh_z 0.0494
+4420 shot grabbed
+4430 left_grip 0
+4450 lh_x 0.5271
+4451 lh_y 0.1248
+4452 lh_z -0.0468
+4470 left_grip 1
+4480 lh_x 0.5092
+4481 lh_y 0.1232
+4482 lh_z -0.0619
+4490 lh_x 0.4901
+4491 lh_y 0.1186
+4492 lh_z -0.0746
+4500 lh_x 0.4703
+4501 lh_y 0.1110
+4502 lh_z -0.0845
+4510 lh_x 0.4504
+4511 lh_y 0.1007
+4512 lh_z -0.0914
+4520 lh_x 0.4310
+4521 lh_y 0.0880
+4522 lh_z -0.0950
+4530 lh_x 0.4128
+4531 lh_y 0.0733
+4532 lh_z -0.0952
+4540 lh_x 0.3962
+4541 lh_y 0.0571
+4542 lh_z -0.0921
+4550 lh_x 0.3818
+4551 lh_y 0.0398
+4552 lh_z -0.0856
+4560 lh_x 0.3700
+4561 lh_y 0.0219
+4562 lh_z -0.0761
+4580 left_grip 0
+4590 lh_x 0
+4591 lh_y 0
+4592 lh_z 0
+4600 right_trigger 1
+4606 right_trigger 0
+4700 shot withdrawn
+4740 quit 0

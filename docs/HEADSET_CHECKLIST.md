@@ -187,6 +187,23 @@ it worked (the log is in Download/RatchetQuestVR). PC-proven features are in STA
   - **The start of the game:** after the intro movie the copyright lines show on the title's panel, steady as you move
     your head, with no warp. Load a save into a level that starts with a scene: no flash of the save select as it
     begins (`[vr-view] the eyes' last picture is of another place` at most once there).
+- **Testers' reports on 0.1.20 (0.1.21).** PC-run with a simulated headset only, on the PAL disc.
+  - **Third person buttons (the VR tab, under D-pad):** start in third person with them as they come (Xbox controller):
+    the log's `[vr-pad] third person buttons (` line names each action's button, and play is as 0.1.20's. In the
+    launcher tap Wrench (Square), then the right grip: Crouch (R1) takes X (the two swap), and no button shows twice.
+    Tap Like first person and play: the right trigger fires, the right grip swings the wrench, A jumps, the left
+    trigger crouches, the left grip looks, X maps; the left controller's X never swings the wrench. The game's hints
+    show the buttons you chose, and the pause menu keeps A to pick and B for Circle.
+  - **The Trespasser's rings:** at Aridia's Trespasser lock plug the tool in. Push a stick to the side once: one notch
+    (`[vr-puzzle] a step clockwise asked: the stick`, or anticlockwise); hold it: another after a moment, then a few a second. Up and down
+    choose the ring; A and B turn it a notch; X picks the next. Put your hand over a ring and squeeze the grip
+    (`[vr-puzzle] the right hand takes the middle ring at (...) of the panel`), then move your hand round the middle:
+    a notch each twelfth of a circle. Say whether the rings sit where your hand can reach them, and whether the grab
+    is easier than the stick. Open the lock both ways. Turn "Grab the Trespasser's rings" off: the grip does nothing.
+  - **The PDA's vendor:** with the PDA in your right hand, pull the trigger: the vendor opens on foot. Buy something,
+    close it, open it again a few times, then with a gun in the left hand (Akimbo, VR Controls) do the same: no crash
+    (`[vr-shop] the game asked the vendor open again (the PDA's) while it is open on foot: refused` once, then
+    `[vr-shop] left the vendor where he stands`).
 - **Testers' reports on 0.1.19 (0.1.20).** PC-run with a simulated headset only, on the PAL disc.
   - **The launcher's View:** set View to first person in the launcher, start, hold the left menu button a second
     (third person, and "THIRD PERSON  HOLD LEFT MENU FOR FIRST PERSON" ahead of you), close the game and start
@@ -218,7 +235,7 @@ it worked (the log is in Download/RatchetQuestVR). PC-proven features are in STA
     turned to one side. A spin and a flip still turn the view and bring it back. Look behind you with the stick ahead:
     it carves round the short way, hard, to your gaze. Say how it steers.
   - **Third person with Gamepad (the VR tab's Third person controls, to start):** in third person the controllers are an
-    Xbox controller: A jump, B fire, X wrench, Y quick select, RB (the right grip) crouch, RT (the right trigger) strafe,
+    Xbox controller: A jump, B fire, X wrench, Y quick select, RB (the right grip) crouch, RT (the right trigger) crouch too,
     the left stick click the map; the menu button pauses as you let it go, and held a second in play takes you back to
     first person (the log: `[vr-rig] the view is first person now`). In the pause menu Y goes back, B is Circle, A and
     the trigger pick what you point at. First person's controls are as before. Set it to VR and third person has first

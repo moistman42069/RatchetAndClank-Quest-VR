@@ -43,6 +43,7 @@
 #include "hand.h"
 #include "heading.h"
 #include "pad.h"
+#include "puzzle.h"
 #include "rig.h"
 #include "strafe.h"
 #include "glyphs.h"
@@ -148,6 +149,7 @@ struct Options {
     bool show_hands = true;    // Ratchet's forearms and hands at the controllers (Rerac-vr's)
     bool grab_ledges = true;   // ledges are held with the hands, not caught by the game (Rerac-vr's)
     bool puzzle_over_tool = true;  // the Trespasser's rings hang over the plugged tool, not before the face
+    bool puzzle_grab = true;       // a grip takes a ring of the Trespasser's under the hand, turned round with it (0.1.21)
     bool shop_on_foot = true;      // the vendor's screens on the machine, the player walking (Rerac-vr's)
     bool menu_in_world = true;     // a menu stands in the level, by parts (Rerac-vr's spatial menus)
     bool room_scale = true;    // walking in the room walks Ratchet, through the game's collision (Rerac-vr's)
@@ -2076,6 +2078,7 @@ constexpr uint32_t kHeroOffGround = 0x30Cu, kHeroTrickInput = 0x88Du;
 
 void crank_stick(Controls& c);
 bool in_puzzle();
+void puzzle_tick(PadContext& context, const Controls& c);
 bool s_withdraw = false;  // the player left the Trespasser's rings
 gaddr s_left_moby = 0;    // Akimbo: the left hand's gun
 int s_off_side = kLeft;        // the hand the second gun is in: the right while the left alone hangs on
@@ -2236,13 +2239,15 @@ void on_pad(int port, std::uint8_t* report, int size) {
     }
     crank_stick(controls);
     pointer_hands(controls, context.in_menu);
+    puzzle_tick(context, controls);
     const VirtualPad pad = s_pad_mapper.map(controls, context);
     // The plain pad's own press of RAC-Board's board button (D-pad Up by default; with Gamepad in third person, or on the
     // big screen) is marked as the click behind the back marks it (jet_board_frame), so that the ride is seen
     // (jet_board_tick) and first person after takes the board's controls (thirdpad.sim; until then it rode unseen).
+    // Not at the Trespasser's rings, where Up and Down are the rings' (RAC-Board leaves them to the game there).
     static bool board_button_was = false;
     const bool board_button = s_jet.loaded && s_jet.buttons.toggle != 0 && (context.gamepad || context.screen) && !context.in_menu
-                              && (pad.held & s_jet.buttons.toggle) == s_jet.buttons.toggle;
+                              && !context.puzzle && (pad.held & s_jet.buttons.toggle) == s_jet.buttons.toggle;
     if (board_button && !board_button_was) {
         s_jet.toggled = true;
         s_jet.toggled_at = s_tick;
@@ -7587,11 +7592,118 @@ void as_on_pad(gaddr pad, Update update) {
 
 gaddr s_puzzle_lock = 0;  // the lock the Trespasser is in
 
+// ---- The Trespasser's rings: one step or one ring for each thing the player does (0.1.21, puzzle.h) ----
+
+constexpr uint8_t kLockPuzzle = 2;                 // the lock's state while its rings are up
+constexpr uint32_t kLockRing = 0xE0u, kLockTurn = 0xE4u;  // pvars: the chosen ring (1..3), the turn under way (radians)
+PuzzleInput s_puzzle;
+
+// The rings' panel over the tool (puzzle_panel), in tracking space, for the grab: valid while it is shown there.
+struct PuzzlePlace {
+    bool valid = false;
+    Pose pose;
+    float width = 0, height = 0;
+};
+PuzzlePlace s_puzzle_place;
+
+gaddr lock_vars(gaddr lock) {
+    const gaddr vars = lock != 0 ? ref<gaddr>(lock + kMobyPvars) : 0;
+    return readable(vars, kLockTurn + 4u) ? vars : 0;
+}
+
+const char* ring_name(int ring) { return ring == 1 ? "the outer ring" : ring == 2 ? "the middle ring" : "the inner ring"; }
+
+// Once a tick from on_pad, before the pad is mapped: the stick, A, B and X, each hand's grip over the panel, and what the
+// pad asks of the lock this tick (context.puzzle_turn, puzzle_ring; pad.h's puzzle branch gives them to the game).
+// Not on the big screen, where the controllers are the game's own pad.
+void puzzle_tick(PadContext& context, const Controls& c) {
+    static bool was = false;
+    const gaddr vars = context.puzzle && !context.screen ? lock_vars(s_puzzle_lock) : 0;
+    if (vars == 0 || ref<uint8_t>(s_puzzle_lock + kMobyState) != kLockPuzzle) {
+        if (was) {
+            s_puzzle.reset();
+            was = false;
+        }
+        return;
+    }
+    if (!was) {
+        s_puzzle.reset();  // a stick or grip still held from the push asks nothing until let go
+        was = true;
+        char line[120];
+        std::snprintf(line, sizeof line, "[vr-puzzle] the rings up: %s chosen (%d)%s", ring_name(ref<int32_t>(vars + kLockRing)),
+                      ref<int32_t>(vars + kLockRing), s_options.puzzle_grab && s_options.puzzle_over_tool ? ", a grip takes a ring" : "");
+        log_line(1, line);
+    }
+    const int ring_now = ref<int32_t>(vars + kLockRing);
+    s_puzzle.controls(c.left_x, c.left_y, c.right_x, c.right_y, c.a, c.b, c.x, ring_now);
+    const bool reach = s_options.puzzle_grab && s_puzzle_place.valid && s_have_frame;
+    for (int side = 0; side < 2; ++side) {
+        float u = 0, v = 0;
+        const bool over = reach && s_frame.hand_valid[side]
+                          && PuzzleInput::panel_point(s_puzzle_place.pose, s_puzzle_place.width, s_puzzle_place.height,
+                                                      s_frame.head.position, s_frame.hand_grip[side].position, u, v);
+        const float grip = !reach ? 0.0f : side == kLeft ? c.left_grip : c.right_grip;
+        const float aspect = s_puzzle_place.height / std::max(s_puzzle_place.width, 0.01f);
+        const int notes_was = s_puzzle.notes();
+        s_puzzle.grab(side, grip, over, u, v, aspect);
+        if (s_puzzle.notes() > notes_was && s_puzzle.note_at(notes_was).kind == PuzzleInput::kGrab) {
+            char line[140];
+            std::snprintf(line, sizeof line, "[vr-puzzle] the %s hand takes %s at (%.2f %.2f) of the panel",
+                          side == kLeft ? "left" : "right", ring_name(PuzzleInput::ring_under(u, v, aspect)), u, v);
+            log_line(1, line);
+            buzz(static_cast<Hand>(side), {0.35f, 0.030f, 160.0f});
+        }
+    }
+    for (int i = 0; i < s_puzzle.notes(); ++i) {
+        const PuzzleInput::Note& note = s_puzzle.note_at(i);
+        const char* way = note.value > 0 ? "clockwise" : "anticlockwise";
+        char line[120];
+        switch (note.kind) {
+        case PuzzleInput::kStepStick: std::snprintf(line, sizeof line, "[vr-puzzle] a step %s asked: the stick", way); break;
+        case PuzzleInput::kStepRepeat: std::snprintf(line, sizeof line, "[vr-puzzle] a step %s asked: the stick held", way); break;
+        case PuzzleInput::kStepA: std::snprintf(line, sizeof line, "[vr-puzzle] a step %s asked: A", way); break;
+        case PuzzleInput::kStepB: std::snprintf(line, sizeof line, "[vr-puzzle] a step %s asked: B", way); break;
+        case PuzzleInput::kGrabStep: std::snprintf(line, sizeof line, "[vr-puzzle] a step %s asked: the hand round", way); break;
+        case PuzzleInput::kFull: std::snprintf(line, sizeof line, "[vr-puzzle] a step %s not asked: enough wait", way); break;
+        case PuzzleInput::kRingStick: std::snprintf(line, sizeof line, "[vr-puzzle] %s asked: the stick", ring_name(note.value)); break;
+        case PuzzleInput::kRingX: std::snprintf(line, sizeof line, "[vr-puzzle] %s asked: X", ring_name(note.value)); break;
+        case PuzzleInput::kLetGo: std::snprintf(line, sizeof line, "[vr-puzzle] the %s hand lets the ring go", note.value == kLeft ? "left" : "right"); break;
+        default: line[0] = '\0'; break;
+        }
+        if (line[0] != '\0') {
+            log_line(1, line);
+        }
+    }
+    s_puzzle.ask(ring_now, context.puzzle_turn, context.puzzle_ring);
+}
+
 template <class Original>
 void lock_update(Original original, uint32_t lock) {
-    if (in_puzzle()) {
+    // Each lock's update: the one whose rings are up is the puzzle's (Aridia has several). Its turn and ring before and
+    // after: a turn begun answers the step asked (s_puzzle.turned), and the log says what the lock did.
+    const gaddr vars = in_puzzle() ? lock_vars(lock) : 0;
+    const float turn_was = vars != 0 ? get_float(vars + kLockTurn) : 0.0f;
+    const int32_t ring_was = vars != 0 ? ref<int32_t>(vars + kLockRing) : 0;
+    const auto after = [&] {
+        if (vars == 0 || ref<uint8_t>(lock + kMobyState) != kLockPuzzle) {
+            return;
+        }
         s_puzzle_lock = lock;
-    }
+        const float turn = get_float(vars + kLockTurn);
+        if (turn_was == 0.0f && turn != 0.0f) {
+            s_puzzle.turned(turn > 0.0f ? 1 : -1);
+            char line[100];
+            std::snprintf(line, sizeof line, "[vr-puzzle] the lock turns %s %s", ring_name(ref<int32_t>(vars + kLockRing)),
+                          turn > 0.0f ? "clockwise" : "anticlockwise");
+            log_line(1, line);
+        }
+        const int32_t ring = ref<int32_t>(vars + kLockRing);
+        if (ring != ring_was) {
+            char line[80];
+            std::snprintf(line, sizeof line, "[vr-puzzle] the lock's ring: %s (%d)", ring_name(ring), ring);
+            log_line(1, line);
+        }
+    };
     // The rings' exit waits for the help box, which they keep asking for: in a headset the tool comes
     // out at once (Rerac-vr's tracked items). The game's other way out is the tool not being in hand,
     // so for this update it is not; the rest of its exit, the camera and his stance, is its own.
@@ -7613,9 +7725,11 @@ void lock_update(Original original, uint32_t lock) {
             ref<uint8_t>(tool + kMobyCommand) = 1;
         }
         as_on_pad(lock, [&] { original(lock); });
+        after();
         return;
     }
     original(lock);
+    after();
 }
 
 template <class Original>
@@ -9472,12 +9586,14 @@ void item_feel(int32_t state, int32_t state_was) {
     static LockFeel lock_was;
     const LockFeel lock = item == kTrespasserItem ? lock_now(hand_moby(), lock_was) : LockFeel{};
     if (feel && lock.moby != 0 && lock.moby == lock_was.moby) {
+        // A ring held by the grab (0.1.21) is felt in the hand holding it, each step as it goes.
+        const Hand ring_hand = s_puzzle.grab_hand() >= 0 ? static_cast<Hand>(s_puzzle.grab_hand()) : kRight;
         if (lock.ring != lock_was.ring) {
-            buzz(kRight, {0.15f, 0.018f, 180.0f});
+            buzz(ring_hand, {0.15f, 0.018f, 180.0f});
             feel_log("the lock's ring chosen");
         }
         if (std::memcmp(lock.turn, lock_was.turn, sizeof lock.turn) != 0) {
-            buzz(kRight, {0.26f, 0.025f, 145.0f});
+            buzz(ring_hand, {0.26f, 0.025f, 145.0f});
             feel_log("the lock's ring turned");
         }
         if (lock.powered > lock_was.powered) {
@@ -12694,11 +12810,29 @@ constexpr int kIcons = 10;                    // the icons 0x10 to 0x19
 static_assert(glyphs::kGlyphs.size() == kIcons && glyphs::kPadGlyphs.size() == kIcons && glyphs::kVrCells.size() == kIcons,
               "one entry per icon");
 
+// Which controls the icons show: first person's (kVrCells, kGlyphs); where the controllers are a plain pad, an Xbox
+// controller's in the menus and with the Xbox layout (each icon its own); out of the menus with the player's own Third
+// person buttons (0.1.21), each icon the control that presses its button there (glyphs.h's layout_glyph_controls).
+enum GlyphScheme : int { kGlyphsFirstPerson, kGlyphsXbox, kGlyphsLayout };
+constexpr const char* kGlyphSchemeNames[] = {"first person's buttons", "an Xbox controller's, the controllers a plain pad",
+                                             "the Third person buttons' controls"};
+
+int glyph_scheme() {
+    if (!plain_pad_view()) {
+        return kGlyphsFirstPerson;
+    }
+    return s_menu_input || s_pad_mapper.layout == kXboxLayout ? kGlyphsXbox : kGlyphsLayout;
+}
+
+// The PS2 buttons of the icons 0x10..0x17.
+constexpr std::array<std::uint16_t, 8> kIconButtons = {kPadCross, kPadCircle, kPadTriangle, kPadSquare,
+                                                       kPadL1,    kPadR1,     kPadL2,       kPadR2};
+
 struct FontPainted {
     gaddr pixels = 0;
     gaddr table = 0;
     uint32_t sum = 0;  // the first icon's cell, as painted
-    bool pad = false;  // with the plain pad's names (plain_pad_view)
+    int scheme = -1;   // the controls painted (GlyphScheme)
 };
 FontPainted s_fonts_painted[3];
 
@@ -12706,7 +12840,7 @@ FontPainted s_fonts_painted[3];
 struct FontCells {
     gaddr table = 0;
     bool valid = false;
-    bool pad = false;
+    int scheme = -1;
     uint8_t original[kIcons][kGlyphRecord] = {};
     uint8_t written[kIcons][kGlyphRecord] = {};
 };
@@ -12727,7 +12861,8 @@ void paint_glyphs() {
     if (!s_options.glyphs || s_cross_swapped) {
         return;
     }
-    const bool pad = plain_pad_view();
+    const int scheme = glyph_scheme();
+    const std::array<int, kIcons> controls = glyphs::layout_glyph_controls(s_pad_mapper.layout, kIconButtons);
     // Only where the textures stay put: the title, play and the menus, settled for a moment. A load
     // reads the next level's archive into memory the last level's textures were in (painting there
     // in a load broke the loader on PC).
@@ -12800,13 +12935,14 @@ void paint_glyphs() {
         }
         // The Xbox button icons mod's buttons in this font (glyphs.h): none painted here; in first person each icon's record
         // points at the cell of the Xbox button that does it there (kVrCells), where the controllers are a plain pad each
-        // its own. The records as the game had them are kept, and written again from those at each change of view; a table
-        // whose records are not as last written is the game's again (a load), and kept anew.
+        // its own, and with the player's Third person buttons in play the cell of the control that presses it. The records
+        // as the game had them are kept, and written again from those at each change of view; a table whose records are
+        // not as last written is the game's again (a load), and kept anew.
         uint8_t* const records = static_cast<uint8_t*>(memory.pointer(table + kGlyphRecord * kFirstIcon));
         FontCells& cells = s_font_cells[font];
         const bool remapped = cells.valid && cells.table == table && std::memcmp(records, cells.written, sizeof cells.written) == 0;
         if (glyphs::green_a(texels, width, first_u, first_v, palette)) {
-            if (remapped && cells.pad == pad) {
+            if (remapped && cells.scheme == scheme) {
                 continue;
             }
             if (!remapped) {
@@ -12814,15 +12950,19 @@ void paint_glyphs() {
                 cells.table = table;
             }
             for (int i = 0; i < kIcons; ++i) {
-                const int from = pad ? i : glyphs::kVrCells[static_cast<size_t>(i)] - kFirstIcon;
+                const int control = controls[static_cast<size_t>(i)];
+                const int from = scheme == kGlyphsFirstPerson ? glyphs::kVrCells[static_cast<size_t>(i)] - kFirstIcon
+                                 : scheme == kGlyphsLayout && control >= 0
+                                     ? glyphs::kControlCells[static_cast<size_t>(control)] - kFirstIcon
+                                     : i;
                 std::memcpy(cells.written[i], cells.original[from], kGlyphRecord);
             }
             std::memcpy(records, cells.written, sizeof cells.written);
-            cells.pad = pad;
+            cells.scheme = scheme;
             cells.valid = true;
-            char line[160];
-            std::snprintf(line, sizeof line, "[vr-glyphs] font %d: the Xbox button icons mod's buttons, %s (table 0x%X)", font,
-                          pad ? "each as it is, the controllers a plain pad" : "pointed as first person's buttons", table);
+            char line[180];
+            std::snprintf(line, sizeof line, "[vr-glyphs] font %d: the Xbox button icons mod's buttons, pointed as %s (table 0x%X)", font,
+                          kGlyphSchemeNames[scheme], table);
             log_line(1, line);
             continue;
         }
@@ -12831,11 +12971,21 @@ void paint_glyphs() {
             cells.valid = false;
         }
         FontPainted& done = s_fonts_painted[font];
-        if (done.pixels == pixels && done.table == table && done.pad == pad && done.sum == cell_sum(texels, width, first_u, first_v)) {
+        if (done.pixels == pixels && done.table == table && done.scheme == scheme && done.sum == cell_sum(texels, width, first_u, first_v)) {
             continue;
         }
+        std::array<glyphs::Glyph, kIcons> list = scheme == kGlyphsFirstPerson ? glyphs::kGlyphs : glyphs::kPadGlyphs;
+        if (scheme == kGlyphsLayout) {
+            for (int i = 0; i < kIcons; ++i) {
+                const int control = controls[static_cast<size_t>(i)];
+                if (control >= 0) {
+                    list[static_cast<size_t>(i)] = glyphs::kControlGlyphs[static_cast<size_t>(control)];
+                    list[static_cast<size_t>(i)].code = static_cast<std::uint8_t>(kFirstIcon + i);
+                }
+            }
+        }
         int painted = 0;
-        for (const glyphs::Glyph& glyph : pad ? glyphs::kPadGlyphs : glyphs::kGlyphs) {
+        for (const glyphs::Glyph& glyph : list) {
             const gaddr record = table + kGlyphRecord * glyph.code;
             const uint32_t u = ref<uint8_t>(record), v = ref<uint8_t>(record + 1u);
             if (ref<int8_t>(record + 3u) == 0 || u + glyphs::kCellW > width || v + glyphs::kCellH > height) {
@@ -12852,10 +13002,10 @@ void paint_glyphs() {
             ref<int8_t>(record + 3u) = static_cast<int8_t>(advance);
             ++painted;
         }
-        done = {pixels, table, cell_sum(texels, width, first_u, first_v), pad};
-        char line[160];
+        done = {pixels, table, cell_sum(texels, width, first_u, first_v), scheme};
+        char line[200];
         std::snprintf(line, sizeof line, "[vr-glyphs] font %d: %d icons painted in its %ux%u texture at 0x%X (table 0x%X), %s", font,
-                      painted, width, height, pixels, table, pad ? "the plain pad's" : "first person's");
+                      painted, width, height, pixels, table, kGlyphSchemeNames[scheme]);
         log_line(1, line);
     }
 }
@@ -16279,11 +16429,13 @@ bool puzzle_panel(PanelLayer& layer) {
         log_line(1, line);
     }
 #endif
+    s_puzzle_place.valid = false;
     if (!s_options.puzzle_over_tool || !in_puzzle() || s_puzzle_lock == 0 || !s_have_frame || hand_moby() == 0) {
         anchored = 0;
         settled = 0;
         return false;
     }
+    static bool placed_logged = false;
     if (anchored != s_puzzle_lock) {
         const Vec3 hero = read_vec(s_disc->hero + kHeroPosition);
         settled = length(hero - hero_was) < 0.001f ? settled + 1 : 0;
@@ -16292,6 +16444,7 @@ bool puzzle_panel(PanelLayer& layer) {
             return false;
         }
         anchored = s_puzzle_lock;
+        placed_logged = false;
         const Vec3 hand = read_vec(hand_moby() + kMobyPosition);
         const Vec3 tip = hand + (moby_centre(s_puzzle_lock) - hand) * (1.0f / kPlateAt);
         const Vec3 eye = world_from_head();
@@ -16314,6 +16467,19 @@ bool puzzle_panel(PanelLayer& layer) {
     layer.pose.orientation = looking_along(rotate(yaw_quat(-s_rig.yaw), world_to_frame(facing * (1.0f / length(facing)))));
     layer.width = distance * 1.05f * s_options.hud_scale;
     layer.height = layer.width * 3.0f / 4.0f;
+    // For the grab (puzzle_tick): where the rings are, as the headset shows them.
+    s_puzzle_place.valid = true;
+    s_puzzle_place.pose = layer.pose;
+    s_puzzle_place.width = layer.width;
+    s_puzzle_place.height = layer.height;
+    if (!placed_logged) {
+        placed_logged = true;
+        const Vec3 head = s_frame.head.position;
+        char line[200];
+        std::snprintf(line, sizeof line, "[vr-puzzle] the panel in the room at (%.3f %.3f %.3f), %.2f by %.2f m, the head at (%.3f %.3f %.3f)",
+                      at.x, at.y, at.z, layer.width, layer.height, head.x, head.y, head.z);
+        log_line(1, line);
+    }
     return true;
 }
 
@@ -17066,6 +17232,8 @@ std::atomic<int> s_shop_side{0};
 bool s_shop_start = false;     // the vendor opened for the player on foot
 bool s_shop_leaving = false;   // walked off, or dead: the keys leave
 bool s_shop_remote = false;    // the PDA's vendor
+bool s_shop_pass = false;      // the game's vendor update running for the shop on foot (vendor_update)
+bool s_shop_reopen_told = false;
 bool pda_shopping() { return s_shopping && s_shop_remote; }
 
 // Where the game's camera puts a point of the world on the canvas (project_graphics_bounds_float).
@@ -17425,6 +17593,7 @@ void start_shopping() {
     }
     s_shopping = true;
     s_shop_leaving = false;
+    s_shop_reopen_told = false;
     shop_cross_icon(true);
     log_line(1, "[vr-shop] on foot at the vendor");
 }
@@ -17481,15 +17650,21 @@ void as_remote(gaddr vendor, bool remote) {
 }
 
 template <class Original>
-void vendor_update(Original original) {
+void vendor_update(Original game_update) {
     if (s_shop_start) {
         s_shop_start = false;
         start_shopping();
     }
     if (!s_shopping) {
-        original();
+        game_update();
         return;
     }
+    // The world's tick inside it runs the hero's own code: an open asked there is refused (vendor_opened).
+    const auto original = [&game_update] {
+        s_shop_pass = true;
+        game_update();
+        s_shop_pass = false;
+    };
     const gaddr vendor = level0(s_disc->vendor_menu);
     ref<int32_t>(vendor + kVendorBoughtWeapon) = -1;
     if (ref<int32_t>(vendor + kVendorState) != kVendorMenuOpen) {
@@ -17578,8 +17753,25 @@ void stand_remote_vendor() {
     s_shop_remote = true;
 }
 
+// 0.1.21, a tester's crash (0.1.19, PC): "pocket gadgetron thing you buy from quark crashed game". The PDA in the hand,
+// its vendor opened by the trigger: the game keeps an item's press for a few ticks (HERO_ITEM_BUFFERED_ACTIVATE), and
+// the shop on foot runs the world's tick, the hero's code among it, inside the vendor's update. That press opened the
+// vendor again there, which empties the whole menu (open_vendor_menu clears it, the models of its screens with it);
+// the menu's pass then read its first model through a null list and the game stopped. Asked inside the shop's own
+// pass, an open is the vendor that is open: refused, the shop left as it is (a machine's own update, run there too, is
+// the same).
 template <class Original>
 void vendor_opened(Original original, uint32_t moby) {
+    if (s_shop_pass && s_shopping) {
+        if (!s_shop_reopen_told) {
+            s_shop_reopen_told = true;
+            char line[160];
+            std::snprintf(line, sizeof line, "[vr-shop] the game asked the vendor open again (%s) while it is open on foot: refused",
+                          moby == 0 ? "the PDA's" : "a machine's");
+            log_line(1, line);
+        }
+        return;
+    }
     original(moby);
     s_shop_start = s_options.shop_on_foot && s_options.first_person && !s_options.screen;
     if (s_shop_start) {
@@ -19706,6 +19898,7 @@ void load(openrac::Mod& mod) {
     s_options.show_hands = mod.setting<bool>("show_hands");
     s_options.grab_ledges = mod.setting<bool>("grab_ledges");
     s_options.puzzle_over_tool = mod.setting<bool>("puzzle_over_tool");
+    s_options.puzzle_grab = mod.setting<bool>("puzzle_grab");
     s_options.shop_on_foot = mod.setting<bool>("shop_on_foot");
     s_options.menu_in_world = mod.setting<bool>("menu_in_world");
     s_options.room_scale = mod.setting<bool>("room_scale");
@@ -19717,6 +19910,35 @@ void load(openrac::Mod& mod) {
     {
         const std::string dpad = mod.setting<std::string>("dpad");
         s_options.dpad = dpad == "thumb_rest" ? kDpadThumbRest : dpad == "off" ? kDpadOff : kDpadByHead;
+    }
+    // The launcher's Third person buttons (0.1.21): where the controllers are a plain pad, out of the menus (pad.h).
+    {
+        std::array<int, 11> controls{};
+        for (std::size_t i = 0; i < kLayoutKeys.size(); ++i) {
+            controls[i] = pad_control_of(mod.setting<std::string>(kLayoutKeys[i]).c_str());
+        }
+        int refused = 0;
+        s_pad_mapper.layout = pad_layout_from(controls, &refused);
+        static const char* const kControlNames[kPadControls] = {
+            "A", "B", "X", "Y", "the right trigger", "the left trigger", "the right grip", "the left grip",
+            "the right stick's click", "the left stick's click"};
+        std::string line = "[vr-pad] third person buttons (";
+        line += s_pad_mapper.layout == kXboxLayout ? "an Xbox controller's" : "the player's own";
+        line += "):";
+        for (int control = 0; control < kPadControls; ++control) {
+            const std::uint16_t button = s_pad_mapper.layout[static_cast<std::size_t>(control)];
+            const char* name = "nothing";
+            for (std::size_t i = 0; i < kLayoutButtons.size(); ++i) {
+                if (kLayoutButtons[i] == button) {
+                    name = kLayoutKeys[i] + 4;  // "pad_cross" as "cross"
+                }
+            }
+            line += std::string(control == 0 ? " " : ", ") + kControlNames[control] + " " + name;
+        }
+        if (refused > 0) {
+            line += "; " + std::to_string(refused) + " left without a control, its control another's";
+        }
+        log_line(1, line.c_str());
     }
     s_xr.refresh_hz = static_cast<float>(mod.setting<std::int64_t>("refresh_hz"));
     s_xr.keep_refresh = mod.setting<bool>("keep_refresh");
@@ -19748,6 +19970,7 @@ void load(openrac::Mod& mod) {
             {s_options.throw_by_hand, "Throw bombs, mines and Decoys by hand"}, {s_options.swing_wrench, "Swing the wrench for real"},
             {s_options.two_handed, "Two-handed weapons"}, {s_options.show_hands, "Ratchet's hands"},
             {s_options.grab_ledges, "Grab ledges with your hands"}, {s_options.puzzle_over_tool, "The Trespasser's rings over the tool"},
+            {s_options.puzzle_grab, "Grab the Trespasser's rings"},
             {s_options.shop_on_foot, "Shop on foot"}, {s_options.menu_in_world, "Menus in the world"},
             {s_options.room_scale, "Walk around your room"}, {s_options.swim_strokes, "Swim with your arms"},
             {s_options.solid_hands, "World collision"}, {s_options.wall_feel, "Vibrate when your hands meet the world"},
@@ -19976,4 +20199,4 @@ void load(openrac::Mod& mod) {
 
 }  // namespace
 
-OPENRAC_MOD_CPP("quest-vr", "0.1.20", load)
+OPENRAC_MOD_CPP("quest-vr", "0.1.21", load)

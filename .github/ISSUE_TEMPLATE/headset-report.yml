@@ -1,6 +1,6 @@
 name: Headset report (a bug, or a run that worked)
 description: Send a log from your Quest. Successful runs help as much as failures.
-title: "[0.1.20] "
+title: "[0.1.21] "
 labels: ["headset report"]
 body:
   - type: markdown
@@ -12,7 +12,7 @@ body:
     attributes:
       label: App version
       description: Shown in the launcher.
-      value: "0.1.20"
+      value: "0.1.21"
     validations:
       required: true
   - type: dropdown

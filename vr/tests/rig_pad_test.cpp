@@ -11,6 +11,7 @@
 #include "heading.h"
 #include "notice.h"
 #include "pad.h"
+#include "puzzle.h"
 #include "rig.h"
 #include "support.h"
 #include "glyphs.h"
@@ -430,8 +431,8 @@ void test_mapper() {
     out = quick.map(c, context);
     check(!(out.held & kPadCircle), "a fresh pull in the ring is its page's");
 
-    // The Trespasser's rings: the stick is the d-pad, nothing walks; a trigger held from the push is
-    // not a cancel, a fresh pull is, and it does nothing else until let go.
+    // The Trespasser's rings: the mod's asks are the d-pad (puzzle.h), the stick itself nothing, nothing walks; a
+    // trigger held from the push is not a cancel, a fresh pull is, and it does nothing else until let go.
     PadMapper rings;
     context = PadContext{};
     context.first_person = true;
@@ -441,8 +442,21 @@ void test_mapper() {
     rings.map(Controls{c}, PadContext{});
     c.left_x = 1.0f;
     out = rings.map(c, context);
-    check(out.held & kPadRight, "the stick turns the ring");
+    check(!(out.held & (kPadRight | kPadLeft | kPadUp | kPadDown)), "the stick itself holds no way (0.1.21)");
     check(out.left_x == 0.0f, "and walks nothing");
+    context.puzzle_turn = 1;
+    check((rings.map(c, context).held & (kPadRight | kPadLeft)) == kPadRight, "a step asked: Right");
+    context.puzzle_turn = -1;
+    check((rings.map(c, context).held & (kPadRight | kPadLeft)) == kPadLeft, "the other way: Left");
+    context.puzzle_turn = 0;
+    context.puzzle_ring = -1;
+    check((rings.map(c, context).held & (kPadUp | kPadDown)) == kPadUp, "the ring before: Up");
+    context.puzzle_ring = 1;
+    check((rings.map(c, context).held & (kPadUp | kPadDown)) == kPadDown, "the next ring: Down");
+    context.puzzle_ring = 0;
+    c.a = c.b = c.x = true;
+    check(!(rings.map(c, context).held & (kPadCross | kPadCircle | kPadSquare)), "A, B and X are the mod's there");
+    c.a = c.b = c.x = false;
     check(!(out.held & kPadTriangle), "the trigger held from the push is not a cancel");
     c = Controls{};
     rings.map(c, context);
@@ -1187,6 +1201,304 @@ void test_jet_board() {
     check(!view.on && angle_between(view.turn, Quat{}) < 1e-3f, "off the board: level again");
 }
 
+// The Trespasser's rings (0.1.21, puzzle.h): a step a push, the axis kept, the repeats, A B X, the grab, the asks in order.
+void test_puzzle_input() {
+    // A tick of the lock: what the pad asks, the lock answering a held way as an idle lock would (a turn begun) and a
+    // press as a ring chosen. `turning` ticks of a turn's animation, the lock reading nothing meanwhile.
+    struct Lock {
+        int ring = 1;
+        int busy = 0;
+        int turns = 0;  // clockwise less anticlockwise
+        int steps = 0;  // turns begun
+        int turned_ring = 0;  // the ring the last turn was of
+        void tick(PuzzleInput& puzzle) {
+            int turn = 0, press = 0;
+            puzzle.ask(ring, turn, press);
+            if (busy > 0) {
+                --busy;
+                return;
+            }
+            if (turn != 0) {
+                puzzle.turned(turn);
+                turns += turn;
+                ++steps;
+                turned_ring = ring;
+                busy = 5;
+            } else if (press != 0) {
+                ring = std::clamp(ring + press, 1, 3);
+            }
+        }
+    };
+    const auto run = [](PuzzleInput& puzzle, Lock& lock, float x, float y, int ticks, bool a = false, bool b = false, bool xb = false) {
+        for (int i = 0; i < ticks; ++i) {
+            puzzle.controls(x, y, 0, 0, a, b, xb, lock.ring);
+            lock.tick(puzzle);
+        }
+    };
+
+    // A push to the side and back: one step, whatever the lock's speed.
+    PuzzleInput puzzle;
+    Lock lock;
+    run(puzzle, lock, 1, 0, 10);
+    run(puzzle, lock, 0, 0, 20);
+    check(lock.steps == 1 && lock.turns == 1, "a push right: one step clockwise");
+    run(puzzle, lock, -0.9f, 0.1f, 10);
+    run(puzzle, lock, 0, 0, 20);
+    check(lock.turns == 0 && lock.steps == 2, "a push left: one back");
+
+    // Held 50 ticks: the first, a repeat at 27, another at 42: three, not ten.
+    lock = Lock{};
+    run(puzzle, lock, 1, 0, 50);
+    run(puzzle, lock, 0, 0, 30);
+    check(lock.steps == 3, "held 50 ticks: three steps");
+
+    // An arc of the thumb from the side to up: no ring changed until let go.
+    lock = Lock{};
+    run(puzzle, lock, 1, 0, 3);
+    run(puzzle, lock, 0.7f, 0.7f, 3);
+    run(puzzle, lock, 0.05f, 1, 10);
+    check(lock.ring == 1, "an arc from the side up: the ring kept");
+    run(puzzle, lock, 0, 0, 20);
+    // Then a clear push down: the next ring; a slow one up passes 0.6 before it is 0.7, and still counts.
+    run(puzzle, lock, 0.1f, -1, 6);
+    run(puzzle, lock, 0, 0, 6);
+    check(lock.ring == 2, "down: the next ring");
+    run(puzzle, lock, 0.05f, 0.62f, 3);
+    run(puzzle, lock, 0.05f, 0.75f, 3);
+    run(puzzle, lock, 0, 0, 6);
+    check(lock.ring == 1, "a slow push up: the ring before");
+    run(puzzle, lock, 0, 1, 6);
+    run(puzzle, lock, 0, 0, 6);
+    check(lock.ring == 1, "up at the outer ring: nothing, as the game");
+    // A diagonal not clearly up is a turn.
+    const int before = lock.steps;
+    run(puzzle, lock, 0.65f, 0.6f, 4);
+    run(puzzle, lock, 0, 0, 20);
+    check(lock.steps == before + 1 && lock.ring == 1, "a diagonal: a step, not a ring");
+
+    // A, B, X: one each a press, held or not; X round 1 2 3 1.
+    lock = Lock{};
+    run(puzzle, lock, 0, 0, 1, true);
+    run(puzzle, lock, 0, 0, 30, true);
+    run(puzzle, lock, 0, 0, 2);
+    check(lock.turns == 1 && lock.steps == 1, "A held: one step clockwise");
+    run(puzzle, lock, 0, 0, 1, false, true);
+    run(puzzle, lock, 0, 0, 20);
+    check(lock.turns == 0 && lock.steps == 2, "B: one anticlockwise");
+    for (int want : {2, 3, 1}) {
+        run(puzzle, lock, 0, 0, 1, false, false, true);
+        run(puzzle, lock, 0, 0, 8);
+        check(lock.ring == want, "X: the next ring round");
+    }
+    // In order: X then A turns the new ring, not the old.
+    lock = Lock{};
+    lock.busy = 3;  // the lock still turning: both wait
+    run(puzzle, lock, 0, 0, 1, false, false, true);
+    run(puzzle, lock, 0, 0, 1, true);
+    run(puzzle, lock, 0, 0, 20);
+    check(lock.turned_ring == 2 && lock.turns == 1, "X then A: the step on the new ring");
+    // And A then X: the step on the old.
+    lock = Lock{};
+    lock.busy = 3;
+    run(puzzle, lock, 0, 0, 1, true);
+    run(puzzle, lock, 0, 0, 1, false, false, true);
+    run(puzzle, lock, 0, 0, 20);
+    check(lock.turned_ring == 1 && lock.ring == 2, "A then X: the step on the old ring, then the next");
+    // Mashed: no more than two waiting; the other way takes one back.
+    lock = Lock{};
+    lock.busy = 100;  // the lock busy: nothing taken
+    for (int i = 0; i < 5; ++i) {
+        run(puzzle, lock, 0, 0, 1, true);
+        run(puzzle, lock, 0, 0, 1);
+    }
+    check(puzzle.waiting() == 2, "A five times while busy: two wait");
+    run(puzzle, lock, 0, 0, 1, false, true);
+    run(puzzle, lock, 0, 0, 1);
+    check(puzzle.waiting() == 1, "B takes one back");
+    // An ask the lock never takes is dropped after 2.5 seconds.
+    for (int i = 0; i < PuzzleInput::kGiveUp + 5; ++i) {
+        puzzle.controls(0, 0, 0, 0, false, false, false, lock.ring);
+        int turn = 0, press = 0;
+        puzzle.ask(lock.ring, turn, press);
+    }
+    check(puzzle.waiting() == 0, "never taken: dropped");
+
+    // Up and Down a tick on and a tick off (the game reads them pressed).
+    PuzzleInput presses;
+    presses.controls(0, 0, 0, 0, false, false, true, 1);  // X: ring 2
+    int turn = 0, press = 0;
+    presses.ask(1, turn, press);
+    check(press == 1 && turn == 0, "toward ring 2: Down");
+    presses.controls(0, 0, 0, 0, false, false, true, 1);
+    presses.ask(1, turn, press);
+    check(press == 0, "a tick off between presses");
+
+    // The grab: the bands on a 4:3 panel, ring 1 the outer.
+    constexpr float aspect = 0.75f;
+    check(PuzzleInput::ring_under(0.537f, 0, aspect) == 1 && PuzzleInput::ring_under(0, 0.656f, aspect) == 1, "the outer ring");
+    check(PuzzleInput::ring_under(-0.385f, 0, aspect) == 2 && PuzzleInput::ring_under(0, -0.47f, aspect) == 2, "the middle ring");
+    check(PuzzleInput::ring_under(0.2f, 0, aspect) == 3 && PuzzleInput::ring_under(0.1f, 0.0f, aspect) == 3, "the inner ring");
+    check(PuzzleInput::ring_under(0.03f, 0, aspect) == 0 && PuzzleInput::ring_under(0.9f, 0, aspect) == 0, "the middle and past the frame: none");
+    // The point from the eye through the hand: a panel a metre ahead, 0.8 wide; the hand half way, 0.1 right.
+    const Pose panel{{0, 1.6f, -1.0f}, Quat{}};  // facing +Z, toward the eye
+    float u = 0, v = 0;
+    check(PuzzleInput::panel_point(panel, 0.8f, 0.6f, {0, 1.6f, 0}, {0.1f, 1.6f, -0.5f}, u, v) && std::abs(u - 0.5f) < 1e-4f
+              && std::abs(v) < 1e-4f,
+          "the hand half way: seen at twice its offset");
+    check(!PuzzleInput::panel_point(panel, 0.8f, 0.6f, {0, 1.6f, 0}, {0.1f, 1.6f, -0.05f}, u, v), "a hand at the face: not over it");
+    check(!PuzzleInput::panel_point(panel, 0.8f, 0.6f, {0, 1.6f, 0}, {0.1f, 1.6f, 0.3f}, u, v), "behind the head: not over it");
+
+    // Grabbed at the middle ring on the right, taken round a quarter clockwise (down): three steps on ring 2.
+    PuzzleInput grab;
+    Lock held;
+    grab.controls(0, 0, 0, 0, false, false, false, held.ring);
+    grab.grab(1, 1.0f, true, 0.385f, 0, aspect);
+    check(grab.grab_hand() == 1, "the right grip takes the middle ring");
+    held.tick(grab);
+    held.tick(grab);
+    held.tick(grab);
+    check(held.ring == 2, "the grab chooses its ring");
+    const float quarter = -1.66f;  // a little past a quarter round, clockwise (down from the right)
+    for (int i = 1; i <= 30; ++i) {
+        const float angle = quarter * static_cast<float>(i) / 30.0f;
+        grab.controls(0, 0, 0, 0, false, false, false, held.ring);
+        grab.grab(1, 1.0f, true, 0.385f * std::cos(angle), 0.385f * std::sin(angle) / aspect, aspect);
+        held.tick(grab);
+    }
+    for (int i = 0; i < 30; ++i) {
+        grab.controls(0, 0, 0, 0, false, false, false, held.ring);
+        grab.grab(1, 1.0f, true, 0.385f * std::cos(quarter), 0.385f * std::sin(quarter) / aspect, aspect);
+        held.tick(grab);
+    }
+    check(held.turns == 3 && held.turned_ring == 2, "a quarter clockwise: three steps on the middle ring");
+    grab.controls(0, 0, 0, 0, false, false, false, held.ring);
+    grab.grab(1, 0.0f, true, 0, -0.5f, aspect);
+    check(grab.grab_hand() == -1, "opened: let go");
+    // A grip closed away from the rings, or a grip held from before, takes nothing.
+    grab.controls(0, 0, 0, 0, false, false, false, held.ring);
+    grab.grab(0, 1.0f, false, 0, 0, aspect);
+    check(grab.grab_hand() == -1, "not over the panel: nothing");
+    grab.controls(0, 0, 0, 0, false, false, false, held.ring);
+    grab.grab(0, 1.0f, true, 0.537f, 0, aspect);
+    check(grab.grab_hand() == -1, "a grip already closed when it came over: nothing");
+}
+
+// The Third person buttons (0.1.21, a tester: with Gamepad the wrench was X, on the left controller): each control one
+// button, the player's choice; the menus keep the Xbox layout; the hints' icons follow.
+void test_pad_layout() {
+    // The launcher's "Like first person": Cross A, Circle the right trigger, Square the right grip, Triangle the right
+    // click, R1 the left trigger, R2 B, L1 the left grip, L2 Y, Select X, R3 the left click, L3 none.
+    std::array<int, 11> like_first{};
+    const char* like[11] = {"a", "right_trigger", "right_grip", "right_stick", "left_trigger", "b", "left_grip", "y", "x", "left_stick", "none"};
+    for (int i = 0; i < 11; ++i) {
+        like_first[static_cast<size_t>(i)] = pad_control_of(like[i]);
+    }
+    check(like_first[10] == -1 && pad_control_of("bogus") == -1 && pad_control_of(nullptr) == -1, "none and the unknown: no control");
+    int refused = -1;
+    const PadLayout layout = pad_layout_from(like_first, &refused);
+    check(refused == 0, "Like first person: every control its own");
+    check(layout[kControlRightGrip] == kPadSquare && layout[kControlRightTrigger] == kPadCircle
+              && layout[kControlLeftTrigger] == kPadR1 && layout[kControlB] == kPadR2 && layout[kControlX] == kPadSelect
+              && layout[kControlLeftClick] == kPadR3,
+          "Like first person's layout");
+
+    // The Xbox controller's defaults, as the launcher writes them, are the layout kept to 0.1.20.
+    std::array<int, 11> xbox{};
+    const char* xbox_keys[11] = {"a", "b", "x", "y", "right_grip", "right_trigger", "left_grip", "left_trigger", "left_stick", "right_stick", "none"};
+    for (int i = 0; i < 11; ++i) {
+        xbox[static_cast<size_t>(i)] = pad_control_of(xbox_keys[i]);
+    }
+    check(pad_layout_from(xbox) == kXboxLayout, "the launcher's Xbox controller is kXboxLayout");
+
+    // A control asked for twice (a hand-edited file): the first keeps it, the second is left without one.
+    std::array<int, 11> twice = xbox;
+    twice[1] = kControlA;  // Circle on A as well as Cross
+    refused = 0;
+    const PadLayout kept = pad_layout_from(twice, &refused);
+    check(refused == 1 && kept[kControlA] == kPadCross && kept[kControlB] == 0, "a control twice: the first keeps it");
+
+    PadContext context;
+    context.gamepad = true;
+    PadMapper pad;
+    pad.layout = layout;
+    Controls c;
+    c.right_grip = 1;
+    check(pad.map(c, context).held == kPadSquare, "Like first person: the right grip swings (Square)");
+    c = Controls{};
+    c.right_trigger = 1;
+    check(pad.map(c, context).held == kPadCircle, "Like first person: the right trigger fires (Circle)");
+    c = Controls{};
+    c.x = true;
+    check(pad.map(c, context).held == kPadSelect, "Like first person: X the map (Select)");
+    c = Controls{};
+    c.left_click = true;
+    check(pad.map(c, context).held == kPadR3, "Like first person: the left click R3");
+    c = Controls{};
+    c.menu = true;
+    check(pad.map(c, context).held == kPadStart, "the menu button Start whatever the layout");
+    // Every control at once: each button once, eleven buttons less L3 (none), with Start.
+    c = Controls{};
+    c.a = c.b = c.x = c.y = c.left_click = c.right_click = true;
+    c.left_trigger = c.right_trigger = c.left_grip = c.right_grip = 1;
+    const std::uint16_t all = kPadCross | kPadCircle | kPadSquare | kPadTriangle | kPadR1 | kPadR2 | kPadL1 | kPadL2 | kPadSelect | kPadR3;
+    check(pad.map(c, context).held == all, "all ten controls: ten buttons");
+    // A stick as the D-pad: its click L3, whatever the layout gives the click.
+    context.left_dpad = true;
+    c = Controls{};
+    c.left_click = true;
+    check(pad.map(c, context).held == kPadL3, "the left stick the D-pad: its click L3, not the layout's");
+    context.left_dpad = false;
+    // Akimbo's lead never makes one trigger two buttons on the plain pad.
+    context.lead = true;
+    c = Controls{};
+    c.left_trigger = 1;
+    check(pad.map(c, context).held == kPadR1, "the lead: the left trigger its own button alone");
+    context.lead = false;
+
+    // In the menus the Xbox layout stays: X Square, the right grip R1.
+    PadMapper menu;
+    menu.layout = layout;
+    context.in_menu = true;
+    c = Controls{};
+    c.x = true;
+    check(menu.map(c, context).held == kPadSquare, "the menus: X Square still");
+    c = Controls{};
+    c.right_grip = 1;
+    check(menu.map(c, context).held == kPadR1, "the menus: the right grip R1 still");
+    context.in_menu = false;
+
+    // The big screen takes the layout in play and the Xbox one in its menus.
+    PadContext screen;
+    screen.screen = true;
+    PadMapper big;
+    big.layout = layout;
+    c = Controls{};
+    c.right_grip = 1;
+    check(big.map(c, screen).held == kPadSquare, "the big screen: the layout in play");
+    screen.in_menu = true;
+    check(big.map(c, screen).held == kPadR1, "the big screen's menus: the Xbox layout");
+
+    // The hints' icons: Cross Circle Triangle Square L1 R1 L2 R2, each the control pressing it.
+    constexpr std::array<std::uint16_t, 8> icons = {kPadCross, kPadCircle, kPadTriangle, kPadSquare, kPadL1, kPadR1, kPadL2, kPadR2};
+    const std::array<int, 10> shown = glyphs::layout_glyph_controls(layout, icons);
+    check(shown[0] == kControlA && shown[1] == kControlRightTrigger && shown[2] == kControlRightClick && shown[3] == kControlRightGrip
+              && shown[4] == kControlLeftGrip && shown[5] == kControlLeftTrigger && shown[6] == kControlY && shown[7] == kControlB
+              && shown[8] == -1 && shown[9] == -1,
+          "the icons: each the control pressing its button");
+    check(glyphs::kControlCells[static_cast<size_t>(kControlRightGrip)] == 0x15 && glyphs::kControlCells[static_cast<size_t>(kControlX)] == 0x13,
+          "the Xbox mod's cells: RB the R1's, X the Square's");
+    const std::array<int, 10> xbox_shown = glyphs::layout_glyph_controls(kXboxLayout, icons);
+    for (int i = 0; i < 8; ++i) {
+        // Under the Xbox layout each icon's control shows the icon's own cell: the same as the Xbox scheme.
+        check(xbox_shown[static_cast<size_t>(i)] >= 0
+                  && glyphs::kControlCells[static_cast<size_t>(xbox_shown[static_cast<size_t>(i)])] == 0x10 + i,
+              "the Xbox layout: each icon its own cell");
+    }
+    std::array<int, 11> none_cross = xbox;
+    none_cross[0] = -1;
+    check(glyphs::layout_glyph_controls(pad_layout_from(none_cross), icons)[0] == -1, "Cross on no control: the icon as it is");
+}
+
 // Third person with Gamepad, the big screen's Xbox layout, the D-pad and the controller by the head (0.1.19).
 void test_gamepad() {
     PadContext context;
@@ -1292,6 +1604,8 @@ void test_gamepad() {
     c = Controls{};
     c.b = true;
     check(menu.map(c, context).held == kPadTriangle, "VR menu: B back");
+
+    test_pad_layout();
 
     // The controller held up beside the head, as a phone at the ear, its own side.
     const Pose head{{0, 1.6f, 0}, yaw_quat(0)};
@@ -1679,6 +1993,7 @@ int main() {
     test_dive_pad();
     test_jet_board();
     test_gamepad();
+    test_puzzle_input();
     test_surface_turn();
     test_body_heading();
     if (g_failures == 0) {

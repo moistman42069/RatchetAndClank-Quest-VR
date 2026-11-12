@@ -2,6 +2,25 @@
 
 > **This is a test build, and we need your logs.** **Expect bugs.** Every log helps, including from runs that worked: **Send your log** below says how.
 
+## New in 0.1.21
+
+From testers' reports and logs on 0.1.19 and 0.1.20, and the owner's asks.
+
+- **Third person buttons: each action where you want it** (a tester: in third person "the swinging with the hammer is then assigned to the X button on the left controller, which makes no sense because one uses the left controller/stick for movement"; the owner: "add options in the launcher to map the 3rd person gamepad controls to the quest controllers as you please ... dont have any control conflicts"). **Third person buttons** (new, the launcher's VR tab, under **D-pad**) lists the game's actions: jump, fire, the wrench, quick select and talk, crouch, look, the map. Tap one, then the button for it. If another action had that button the two swap, so no button ever does two things and nothing is lost. **Like first person** puts them as in first person: the right trigger fires, the right grip swings the wrench, A jumps, the right stick click is quick select, the left trigger and B crouch, the left grip and Y look, X and the left stick click the map. **Xbox controller** is the layout from before, and still the start. It applies in third person with **Third person controls** on **Gamepad**, and in **Play in 2D**. The menu button always pauses (held, it switches the view), the menus keep the Xbox layout, the game's hints show the buttons you chose, and RAC-Board's tricks, grinds and grabs follow the buttons you give R1, R2 and L1. First person keeps its VR controls.
+- **The Trespasser's rings: one notch a push, or turn them by hand** (a tester: "my joystick try to fight me"; the owner: take what Rerac-vr had "and just make it as good as can be"). Rerac-vr made the sticks the game's D-pad, as we did, and the game turns a ring about twelve notches a second while the D-pad is held, so a push turned it too far, and a push a little off straight changed the ring as well. Now each push of a stick turns the chosen ring one notch (held, another after a moment, then a few a second), up and down choose the ring, A and B turn it a notch each way, X picks the next ring, and Y, the stick's click or a fresh trigger pull takes the tool out. New, **Grab the Trespasser's rings** (VR tab, on to start): with your hand over a ring, squeeze the grip to hold it and move your hand round the middle to turn it, a notch for each twelfth of a circle. It needs **The Trespasser's rings over the tool** (on to start). Each notch is the game's own turn, with its sound. **Play in 2D** keeps the game's own controls.
+- **A crash at the PDA's vendor** (a tester: "pocket gadgetron thing you buy from quark crashed game"). With the PDA in your hand the trigger opens its vendor. The game keeps that press for a few frames, and while you shop on foot Ratchet's own code runs with it, so the game opened the vendor a second time over the first; that emptied the vendor's screens and the game stopped. Now the vendor that is open stays as it is, and the second opening is refused (the log says `[vr-shop] the game asked the vendor open again`).
+- **Scenes: checked** (a tester saw scenes on a screen that looked as if they could play around you). Every scene the game draws itself plays in VR (**Cutscenes** on **In VR, around you**). The ones on a screen are the game's movies, videos on the disc with no 3D scene behind them, so they can't be shown around you. The ending's slideshow is still pictures, shown flat too.
+- **Another crash in the same tester's logs** (0.1.19, Umbris, the Swingshot in the left hand): the crash after drowning that 0.1.20 fixed.
+- **Multiplayer:** 0.1.19, 0.1.20 and 0.1.21 play together (the same Multiplayer and party rules); 0.1.18 still cannot join any of them.
+
+**What we tested** (on this PC, with the simulated headset, PAL disc; nothing on a Quest or a real PC headset):
+
+- **Third person buttons:** set to **Like first person**, in third person on Novalis: A jumped, the right grip swung the wrench, the left trigger crouched, X opened the map, and the left stick's click closed it; in play the hints' icons were the buttons chosen, in the map an Xbox controller's (A, B, LB, RB, Y). The launcher's swap (pick a button another action has and the two trade) and both presets are checked by the launcher's own tests, on Quest and PC. Third person with the Xbox layout, RAC-Board in third person, the wrench thrown in third person and **Play in 2D** ran as on 0.1.20.
+- **The Trespasser's rings,** at Aridia's lock: a push turned the ring one notch; held, three more one at a time; up and down, A, B and X each did their one thing; the left hand gripped over the middle ring and swept round: three notches, then two back on the outer ring; every notch asked was one turn of the lock, none lost or doubled; the trigger took the tool out. In third person the rings came up as before. Plugging in the Hydrodisplacer ran as on 0.1.20.
+- **The PDA's vendor:** the PDA in the right hand, the trigger pulled, with the Blaster in the left hand (Akimbo) and with nothing there. Before the fix the run with the Blaster crashed, as in the tester's log; now, with it and without, the vendor opens on foot, the second opening is refused, another pull on its screens and the stick's click closes it. The vendor at a machine, buying, the PDA's vendor opened the test's way and the flat vendor ran as on 0.1.20.
+- **Akimbo's lead** (held, pressed over and over, switched, the wrench and a punch while it leads) and the wheel in third person: as on 0.1.20.
+- **Not tried:** anything on a headset or the US disc; the grab's feel (where the rings sit for your hand) needs a headset. As the owner asked, no full regression run: only the runs above.
+
 ## New in 0.1.20
 
 From testers' reports and logs on 0.1.19 (PC VR and a Quest 3), and the owner's asks.
@@ -322,7 +341,7 @@ Everything from 0.1.15 and 0.1.14, which came out just before this, is below, so
 
 ## Also new: all of 0.1.14, which came out just before 0.1.15, in case you missed it
 
-**Now on PC VR too.** Beside the APK, this release has `RatchetQuestVR-0.1.20-windows.zip`: the Quest version on a Windows PC, with the same launcher (`RatchetClankVR.exe`: Play, Graphics, VR, Game, Controls, Logs and Credits, the disc check and set-up, the mods, the updates), the same options and the same game. **Install on PC** below says how. Rerac-vr is the original PC VR mod, and the one this port follows; this is for players who want the Quest version's launcher, options and mods on a PC.
+**Now on PC VR too.** Beside the APK, this release has `RatchetQuestVR-0.1.21-windows.zip`: the Quest version on a Windows PC, with the same launcher (`RatchetClankVR.exe`: Play, Graphics, VR, Game, Controls, Logs and Credits, the disc check and set-up, the mods, the updates), the same options and the same game. **Install on PC** below says how. Rerac-vr is the original PC VR mod, and the one this port follows; this is for players who want the Quest version's launcher, options and mods on a PC.
 
 - **Any OpenXR PC VR software:** SteamVR, Meta Horizon Link (Link and Air Link), Virtual Desktop, Pico Connect, Windows Mixed Reality and others. If the one set as your PC's OpenXR runtime cannot draw this game (it needs OpenGL, which Windows Mixed Reality's lacks), the game uses SteamVR's instead, by itself, when SteamVR is installed; Windows' setting is not changed.
 - **Your controllers, by themselves:** the game gives its bindings for Touch (Quest, Rift S, Quest Pro, Touch Plus), Index, Vive and Vive Cosmos, Vive Focus 3, Pico 4 and Neo 3, HP Reverb G2 and Windows Mixed Reality, so each runtime puts them on your controllers. Others, such as **PlayStation VR2**, the **Steam Frame** and **DPVR** headsets, come through SteamVR, which maps them to one of those (change it in SteamVR's **Manage controller bindings** if you like). The launcher's **Controls** tab says what each button is on each, and your log names the controllers it got (`[openxr] left hand:`).
@@ -423,7 +442,7 @@ The owner's list after playing 0.1.12 on a Quest 3, a tester's notes and logs on
 
 ## 0.1.3 to 0.1.12
 
-Their notes, as each release gave them, are in [docs/release-history.md](https://github.com/moistman42069/RatchetAndClank-Quest-VR/blob/v0.1.20/docs/release-history.md) and on each release's page (GitHub limits how long a release's notes can be).
+Their notes, as each release gave them, are in [docs/release-history.md](https://github.com/moistman42069/RatchetAndClank-Quest-VR/blob/v0.1.21/docs/release-history.md) and on each release's page (GitHub limits how long a release's notes can be).
 
 ## What you need
 
@@ -441,9 +460,9 @@ Their notes, as each release gave them, are in [docs/release-history.md](https:/
 ## Install
 
 1. Put your Quest in **Developer Mode** (in the Meta Horizon app on your phone).
-2. Get `RatchetQuestVR-0.1.20.apk` onto the headset and install it. Either:
+2. Get `RatchetQuestVR-0.1.21.apk` onto the headset and install it. Either:
    - download it in the Quest's browser (or email it to yourself and download it there) and open it from the **Files** app, or
-   - sideload it with SideQuest or `adb install -r RatchetQuestVR-0.1.20.apk`.
+   - sideload it with SideQuest or `adb install -r RatchetQuestVR-0.1.21.apk`.
 3. Open **Ratchet & Clank Quest VR** from your Library's **Unknown Sources**.
 4. Copy your `.iso` to the headset's **Download** folder and choose it in the launcher. The first set-up copies the disc and prepares the levels: **up to half an hour, once. Keep the headset on charge.**
 5. Press **PLAY IN VR**. **Play in 2D** puts the game on a big flat screen, played with the Touch controllers as a PlayStation pad: if VR fails, try it and tell us, as it separates a game problem from a VR problem.
@@ -452,7 +471,7 @@ Their notes, as each release gave them, are in [docs/release-history.md](https:/
 
 ## Install on PC
 
-1. Download `RatchetQuestVR-0.1.20-windows.zip` and unzip it anywhere you can write: your Desktop, Documents or a games drive. Keep the `RatchetClankVR` folder together. Nothing is installed into Windows.
+1. Download `RatchetQuestVR-0.1.21-windows.zip` and unzip it anywhere you can write: your Desktop, Documents or a games drive. Keep the `RatchetClankVR` folder together. Nothing is installed into Windows.
 2. Start your headset's PC VR software (SteamVR, Meta Horizon Link, Virtual Desktop, Pico Connect, ...).
 3. Open `RatchetClankVR.exe`. Windows may warn about an app from the internet it does not know: **More info**, then **Run anyway**.
 4. **Choose your .iso file** and wait for the set-up, once: it checks the disc, then prepares the levels.
@@ -470,6 +489,7 @@ The log holds your headset's model and Android version, the game's own log, why 
 
 **Most useful right now:**
 
+- **0.1.21's changes:** **Third person buttons** (VR tab): whether every action is where you put it, and whether **Like first person** feels right in third person and in **Play in 2D**; the Trespasser's rings with the sticks, A, B and X, and turned by hand with **Grab the Trespasser's rings**; the PDA's vendor opened from your hand, with and without a gun in the left hand.
 - **0.1.20's changes:** the game starting in the launcher's **View**, the notices ahead of you fading after a couple of seconds, your view on the Magneboots' walls and ceilings in first person, on Quest **Smoother frames** at 120 Hz (whether the micro stutters are gone, and the `[vr-perf]` lines in play), a death with something in the left hand (Akimbo), and the glows in a take-off and the flight. If you see the cockpit window racing the ship between planets, or Blarg station's far windows acting strangely, a short clip or where you stood helps most.
 - **0.1.19's changes:** third person with **Gamepad** and the **D-pad** (by your head, or your left thumb on its rest: say whether your controllers sense the thumb rest); the Xbox-style buttons in the hints, and on the US disc which icons you see; Aridia's sand sea and the other seas with your head turned; the city and the plants; RAC-Board steered by your gaze, and with your weapons, the wrench and the Swingshot while you ride (swinging and pulled, and grabbing enemies, without leaving the board); getting out of the ship; **Stay on magnet paths** round the strips' bends; the **Weapon wheel** page, and letting go in its middle for an empty hand; the grab's chain and throw rows; a jab with the Swingshot in hand (Punch on); playing with PC players (Multiplayer 0.12.2) and the **Update** buttons; on Quest, **Foveated rendering** at each level and a log of the frame rate (`[vr-perf]` lines).
 - **0.1.18's changes:** the Swingshot's grabs, the Grab moves, punches and the wrench throw: how they feel, and whether they come only when you mean them. Ratchet's hands on the guns, and how the gloves and boots sit on him. The Magneboots in first person on Batalia and Orxon. The weapon wheel at your hand. Getting in and out of the ship. On Quest: whether **Smoother frames** still stutters, "Hey Meta", **Mod files** and adding a mod from OpenRAC's list. RAC-Board and Multiplayer, if you turn them on.
@@ -490,7 +510,7 @@ The log holds your headset's model and Android version, the game's own log, why 
 - If a bar in the headset says a controller is missing, tell us.
 - Anything that crashes, freezes or leaves you stuck: the log says why far more often than not.
 
-The full list of what to try is in [docs/HEADSET_CHECKLIST.md](https://github.com/moistman42069/RatchetAndClank-Quest-VR/blob/v0.1.20/docs/HEADSET_CHECKLIST.md).
+The full list of what to try is in [docs/HEADSET_CHECKLIST.md](https://github.com/moistman42069/RatchetAndClank-Quest-VR/blob/v0.1.21/docs/HEADSET_CHECKLIST.md).
 
 ## What is in it
 
@@ -554,7 +574,7 @@ In the game: pause, **Options**, **VR Options** (or **VR Options** on the title'
 - In third person the pause menu is a flat panel, not in the world.
 - The picture may rarely show one turned frame when you turn your head fast in a menu.
 - Direction defaults to Gaze here; Rerac-vr's default is Body. Please try wall jumps on both.
-- **Multiplayer:** a VR player's left-hand gun (Akimbo) is not shown to the others; their figure shows the right hand's. VR bodies and the Swingshot's grab for a member need the host on 0.1.19 or 0.1.20 with the built-in Multiplayer, and time slowing for everyone at the wheel needs every player on it. The enemies you see in someone else's party move about a third of a second behind the host's game (most of it the trip through OpenRAC's server), as OpenRAC's Multiplayer has them.
+- **Multiplayer:** a VR player's left-hand gun (Akimbo) is not shown to the others; their figure shows the right hand's. VR bodies and the Swingshot's grab for a member need the host on 0.1.19 or later with the built-in Multiplayer, and time slowing for everyone at the wheel needs every player on it. The enemies you see in someone else's party move about a third of a second behind the host's game (most of it the trip through OpenRAC's server), as OpenRAC's Multiplayer has them.
 
 ## If you play on PC
 
@@ -562,7 +582,7 @@ In the game: pause, **Options**, **VR Options** (or **VR Options** on the title'
 
 ## Credits and licence
 
-Built on **[Rerac-vr](https://github.com/npiriou/Rerac-vr)** by npiriou, the main base of this project and its VR design (ISC), and on **[OpenRAC](https://github.com/OpenRAC/OpenRAC)** and [rac1-mods](https://github.com/OpenRAC/rac1-mods) (GPL-3.0-or-later), and [RAC-Board](https://github.com/mateuszklysz/RAC-Board) by Mateusz Kłysz (MIT). Thanks also to the [ReRAC](https://github.com/re-rac/rerac) team. Full [credits](https://github.com/moistman42069/RatchetAndClank-Quest-VR/blob/v0.1.20/CREDITS.md) and [third-party notices](https://github.com/moistman42069/RatchetAndClank-Quest-VR/blob/v0.1.20/THIRD_PARTY_NOTICES.txt).
+Built on **[Rerac-vr](https://github.com/npiriou/Rerac-vr)** by npiriou, the main base of this project and its VR design (ISC), and on **[OpenRAC](https://github.com/OpenRAC/OpenRAC)** and [rac1-mods](https://github.com/OpenRAC/rac1-mods) (GPL-3.0-or-later), and [RAC-Board](https://github.com/mateuszklysz/RAC-Board) by Mateusz Kłysz (MIT). Thanks also to the [ReRAC](https://github.com/re-rac/rerac) team. Full [credits](https://github.com/moistman42069/RatchetAndClank-Quest-VR/blob/v0.1.21/CREDITS.md) and [third-party notices](https://github.com/moistman42069/RatchetAndClank-Quest-VR/blob/v0.1.21/THIRD_PARTY_NOTICES.txt).
 
 Please **report bugs in this port here**, not to Rerac-vr, ReRAC or OpenRAC.
 
@@ -572,5 +592,5 @@ This is free software under GPL-3.0-or-later, without any warranty. The source o
 
 | File | SHA-256 |
 | --- | --- |
-| `RatchetQuestVR-0.1.20.apk` (version code 21, 58 MB) | `8618684fc951ee17e6405a5ada7dfe35a7cf987e463706c7c28bfffac59b9af3` |
-| `RatchetQuestVR-0.1.20-windows.zip` (71 MB) | `6648b7a5ffe8394ef8fdf45953ce9654eb7182c92a004555638584acd815ab91` |
+| `RatchetQuestVR-0.1.21.apk` (version code 22, 58 MB) | `a73319bc8e9dac286aedf275470d17f91b914c6d1ded528ae0273e6b8a3e5fb8` |
+| `RatchetQuestVR-0.1.21-windows.zip` (71 MB) | `877ad6f557639128e30ed40170d10c180a6cba922520a48d09376442613ccb2d` |

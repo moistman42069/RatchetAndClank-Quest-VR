@@ -71,7 +71,8 @@ are in the Options list too.
 IN THE LAUNCHER
 
 VR            View, Third person controls (Gamepad or VR), D-pad (Controller by your head, Left
-              thumb rest or Off), Cutscenes, Turning and the rest
+              thumb rest or Off), Third person buttons (each action's button; Xbox controller or Like
+              first person to start from), Cutscenes, Turning, Grab the Trespasser's rings and the rest
 GRAPHICS      Foveated rendering (Quest), CPU and GPU boost (Quest), Smoother frames (AppSW), Keep the
               refresh rate, Max draw distance, and the rest
 GAME          Mods: each mod's switch and settings (RAC-Board and Multiplayer are built in, off to

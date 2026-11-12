@@ -808,6 +808,90 @@ public final class PcLauncher {
                 redraw();
             }));
             page.add(card);
+            if (choice == Options.DPAD) {
+                showPadButtons();
+            }
+        }
+    }
+
+    // Third person buttons (Options.PAD_BUTTONS, 0.1.21), as the headset's launcher has them: the two layouts, then a row
+    // for each action; pressing one opens its controls under it, and the control picked is that action's, the action that
+    // had it taking this one's.
+    private Options.Choice padPicking;
+    private String padNote = "";
+
+    private void showPadButtons() {
+        Card card = card();
+        card.add(text(Options.PAD_TITLE, 16, PcArtwork.INK, true));
+        card.add(text(Options.PAD_HELP, 13, PcArtwork.MUTED, false));
+        JPanel presets = PcWidgets.row(6);
+        presets.setBorder(new EmptyBorder(8, 0, 4, 0));
+        for (int i = 0; i < Options.PAD_PRESETS.length; i++) {
+            final String[] layout = Options.PAD_PRESETS[i];
+            final String name = Options.PAD_PRESET_NAMES[i];
+            Btn preset = new Btn(name, false, () -> {
+                config.applyPadLayout(layout);
+                padPicking = null;
+                padNote = name + ": every button as that layout has it.";
+                redraw();
+            });
+            if (config.padLayoutIs(layout)) {
+                preset.chosen();
+            }
+            presets.add(weighted(preset, 1f));
+        }
+        card.add(presets);
+        String[] layout = config.padLayout();
+        for (int first = 0; first < Options.PAD_BUTTONS.length; first += 2) {
+            JPanel row = PcWidgets.row(6);
+            row.setBorder(new EmptyBorder(4, 0, 2, 0));
+            Options.Choice opened = null;
+            for (int i = first; i < Math.min(first + 2, Options.PAD_BUTTONS.length); i++) {
+                final Options.Choice action = Options.PAD_BUTTONS[i];
+                Btn button = new Btn(action.label + ":  " + Options.padControlName(layout[i]), false, () -> {
+                    padPicking = padPicking == action ? null : action;
+                    padNote = "";
+                    redraw();
+                });
+                if (padPicking == action) {
+                    button.chosen();
+                    opened = action;
+                }
+                row.add(weighted(button, 1f));
+            }
+            card.add(row);
+            if (opened != null) {
+                showPadControls(card, opened, layout[Arrays.asList(Options.PAD_BUTTONS).indexOf(opened)]);
+            }
+        }
+        if (!padNote.isEmpty()) {
+            card.add(text(padNote, 13, PcArtwork.ORANGE, false));
+        }
+        page.add(card);
+    }
+
+    /** The controls `action` can have, in two rows, its own marked. */
+    private void showPadControls(Card card, Options.Choice action, String current) {
+        card.add(text("The button for " + action.label + ":", 13, PcArtwork.ORANGE, false));
+        int half = (Options.PAD_CONTROLS.length + 1) / 2;
+        for (int first = 0; first < Options.PAD_CONTROLS.length; first += half) {
+            JPanel row = PcWidgets.row(6);
+            row.setBorder(new EmptyBorder(4, 0, 2, 0));
+            for (int i = first; i < Math.min(first + half, Options.PAD_CONTROLS.length); i++) {
+                final String control = Options.PAD_CONTROLS[i];
+                Btn button = new Btn(Options.PAD_CONTROL_NAMES[i], false, () -> {
+                    Options.Choice moved = config.assignPadButton(action, control);
+                    padPicking = null;
+                    padNote = action.label + ": " + Options.padControlName(control) + "."
+                        + (moved == null ? "" : " " + moved.label + " takes " + Options.padControlName(current) + ".");
+                    redraw();
+                });
+                if (control.equals(current)) {
+                    button.chosen();
+                }
+                row.add(weighted(button, 1f));
+            }
+            card.add(row);
         }
     }
 

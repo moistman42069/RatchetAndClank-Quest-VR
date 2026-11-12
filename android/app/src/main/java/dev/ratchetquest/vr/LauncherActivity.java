@@ -577,7 +577,98 @@ public final class LauncherActivity extends Activity {
             }
             card.addView(row);
             page.addView(card);
+            if (choice == Config.DPAD) {
+                showPadButtons();
+            }
         }
+    }
+
+    // Third person buttons (Options.PAD_BUTTONS, 0.1.21): the two layouts, then a row for each action. Pressing an action
+    // opens its controls under it; the control picked is that action's, the action that had it taking this one's.
+    private Config.Choice padPicking;
+    private String padNote = "";
+
+    private void showPadButtons() {
+        LinearLayout card = card();
+        card.addView(text(Options.PAD_TITLE, 16, Artwork.INK, true));
+        card.addView(text(Options.PAD_HELP, 13, Artwork.MUTED, false));
+        LinearLayout presets = new LinearLayout(this);
+        presets.setPadding(0, dp(8), 0, 0);
+        for (int i = 0; i < Options.PAD_PRESETS.length; i++) {
+            final String[] layout = Options.PAD_PRESETS[i];
+            final String name = Options.PAD_PRESET_NAMES[i];
+            Button preset = button(name, false, view -> {
+                config.applyPadLayout(layout);
+                padPicking = null;
+                padNote = name + ": every button as that layout has it.";
+                showTab(tab);
+            });
+            if (config.padLayoutIs(layout)) {
+                preset.setBackground(plate(Artwork.ORANGE_DARK, Artwork.ORANGE, 10));
+            }
+            presets.addView(preset, weighted());
+        }
+        card.addView(presets);
+        String[] layout = config.padLayout();
+        for (int first = 0; first < Options.PAD_BUTTONS.length; first += 2) {
+            LinearLayout row = new LinearLayout(this);
+            row.setPadding(0, dp(6), 0, 0);
+            Config.Choice opened = null;
+            for (int i = first; i < Math.min(first + 2, Options.PAD_BUTTONS.length); i++) {
+                final Config.Choice action = Options.PAD_BUTTONS[i];
+                Button button = button(action.label + ":  " + Options.padControlName(layout[i]), false, view -> {
+                    padPicking = padPicking == action ? null : action;
+                    padNote = "";
+                    showTab(tab);
+                });
+                if (padPicking == action) {
+                    button.setBackground(plate(Artwork.ORANGE_DARK, Artwork.ORANGE, 10));
+                    opened = action;
+                }
+                row.addView(button, weighted());
+            }
+            card.addView(row);
+            if (opened != null) {
+                showPadControls(card, opened, layout[java.util.Arrays.asList(Options.PAD_BUTTONS).indexOf(opened)]);
+            }
+        }
+        if (!padNote.isEmpty()) {
+            card.addView(text(padNote, 13, Artwork.ORANGE, false));
+        }
+        page.addView(card);
+    }
+
+    /** The controls `action` can have, in two rows, its own marked. */
+    private void showPadControls(LinearLayout card, Config.Choice action, String current) {
+        card.addView(text("The button for " + action.label + ":", 13, Artwork.ORANGE, false));
+        int half = (Options.PAD_CONTROLS.length + 1) / 2;
+        for (int first = 0; first < Options.PAD_CONTROLS.length; first += half) {
+            LinearLayout row = new LinearLayout(this);
+            row.setPadding(0, dp(4), 0, 0);
+            for (int i = first; i < Math.min(first + half, Options.PAD_CONTROLS.length); i++) {
+                final String control = Options.PAD_CONTROLS[i];
+                Button button = button(Options.PAD_CONTROL_NAMES[i], false, view -> {
+                    String before = current;
+                    Config.Choice moved = config.assignPadButton(action, control);
+                    padPicking = null;
+                    padNote = action.label + ": " + Options.padControlName(control) + "."
+                        + (moved == null ? "" : " " + moved.label + " takes " + Options.padControlName(before) + ".");
+                    showTab(tab);
+                });
+                button.setTextSize(13);
+                if (control.equals(current)) {
+                    button.setBackground(plate(Artwork.ORANGE_DARK, Artwork.ORANGE, 10));
+                }
+                row.addView(button, weighted());
+            }
+            card.addView(row);
+        }
+    }
+
+    private LinearLayout.LayoutParams weighted() {
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1);
+        params.rightMargin = dp(6);
+        return params;
     }
 
     // ---- Game: the port's options for play, the cheats, and OpenRAC's own mods (BundledMods) ----

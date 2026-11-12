@@ -1,0 +1,23 @@
+# 0.1.21: third person with Gamepad and the launcher's Third person buttons on "Like first person" (a tester: with the
+# Xbox layout the wrench was X, on the left controller, though the left hand walks), set in QUEST_SETTINGS (pad_cross ...
+# pad_l3) as the launcher writes them. "[vr-pad] third person buttons (the player's own): ..." says what was read. On
+# Novalis's start: A jumps (Cross, hero state 0x7); the right grip swings the wrench (Square, 0x13), as in first person;
+# the left trigger crouches (R1, 0x4); X opens the map (Select); in the map the Xbox layout is back, the left stick's
+# click Select closing it. No Xbox mod: the hints' icons are painted, out of the menus each the control pressing its
+# button ("[vr-glyphs] ... the Third person buttons' controls"), in the map an Xbox controller's.
+600 y 1
+606 y 0
+2800 shot stand
+2900 a 1
+2912 a 0
+3000 right_grip 1
+3006 right_grip 0
+3100 left_trigger 1
+3160 left_trigger 0
+3250 x 1
+3256 x 0
+3400 shot map
+3450 left_click 1
+3456 left_click 0
+3600 shot unmapped
+3700 quit 0

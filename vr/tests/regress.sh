@@ -328,6 +328,8 @@ run viewnotice viewnotice 1 QUEST_STATE_TRACE=1 'QUEST_VR_OPTIONS=first_person 0
 # Third person with Gamepad, its default from 0.1.19: an Xbox controller, the D-pad by the head (RAC-Board on D-pad Up),
 # Start as the menu button is let go, the hold back to first person, the Xbox mod's icons pointed for each view.
 run thirdpad thirdpad 1 QUEST_RACBOARD=1 QUEST_JET_TRACE=1 QUEST_STATE_TRACE=1 'QUEST_SETTINGS={"view":"third"}' 'QUEST_MODS=, {"id": "xbox-icons", "enabled": true}' KEEP=1
+# 0.1.21: the launcher's Third person buttons on "Like first person": the right grip the wrench, X the map, the menus Xbox.
+run thirdlayout thirdlayout 1 QUEST_STATE_TRACE=1 'QUEST_SETTINGS={"view":"third","pad_cross":"a","pad_circle":"right_trigger","pad_square":"right_grip","pad_triangle":"right_stick","pad_r1":"left_trigger","pad_r2":"b","pad_l1":"left_grip","pad_l2":"y","pad_select":"x","pad_r3":"left_stick","pad_l3":"none"}' KEEP=1
 run t1 t1 1
 run t2 t2 1
 # How far the eyes see, the head turned from the game's camera: the ship must show in turned and turned2. QUEST_LOD=true,
@@ -420,6 +422,10 @@ run shopbuy shopbuy 1 $G=16,17,18,19 $N=11 QUEST_SIM_BOLTS=9000 QUEST_POINTER_TR
 run shopbuy-eudora shopbuy-eudora 4 $G=16,17,18,19 $N=11 $A=1.1,0,103.4 QUEST_SIM_BOLTS=9000 QUEST_POINTER_TRACE=1 QUEST_SIM_ALIGN=2620
 run shoppda shoppda 1 $G=16,17,18,19 QUEST_SIM_PDA=1 QUEST_SIM_BOLTS=9000 QUEST_POINTER_TRACE=1
 run shoppda-eudora shoppda 4 $G=16,17,18,19 QUEST_SIM_PDA=1 QUEST_SIM_BOLTS=9000 QUEST_POINTER_TRACE=1 QUEST_SIM_ALIGN=2620
+# 0.1.21: the PDA in the hand, its vendor opened by the trigger: the press the game keeps asks it open again inside the
+# shop's pass, refused ("[vr-shop] the game asked the vendor open again"), no crash; with Akimbo's left gun and without.
+run pda-held pdaakimbo 1 $G=32 $H=32 QUEST_SIM_BOLTS=9000
+run pda-akimbo pdaakimbo 1 $G=15,32 $H=32 $L=15 QUEST_SIM_BOLTS=9000
 run worldmenu worldmenu 1 QUEST_POINTER_TRACE=1
 run worldmenuwall worldmenuwall 1 QUEST_PANEL_FAR=0
 run giant giant 15 QUEST_SIM_NEAR=1451 QUEST_SIM_NEAR_AT=0,0 QUEST_STATE_TRACE=1 KEEP=1

@@ -68,6 +68,41 @@ inline constexpr std::array<Glyph, 10> kPadGlyphs = {{
     {0x19, Shape::Stick, "L"},        // the left stick
 }};
 
+// The controls a plain pad's buttons can be on (pad.h's PadControl order: A, B, X, Y, the right and left triggers, the
+// right and left grips, the right and left sticks' clicks): the cell of the Xbox mod's that shows each, and each painted.
+// The Third person buttons (0.1.21) point icon i at the control that presses its button (layout_glyph_controls).
+inline constexpr std::array<std::uint8_t, 10> kControlCells = {0x10, 0x11, 0x13, 0x12, 0x17, 0x16, 0x15, 0x14, 0x18, 0x19};
+inline constexpr std::array<Glyph, 10> kControlGlyphs = {{
+    {0, Shape::Button, "A"},
+    {0, Shape::Button, "B"},
+    {0, Shape::Button, "X"},
+    {0, Shape::Button, "Y"},
+    {0, Shape::Key, "RT"},
+    {0, Shape::Key, "LT"},
+    {0, Shape::Key, "RB"},
+    {0, Shape::Key, "LB"},
+    {0, Shape::StickClick, "R"},
+    {0, Shape::StickClick, "L"},
+}};
+
+// Each icon's control under a layout (pad.h's PadLayout: the button each control presses), -1 where none presses its
+// button (the icon is then drawn as an Xbox controller has it) and for the sticks, which are themselves. `buttons` are the
+// PS2 pad bits of the icons 0x10..0x17: Cross, Circle, Triangle, Square, L1, R1, L2, R2.
+inline std::array<int, 10> layout_glyph_controls(const std::array<std::uint16_t, 10>& layout,
+                                                 const std::array<std::uint16_t, 8>& buttons) {
+    std::array<int, 10> controls;
+    controls.fill(-1);
+    for (std::size_t icon = 0; icon < buttons.size(); ++icon) {
+        for (std::size_t control = 0; control < layout.size(); ++control) {
+            if (layout[control] == buttons[icon]) {
+                controls[icon] = static_cast<int>(control);
+                break;
+            }
+        }
+    }
+    return controls;
+}
+
 // With the Xbox mod's buttons in the fonts (each on the PS2 button an Xbox controller has in its place), the icon whose
 // cell each icon shows in first person, from 0x10 on: Cross the A (its own), Circle the RT (R2's), Triangle the right
 // stick (the mod keeps the game's sticks: the click is shown as the stick), Square the RB (R1's), L1 the LB (its own),

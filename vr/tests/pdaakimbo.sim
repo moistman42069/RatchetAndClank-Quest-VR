@@ -1,0 +1,21 @@
+# 0.1.21, a tester's crash (0.1.19 PC, US disc): "pocket gadgetron thing you buy from quark crashed game". Their log: the
+# PDA (item 32) picked in the right hand with Akimbo's gun in the left (item 15), the right trigger pulled: "[vr-feel]
+# the PDA's vendor opens", "[vr-shop] on foot at the vendor", then the game read 0x43A04293 (a float, not an address) in
+# the vendor's update. The cause: the game keeps the item's press a few ticks, and the shop on foot runs the hero's code
+# inside the vendor's update, which opened the vendor again there and emptied its menu. Here the same (QUEST_SIM_GIVE=
+# 15,32 QUEST_SIM_HOLD=32 QUEST_SIM_LEFT=15 on Novalis, and the PDA alone): "[vr-shop] the game asked the vendor open
+# again (the PDA's) while it is open on foot: refused", the screens up, another pull on them, the click closes it,
+# "[vr-shop] left the vendor where he stands", no crash.
+600 y 1
+606 y 0
+3000 shot held
+3100 right_trigger 1
+3108 right_trigger 0
+3300 shot opened
+3400 right_trigger 1
+3406 right_trigger 0
+3500 shot pulled
+3600 right_click 1
+3606 right_click 0
+3800 shot closed
+3900 quit 0

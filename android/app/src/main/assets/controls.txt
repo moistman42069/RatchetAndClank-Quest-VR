@@ -57,8 +57,13 @@ SWIMMING      Breaststroke with your hands, palms pushing back, or the left stic
               stroke. Under the water you go where you look: look down and push the stick (or
               stroke) to go deeper, look up to come back up
 HYDRODISPLACER, TRESPASSER   Push the tool into its slot, or pull the trigger on it
-TRESPASSER RINGS   The sticks turn them. Y, the click or the trigger takes the tool out. They hang
-              over the tool you plugged in (a setting puts them before your face)
+TRESPASSER RINGS   Each push of a stick turns the chosen ring one notch (held, another after a
+              moment, then a few a second); up and down choose the ring. A turns it one notch
+              clockwise, B anticlockwise, X picks the next ring. Or squeeze a grip with your
+              hand over a ring to hold it, and move your hand round the middle: a notch for
+              each twelfth of a circle ("Grab the Trespasser's rings", on to start). Y, the
+              click or the trigger takes the tool out. They hang over the tool you plugged in
+              (a setting puts them before your face, out of reach of the grab)
 VISIBOMB      Fire it, then the left stick flies the missile, A speeds it up and the trigger sets
               it off. Its picture is on the gun's own screen, in your hand
 SWINGSHOT     At a yellow or green target, hold the trigger. With Swingshot anywhere on (VR Controls,
@@ -119,7 +124,8 @@ With Weapons on the board off, he takes the wrench as he gets on, the right trig
 tricks and the right grip grinds, as before. Your view goes with its flips and spins, not with
 each carve. In third person with Gamepad the mod's settings are your controllers as an Xbox
 controller's (to start: B fires, Y opens the quick select, X swings the wrench, RB or RT tricks,
-with A by a rail grinds, LB grabs, D-pad Up gets on and off; the reach still works).
+with A by a rail grinds, LB grabs, D-pad Up gets on and off; the reach still works), or as
+your Third person buttons put them: the board's R1, R2 and L1 are wherever you put those.
 
 AS CLANK AND GIANT CLANK
 
@@ -159,12 +165,20 @@ The PDA's vendor stands before you the same way, and stays until you leave it.
 
 IN THIRD PERSON WITH GAMEPAD (the VR tab's Third person controls, to start), AND IN 2D MODE
 
-The controllers are an Xbox controller: A jump (Cross), B fire (Circle), X wrench (Square),
-Y quick select and back in menus (Triangle), the grips LB and RB (L1 and R1: RB crouches),
-the triggers LT and RT (L2 and R2: RT strafes), sticks as sticks, the left menu button
-Start (in third person as you let it go; held a second in play, back to first person),
-the left stick click Select (the map), the right stick click R3. In third person's menus A and
-the trigger still pick what you point at. Recentre with the headset's own (hold Meta).
+The controllers are a gamepad. To start, an Xbox controller's layout: A jump (Cross), B fire
+(Circle), X wrench (Square), Y quick select and talk (Triangle), the grips LB and RB (L1 and R1:
+RB crouches, LB looks around), the triggers LT and RT (L2 and R2: RT crouches too, LT looks),
+sticks as sticks, the left menu button Start (in third person as you let it go; held a second
+in play, back to first person), the left stick click Select (the map), the right stick click R3
+(the map too). In third person's menus A and the trigger still pick what you point at.
+Recentre with the headset's own (hold Meta).
+THIRD PERSON BUTTONS (the VR tab, under D-pad): choose the button for each action yourself.
+Tap an action, then a button; if another action had that button, the two swap, so no button
+ever does two things. "Like first person" puts them as in first person: the right trigger
+fires, the right grip swings the wrench, A jumps, the right stick click is quick select, the
+left trigger and B crouch, the left grip and Y look, X and the left stick click the map.
+"Xbox controller" goes back to the layout above. The menu button always pauses, and the menus
+keep the Xbox layout. The game's hints show the buttons you chose.
 D-PAD (the VR tab): Controller by your head, to start: hold a controller up beside your head,
 as a phone at your ear; it buzzes, and its stick is the D-pad (its click L3 or R3) while it
 stays there. Left thumb rest: the right stick, while your left thumb rests on its rest.

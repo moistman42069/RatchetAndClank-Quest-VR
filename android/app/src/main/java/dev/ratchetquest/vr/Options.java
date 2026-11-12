@@ -114,18 +114,84 @@ abstract class Options {
         "First person is through Ratchet's eyes. Third person keeps the game's camera, with your head looking around. VR Options in the game switches it at any time.",
         new String[] {"First person", "Third person"}, new String[] {"first", "third"}, "first");
     static final Choice THIRD_PERSON_CONTROLS = new Choice("third_person_controls", "Third person controls",
-        "Gamepad: in third person your controllers are an Xbox controller, as on the Big screen: A jump, B fire, X wrench, "
-            + "Y quick select, the grips LB and RB (RB crouches), the triggers LT and RT (RT strafes), the menu button "
-            + "pause, the left stick click the map, in the menus too. The headset's own recentre (hold its Meta button) "
-            + "recentres. VR: third person keeps first person's VR controls. First person always has its VR controls.",
+        "Gamepad: in third person your controllers are a gamepad, as in Play in 2D, each button doing what Third person "
+            + "buttons (below) gives it; to start an Xbox controller's layout: A jump, B fire, X wrench, Y quick select, "
+            + "the right grip and trigger crouch, the left grip and trigger look, the left stick click the map. The menu "
+            + "button pauses. In the menus the controllers keep the Xbox layout, A or the trigger choosing. The headset's "
+            + "own recentre (hold its Meta button) recentres. VR: third person keeps first person's VR controls. First "
+            + "person always has its VR controls.",
         new String[] {"Gamepad", "VR"}, new String[] {"gamepad", "vr"}, "gamepad");
     static final Choice DPAD = new Choice("dpad", "D-pad",
-        "Where your controllers are an Xbox controller (third person with Gamepad, the Big screen). Controller by your "
+        "Where your controllers are a gamepad (third person with Gamepad, Play in 2D). Controller by your "
             + "head: hold a controller up beside your head, as a phone at your ear; it buzzes, and its stick is the D-pad "
             + "while it stays there (its click is LS or RS). Left thumb rest: while your left thumb rests on its thumb "
             + "rest, by X and Y, the right stick is the D-pad. RAC-Board's board goes on and off with D-pad Up.",
         new String[] {"Controller by your head", "Left thumb rest", "Off"}, new String[] {"head", "thumb_rest", "off"},
         "head");
+
+    // Third person buttons (0.1.21: a tester, "the button layout completely changes when i choose third person view. The
+    // swinging with the hammer is then assigned to the X button on the left controller, which makes no sense because one
+    // uses the left controller/stick for movement"; the owner: "add options in the launcher to map the 3rd person gamepad
+    // controls to the quest controllers as you please. make it as proper as possible and dont have any control
+    // conflicts"). Where the controllers are a gamepad (third person with Gamepad, Play in 2D), out of the menus: which
+    // control presses each of the game's buttons. A control presses one button at most and a button has one control at
+    // most: picking a control another button has swaps the two (assignPadButton), so no control does two things and none
+    // is lost. The menu button is not among them: always Start (the pause; held, the view). In the menus the Xbox layout
+    // stays, A or the trigger choosing, and the game's hints show the controls of the layout in use (the mod's glyphs).
+    // The game's own uses (its code): R1 and R2 both crouch, L1 and L2 both look, Select and R3 both open the map.
+    static final String PAD_NONE = "none";
+    static final String[] PAD_CONTROLS = {"a", "b", "x", "y", "right_trigger", "left_trigger", "right_grip", "left_grip",
+        "right_stick", "left_stick", PAD_NONE};
+    static final String[] PAD_CONTROL_NAMES = {"A", "B", "X", "Y", "Right trigger", "Left trigger", "Right grip",
+        "Left grip", "Right stick click", "Left stick click", "Not used"};
+
+    private static Choice padButton(String key, String label, String fallback) {
+        return new Choice(key, label, "", PAD_CONTROL_NAMES, PAD_CONTROLS, fallback);
+    }
+
+    static final Choice PAD_CROSS = padButton("pad_cross", "Jump (Cross)", "a");
+    static final Choice PAD_CIRCLE = padButton("pad_circle", "Fire (Circle)", "b");
+    static final Choice PAD_SQUARE = padButton("pad_square", "Wrench (Square)", "x");
+    static final Choice PAD_TRIANGLE = padButton("pad_triangle", "Quick select, talk (Triangle)", "y");
+    static final Choice PAD_R1 = padButton("pad_r1", "Crouch (R1)", "right_grip");
+    static final Choice PAD_R2 = padButton("pad_r2", "Crouch, its second button (R2)", "right_trigger");
+    static final Choice PAD_L1 = padButton("pad_l1", "Look (L1)", "left_grip");
+    static final Choice PAD_L2 = padButton("pad_l2", "Look, its second button (L2)", "left_trigger");
+    static final Choice PAD_SELECT = padButton("pad_select", "Map (Select)", "left_stick");
+    static final Choice PAD_R3 = padButton("pad_r3", "Map, its second button (R3)", "right_stick");
+    static final Choice PAD_L3 = padButton("pad_l3", "L3 (nothing in the game; for mods)", PAD_NONE);
+    /** The game's buttons a control can be given, in the order the mod's settings and the launcher's rows take them. */
+    static final Choice[] PAD_BUTTONS = {PAD_CROSS, PAD_CIRCLE, PAD_SQUARE, PAD_TRIANGLE, PAD_R1, PAD_R2, PAD_L1, PAD_L2,
+        PAD_SELECT, PAD_R3, PAD_L3};
+
+    /** An Xbox controller's layout, OpenRAC's own pad defaults (0.1.19 and 0.1.20's only one): the default. */
+    static final String[] PAD_XBOX = {"a", "b", "x", "y", "right_grip", "right_trigger", "left_grip", "left_trigger",
+        "left_stick", "right_stick", PAD_NONE};
+    /** First person's VR controls as near as a gamepad has them: the right trigger fires, the right grip is the wrench. */
+    static final String[] PAD_LIKE_FIRST_PERSON = {"a", "right_trigger", "right_grip", "right_stick", "left_trigger", "b",
+        "left_grip", "y", "x", "left_stick", PAD_NONE};
+    static final String[] PAD_PRESET_NAMES = {"Xbox controller", "Like first person"};
+    static final String[][] PAD_PRESETS = {PAD_XBOX, PAD_LIKE_FIRST_PERSON};
+
+    static final String PAD_TITLE = "Third person buttons";
+    static final String PAD_HELP = "What each button does where your controllers are a gamepad: in third person with "
+        + "Third person controls on Gamepad, and in Play in 2D. Pick an action, then the button for it. If another "
+        + "action had that button, the two swap, so no button ever does two things and nothing is lost. Xbox "
+        + "controller is the layout to start: X the wrench, Y quick select. Like first person: the right trigger fires, "
+        + "the right grip is the wrench, the right stick click quick select, the left trigger crouches, B crouches too, X "
+        + "the map. The menu button always pauses (held, it switches the view). In the menus the Xbox layout stays, A "
+        + "or the trigger choosing. The game's hints show the buttons you chose. The game gives crouch, look and the map "
+        + "two buttons each; RAC-Board's board tells them apart (to start R1 spins and flips, R2 grinds, L1 grabs).";
+
+    /** A control's name as the rows show it. */
+    static String padControlName(String control) {
+        for (int i = 0; i < PAD_CONTROLS.length; i++) {
+            if (PAD_CONTROLS[i].equals(control)) {
+                return PAD_CONTROL_NAMES[i];
+            }
+        }
+        return control;
+    }
     static final Choice CUTSCENES = new Choice("cutscenes", "Cutscenes",
         "Through Ratchet's eyes: you see the scene from his head, your own head free, his hands as the scene moves them; " +
             "a scene without him is seen from its camera. In VR: from the game's camera, in 3D around you. On a screen: the game's " +
@@ -193,10 +259,17 @@ abstract class Options {
         "The game's hints and menus show, in place of the PlayStation's, the Xbox-style button that does it on your "
             + "controllers in the view you play: A, B, X, Y, RT and LT the triggers, RB and LB the grips, the sticks. In "
             + "colour with the Xbox button icons mod on (the Game tab; on to start). Off: the game's own icons, the Xbox "
-            + "mod's where it is on, which are right only for an Xbox controller's layout (third person with Gamepad).",
+            + "mod's where it is on, which are right only for an Xbox controller's layout (third person with Gamepad, "
+            + "Third person buttons on Xbox controller).",
         ON_OFF, TRUE_FALSE, "true");
     static final Choice PUZZLE_OVER_TOOL = new Choice("puzzle_over_tool", "The Trespasser's rings over the tool",
         "On: the puzzle hangs over the tool you plugged in. Off: it stays in front of your face.",
+        ON_OFF, TRUE_FALSE, "true");
+    static final Choice PUZZLE_GRAB = new Choice("puzzle_grab", "Grab the Trespasser's rings",
+        "On: squeeze a grip with your hand over a ring of the puzzle to hold it, and move your hand round the middle to "
+            + "turn it, one notch for each twelfth of a circle. Needs The Trespasser's rings over the tool. Always, on or "
+            + "off: each push of a stick turns the chosen ring one notch (held, more after a moment), up and down choose "
+            + "the ring, A and B turn it one notch each way, X picks the next ring, Y leaves.",
         ON_OFF, TRUE_FALSE, "true");
     static final Choice SHOP_ON_FOOT = new Choice("shop_on_foot", "Shop on foot",
         "On: the vendor's screens are on the machine and you can walk while you shop. Off: the vendor is a flat screen.",
@@ -206,13 +279,60 @@ abstract class Options {
         ON_OFF, TRUE_FALSE, "true");
     static final Choice HAPTICS = new Choice("haptics", "Vibration", "", ON_OFF, TRUE_FALSE, "true");
     static final Choice[] VR = {VIEW, THIRD_PERSON_CONTROLS, DPAD, CUTSCENES, TURN, SNAP, SMOOTH, WORLD, HUD, HAND_AIM, HAND_WEAPON, THROW_BY_HAND,
-        SWING_WRENCH, TWO_HANDED, SHOW_HANDS, GRAB_LEDGES, PUZZLE_OVER_TOOL, SHOP_ON_FOOT, MENU_IN_WORLD, ROOM_SCALE,
+        SWING_WRENCH, TWO_HANDED, SHOW_HANDS, GRAB_LEDGES, PUZZLE_OVER_TOOL, PUZZLE_GRAB, SHOP_ON_FOOT, MENU_IN_WORLD, ROOM_SCALE,
         SWIM_STROKES, SOLID_HANDS, WALL_FEEL, SPARKLES_IN_WORLD, GLYPHS, HAPTICS};
 
     /** The value chosen for `choice`: one it offers, else its default. Kept where each launcher keeps its choices. */
     abstract String get(Choice choice);
 
     abstract void set(Choice choice, String value);
+
+    /**
+     * The control each of the game's buttons has, in PAD_BUTTONS' order. Two buttons never share one: should the kept
+     * choices say so (written by hand, say), the first keeps it and the other has none.
+     */
+    String[] padLayout() {
+        String[] layout = new String[PAD_BUTTONS.length];
+        java.util.Set<String> taken = new java.util.HashSet<>();
+        for (int i = 0; i < PAD_BUTTONS.length; i++) {
+            String control = get(PAD_BUTTONS[i]);
+            layout[i] = PAD_NONE.equals(control) || taken.add(control) ? control : PAD_NONE;
+        }
+        return layout;
+    }
+
+    /**
+     * `button` to `control`. The button that had that control takes the one `button` had (or none), so no control
+     * presses two buttons and none is lost. Returns that button, or null when no other had it.
+     */
+    Choice assignPadButton(Choice button, String control) {
+        String[] layout = padLayout();
+        int index = java.util.Arrays.asList(PAD_BUTTONS).indexOf(button);
+        if (index < 0 || !java.util.Arrays.asList(PAD_CONTROLS).contains(control)) {
+            return null;
+        }
+        Choice moved = null;
+        for (int i = 0; i < PAD_BUTTONS.length; i++) {
+            if (i != index && !PAD_NONE.equals(control) && control.equals(layout[i])) {
+                moved = PAD_BUTTONS[i];
+                layout[i] = layout[index];
+            }
+        }
+        layout[index] = control;
+        applyPadLayout(layout);
+        return moved;
+    }
+
+    /** A whole layout, PAD_BUTTONS' order (PAD_XBOX, PAD_LIKE_FIRST_PERSON). */
+    void applyPadLayout(String[] layout) {
+        for (int i = 0; i < PAD_BUTTONS.length && i < layout.length; i++) {
+            set(PAD_BUTTONS[i], layout[i]);
+        }
+    }
+
+    boolean padLayoutIs(String[] layout) {
+        return java.util.Arrays.equals(padLayout(), layout);
+    }
 
     void applyPreset(String preset) {
         set(PRESET, preset);
@@ -259,6 +379,10 @@ abstract class Options {
         settings.put("view", bigScreen ? "screen" : get(VIEW));
         settings.put("third_person_controls", get(THIRD_PERSON_CONTROLS));
         settings.put("dpad", get(DPAD));
+        String[] layout = padLayout();
+        for (int i = 0; i < PAD_BUTTONS.length; i++) {
+            settings.put(PAD_BUTTONS[i].key, layout[i]);
+        }
         settings.put("cutscenes", get(CUTSCENES));
         settings.put("turn", get(TURN));
         settings.put("snap_degrees", Double.parseDouble(get(SNAP)));
@@ -274,6 +398,7 @@ abstract class Options {
         settings.put("show_hands", Boolean.parseBoolean(get(SHOW_HANDS)));
         settings.put("grab_ledges", Boolean.parseBoolean(get(GRAB_LEDGES)));
         settings.put("puzzle_over_tool", Boolean.parseBoolean(get(PUZZLE_OVER_TOOL)));
+        settings.put("puzzle_grab", Boolean.parseBoolean(get(PUZZLE_GRAB)));
         settings.put("shop_on_foot", Boolean.parseBoolean(get(SHOP_ON_FOOT)));
         settings.put("menu_in_world", Boolean.parseBoolean(get(MENU_IN_WORLD)));
         settings.put("room_scale", Boolean.parseBoolean(get(ROOM_SCALE)));

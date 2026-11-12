@@ -38,13 +38,13 @@ final class ModVr {
         }
         if ("multiplayer".equals(id)) {
             return "In VR: play with flat players and VR players alike, hosting or joining (the Multiplayer item in the "
-                + "title's menu, under Load Game). Everyone on Ratchet Quest VR 0.1.19 or 0.1.20, on a Quest or on PC, sees each "
-                + "other's games in Browse games. A game takes only players whose games match the host's: the same "
+                + "title's menu, under Load Game). Everyone on Ratchet Quest VR 0.1.19, 0.1.20 or 0.1.21, on a Quest or on PC, "
+                + "sees each other's games in Browse games. A game takes only players whose games match the host's: the same "
                 + "Multiplayer (0.12.2), and Difficulty, Item randomizer, Ammo at the most and RAC-Board on or off for "
-                + "everyone alike, so 0.1.18 cannot play with 0.1.19 or 0.1.20. Your wrench swings, punches and aimed guns, "
+                + "everyone alike, so 0.1.18 cannot play with 0.1.19 or later. Your wrench swings, punches and aimed guns, "
                 + "in either hand, count for everyone as a flat player's do. The weapon wheel's slow motion slows only "
                 + "you, in the air, while the others and the world run on; when every player in the party has the wheel "
-                + "up at once (all on 0.1.19 or 0.1.20), time slows for all. With a host on 0.1.19 or 0.1.20: each VR player's head and hands "
+                + "up at once (all on 0.1.19 or later), time slows for all. With a host on 0.1.19 or later: each VR player's head and hands "
                 + "are shown on their figure for the others (a gun in their left hand is not), and the Swingshot "
                 + "catches enemies when you join too, the host's game moving them as your hand does. With a host on "
                 + "another build, no VR bodies are shown and the Swingshot does not catch enemies when you join. A cheat "

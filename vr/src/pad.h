@@ -28,6 +28,14 @@
 // controller is held up by the side of the head, or the right stick while the left thumb rests on its
 // thumb rest; that stick is then nothing else, and its click is L3 or R3. First person keeps the table
 // above.
+//
+// Out of the menus that plain pad's buttons are the launcher's Third person buttons (0.1.21, a tester:
+// "the swinging with the hammer is then assigned to the X button on the left controller"; the owner:
+// "map the 3rd person gamepad controls to the quest controllers as you please ... dont have any control
+// conflicts"): PadLayout, which of the game's buttons each control presses, kXboxLayout to start. A
+// control presses one button at most and a button is on one control at most (the launcher swaps, and
+// pad_layout_from refuses a second); the menu button is Start whatever the layout, and in the menus
+// the Xbox layout stays (the pointer's trigger and A's choosing are made for it).
 
 #pragma once
 
@@ -59,6 +67,79 @@ enum PadBit : std::uint16_t {
     kPadCross = 0x4000,
     kPadSquare = 0x8000,
 };
+
+// The controls a plain pad's buttons can be put on (the launcher's Third person buttons, Options.PAD_CONTROLS' order).
+enum PadControl : int {
+    kControlA,
+    kControlB,
+    kControlX,
+    kControlY,
+    kControlRightTrigger,
+    kControlLeftTrigger,
+    kControlRightGrip,
+    kControlLeftGrip,
+    kControlRightClick,
+    kControlLeftClick,
+    kPadControls,
+};
+
+// The game's button each control presses where the controllers are a plain pad, out of the menus (0: none).
+using PadLayout = std::array<std::uint16_t, kPadControls>;
+
+// An Xbox controller's layout (OpenRAC's own pad defaults): A Cross, B Circle, X Square, Y Triangle, the triggers L2 and
+// R2, the grips (its bumpers) L1 and R1, the right stick's click R3, the left's Select. 0.1.19 and 0.1.20's only one.
+inline constexpr PadLayout kXboxLayout = {kPadCross,  kPadCircle, kPadSquare, kPadTriangle, kPadR2,
+                                          kPadL2,     kPadR1,     kPadL1,     kPadR3,       kPadSelect};
+
+// The buttons the launcher can put on a control, in its settings' order (pad_cross ... pad_l3), and their keys.
+inline constexpr std::array<std::uint16_t, 11> kLayoutButtons = {kPadCross, kPadCircle, kPadSquare, kPadTriangle, kPadR1, kPadR2,
+                                                                  kPadL1,    kPadL2,     kPadSelect, kPadR3,       kPadL3};
+inline constexpr std::array<const char*, 11> kLayoutKeys = {"pad_cross", "pad_circle", "pad_square", "pad_triangle",
+                                                             "pad_r1",    "pad_r2",     "pad_l1",     "pad_l2",
+                                                             "pad_select", "pad_r3",    "pad_l3"};
+inline constexpr std::array<const char*, kPadControls> kControlKeys = {
+    "a", "b", "x", "y", "right_trigger", "left_trigger", "right_grip", "left_grip", "right_stick", "left_stick"};
+
+// A setting's control (kControlKeys), or -1 for none or a value not known.
+inline int pad_control_of(const char* value) {
+    if (value == nullptr) {
+        return -1;
+    }
+    for (int i = 0; i < kPadControls; ++i) {
+        const char* a = kControlKeys[static_cast<std::size_t>(i)];
+        const char* b = value;
+        while (*a != '\0' && *a == *b) {
+            ++a;
+            ++b;
+        }
+        if (*a == '\0' && *b == '\0') {
+            return i;
+        }
+    }
+    return -1;
+}
+
+// The layout from the launcher's settings, each button's control in kLayoutButtons' order (-1: none). A control two
+// buttons name goes to the first, as the launcher keeps it (Options.padLayout); `refused` counts those left without.
+inline PadLayout pad_layout_from(const std::array<int, 11>& controls, int* refused = nullptr) {
+    PadLayout layout{};
+    int left = 0;
+    for (std::size_t i = 0; i < kLayoutButtons.size(); ++i) {
+        const int control = controls[i];
+        if (control < 0 || control >= kPadControls) {
+            continue;
+        }
+        if (layout[static_cast<std::size_t>(control)] != 0) {
+            ++left;
+            continue;
+        }
+        layout[static_cast<std::size_t>(control)] = kLayoutButtons[i];
+    }
+    if (refused != nullptr) {
+        *refused = left;
+    }
+    return layout;
+}
 
 // The controllers this tick.
 struct Controls {
@@ -128,7 +209,12 @@ struct PadContext {
     // does not jump on coming back); the trigger and the raised open hand salute (Circle).
     bool disguised = false;
     bool salute = false;
-    bool puzzle = false;             // at the Trespasser's rings: the sticks turn them
+    bool puzzle = false;             // at the Trespasser's rings: the mod's puzzle input (puzzle_tick) turns them
+    // The Trespasser's rings (0.1.21): what puzzle_tick asks of the game this tick, through its own pad so its sounds play.
+    // puzzle_turn holds Right (+1, a step clockwise) or Left (-1) until the lock starts the turn; puzzle_ring presses Up
+    // (-1, the ring before) or Down (+1, the next) for a tick, a tick between presses (the game reads them pressed).
+    int puzzle_turn = 0;
+    int puzzle_ring = 0;
     bool left_weapon = false;        // Akimbo: the left trigger fires what the left hand holds, not R1
     bool left_ring = false;          // Akimbo: the left stick's click holds the ring open
     bool lead = false;               // Akimbo: the left hand's Walloper or Swingshot is the hand's item: the
@@ -252,6 +338,9 @@ inline bool hand_by_head(const Pose& head, Vec3 hand, bool left, bool was_in) {
 
 class PadMapper {
 public:
+    // The launcher's Third person buttons: where the controllers are a plain pad, out of the menus.
+    PadLayout layout = kXboxLayout;
+
     VirtualPad map(const Controls& given, const PadContext& context) {
         VirtualPad out;
         Controls c = given;
@@ -265,11 +354,14 @@ public:
         const bool right_fire = m_right_trigger.update(c.right_trigger);
         const bool wrench = m_right_grip.update(c.right_grip);
         const bool left_fire = m_left_trigger.update(c.left_trigger);
-        bool fire = context.lead ? left_fire : right_fire;
+        // Akimbo's lead takes the left trigger as the hand's; a plain pad (the big screen, Gamepad) has each trigger its own,
+        // or the left trigger would press both the right's button and its own (0.1.21: no control two buttons).
+        bool fire = context.lead && !context.screen && !context.gamepad ? left_fire : right_fire;
         const bool left_squeeze = m_left_grip.update(c.left_grip);
 
         if (context.screen) {
-            plain_pad(out, c, fire, left_fire, wrench, left_squeeze, context, left_x, left_y, right_x, right_y);
+            plain_pad(out, c, fire, left_fire, wrench, left_squeeze, context, left_x, left_y, right_x, right_y,
+                      context.in_menu ? kXboxLayout : layout);
             if (context.in_menu) {
                 directions(out, left_x, left_y, right_x, right_y);
             }
@@ -375,13 +467,19 @@ public:
         m_shop_trigger = fire && (m_shop_trigger || context.shopping);
         fire = fire && !m_shop_trigger;
 
-        // The Trespasser's rings (Rerac-vr's): the sticks turn them; Y, the click or a fresh pull of the
-        // trigger withdraw the tool (Triangle). What withdrew it does nothing else until let go.
+        // The Trespasser's rings (Rerac-vr's): Y, the click or a fresh pull of the trigger withdraw the tool (Triangle).
+        // What withdrew it does nothing else until let go. The turns and the rings are the mod's (0.1.21, a tester: "my
+        // joystick try to fight me"): one step a push of the stick, A, B and X, the grip's grab (quest_vr.cpp's
+        // puzzle_tick), each asked of the game as one press of Right, Left, Up or Down (puzzle_turn, puzzle_ring). To
+        // 0.1.20 the stick's way was the D-pad held, about twelve steps a second, and an arc changed the ring.
         const bool utility = c.y || c.right_click || fire;
         const bool fresh = utility && !m_utility_down;
         m_utility_down = utility;
         if (context.puzzle) {
-            directions(out, left_x, left_y, right_x, right_y);
+            set(out, context.puzzle_turn > 0, kPadRight);
+            set(out, context.puzzle_turn < 0, kPadLeft);
+            set(out, context.puzzle_ring < 0, kPadUp);
+            set(out, context.puzzle_ring > 0, kPadDown);
             set(out, fresh, kPadTriangle);
             out.withdraw = fresh;
             m_utility_spent = m_utility_spent || fresh;
@@ -400,7 +498,7 @@ public:
             if (context.third_person_walk && !context.left_dpad) {
                 turn_stick(left_x, left_y, context.head_turn, 0.0f);
             }
-            plain_pad(out, c, fire, left_fire, wrench, left_squeeze, context, left_x, left_y, right_x, right_y);
+            plain_pad(out, c, fire, left_fire, wrench, left_squeeze, context, left_x, left_y, right_x, right_y, layout);
             out.held = static_cast<std::uint16_t>(out.held | context.jet_toggle);
             return out;
         }
@@ -538,21 +636,22 @@ private:
     // B Circle, X Square, Y Triangle, the grips (its bumpers) L1 and R1, the triggers L2 and R2, the menu button Start,
     // the left stick's click Select, the right's R3, the sticks the pad's. To 0.1.18 the big screen had the triggers on
     // L1 and R1, the grips on L2 and R2. A stick that is the D-pad now (context.left_dpad, right_dpad) gives the D-pad
-    // and none of its own, and its click is L3 (the left) or R3.
+    // and none of its own, and its click is L3 (the left) or R3. Each control presses the button `buttons` gives it (the
+    // Third person buttons out of the menus, kXboxLayout in them); the menu button is Start whatever they say.
     void plain_pad(VirtualPad& out, const Controls& c, bool fire, bool left_fire, bool wrench, bool left_squeeze,
-                   const PadContext& context, float left_x, float left_y, float right_x, float right_y) {
-        set(out, c.a, kPadCross);
-        set(out, c.b, kPadCircle);
-        set(out, c.x, kPadSquare);
-        set(out, c.y, kPadTriangle);
-        set(out, wrench, kPadR1);
-        set(out, left_squeeze, kPadL1);
-        set(out, fire, kPadR2);
-        set(out, left_fire, kPadL2);
+                   const PadContext& context, float left_x, float left_y, float right_x, float right_y,
+                   const PadLayout& buttons) {
+        const bool held[kPadControls] = {c.a,   c.b,       c.x,          c.y,
+                                         fire,  left_fire, wrench,       left_squeeze,
+                                         c.right_click && !context.right_dpad, c.left_click && !context.left_dpad};
+        for (int i = 0; i < kPadControls; ++i) {
+            if (held[i]) {
+                out.held = static_cast<std::uint16_t>(out.held | buttons[static_cast<std::size_t>(i)]);
+            }
+        }
         set(out, c.menu, kPadStart);
-        set(out, c.left_click && !context.left_dpad, kPadSelect);
         set(out, c.left_click && context.left_dpad, kPadL3);
-        set(out, c.right_click, kPadR3);
+        set(out, c.right_click && context.right_dpad, kPadR3);
         dpad_stick(out, m_dpad_on[0], context.left_dpad, left_x, left_y);
         dpad_stick(out, m_dpad_on[1], context.right_dpad, right_x, right_y);
         out.left_x = left_x;
