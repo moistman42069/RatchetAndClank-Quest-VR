@@ -1068,11 +1068,15 @@ void test_jet_board() {
     // at most kBoardSteerMost (0.1.19): here the head is 147 degrees right of the board, so a full carve right.
     near_(out.left_x, -std::sin(-kBoardSteerMost), "riding in first person, the head far right: forward a full carve that way (x)");
     near_(out.left_y, std::cos(-kBoardSteerMost), "riding in first person, the head far right: forward a full carve that way (y)");
-    context.head_yaw = kPi / 2 + 0.6f;  // 34 degrees left of the board: within the most, turned as far as the head
+    context.head_yaw = kPi / 2 + 0.3f;  // 17 degrees left of the board: within the most, turned kBoardSteerGain times as far
     PadMapper near_left;
     const VirtualPad left_of = near_left.map(c, context);
-    near_(left_of.left_x, -std::sin(0.6f), "riding in first person, the head near: forward is where it looks (x)");
-    near_(left_of.left_y, std::cos(0.6f), "riding in first person, the head near: forward is where it looks (y)");
+    near_(left_of.left_x, -std::sin(kBoardSteerGain * 0.3f), "riding in first person, the head near: forward carves toward it (x)");
+    near_(left_of.left_y, std::cos(kBoardSteerGain * 0.3f), "riding in first person, the head near: forward carves toward it (y)");
+    context.head_yaw = kPi / 2 + 0.9f;  // 52 degrees left: twice that is past the most, a full carve left
+    PadMapper far_left;
+    const VirtualPad further = far_left.map(c, context);
+    near_(further.left_x, -std::sin(kBoardSteerMost), "riding in first person, the head 52 degrees left: a full carve left (x)");
     context.head_yaw = kPi / 2 - kPi + 0.1f;  // across the turn's wrap, 170 degrees right: the short way, right
     PadMapper wrapped;
     const VirtualPad round = wrapped.map(c, context);
@@ -1186,6 +1190,55 @@ void test_jet_board() {
     check(angle_between(board_view_turn(yaw_quat(0.5f) * pitch(0.1f)), yaw_quat(0.5f)) < 1e-3f, "a spin's yaw, all of it");
     const float mid = angle_between(board_view_turn(pitch(0.5f)), Quat{});
     check(mid > 0.1f && mid < 0.5f, "between: some of it");
+
+    // The ride's own sway about the up (0.1.25, BoardSway): a pelvis rocking a tenth of a radian either way a tick, no
+    // trick, turns the view by almost nothing; a spin past kBoardSwayTo all of it, coming up within a few frames; a
+    // trick's end all of it; then back to none, a little at a time.
+    BoardSway sway;
+    float most_rock = 0;
+    for (int i = 0; i < 120; ++i) {
+        const Quat shown = sway.update(yaw_quat((i % 2 == 0 ? 0.1f : -0.1f) + 0.05f) * pitch(0.08f), false, dt);
+        most_rock = std::max(most_rock, angle_between(shown, Quat{}));
+    }
+    check(most_rock < 0.01f, "the ride's sway about the up: the view all but still");
+    // A bump's tilt (half a radian, shown in part as before) lets none of the rocking yaw through.
+    BoardSway bump;
+    float most_bump_yaw = 0;
+    for (int i = 0; i < 60; ++i) {
+        const Quat shown = bump.update(yaw_quat(i % 2 == 0 ? 0.12f : -0.12f) * pitch(0.5f), false, dt);
+        most_bump_yaw = std::max(most_bump_yaw, std::fabs(yaw_part(shown)));
+    }
+    check(most_bump_yaw < 0.01f, "a bump: its yaw's rocking is not seen");
+    BoardSway spin;
+    float last = 0;
+    bool no_jump = true;
+    for (int i = 0; i < 20; ++i) {
+        const float shown = angle_between(spin.update(yaw_quat(0.06f * static_cast<float>(i)), false, dt), Quat{});
+        no_jump = no_jump && shown - last < 0.2f;
+        last = shown;
+    }
+    near_(last, 0.06f * 19.0f, "a spin past kBoardSwayTo: the view goes all the way with it", 0.05f);
+    check(no_jump, "and it comes in without a jump");
+    const Quat flip_shown = spin.update(pitch(2.0f), false, dt);
+    for (int i = 0; i < 10; ++i) {
+        spin.update(pitch(2.0f), false, dt);
+    }
+    check(angle_between(spin.update(pitch(2.0f), false, dt), pitch(2.0f)) < 1e-3f && angle_between(flip_shown, Quat{}) > 1.0f,
+          "a flip: all of it, as board_view_turn shows it");
+    // A trick's end holds it all while the rig takes the yaw (BoardFollow's hand-off), even under kBoardSwayFrom.
+    BoardSway handing;
+    handing.update(yaw_quat(1.0f), false, dt);
+    for (int i = 0; i < 10; ++i) {
+        handing.update(yaw_quat(0.3f), true, dt);
+    }
+    check(angle_between(handing.update(yaw_quat(0.1f), true, dt), yaw_quat(0.1f)) < 1e-3f, "a trick's end: all of it shown");
+    // Over: back to none, eased (no frame drops it at once).
+    const float before_out = angle_between(handing.update(yaw_quat(0.1f), false, dt), Quat{});
+    check(before_out > 0.08f, "as it ends, not dropped at once");
+    for (int i = 0; i < 120; ++i) {
+        handing.update(yaw_quat(0.1f), false, dt);
+    }
+    check(angle_between(handing.update(yaw_quat(0.1f), false, dt), Quat{}) < 0.005f, "then none of the sway again");
 
     // The ease: there in a few frames, back to none as the ride ends.
     BoardView view;

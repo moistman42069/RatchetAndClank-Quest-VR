@@ -38,7 +38,7 @@ final class ModVr {
         }
         if ("multiplayer".equals(id)) {
             return "In VR: play with flat players and VR players alike, hosting or joining (the Multiplayer item in the "
-                + "title's menu, under Load Game). Everyone on Ratchet Quest VR 0.1.19 to 0.1.24, on a Quest or on PC, "
+                + "title's menu, under Load Game). Everyone on Ratchet Quest VR 0.1.19 to 0.1.25, on a Quest or on PC, "
                 + "sees each other's games in Browse games. A game takes only players whose games match the host's: the same "
                 + "Multiplayer (0.12.2), and Difficulty, Item randomizer, Ammo at the most and RAC-Board on or off for "
                 + "everyone alike, so 0.1.18 cannot play with 0.1.19 or later. Your wrench swings, punches and aimed guns, "

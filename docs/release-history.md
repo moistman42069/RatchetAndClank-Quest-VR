@@ -1,6 +1,89 @@
-# Ratchet & Clank Quest VR: release notes of 0.1.3 to 0.1.14
+# Ratchet & Clank Quest VR: release notes of 0.1.3 to 0.1.17
 
-As each release gave them. Since 0.1.24 the release page (`docs/release-notes.md`) carries 0.1.15 onwards (0.1.23 carried 0.1.14 onwards, 0.1.20 to 0.1.22 0.1.13 onwards, 0.1.19's 0.1.12 onwards): GitHub limits how long a release's notes can be. 0.1.14's came out as part of 0.1.15's page, under the heading below.
+As each release gave them. Since 0.1.25 the release page (`docs/release-notes.md`) carries 0.1.18 onwards (0.1.24 carried 0.1.15 onwards, 0.1.23 0.1.14 onwards, 0.1.20 to 0.1.22 0.1.13 onwards, 0.1.19's 0.1.12 onwards): GitHub limits how long a release's notes can be. 0.1.14's came out as part of 0.1.15's page, under its heading after 0.1.15's.
+
+## New in 0.1.17
+
+From a PC VR tester's notes (the DPVR E4, through SteamVR, the US disc) and the owner's own play on a Quest.
+
+**Slow motion at the weapon wheel** (new, **on** to start; a tester's ask: "Slow mo while changing weapons would help alot"). Hold the wheel open and time slows to a third, so you can change weapons in the middle of a fight or a chain of moves.
+
+- **The sounds:** a sharp whoosh as it slows, the sound dropping in pitch, a click at each weapon you pass, a quick chirp as the new weapon comes out, and normal speed snapping back with a thump. Your head and hands keep their full rate: only the game slows.
+- **A quick press to talk to someone slows nothing.**
+- **To change it:** VR Options, VR Controls, More controls, **Wheel slow motion**: **With sounds**, **No sounds** or **Off**.
+
+**Point at the weapon you want** (new, **on** to start; the same tester: "pointing at the weapon in the wheel instead of moving your whole arm toward it"). Open the wheel and point your hand at the weapon, as you point at a menu: a beam and a dot show where, and the weapon lights up. Let go and it comes out. Both hands, in first person, on foot; in a seat the reach still picks. **Wheel pick** (More controls): **Point**, or **Reach** for the old way.
+
+**Smoother frames (AppSW)** (new, **on** to start, on Quest; the owner's ask). The game draws every other frame, and the Quest's own Application SpaceWarp makes the ones in between from how things move, as some other Quest games and mods do. That gives the headset twice the time for each picture, so the view should stay smooth at 90 or 120 Hz where it stuttered. With each picture the port now also draws a small motion picture of the level, Ratchet, the enemies and your hands, which the headset moves the last picture along.
+
+- **What to look for:** fast, thin things can smear a little at their edges, most of all when you turn with the stick. If you see that and would rather not: the launcher's **Graphics** tab, **Smoother frames (AppSW)**, Off.
+- **Where it is off by itself:** menus, the title, the vendor, recentres and big jumps of the view, where there is nothing to fill in from.
+- **On PC** your headset's own smoothing (SteamVR's motion smoothing, Meta's ASW) does this, and the option does nothing there.
+- **Tried only in a simulated headset on PC,** where the motion pictures came out as they should. Please tell us how it looks and feels on your Quest.
+
+**From a seated player's report** (a tester: "Diving isnt working for me. Can't get below the water no matter what I try / Seated you can't do the wrench it jus disconnects - so have to stand then? / Hover boarding. The board was not aligned and kept going sideways couldnt find a good position").
+
+- **Seated no longer lifts your view and hands.** Up to 0.1.16, **Play position: Seated** (VR Options) put your view and your hands 45 cm above Ratchet's eyes, though a recentre already puts your eyes at his whether you sit or stand. Seated, your hands were out of the water at the surface, so strokes and the push-up dive did nothing, and 45 cm above a bolt crank or an enemy. Now Seated lifts nothing. Choosing it recentres, and leaning forward in your chair no longer crouches Ratchet (the left trigger does). For a higher or lower view: **VR Body**, **View height**.
+- **Diving:** at the water's surface, push both hands up quickly, however you hold the controllers (until now only with the palms turned flat to the water), or look well down and stroke. The left trigger dives too, now in third person as well.
+- **The wrench stays in your hand through a swing.** Once your right grip has closed on it, it holds until you open the grip well past halfway. Before, easing the grip a little during a fast swing let go of it, and at speed threw it. Opening your hand in a fast swing still throws it.
+- **The hoverboard looks where it goes.** The view followed Ratchet's chest, side-on on the board, about 45 degrees off the way it goes and swaying with his moves. Now it looks ahead and holds steady. **Hoverboard view** (VR Controls, More controls, **Moves**): **Ahead**, or **Side-on** for the old way.
+
+**World scale in the game** (the owner's ask): **VR Body**, **World scale**, 70 to 150 percent, as in the launcher. A change there stays until you change the launcher's.
+
+**Fixed**
+
+- **PC VR: the HUD's text and numbers, and the Trespasser's rings.** On SteamVR they did not show at all, which made the Trespasser impossible to do. The game drew them with a clear value (alpha 0) that SteamVR throws away; the panel now holds a proper one. On Quest the same text was pale, and it is solid now.
+- **The bolt numbers at a vendor or an equipment box,** on Quest and PC: no more lighter boxes behind the digits.
+- **Water from up close,** on Quest and PC: parts of it were cut away when you stood right by it, because the game chose its tiles by its own camera, not your head. It is whole now.
+- **PC VR: movies.** They ran at a flat 60 pictures a second whatever your headset's rate, which could look laggy (a tester: "Intro cutscene was lagy"). They now keep to the headset's rate, with the sound still setting the movie's time.
+- **The ammo count in the wheel:** on its later pages, the count under a weapon's name was missing or was another weapon's. It is now that weapon's own.
+- **The title screen:** Ratchet, his ship and the crate vanished as soon as the menu came up, and flashed back when you picked something. They now stay in the scene behind the menu.
+
+**Also new**
+
+- **Feet on the floor** (**VR Body**, **off** to start; a tester: "default view for playing had my real legs bellow ground"). You stand at Ratchet's height, so your real feet are below his ground. On, the view lifts so that his ground is your floor, measured each time you recentre. Your hands then reach from your own height, so some things are further from them. Off is as before.
+
+- **The game's Help Desk is on for a new game.** It is the game's tips, in voice and text, like the one that explains the Trespasser when you find it (a tester: "the dialogue about it didn't play"). Up to 0.1.16 this port turned it off on every new game, Rerac-vr's choice, so those tips never played. A save you already have keeps what it had: to turn them on or off there, in a level press **Y**, then **Options**, **HelpDesk**, **Voice** and **Text**.
+
+- **Switch the view quickly** (a tester: "without a quick toggle it is annoying"). In play, hold the left menu button for a second to switch between first and third person. A short press still recentres, as before. **VR Options**, **View** does the same.
+
+- **Dive with the left trigger** (the same tester: "how do you dive, go down in the water?"). At the water's surface, in first or third person, pull the left trigger and Ratchet dives; until now only pushing the water up with both hands, or a swing of the wrench, did. Under the water he goes where you look: look down and push the stick, or stroke, to go deeper, and look up to come back up. A hard downward slam of the wrench hand at the surface no longer counts as a Hyper Strike there, which could dive him when you did not mean to.
+
+- **Good to know:** bolt cranks and the hoverboard work in first person. At a bolt crank hold the wrench's head on the bolt (right grip), then walk around it or push the left stick forward. On the hoverboard the left stick steers and the left trigger boosts.
+
+**Still looking:** a tester saw a black box stay in front of them after Clank's video on Veldin. We could not make it happen, in a simulated headset or under SteamVR's simulated headset, on the PAL disc. If you see it, please send your log and say what you did just before.
+
+**Tested for 0.1.17 on PC only** (the PAL disc and a simulated headset; none of it has run on a Quest, a real PC headset or the US disc):
+- **Smoother frames:** the simulated headset asks for the motion pictures as a Quest does, and they came out as they should: standing still, nearly nothing moves; turning the head, the level moves across and the hands stay with the head; a walk spreads out from the middle; one hand raised moves only it; looking up moves the level down; a jump of the view gives none. Every run below drew them, and the pictures we looked at were otherwise as before. Whether the Quest's runtime takes them, and how it looks there, is untried.
+- **Seated:** with Play position on Seated, as standing: a bolt crank turned to 98% and the game finished it; at the water's surface both hands pushed up dived him, and so did a stroke looking down; an eased grip in a fast swing kept the wrench, and opening it threw it; the hoverboard's view was the same as standing. Choosing Seated recentred, and leaning did not crouch him (standing, Physical crouch still did).
+- **Diving:** both hands pushed up edge-on dived him, and a stroke looking down; strokes along the surface and hands held edge-on did not. Palms flat, the left trigger, and the left trigger in third person all dived.
+- **The wrench:** the grip eased to 45% in a fast swing kept it; opened, it was thrown at about 4 m/s. Throwing, calling and catching in the other wrench runs went as before.
+- **Hoverboard view:** Ahead, the view held the board's own heading along the course; Side-on, it was about 45 degrees off and swaying, as on 0.1.16.
+- **World scale:** VR Body set 105, then 110 percent, and the view took each at once; 110 was there at the next start, and a launcher change since then put the launcher's back.
+- **The rest of 0.1.17:** slow motion and pointing at the wheel, with either hand and in third person; Feet on the floor; the water whole up close; Clank's video on Veldin with no box after it; the title's scene behind its menus; the Trespasser's help text solid on the HUD; the Help Desk on for a new game; the quick view switch; Moves' new row and More controls' wheel rows reached by scrolling.
+- **The regression:** the 81 runs (of 271) that this release reaches: aiming, the wrench, cranks, swimming and diving, the hoverboard, seated play, the menus, scenes, the title, the vendor and the shop, and saving. All ended normally with the mod loaded, and their logs matched earlier runs but for the changes above and small differences of timing (in one, a fight on Novalis went another way). The other runs (ledges, the Swingshot, wall runs, grind rails, ships and turrets among them) were not run again for this release.
+- **Not shown:** anything on a headset. How Smoother frames looks, the feel of seated play, diving, the wrench and the hoverboard, and the US disc are for you to tell us.
+
+Everything from 0.1.16, 0.1.15 and 0.1.14, which came out just before this, is below, so you miss nothing.
+
+## New in 0.1.16
+
+**Long menus now tell you there is more.** A page in the pause menu shows eight rows at a time, and until now nothing on it said there were others. The box under the list (with Toggle and Exit) now has a line that says where the rest are: **More below**, **More up/down** or **More above**. A page that shows all its rows, like **Moves**, has no such line. It is on every long page, **Video Options** too, on Quest and on PC. To get to the rest: hold your hand on the bottom row and the list moves on, on the top row and it moves back. No row moved, and no option changed.
+
+**Tested for 0.1.16 on PC only** (the PAL disc and a simulated headset, not yet on a Quest, a real PC headset or the US disc): pictures of long pages at their top, middle and bottom, of **Moves**, and of **Video Options**; and the whole way to **Moves** by the hand.
+
+Everything from 0.1.15 and 0.1.14, which came out just before this, is below, so you miss nothing.
+
+## New in 0.1.15
+
+**FIXED THAT DARN THUMB!** Sorry about that one. 0.1.14 turned your thumb the wrong way, back toward your wrist, and it got out because we did not test it thoroughly enough before the release. Our apologies for the hiccup. Our old test pictures looked along the arm, from too far away to show it, and we did not catch it until the owner's video.
+
+- **It now moves like a thumb**, in both hands, on Quest and on PC, with **Fingers** on Tracked (VR Hands). Lifted off the controller, it rests open beside your hand. On a button, the stick or the thumb rest, it comes in along your fingers. Close your hand and a lifted thumb is a thumbs-up, and a thumb on the controller folds over your fingers.
+- **A hand on a weapon** keeps the game's own hold, and **Fingers** on Static is as it was.
+- **Can't find the new options?** A player could not, so the launcher's **Controls** tab now starts with a **Menus** section: how the menus work and where every option is. The options themselves have not moved. They are in the game, not the launcher: in a level, press **Y**, then **Options**, **VR Options**, **VR Controls**, **More controls**, **Moves**. A page shows eight rows at a time: hold your hand on the bottom row and the list moves on. VR Controls and More controls are both below the first eight rows.
+
+**Tested for 0.1.15 on PC only** (the PAL disc and a simulated headset, not yet on a Quest, a real PC headset or the US disc): pictures of each hand from its palm side, its back and above, and of both hands raised before the eyes, looked at for each state above; and the whole way to **Moves** by the hand, each page moved on and back as the Menus section says.
+
 
 ## Also new: all of 0.1.14, which came out just before 0.1.15, in case you missed it
 

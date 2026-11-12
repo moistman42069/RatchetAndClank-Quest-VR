@@ -193,6 +193,19 @@ it worked (the log is in Download/RatchetQuestVR). PC-proven features are in STA
     `[vr-perf]` lines, and no drop to 72 unless 90 is not held either (`[openxr] 90 Hz not held: down to 72 Hz`). Say
     how smooth 90 is next to 120. **On** (the start): no such line, the rate stays.
   - **The PDA's vendor** opened from the hand three times in a row (more reports of 0.1.19's crash): no crash.
+- **RAC-Board, the planet's name, the settings (0.1.25).** PC with a simulated headset, on the PAL disc.
+  - **RAC-Board's view:** ride in first person on a long open stretch (Novalis's start, Aridia's sands), the head
+    still: the view should not rock or shake from frame to frame (0.1.24 turned it a little every frame with his
+    hips). Spins and flips still turn the view with him, smoothly in and out, and level again as he lands. Over
+    bumps the horizon may tilt a little, as before, but not shake.
+  - **RAC-Board's steering:** stick ahead, look 60 degrees to one side: the board comes round in about a second and
+    holds your gaze without swinging past it and back; look behind: it turns the short way. Small head movements
+    should not make it weave. Say whether it is now too quick or too slow.
+  - **The planet's name:** fly the ship to two or three planets (Aridia among them): the name shows as you arrive and
+    goes, with no solid blue bar after it. The copyright lines after the intro still show as before.
+  - **The settings:** with the release notes' settings (Eye resolution 90% or 80%, Foveated rendering High, CPU and
+    GPU boost On), the `[vr-perf]` lines on Novalis, Aridia and Kerwan should read nearer 60 frames a second than
+    0.1.24's 36 to 45 at 100% (OVR Metrics too). Send a log of each setting you try.
 - **Testers' notes on 0.1.23 and the owner's hook videos (0.1.24).** PC with a simulated headset, on the PAL disc.
   - **Wrench aim help (Moves, Wrench aim):** on **Strong** (the start), throw the wrench at an enemy or crate overhand,
     then from the side and across your body while looking at it: it goes to it and steers on to it as it flies

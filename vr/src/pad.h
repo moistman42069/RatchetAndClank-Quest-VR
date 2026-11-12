@@ -284,10 +284,14 @@ inline void turn_stick(float& x, float& y, float head_yaw, float camera_yaw) {
 // Riding RAC-Board in first person: how far the stick is turned, from the board's heading to the head's, at most
 // kBoardSteerMost either way (0.1.19, racboardhead.sim: with the gaze 130 degrees off the heading, forward turned that far
 // was a stick pulled back, and the board went round the long way, past behind him, until the game's own turn about took
-// it). Past that the board carves at the most the short way round to the gaze, and within it the stick is as before.
+// it). Past that the board carves at the most the short way round to the gaze. Within it the stick is turned
+// kBoardSteerGain times as far as the head is from the board (0.1.25, the owner on 0.1.24: "it could be a lot more
+// responsive"): turned only as far, the push to the side shrank as the board came round, and the last of the way went
+// slowly (racboardhead.sim, about a third of a radian a second over the last half radian).
 inline constexpr float kBoardSteerMost = 1.4f;  // radians: 80 degrees
+inline constexpr float kBoardSteerGain = 2.0f;
 inline float board_stick_turn(float head_yaw, float board_yaw) {
-    return std::clamp(wrap_angle(head_yaw - board_yaw), -kBoardSteerMost, kBoardSteerMost);
+    return std::clamp(kBoardSteerGain * wrap_angle(head_yaw - board_yaw), -kBoardSteerMost, kBoardSteerMost);
 }
 
 // One side of an analog control read as a button, with a gap so that it does not chatter.

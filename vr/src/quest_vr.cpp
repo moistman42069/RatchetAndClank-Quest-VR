@@ -400,8 +400,13 @@ struct JetBoard {
     bool toggled = false;
     BoardFollow follow;
     Quat body{};              // his body's turn from his stance (BoardFollow's), before board_view_turn
+    BoardSway sway;           // how much of it the view shows (board.h)
     BoardView view;
-    Vec3 pivot{};             // his middle (the pelvis) in the frame: the view's turn is about it
+    // His middle (the pelvis), the view's turn about it, from the eyes' anchor at his last tick: added to the anchor the
+    // eyes are placed from, which goes on between his ticks, so the middle goes on with them (0.1.25: it was his middle
+    // as last drawn, a tick's step at a time under eyes that move every frame, and a turned view put the eyes a few
+    // centimetres back and forth from one frame to the next).
+    Vec3 pivot_from_anchor{};
 };
 JetBoard s_jet;
 
@@ -14218,7 +14223,8 @@ Pose in_frame(const Rig& rig, const Pose& pose, Vec3 anchor) {
     }
     // RAC-Board's spins and flips (follow_jet_board): about his middle, as his body turns.
     if (s_jet.view.on) {
-        out.position = s_jet.pivot + rotate(s_jet.view.turn, out.position - s_jet.pivot);
+        const Vec3 pivot = anchor + s_jet.pivot_from_anchor;
+        out.position = pivot + rotate(s_jet.view.turn, out.position - pivot);
         out.orientation = s_jet.view.turn * out.orientation;
     }
     return out;
@@ -15097,8 +15103,8 @@ bool jet_pelvis(Quat& turn, Vec3& at) {
     return true;
 }
 
-// Each frame in first person while he rides: the view turned with his body's spins and flips (BoardFollow), eased
-// (BoardView), and back level as the ride ends. A carve turns no view (0.1.19): the stick steers to the gaze (pad.h).
+// Each frame in first person while he rides: the view turned with his body's spins and flips (BoardFollow), the ride's
+// own sway left out (BoardSway), eased (BoardView), and back level as the ride ends. A carve turns no view (0.1.19): the stick steers to the gaze (pad.h).
 void follow_jet_board(const Pose& head, bool first_person, float seconds) {
     const bool on = s_jet.riding && first_person && s_have_hero;
     Quat& target = s_jet.body;
@@ -15115,7 +15121,7 @@ void follow_jet_board(const Pose& head, bool first_person, float seconds) {
             s_rig.turn(rig_turn, head.position);
         }
         if (seen) {
-            s_jet.pivot = at;
+            s_jet.pivot_from_anchor = at - anchor_now(1.0f);
         }
 #if !defined(__ANDROID__)
         static uint64_t next = 0;
@@ -15132,9 +15138,10 @@ void follow_jet_board(const Pose& head, bool first_person, float seconds) {
 #endif
     } else {
         s_jet.follow = BoardFollow{};
+        s_jet.sway = BoardSway{};
         target = Quat{};
     }
-    s_jet.view.update(board_view_turn(target), on, seconds);
+    s_jet.view.update(s_jet.sway.update(target, s_jet.follow.trick_end, seconds), on, seconds);
 }
 
 // ---- Cutscenes through his eyes ----
@@ -17039,6 +17046,21 @@ void fill_eye(openrac_view& view, int eye, const FrameInfo& frame, bool first_pe
             s_heard.head.at = (s_heard.head.at + seen.at) * 0.5f;
         }
     }
+#if !defined(__ANDROID__)
+    // PC test aid (QUEST_JET_FRAME_TRACE=1): each frame's left eye while he rides RAC-Board, for how steady the view is
+    // (0.1.25, the owner's "jittery"): its place from the eyes' anchor, where it looks, and the view's turn with his body.
+    static const bool jet_frame_trace = std::getenv("QUEST_JET_FRAME_TRACE") != nullptr;
+    if (jet_frame_trace && eye == 0 && first_person && s_jet.riding) {
+        const Vec3 at = anchor_now(alpha);
+        const Vec3 from = pose.position - at;
+        const Vec3 look = rotate(pose.orientation, Vec3{0, 0, -1});
+        char line[260];
+        std::snprintf(line, sizeof line, "[vr-jetframe] tick %llu alpha %.3f dt %.4f anchor %.4f %.4f %.4f eye-anchor %.4f %.4f %.4f look %.4f %.4f %.4f shown %.4f",
+                      static_cast<unsigned long long>(s_tick), alpha, frame.frame_seconds, at.x, at.y, at.z, from.x, from.y, from.z, look.x,
+                      look.y, look.z, angle_between(s_jet.view.turn, Quat{}));
+        log_line(1, line);
+    }
+#endif
     view.position[0] = pose.position.x;
     view.position[1] = pose.position.y;
     view.position[2] = pose.position.z;
@@ -17839,6 +17861,11 @@ void views_end(void*, const openrac_view* views, int count) {
 #else
         layer.visible = layer.visible && !s_shopping;
 #endif
+        // While the eyes have no picture of this place yet (a level's first frames, as the flight between the planets
+        // ends), the game's 2D is drawn over nothing: the planet's title, its font already gone with the old level, drew
+        // as a solid bar (0.1.25, the owner's video of 0.1.24: "Planet Aridia" turning into a full blue box). Not shown
+        // until the eyes are. An old picture of the same place (the copyright lines after the intro) keeps it.
+        layer.visible = layer.visible && !(s_eyes_stale && s_eyes_place != place);
     } else if (s_panel_is_monitor) {
         // Over the gun, as the gun is held: in the hand that fired it (Akimbo's second gun's, 0.1.24).
         const int hand = missile_side();
@@ -21539,4 +21566,4 @@ void load(openrac::Mod& mod) {
 
 }  // namespace
 
-OPENRAC_MOD_CPP("quest-vr", "0.1.24", load)
+OPENRAC_MOD_CPP("quest-vr", "0.1.25", load)

@@ -2,6 +2,36 @@
 
 > **This is a test build, and we need your logs.** **Expect bugs.** Every log helps, including from runs that worked: **Send your log** below says how.
 
+## New in 0.1.25
+
+From the owner's play of 0.1.24 on a Quest ("almost perfect"), with two logs and a video.
+
+**For the smoothest play on a Quest, our settings** (the owner: "provide a good performance based settings reccomendation"). With **Smoother frames** on, the headset runs at 120 Hz and the game is meant to draw a picture for every other refresh, 60 a second, the Quest making the ones between. The owner's two logs of 0.1.24 (five starts) show how far it gets: about 40 pictures a second on Novalis and Aridia at **Eye resolution** 100% (**Foveated rendering** Medium or Off), and about 24 on Novalis at 130% with **CPU and GPU boost** on. The headset hardly ever waited for the game (under a millisecond a frame), so the game sets the pace, and how big a picture it draws matters most. A picture the game is late with shows most when you move fast, as on **RAC-Board**. In the launcher's **Graphics** tab:
+
+| Setting | Ours | Why |
+| --- | --- | --- |
+| **Smoother frames (AppSW)** | On (to start) | The game draws 60 pictures a second and the Quest makes the ones between. Off, it would have to draw one for every refresh. |
+| **Eye resolution** | 100% at most; if it still stutters, 90%, then 80% | The biggest difference: 130% drew about 24 pictures a second on Novalis where 100% drew 36 to 45. |
+| **Foveated rendering** | High (Medium to start) | Less to draw at the edges of each eye, where the lenses blur anyway. |
+| **CPU and GPU boost** | On (to start) | The fastest a game may ask the Quest to run. It gets warmer and uses more battery. |
+| **Keep the refresh rate** | On (to start) | Off, a rate the game does not hold steps down to 90 Hz, then to 72, where Smoother frames draws 36 pictures a second. |
+| **Max draw distance** | Off, if it is still under 60 in the big levels | It draws enemies, effects and the seas as far as you can see, which costs a little. |
+| **Anti-aliasing** | 2× (to start) | Cheap for the Quest's graphics chip. |
+
+Meta's **OVR Metrics** app shows the frame rate in the headset: with Smoother frames on, 60 is the game keeping up. The numbers above are from the logs; settings under 100% have not been measured on a headset yet, so please tell us how they go.
+
+- **RAC-Board: a steady view** (the owner: "rac-board is jittery as fuck ... make it as smooth, stable, and responsive as possible"). In first person the view turns with Ratchet's body through the board's spins and flips. It also turned with all of his body's turn about the up as he rode, and RAC-Board's riding pose rocks his hips a few degrees from one step to the next, so the view rocked a little every frame. That turn is now weighed by its size, as the body's tilt already was: none of it under 9 degrees, all of it past 46, eased between. In a trick (his whole turn past 46 degrees), and while the turn at a spin's end goes over to your view's own heading, all of it, so tricks look as before. It comes in within a few hundredths of a second and goes back out over a third of a second, so no turn starts or stops at once. The point the view turns about, his middle, also moved a step at a time under eyes that move every frame: it now moves with them. In our test ride (Novalis, the head held still), outside the flips the view turned 0.63 degrees a frame against 1.26 on 0.1.24, and more than a degree in 6 percent of frames against 37.
+- **RAC-Board steers to where you look, faster** (the owner: "i also feel it could be alot more responsive"). In first person the stick is turned from the board's heading toward your gaze, so ahead takes the board round to where you look. It was turned only as far as your head was from the board, so the push to the side shrank as the board came round, and RAC-Board turns toward the stick at a set pace: the last of the way crawled. It is now turned twice as far (still at most 80 degrees). In our test, the board met a gaze turned 60 degrees in about 70 of the game's steps (just over a second) and held it, and one turned 105 degrees the other way in about two seconds; on 0.1.24 it had not met the first before the head turned again, and met the second only after going round the long way.
+- **The planet's name as you land** (the owner's video: "the text that says "planet aradia" or whatever, it turns into this full blue rectangle-esc state it seems after the words leave"). As a flight between planets ends, the game shows the planet's name while the new level loads, in the old level's letters, which go with it: for a moment the name drew as a solid bar. Your eyes have no picture of the new planet in those moments, and the game's own screen went on showing over nothing. It now waits for the eyes, as the eyes wait for the new planet. The copyright lines after the intro, whose picture is of the same place, show as before.
+- **Who plays with whom:** unchanged. Everyone on 0.1.19 to 0.1.25 plays together, and with PC players on OpenRAC. The changes above are the same on PC VR.
+
+**What we tested** (on this PC, PAL disc, one game at a time; nothing on a Quest or a real PC headset):
+
+- **RAC-Board's view:** racboard.sim with a new trace of every frame (where the eye is from his place, where it looks, and the view's turn), against the same on 0.1.24: the numbers above. Unit tests for the rocking, a bump, a spin coming in, a flip, a spin's end and the way back out.
+- **RAC-Board's steering:** racboardhead.sim, the head turned 60 degrees one way and 105 the other with the stick held ahead: the numbers above, from its lines every 15 steps.
+- **The planet's name:** a new test, landingtitle.sim (Novalis to Kerwan on the ship's map, a picture every four frames as it lands). Before the fix the bar showed on the HUD's panel in the frames after the name. After it, `[sim] shot f4568 ... f4588: eyes 0 panel 0` for the frames with no picture of Kerwan yet, then Kerwan with nothing on the panel. In the two runs after the fix the load was quicker and the bar did not come up at all, so what is shown is the panel hidden over those frames.
+- **Nothing else changed:** the sims these changes reach, on this build: every RAC-Board one (racboard, racboardhead, racboardbomb, racboardgrab, racboardweapons and racboardweapons-off, racboardwrench3, racboardswing, racboardswing2, and in a party racboard-mp and racboardbomb-mp), the title screen's (titlelook, titleratchet, mainmenu, newgamehelp) and the flights and landings (takeoff, landing, aridialand, landingtitle). All 19 ran through as before, but for one route: with the faster steering, racboard's ride (and racboard-mp's, the same ride in a party) follows its held gaze to a drop on Novalis before its left hand puts the board away, a reach still tested in five other board sims. The copyright lines after the intro keep their panel (titlelook).
+
 ## New in 0.1.24
 
 From the owner's notes after a party on 0.1.23, two testers' reports and the owner's two videos of the Swingshot's hook.
@@ -320,93 +350,11 @@ From testers' reports (Quest and PC VR) and the owner's own play.
 - **The regression:** 175 of our 341 test runs were made on 0.1.18's builds: a pick of the ones its changes reach, not the whole set. All ended normally, with the mod loaded and no crash. On the build with the barriers' view check, 46 runs across the grabs, punches, Akimbo, the mines, the Swingshot, the wall moves, ledges, the Magneboots, the sky, the water, the wrench throw, aiming and Clank's video, and a start on each of the 19 levels. On the final build, with the new moves off to start, 18 runs: the grabs and punches on and off, solo, with Multiplayer and as a party member, two hands on a big gun, crouching, RAC-Board, both weapon wheels and the **Moves** page. The release's own PC build was started and loaded the mod.
 - **Not shown:** anything on a headset. How the grabs, punches and throws feel, the hands on the guns, the ship's glide, Smoother frames' timing, the boost, "Hey Meta", adding a mod from the list on a Quest, the Files app, playing online, and the US disc are for you to tell us.
 
-Everything from 0.1.17 is below, so you miss nothing.
+0.1.17 and the releases before it are in the release history (below).
 
-## New in 0.1.17
+## 0.1.3 to 0.1.17
 
-From a PC VR tester's notes (the DPVR E4, through SteamVR, the US disc) and the owner's own play on a Quest.
-
-**Slow motion at the weapon wheel** (new, **on** to start; a tester's ask: "Slow mo while changing weapons would help alot"). Hold the wheel open and time slows to a third, so you can change weapons in the middle of a fight or a chain of moves.
-
-- **The sounds:** a sharp whoosh as it slows, the sound dropping in pitch, a click at each weapon you pass, a quick chirp as the new weapon comes out, and normal speed snapping back with a thump. Your head and hands keep their full rate: only the game slows.
-- **A quick press to talk to someone slows nothing.**
-- **To change it:** VR Options, VR Controls, More controls, **Wheel slow motion**: **With sounds**, **No sounds** or **Off**.
-
-**Point at the weapon you want** (new, **on** to start; the same tester: "pointing at the weapon in the wheel instead of moving your whole arm toward it"). Open the wheel and point your hand at the weapon, as you point at a menu: a beam and a dot show where, and the weapon lights up. Let go and it comes out. Both hands, in first person, on foot; in a seat the reach still picks. **Wheel pick** (More controls): **Point**, or **Reach** for the old way.
-
-**Smoother frames (AppSW)** (new, **on** to start, on Quest; the owner's ask). The game draws every other frame, and the Quest's own Application SpaceWarp makes the ones in between from how things move, as some other Quest games and mods do. That gives the headset twice the time for each picture, so the view should stay smooth at 90 or 120 Hz where it stuttered. With each picture the port now also draws a small motion picture of the level, Ratchet, the enemies and your hands, which the headset moves the last picture along.
-
-- **What to look for:** fast, thin things can smear a little at their edges, most of all when you turn with the stick. If you see that and would rather not: the launcher's **Graphics** tab, **Smoother frames (AppSW)**, Off.
-- **Where it is off by itself:** menus, the title, the vendor, recentres and big jumps of the view, where there is nothing to fill in from.
-- **On PC** your headset's own smoothing (SteamVR's motion smoothing, Meta's ASW) does this, and the option does nothing there.
-- **Tried only in a simulated headset on PC,** where the motion pictures came out as they should. Please tell us how it looks and feels on your Quest.
-
-**From a seated player's report** (a tester: "Diving isnt working for me. Can't get below the water no matter what I try / Seated you can't do the wrench it jus disconnects - so have to stand then? / Hover boarding. The board was not aligned and kept going sideways couldnt find a good position").
-
-- **Seated no longer lifts your view and hands.** Up to 0.1.16, **Play position: Seated** (VR Options) put your view and your hands 45 cm above Ratchet's eyes, though a recentre already puts your eyes at his whether you sit or stand. Seated, your hands were out of the water at the surface, so strokes and the push-up dive did nothing, and 45 cm above a bolt crank or an enemy. Now Seated lifts nothing. Choosing it recentres, and leaning forward in your chair no longer crouches Ratchet (the left trigger does). For a higher or lower view: **VR Body**, **View height**.
-- **Diving:** at the water's surface, push both hands up quickly, however you hold the controllers (until now only with the palms turned flat to the water), or look well down and stroke. The left trigger dives too, now in third person as well.
-- **The wrench stays in your hand through a swing.** Once your right grip has closed on it, it holds until you open the grip well past halfway. Before, easing the grip a little during a fast swing let go of it, and at speed threw it. Opening your hand in a fast swing still throws it.
-- **The hoverboard looks where it goes.** The view followed Ratchet's chest, side-on on the board, about 45 degrees off the way it goes and swaying with his moves. Now it looks ahead and holds steady. **Hoverboard view** (VR Controls, More controls, **Moves**): **Ahead**, or **Side-on** for the old way.
-
-**World scale in the game** (the owner's ask): **VR Body**, **World scale**, 70 to 150 percent, as in the launcher. A change there stays until you change the launcher's.
-
-**Fixed**
-
-- **PC VR: the HUD's text and numbers, and the Trespasser's rings.** On SteamVR they did not show at all, which made the Trespasser impossible to do. The game drew them with a clear value (alpha 0) that SteamVR throws away; the panel now holds a proper one. On Quest the same text was pale, and it is solid now.
-- **The bolt numbers at a vendor or an equipment box,** on Quest and PC: no more lighter boxes behind the digits.
-- **Water from up close,** on Quest and PC: parts of it were cut away when you stood right by it, because the game chose its tiles by its own camera, not your head. It is whole now.
-- **PC VR: movies.** They ran at a flat 60 pictures a second whatever your headset's rate, which could look laggy (a tester: "Intro cutscene was lagy"). They now keep to the headset's rate, with the sound still setting the movie's time.
-- **The ammo count in the wheel:** on its later pages, the count under a weapon's name was missing or was another weapon's. It is now that weapon's own.
-- **The title screen:** Ratchet, his ship and the crate vanished as soon as the menu came up, and flashed back when you picked something. They now stay in the scene behind the menu.
-
-**Also new**
-
-- **Feet on the floor** (**VR Body**, **off** to start; a tester: "default view for playing had my real legs bellow ground"). You stand at Ratchet's height, so your real feet are below his ground. On, the view lifts so that his ground is your floor, measured each time you recentre. Your hands then reach from your own height, so some things are further from them. Off is as before.
-
-- **The game's Help Desk is on for a new game.** It is the game's tips, in voice and text, like the one that explains the Trespasser when you find it (a tester: "the dialogue about it didn't play"). Up to 0.1.16 this port turned it off on every new game, Rerac-vr's choice, so those tips never played. A save you already have keeps what it had: to turn them on or off there, in a level press **Y**, then **Options**, **HelpDesk**, **Voice** and **Text**.
-
-- **Switch the view quickly** (a tester: "without a quick toggle it is annoying"). In play, hold the left menu button for a second to switch between first and third person. A short press still recentres, as before. **VR Options**, **View** does the same.
-
-- **Dive with the left trigger** (the same tester: "how do you dive, go down in the water?"). At the water's surface, in first or third person, pull the left trigger and Ratchet dives; until now only pushing the water up with both hands, or a swing of the wrench, did. Under the water he goes where you look: look down and push the stick, or stroke, to go deeper, and look up to come back up. A hard downward slam of the wrench hand at the surface no longer counts as a Hyper Strike there, which could dive him when you did not mean to.
-
-- **Good to know:** bolt cranks and the hoverboard work in first person. At a bolt crank hold the wrench's head on the bolt (right grip), then walk around it or push the left stick forward. On the hoverboard the left stick steers and the left trigger boosts.
-
-**Still looking:** a tester saw a black box stay in front of them after Clank's video on Veldin. We could not make it happen, in a simulated headset or under SteamVR's simulated headset, on the PAL disc. If you see it, please send your log and say what you did just before.
-
-**Tested for 0.1.17 on PC only** (the PAL disc and a simulated headset; none of it has run on a Quest, a real PC headset or the US disc):
-- **Smoother frames:** the simulated headset asks for the motion pictures as a Quest does, and they came out as they should: standing still, nearly nothing moves; turning the head, the level moves across and the hands stay with the head; a walk spreads out from the middle; one hand raised moves only it; looking up moves the level down; a jump of the view gives none. Every run below drew them, and the pictures we looked at were otherwise as before. Whether the Quest's runtime takes them, and how it looks there, is untried.
-- **Seated:** with Play position on Seated, as standing: a bolt crank turned to 98% and the game finished it; at the water's surface both hands pushed up dived him, and so did a stroke looking down; an eased grip in a fast swing kept the wrench, and opening it threw it; the hoverboard's view was the same as standing. Choosing Seated recentred, and leaning did not crouch him (standing, Physical crouch still did).
-- **Diving:** both hands pushed up edge-on dived him, and a stroke looking down; strokes along the surface and hands held edge-on did not. Palms flat, the left trigger, and the left trigger in third person all dived.
-- **The wrench:** the grip eased to 45% in a fast swing kept it; opened, it was thrown at about 4 m/s. Throwing, calling and catching in the other wrench runs went as before.
-- **Hoverboard view:** Ahead, the view held the board's own heading along the course; Side-on, it was about 45 degrees off and swaying, as on 0.1.16.
-- **World scale:** VR Body set 105, then 110 percent, and the view took each at once; 110 was there at the next start, and a launcher change since then put the launcher's back.
-- **The rest of 0.1.17:** slow motion and pointing at the wheel, with either hand and in third person; Feet on the floor; the water whole up close; Clank's video on Veldin with no box after it; the title's scene behind its menus; the Trespasser's help text solid on the HUD; the Help Desk on for a new game; the quick view switch; Moves' new row and More controls' wheel rows reached by scrolling.
-- **The regression:** the 81 runs (of 271) that this release reaches: aiming, the wrench, cranks, swimming and diving, the hoverboard, seated play, the menus, scenes, the title, the vendor and the shop, and saving. All ended normally with the mod loaded, and their logs matched earlier runs but for the changes above and small differences of timing (in one, a fight on Novalis went another way). The other runs (ledges, the Swingshot, wall runs, grind rails, ships and turrets among them) were not run again for this release.
-- **Not shown:** anything on a headset. How Smoother frames looks, the feel of seated play, diving, the wrench and the hoverboard, and the US disc are for you to tell us.
-
-Everything from 0.1.16, 0.1.15 and 0.1.14, which came out just before this, is below, so you miss nothing.
-
-## New in 0.1.16
-
-**Long menus now tell you there is more.** A page in the pause menu shows eight rows at a time, and until now nothing on it said there were others. The box under the list (with Toggle and Exit) now has a line that says where the rest are: **More below**, **More up/down** or **More above**. A page that shows all its rows, like **Moves**, has no such line. It is on every long page, **Video Options** too, on Quest and on PC. To get to the rest: hold your hand on the bottom row and the list moves on, on the top row and it moves back. No row moved, and no option changed.
-
-**Tested for 0.1.16 on PC only** (the PAL disc and a simulated headset, not yet on a Quest, a real PC headset or the US disc): pictures of long pages at their top, middle and bottom, of **Moves**, and of **Video Options**; and the whole way to **Moves** by the hand.
-
-Everything from 0.1.15 and 0.1.14, which came out just before this, is below, so you miss nothing.
-
-## New in 0.1.15
-
-**FIXED THAT DARN THUMB!** Sorry about that one. 0.1.14 turned your thumb the wrong way, back toward your wrist, and it got out because we did not test it thoroughly enough before the release. Our apologies for the hiccup. Our old test pictures looked along the arm, from too far away to show it, and we did not catch it until the owner's video.
-
-- **It now moves like a thumb**, in both hands, on Quest and on PC, with **Fingers** on Tracked (VR Hands). Lifted off the controller, it rests open beside your hand. On a button, the stick or the thumb rest, it comes in along your fingers. Close your hand and a lifted thumb is a thumbs-up, and a thumb on the controller folds over your fingers.
-- **A hand on a weapon** keeps the game's own hold, and **Fingers** on Static is as it was.
-- **Can't find the new options?** A player could not, so the launcher's **Controls** tab now starts with a **Menus** section: how the menus work and where every option is. The options themselves have not moved. They are in the game, not the launcher: in a level, press **Y**, then **Options**, **VR Options**, **VR Controls**, **More controls**, **Moves**. A page shows eight rows at a time: hold your hand on the bottom row and the list moves on. VR Controls and More controls are both below the first eight rows.
-
-**Tested for 0.1.15 on PC only** (the PAL disc and a simulated headset, not yet on a Quest, a real PC headset or the US disc): pictures of each hand from its palm side, its back and above, and of both hands raised before the eyes, looked at for each state above; and the whole way to **Moves** by the hand, each page moved on and back as the Menus section says.
-
-## 0.1.3 to 0.1.14
-
-Their notes, as each release gave them, are in [docs/release-history.md](https://github.com/moistman42069/RatchetAndClank-Quest-VR/blob/v0.1.24/docs/release-history.md) and on each release's page (GitHub limits how long a release's notes can be).
+Their notes, as each release gave them, are in [docs/release-history.md](https://github.com/moistman42069/RatchetAndClank-Quest-VR/blob/v0.1.25/docs/release-history.md) and on each release's page (GitHub limits how long a release's notes can be).
 
 ## What you need
 
@@ -424,9 +372,9 @@ Their notes, as each release gave them, are in [docs/release-history.md](https:/
 ## Install
 
 1. Put your Quest in **Developer Mode** (in the Meta Horizon app on your phone).
-2. Get `RatchetQuestVR-0.1.24.apk` onto the headset and install it. Either:
+2. Get `RatchetQuestVR-0.1.25.apk` onto the headset and install it. Either:
    - download it in the Quest's browser (or email it to yourself and download it there) and open it from the **Files** app, or
-   - sideload it with SideQuest or `adb install -r RatchetQuestVR-0.1.24.apk`.
+   - sideload it with SideQuest or `adb install -r RatchetQuestVR-0.1.25.apk`.
 3. Open **Ratchet & Clank Quest VR** from your Library's **Unknown Sources**.
 4. Copy your `.iso` to the headset's **Download** folder and choose it in the launcher. The first set-up copies the disc and prepares the levels: **up to half an hour, once. Keep the headset on charge.**
 5. Press **PLAY IN VR**. **Play in 2D** puts the game on a big flat screen, played with the Touch controllers as a PlayStation pad: if VR fails, try it and tell us, as it separates a game problem from a VR problem.
@@ -435,7 +383,7 @@ Their notes, as each release gave them, are in [docs/release-history.md](https:/
 
 ## Install on PC
 
-1. Download `RatchetQuestVR-0.1.24-windows.zip` and unzip it anywhere you can write: your Desktop, Documents or a games drive. Keep the `RatchetClankVR` folder together. Nothing is installed into Windows.
+1. Download `RatchetQuestVR-0.1.25-windows.zip` and unzip it anywhere you can write: your Desktop, Documents or a games drive. Keep the `RatchetClankVR` folder together. Nothing is installed into Windows.
 2. Start your headset's PC VR software (SteamVR, Meta Horizon Link, Virtual Desktop, Pico Connect, ...).
 3. Open `RatchetClankVR.exe`. Windows may warn about an app from the internet it does not know: **More info**, then **Run anyway**.
 4. **Choose your .iso file** and wait for the set-up, once: it checks the disc, then prepares the levels.
@@ -477,7 +425,7 @@ The log holds your headset's model and Android version, the game's own log, why 
 - If a bar in the headset says a controller is missing, tell us.
 - Anything that crashes, freezes or leaves you stuck: the log says why far more often than not.
 
-The full list of what to try is in [docs/HEADSET_CHECKLIST.md](https://github.com/moistman42069/RatchetAndClank-Quest-VR/blob/v0.1.24/docs/HEADSET_CHECKLIST.md).
+The full list of what to try is in [docs/HEADSET_CHECKLIST.md](https://github.com/moistman42069/RatchetAndClank-Quest-VR/blob/v0.1.25/docs/HEADSET_CHECKLIST.md).
 
 ## What is in it
 
@@ -549,7 +497,7 @@ In the game: pause, **Options**, **VR Options** (or **VR Options** on the title'
 
 ## Credits and licence
 
-Built on **[Rerac-vr](https://github.com/npiriou/Rerac-vr)** by npiriou, the main base of this project and its VR design (ISC), and on **[OpenRAC](https://github.com/OpenRAC/OpenRAC)** and [rac1-mods](https://github.com/OpenRAC/rac1-mods) (GPL-3.0-or-later), and [RAC-Board](https://github.com/mateuszklysz/RAC-Board) by Mateusz Kłysz (MIT). Thanks also to the [ReRAC](https://github.com/re-rac/rerac) team. Full [credits](https://github.com/moistman42069/RatchetAndClank-Quest-VR/blob/v0.1.24/CREDITS.md) and [third-party notices](https://github.com/moistman42069/RatchetAndClank-Quest-VR/blob/v0.1.24/THIRD_PARTY_NOTICES.txt).
+Built on **[Rerac-vr](https://github.com/npiriou/Rerac-vr)** by npiriou, the main base of this project and its VR design (ISC), and on **[OpenRAC](https://github.com/OpenRAC/OpenRAC)** and [rac1-mods](https://github.com/OpenRAC/rac1-mods) (GPL-3.0-or-later), and [RAC-Board](https://github.com/mateuszklysz/RAC-Board) by Mateusz Kłysz (MIT). Thanks also to the [ReRAC](https://github.com/re-rac/rerac) team. Full [credits](https://github.com/moistman42069/RatchetAndClank-Quest-VR/blob/v0.1.25/CREDITS.md) and [third-party notices](https://github.com/moistman42069/RatchetAndClank-Quest-VR/blob/v0.1.25/THIRD_PARTY_NOTICES.txt).
 
 Please **report bugs in this port here**, not to Rerac-vr, ReRAC or OpenRAC.
 
@@ -559,5 +507,5 @@ This is free software under GPL-3.0-or-later, without any warranty. The source o
 
 | File | SHA-256 |
 | --- | --- |
-| `RatchetQuestVR-0.1.24.apk` (version code 25, 58 MB) | `5be8118badc17d78baa00a516a81dc45d8750bd6f8c6ac8090feb12f250dbf8c` |
-| `RatchetQuestVR-0.1.24-windows.zip` (71 MB) | `0b3b5de60b61b4df22d6564ade32bc0a10a96c364e13bf8738f4658007308559` |
+| `RatchetQuestVR-0.1.25.apk` (version code 26, 58 MB) | `aab4d281e5719b86843effa3f734d9fcd455f5cffd25de6058c7b2b0037adb5b` |
+| `RatchetQuestVR-0.1.25-windows.zip` (71 MB) | `3d09cc64f097e6834cd46161f2f66de070d834afe0ed7b0ef892d2431bd7ee11` |

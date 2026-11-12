@@ -1,58 +1,47 @@
-NEW IN 0.1.24
+NEW IN 0.1.25
 
-THE WRENCH FINDS ITS TARGET
+FOR THE SMOOTHEST PLAY ON A QUEST: OUR SETTINGS
 
-    Wrench aim help now works as you let go, from any angle: swing from the side or across your body and the
-    wrench goes to the enemy or crate you look at, and steers on to it as it flies. Wrench aim (a new page in
-    Moves) sets how hard: Off, Light (0.1.23's), Medium, Strong (to start) or Very strong.
+    With Smoother frames on, the game is meant to draw 60 pictures a second. The owner's logs of 0.1.24 show it
+    drawing about 40 on Novalis and Aridia at Eye resolution 100%, and about 24 on Novalis at 130%: how big a
+    picture it draws holds it back more than anything else. A picture it cannot draw in time shows most when
+    you move fast, as on RAC-Board. So, in the launcher's Graphics tab:
 
-THROW CRATES
+    - Smoother frames (AppSW): On (to start).
+    - Eye resolution: 100% at most. If it still stutters, 90%, then 80%: the biggest difference of all.
+    - Foveated rendering: High (Medium to start). The edges are a little softer, where the lenses blur anyway.
+    - CPU and GPU boost: On (to start). The headset gets warmer and uses more battery.
+    - Keep the refresh rate: On (to start).
+    - Still under 60 a second in the big levels (OVR Metrics shows it): Max draw distance Off.
 
-    With Swingshot grabs enemies on, the Swingshot catches crates too (Grab crates, Grab moves, on to start):
-    throw one at an enemy for half a wrench blow, and it breaks where it lands.
+    The first two are from the logs. Below 100% has not been measured on a headset yet: tell us how it goes.
 
-THE HOOK BITES
+RAC-BOARD: A STEADY VIEW
 
-    The Swingshot's hook hung where it was fired while the chain went to the enemy. It now flies out fast, bites
-    into the enemy's side, claws along the chain, and stays on it as it moves, is held, and is thrown.
+    Riding, the view rocked a little every frame: Ratchet's body sways about on the board, and the view turned
+    with all of it. It now turns with his spins and flips, and not with the ride's own sway. In our test ride
+    the view moves half as much as it did, and turns more than a degree in a frame a sixth as often.
 
-BACK TO 0 BOLTS
+RAC-BOARD: STEERS WHERE YOU LOOK, FASTER
 
-    Cheats has Set bolts to 0, which turns Infinite bolts off too: explore for bolts again after a full wallet.
+    The board came round to where you look slowly, slower still as it got near. Now a turn of 60 degrees takes
+    it about a second, and it holds your gaze once it gets there.
 
-THIRD PERSON: LIKE FIRST PERSON TO START
+THE PLANET'S NAME AS YOU LAND
 
-    Third person buttons start Like first person: the right trigger fires, the right grip swings the wrench. If
-    you never changed them, that is what you get now; a layout you chose stays. Xbox controller is still there.
+    As a flight between planets ended, the planet's name ("Planet Aridia") turned into a solid blue bar for a
+    moment: the game was drawing it with the old planet's letters, already gone. Nothing of the game's own
+    screen shows now until the new planet does.
 
-MULTIPLAYER: WATER AND MORE FOR EVERYONE
+ALSO NEW: 0.1.24, THE RELEASE JUST BEFORE
 
-    A player who joined a party saw no water: no seas, no lava, no fire or smoke, while the host's game drew all
-    of it. The game draws those through the things that own them, and a joined game had left those to the host's.
-    Now every game draws its own, and water the host's switches raise or lower (Rilgar, Hoven, Pokitaru, Umbris)
-    follows the host's height in yours. It needs 0.1.24 in the game that joins; the host can be any version, or a
-    flat PC. With a host on 0.1.24 too, on the same disc (PAL with PAL, US with US), what the host's enemies shoot
-    and the blasts they make show in your game, and Hoven's reservoir drains in yours when the host's drains.
+    Wrench aim help as you let go, from any angle (Wrench aim, Moves). The Swingshot catches crates to throw
+    (Grab crates), and its hook bites into what it catches. Cheats: Set bolts to 0. Third person buttons start
+    Like first person. In a party, a player who joins draws water, seas, lava, fire and smoke, and with a host on
+    0.1.24 or later sees what the host's enemies shoot. The left Tesla Claw's lightning and the left Visibomb.
+    PC VR: the game's drawing state put back after SteamVR's calls (a HUD flicker).
 
-THE LEFT TESLA CLAW'S LIGHTNING
-
-    The Tesla Claw in the left hand (Akimbo) hit but showed no lightning: the left gun's lightning was asked for a
-    moment after the picture was taken, and wiped before the next. It now shows in either hand.
-
-THE LEFT VISIBOMB
-
-    Fired from the left hand, the Visibomb's view went flat green, with no picture on the gun's screen. It now
-    flies as from the right hand: the missile's view on the gun, the stick steering it.
-
-PC VR: THE HUD AND MENUS FLICKERING
-
-    A PC VR player (SteamVR, a Quest through Steam Link) saw the HUD and menus flicker, more in some starts than
-    others, gone after closing and reopening the game. We could not make it happen here. Other OpenGL games have
-    found SteamVR changing their drawing state in some of its calls, which fits a flicker a restart clears, so
-    the game now puts back anything those calls change. If it still flickers, please send your log: it now says
-    which call changed what.
-
-ALSO NEW: 0.1.23, THE RELEASE JUST BEFORE
+0.1.23: THE WRENCH FLIES THE WAY YOU THROW IT
 
     The wrench flies the way you throw it, with aim help to start (Wrench throw aim, Moves). In a party: other
     players' fingers and height, a bolt you turn opens things for everyone with a host on 0.1.23 or later,

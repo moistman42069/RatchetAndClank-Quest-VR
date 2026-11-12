@@ -223,6 +223,43 @@ inline Quat board_view_turn(Quat turn) {
     return normalized(yaw_quat(yaw) * slerp(Quat{}, tilt, t * t * (3.0f - 2.0f * t)));
 }
 
+// The view leaves out the ride's sway about the up too (0.1.25, the owner on 0.1.24: "rac-board is jittery as fuck").
+// His pelvis as RAC-Board poses him rocks a few degrees about the up from one tick to the next as he rides, and
+// board_view_turn kept all of the yaw: in racboard.sim, the head still and no trick, the look turned 1.6 degrees a frame
+// back and forth (9 at most). Now the yaw is weighed by its own size, as the tilt is: none of it under kBoardSwayFrom,
+// all of it past kBoardSwayTo, eased between, so a spin is seen as it grows. In a trick (his body's whole turn past
+// kBoardSwayTo), or while a trick's end hands its yaw to the rig (BoardFollow's trick_end, whose hand-off needs all of
+// it shown), all of it, until his whole turn is back under kBoardSwayFrom. The yaw's weight comes up within kBoardTrickIn
+// and goes back down over kBoardTrickOut: no turn of the view starts or stops at once. The tilt is board_view_turn's,
+// and with the weight at one this is board_view_turn: a trick is seen as before.
+inline constexpr float kBoardTrickIn = 0.03f;   // seconds, to a third
+inline constexpr float kBoardTrickOut = 0.30f;  // seconds, to a third
+
+struct BoardSway {
+    float weight = 0;  // of the yaw
+    bool trick = false;
+
+    Quat update(Quat turn, bool trick_end, float seconds) {
+        const float apart = angle_between(turn, Quat{});
+        if (apart > kBoardSwayTo || trick_end) {
+            trick = true;
+        } else if (apart < kBoardSwayFrom) {
+            trick = false;
+        }
+        const float yaw = yaw_part(turn);
+        float target = 1.0f;
+        if (!trick) {
+            const float t = std::clamp((std::fabs(yaw) - kBoardSwayFrom) / (kBoardSwayTo - kBoardSwayFrom), 0.0f, 1.0f);
+            target = t * t * (3.0f - 2.0f * t);
+        }
+        if (seconds > 0.0f) {
+            weight += (target - weight) * (1.0f - std::exp(-seconds / (target > weight ? kBoardTrickIn : kBoardTrickOut)));
+        }
+        const Quat shown = board_view_turn(turn);  // its yaw all, its tilt but for the sway
+        return normalized(yaw_quat(yaw * (std::clamp(weight, 0.0f, 1.0f) - 1.0f)) * shown);
+    }
+};
+
 // How the view turns with RAC-Board, from how it poses him, a frame at a time (quest_vr.cpp's follow_jet_board; all in
 // the frame's axes, y up):
 // - `heading`, his heading as the mod turns him (it turns him by it, the spins and flips by his joints). A carve turns

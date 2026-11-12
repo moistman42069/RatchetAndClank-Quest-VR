@@ -128,8 +128,8 @@ board: he rides on as a swing ends, a pull sets him down on it held still until 
 stick, and Swingshot grabs catch and throw enemies as he rides.
 With Weapons on the board off, he takes the wrench as he gets on, the right trigger does the
 tricks and the right grip grinds, as before. Your view goes with its flips and spins, not with
-each carve. In third person with Gamepad the mod's settings are your controllers as an Xbox
-controller's (to start: B fires, Y opens the quick select, X swings the wrench, RB or RT tricks,
+each carve or the ride's own sway. In third person with Gamepad the mod's settings are your
+controllers as an Xbox controller's (to start: B fires, Y opens the quick select, X swings the wrench, RB or RT tricks,
 with A by a rail grinds, LB grabs, D-pad Up gets on and off; the reach still works), or as
 your Third person buttons put them: the board's R1, R2 and L1 are wherever you put those.
 

@@ -489,6 +489,10 @@ run menuclose menuclose 3 QUEST_VIEW_TRACE=1 KEEP=1
 run menuswitch menuswitch 3 QUEST_VIEW_TRACE=1 KEEP=1
 # 0.1.18: the ship from Novalis to Kerwan: the flight between them in the eyes, and the glide out of his eyes into play.
 run takeoff takeoff 1 QUEST_VIEW_TRACE=1 QUEST_SHIP_TRACE=1 QUEST_SCENE_EYE_TRACE=1 QUEST_SIM_MENU=14 QUEST_SIM_PLANETS=1,3,5,7 KEEP=1
+# 0.1.25: the planet's name as that flight ends (the owner's video of 0.1.24: "Planet Aridia" turned into a solid blue
+# bar, the old level's letters gone): no game 2D shown while the eyes have no picture of Kerwan yet ("[sim] shot f45..:
+# eyes 0 panel 0"), and the shots every four frames after it show none of it as a bar.
+run landingtitle landingtitle 1 QUEST_VIEW_TRACE=1 QUEST_SIM_MENU=14 QUEST_SIM_PLANETS=1,3,5,7 KEEP=1
 # 0.1.18: X in a scene goes between his eyes and in VR only, never to the screen.
 run sceneview sceneview 1
 # 0.1.18: the weapon wheel opened during a Swingshot pull keeps the pull (a tester: "using the weapon selector cancels the hookshot").
@@ -617,9 +621,12 @@ run swinggrab-nofollow swinggrab 1 $G=12 $H=12 $N=577 $A=6,0,180 "QUEST_VR_OPTIO
 run shipfly shipfly 11 $G=7 $N=1242 $A=2,0 QUEST_STATE_TRACE=1 KEEP=1
 run shipfly-nopvs shipfly 11 $G=7 $N=1242 $A=2,0 OPENRAC_PVS_OFF=1 KEEP=1
 # 0.1.18: RAC-Board in the headset (bundled, off): got out by reaching behind the back, ridden, flipped, put away.
+# 0.1.25: the ride's own sway turns no view ("shown" 0.00 in the [vr-jetboard] lines but in the flips); with
+# QUEST_JET_FRAME_TRACE=1 its [vr-jetframe] line each frame (by hand, not here: one a frame).
 run racboard racboard 1 QUEST_RACBOARD=1 QUEST_JET_TRACE=1 QUEST_STATE_TRACE=1 'QUEST_RACBOARD_SETTINGS={"trace": true}'
 # 0.1.19: RAC-Board in first person steered to the gaze (the owner's "make sure it follows head direction"): after each
-# turn of the head the heading meets its yaw and stays met.
+# turn of the head the heading meets its yaw and stays met. 0.1.25 (kBoardSteerGain, the owner's "a lot more
+# responsive"): met within about 70 ticks of the 60-degree turn and 135 of the 105-degree one (0.1.24: not met).
 run racboardhead racboardhead 1 QUEST_RACBOARD=1 QUEST_JET_TRACE=1 'QUEST_RACBOARD_SETTINGS={"trace": true}'
 # 0.1.19: racboard's ride with 0.1.18's right trigger, which with Weapons on is the Bomb Glove's: his own bomb's hit is
 # not taken on the board ("his own weapon's hit: not taken on the board", no target-board-hit).
