@@ -1,46 +1,66 @@
-NEW IN 0.1.23
+NEW IN 0.1.24
 
-THE WRENCH GOES WHERE YOU THROW IT
+THE WRENCH FINDS ITS TARGET
 
-    The owner's video: the thrown wrench veered up or the wrong way, not where the hand went. It flew where the
-    controller pointed at the moment the grip opened, and by then the wrist has cocked up in the follow-through.
-    Now it flies the way your hand went at its fastest just before you let go, as fast as you threw it, and if an
-    enemy or a crate is a few degrees off that line, with nothing in the way, it is eased onto it. Wrench throw
-    aim (Moves) has the choices: Where you throw, aim help (the new start), Where you throw (no help), Along your
-    swing, and Where you point (the old way). Wrench throw angle still turns it up or down.
+    Wrench aim help now works as you let go, from any angle: swing from the side or across your body and the
+    wrench goes to the enemy or crate you look at, and steers on to it as it flies. Wrench aim (a new page in
+    Moves) sets how hard: Off, Light (0.1.23's), Medium, Strong (to start) or Very strong.
 
-MULTIPLAYER: YOUR FINGERS AND YOUR HEIGHT
+THROW CRATES
 
-    Other players now see your fingers as you hold them: a point, a thumbs-up, a fist, a grip on the controller.
-    And your body follows you up and down: a player with Feet on the floor or a World scale above 100% stood at
-    the others' fixed height, and their crouch did not show. Both need the other player on 0.1.23 too.
+    With Swingshot grabs enemies on, the Swingshot catches crates too (Grab crates, Grab moves, on to start):
+    throw one at an enemy for half a wrench blow, and it breaks where it lands.
 
-MULTIPLAYER: BOLTS FOR EVERYONE
+THE HOOK BITES
 
-    A player who joined could turn a bolt, but what it opens (doors, lifts, bridges) is the host's game's, so
-    nothing opened. Now with a host on 0.1.23 a bolt you turn turns the host's too, and what it opens opens for
-    everyone. With an older host it turns only your own, as before.
+    The Swingshot's hook hung where it was fired while the chain went to the enemy. It now flies out fast, bites
+    into the enemy's side, claws along the chain, and stays on it as it moves, is held, and is thrown.
 
-MULTIPLAYER: RAC-BOARD
+BACK TO 0 BOLTS
 
-    RAC-Board did not load at all with Multiplayer on: the two mods asked for the same hook in the game, and only
-    one could have it. Now both do. Every player in a party needs RAC-Board on (Multiplayer checks that the
-    gameplay mods match).
+    Cheats has Set bolts to 0, which turns Infinite bolts off too: explore for bolts again after a full wallet.
 
-MULTIPLAYER: SMALLER THINGS
+THIRD PERSON: LIKE FIRST PERSON TO START
 
-    A host's game could take itself for a member's for a moment after a pause of two seconds (a stall, or a movie
-    playing), and drop a member's Swingshot catch or bolt turn. It now waits half a second before believing it.
-    Multiplayer's Verbose log now goes to its own file, which Send your log takes on a Quest; keep it off unless we
-    ask for it, as it writes a lot.
+    Third person buttons start Like first person: the right trigger fires, the right grip swings the wrench. If
+    you never changed them, that is what you get now; a layout you chose stays. Xbox controller is still there.
 
-    Flat players (OpenRAC on a PC, with no VR) still play with you as before: what needs
-    a VR host turns itself off, and they never see anything their game does not know.
+MULTIPLAYER: WATER AND MORE FOR EVERYONE
 
-ALSO NEW: 0.1.22, A QUICK PATCH JUST BEFORE
+    A player who joined a party saw no water: no seas, no lava, no fire or smoke, while the host's game drew all
+    of it. The game draws those through the things that own them, and a joined game had left those to the host's.
+    Now every game draws its own, and water the host's switches raise or lower (Rilgar, Hoven, Pokitaru, Umbris)
+    follows the host's height in yours. It needs 0.1.24 in the game that joins; the host can be any version, or a
+    flat PC. With a host on 0.1.24 too, on the same disc (PAL with PAL, US with US), what the host's enemies shoot
+    and the blasts they make show in your game, and Hoven's reservoir drains in yours when the host's drains.
 
-    With Keep the refresh rate off (Graphics), a rate the game cannot hold steps down to 90 Hz before 72, not
-    straight to 72. The PDA crash reports were all on 0.1.19, fixed in 0.1.21.
+THE LEFT TESLA CLAW'S LIGHTNING
+
+    The Tesla Claw in the left hand (Akimbo) hit but showed no lightning: the left gun's lightning was asked for a
+    moment after the picture was taken, and wiped before the next. It now shows in either hand.
+
+THE LEFT VISIBOMB
+
+    Fired from the left hand, the Visibomb's view went flat green, with no picture on the gun's screen. It now
+    flies as from the right hand: the missile's view on the gun, the stick steering it.
+
+PC VR: THE HUD AND MENUS FLICKERING
+
+    A PC VR player (SteamVR, a Quest through Steam Link) saw the HUD and menus flicker, more in some starts than
+    others, gone after closing and reopening the game. We could not make it happen here. Other OpenGL games have
+    found SteamVR changing their drawing state in some of its calls, which fits a flicker a restart clears, so
+    the game now puts back anything those calls change. If it still flickers, please send your log: it now says
+    which call changed what.
+
+ALSO NEW: 0.1.23, THE RELEASE JUST BEFORE
+
+    The wrench flies the way you throw it, with aim help to start (Wrench throw aim, Moves). In a party: other
+    players' fingers and height, a bolt you turn opens things for everyone with a host on 0.1.23 or later,
+    RAC-Board with Multiplayer, and a host no longer taking itself for a member after a pause.
+
+0.1.22: THE REFRESH RATE STEPS DOWN
+
+    With Keep the refresh rate off (Graphics), a rate the game cannot hold steps down to 90 Hz before 72.
 
 0.1.21: THIRD PERSON BUTTONS, THE TRESPASSER'S RINGS, THE PDA'S VENDOR
 

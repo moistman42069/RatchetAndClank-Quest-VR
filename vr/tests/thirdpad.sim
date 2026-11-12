@@ -1,6 +1,7 @@
 # 0.1.19: third person with Third person controls on Gamepad (the owner's ask; QUEST_SETTINGS={"view":"third"}, its default),
 # on Novalis's start, with RAC-Board (QUEST_RACBOARD=1) and the Xbox button icons mod (QUEST_MODS) on. The controllers are
-# an Xbox controller: A jumps (Cross), X swings the wrench (Square), RB, the right grip, crouches (R1). The left controller
+# an Xbox controller (Third person buttons on Xbox controller, the pad_* keys in regress.sh's QUEST_SETTINGS: the default
+# was that until 0.1.24): A jumps (Cross), X swings the wrench (Square), RB, the right grip, crouches (R1). The left controller
 # held up beside the head (xr_sim's hand moved to 14 cm left of the eyes, 2 cm under, 3 cm behind) makes its stick the
 # D-pad ("[vr-dpad] the left controller by the head"): pushed up, D-pad Up, RAC-Board's "Board on and off" by default
 # ("[vr-jetboard] riding RAC-Board's board"); again off. The menu button tapped is Start as it is let go: the pause menu,

@@ -91,6 +91,12 @@ using PadLayout = std::array<std::uint16_t, kPadControls>;
 inline constexpr PadLayout kXboxLayout = {kPadCross,  kPadCircle, kPadSquare, kPadTriangle, kPadR2,
                                           kPadL2,     kPadR1,     kPadL1,     kPadR3,       kPadSelect};
 
+// The launcher's "Like first person" (Options.PAD_LIKE_FIRST_PERSON; its default from 0.1.24): A Cross, B R2, X Select,
+// Y L2, the right trigger Circle (fire), the left trigger R1 (crouch), the right grip Square (the wrench), the left grip L1
+// (look), the right stick's click Triangle (quick select), the left's R3 (the map).
+inline constexpr PadLayout kLikeFirstPersonLayout = {kPadCross,  kPadR2, kPadSelect, kPadL2,     kPadCircle,
+                                                     kPadR1,     kPadSquare, kPadL1, kPadTriangle, kPadR3};
+
 // The buttons the launcher can put on a control, in its settings' order (pad_cross ... pad_l3), and their keys.
 inline constexpr std::array<std::uint16_t, 11> kLayoutButtons = {kPadCross, kPadCircle, kPadSquare, kPadTriangle, kPadR1, kPadR2,
                                                                   kPadL1,    kPadL2,     kPadSelect, kPadR3,       kPadL3};

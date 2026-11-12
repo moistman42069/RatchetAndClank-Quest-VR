@@ -73,10 +73,11 @@ SWINGSHOT     At a yellow or green target, hold the trigger. With Swingshot anyw
               chain them. Yank the hand that fired, hard, away from where you want to go: a
               fling, on along the swing or off the zip. Swingshot reach (Moves): how far the hook goes
 GRAB ENEMIES  With Swingshot grabs enemies on (Moves, off to start): aim the Swingshot at an enemy
-              where there is no target and pull the trigger. The hook yanks it in to hang before your
-              hand. Swing your hand and let go of the trigger to throw it (half a wrench blow where
-              it lands, and to an enemy it hits), or let go gently to drop it. Up to six seconds.
-              Big enemies can't be caught
+              where there is no target and pull the trigger. The hook bites into it and yanks it in
+              to hang before your hand. Swing your hand and let go of the trigger to throw it (half
+              a wrench blow where it lands, and to an enemy it hits), or let go gently to drop it.
+              Up to six seconds. Big enemies can't be caught. Crates too, with Grab crates (Grab
+              moves, on to start): a thrown crate breaks where it lands and hits what it meets
 GRAB MOVES    Each off to start (Moves, Grab moves): flick your hand while it comes in to fling it
               from there; let go gently to stun it; let go swinging up to throw it up high, and hook
               it again up there to hang it on the line; let go swinging down, or yank down while it
@@ -89,11 +90,14 @@ WALLS         With Wall run and jump on (Moves, off to start; first person), in 
               run and one leap until you land or fire the Swingshot
 WRENCH THROW  Wrench throw distance (Moves): how far it goes. Wrench comes back (Moves): When you
               call it, it stays where it lands; a fresh squeeze of the right grip or the trigger calls
-              it back, and pressing for the ring or grabbing a ledge does too. Wrench throw aim
-              (Moves): Where you throw, aim help (to start): the way your hand went at its
-              fastest as you let go, eased onto an enemy or crate a few degrees off; Where you
-              throw, without the help; Along your swing; or Where you point, the controller as
-              your hand opens. Wrench throw angle (Moves): from 30 down to 30 up, Level to start
+              it back, and pressing for the ring or grabbing a ledge does too. Wrench aim (Moves):
+              Wrench throw aim: Where you throw (to start), the way your hand went at its fastest as
+              you let go; Along your swing; or Where you point, the controller as your hand opens.
+              Wrench aim help: how hard the wrench is pulled onto an enemy or crate as you let go,
+              Off, Light (0.1.23's few degrees), Medium, Strong (to start) or Very strong; from
+              Medium up it also finds what you look at, so a swing from the side or across lands,
+              and it steers on to it in flight. Wrench throw angle: from 30 down to 30 up, Level to
+              start
 PUNCHES       With Punch with your hands on (Moves, off to start): a quick jab out from your body with
               a free hand, or the hand holding a gun, hits what it meets for half a wrench blow.
               Open hand or fist, no button. The wrench, gloves and Walloper do their own; the
@@ -167,20 +171,22 @@ The PDA's vendor stands before you the same way, and stays until you leave it.
 
 IN THIRD PERSON WITH GAMEPAD (the VR tab's Third person controls, to start), AND IN 2D MODE
 
-The controllers are a gamepad. To start, an Xbox controller's layout: A jump (Cross), B fire
-(Circle), X wrench (Square), Y quick select and talk (Triangle), the grips LB and RB (L1 and R1:
-RB crouches, LB looks around), the triggers LT and RT (L2 and R2: RT crouches too, LT looks),
+The controllers are a gamepad. To start (from 0.1.24), as in first person: the right trigger
+fires (Circle), the right grip swings the wrench (Square), A jumps (Cross), the right stick
+click is quick select and talk (Triangle), the left trigger and B crouch (R1 and R2), the left
+grip and Y look around (L1 and L2), X and the left stick click open the map (Select and R3),
 sticks as sticks, the left menu button Start (in third person as you let it go; held a second
-in play, back to first person), the left stick click Select (the map), the right stick click R3
-(the map too). In third person's menus A and the trigger still pick what you point at.
-Recentre with the headset's own (hold Meta).
+in play, back to first person). In third person's menus the Xbox layout and the pointer: A and
+the trigger pick what you point at. Recentre with the headset's own (hold Meta).
 THIRD PERSON BUTTONS (the VR tab, under D-pad): choose the button for each action yourself.
 Tap an action, then a button; if another action had that button, the two swap, so no button
-ever does two things. "Like first person" puts them as in first person: the right trigger
-fires, the right grip swings the wrench, A jumps, the right stick click is quick select, the
-left trigger and B crouch, the left grip and Y look, X and the left stick click the map.
-"Xbox controller" goes back to the layout above. The menu button always pauses, and the menus
-keep the Xbox layout. The game's hints show the buttons you chose.
+ever does two things. "Like first person" is the layout above. "Xbox controller" lays them out
+as a real gamepad: A jump (Cross), B fire (Circle), X wrench (Square), Y quick select and talk
+(Triangle), the grips LB and RB (L1 and R1: RB crouches, LB looks around), the triggers LT and
+RT (L2 and R2: RT crouches too, LT looks), the left stick click Select (the map), the right
+stick click R3 (the map too); 0.1.19 to 0.1.23 started there. A layout you chose stays. The
+menu button always pauses, and the menus keep the Xbox layout. The game's hints show the
+buttons you chose.
 D-PAD (the VR tab): Controller by your head, to start: hold a controller up beside your head,
 as a phone at your ear; it buzzes, and its stick is the D-pad (its click L3 or R3) while it
 stays there. Left thumb rest: the right stick, while your left thumb rests on its rest.

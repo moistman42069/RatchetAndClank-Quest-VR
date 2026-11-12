@@ -401,22 +401,25 @@ public class LauncherTest {
     }
 
     /**
-     * Third person buttons (0.1.21, a tester: the wrench on X, on the left controller): an Xbox controller's to start;
-     * a control picked for an action swaps with the action that had it, so none presses two and none is lost.
+     * Third person buttons (0.1.21, a tester: the wrench on X, on the left controller): Like first person to start (0.1.24,
+     * a tester: "should be set to 'like first person' by default"; an Xbox controller's to 0.1.23); a control picked for an
+     * action swaps with the action that had it, so none presses two and none is lost; a layout chosen is kept.
      */
     @Test
     public void thirdPersonButtonsSwapAndNeverShareAControl() {
         app.getSharedPreferences("options", Context.MODE_PRIVATE).edit().clear().commit();
         Config config = new Config(app);
-        assertTrue(config.padLayoutIs(Config.PAD_XBOX));
-        assertEquals("x", config.modSettings(false).get("pad_square"));
-        assertEquals("right_grip", config.modSettings(false).get("pad_r1"));
-        assertEquals(Config.PAD_R1, config.assignPadButton(Config.PAD_SQUARE, "right_grip"));
-        assertEquals("right_grip", new Config(app).modSettings(false).get("pad_square"));
-        assertEquals("x", new Config(app).modSettings(false).get("pad_r1"));
-        config.applyPadLayout(Config.PAD_LIKE_FIRST_PERSON);
-        assertEquals("right_trigger", new Config(app).modSettings(false).get("pad_circle"));
-        assertEquals("left_trigger", new Config(app).modSettings(false).get("pad_r1"));
+        assertTrue(config.padLayoutIs(Config.PAD_LIKE_FIRST_PERSON));
+        assertEquals("right_grip", config.modSettings(false).get("pad_square"));
+        assertEquals("right_trigger", config.modSettings(false).get("pad_circle"));
+        assertEquals("x", config.modSettings(false).get("pad_select"));
+        assertEquals(Config.PAD_SELECT, config.assignPadButton(Config.PAD_SQUARE, "x"));
+        assertEquals("x", new Config(app).modSettings(false).get("pad_square"));
+        assertEquals("right_grip", new Config(app).modSettings(false).get("pad_select"));
+        config.applyPadLayout(Config.PAD_XBOX);
+        assertTrue(new Config(app).padLayoutIs(Config.PAD_XBOX));
+        assertEquals("b", new Config(app).modSettings(false).get("pad_circle"));
+        assertEquals("right_grip", new Config(app).modSettings(false).get("pad_r1"));
         // Two on one control (a file written by hand): the first keeps it, the other has none.
         config.set(Config.PAD_CIRCLE, "a");
         assertEquals("a", config.modSettings(false).get("pad_cross"));

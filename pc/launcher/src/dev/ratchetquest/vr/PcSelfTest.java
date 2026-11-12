@@ -138,13 +138,13 @@ final class PcSelfTest {
         padButtons(config, paths);
     }
 
-    /** Third person buttons (0.1.21): an Xbox controller's to start, a pick swaps, never two on one control. */
+    /** Third person buttons (0.1.21): Like first person to start (an Xbox controller's to 0.1.23), a pick swaps, never two on one control. */
     private static void padButtons(PcConfig config, PcPaths paths) {
         for (Options.Choice button : Options.PAD_BUTTONS) {
             check(config.get(button).equals(button.fallback), button.key + " starts at its default");
             check(java.util.Arrays.asList(button.values).contains(button.fallback), button.key + "'s default is offered");
         }
-        check(config.padLayoutIs(Options.PAD_XBOX), "the third person buttons start as an Xbox controller's");
+        check(config.padLayoutIs(Options.PAD_LIKE_FIRST_PERSON), "the third person buttons start Like first person");
         check(Options.PAD_BUTTONS.length == Options.PAD_XBOX.length && Options.PAD_BUTTONS.length == Options.PAD_LIKE_FIRST_PERSON.length,
             "a control for each button in each layout");
         for (String[] layout : Options.PAD_PRESETS) {
@@ -153,23 +153,24 @@ final class PcSelfTest {
                 check(Options.PAD_NONE.equals(control) || seen.add(control), "a layout gives " + control + " one button");
             }
         }
-        Options.Choice moved = config.assignPadButton(Options.PAD_SQUARE, "right_grip");
-        check(moved == Options.PAD_R1, "the wrench to the right grip moves the crouch off it");
-        check("right_grip".equals(new PcConfig(paths).get(Options.PAD_SQUARE)) && "x".equals(new PcConfig(paths).get(Options.PAD_R1)),
-            "the two swapped, and kept: the crouch on X");
+        Options.Choice moved = config.assignPadButton(Options.PAD_SQUARE, "x");
+        check(moved == Options.PAD_SELECT, "the wrench to X moves the map off it");
+        check("x".equals(new PcConfig(paths).get(Options.PAD_SQUARE)) && "right_grip".equals(new PcConfig(paths).get(Options.PAD_SELECT)),
+            "the two swapped, and kept: the map on the right grip");
         check(config.assignPadButton(Options.PAD_L3, Options.PAD_NONE) == null, "Not used moves nothing");
         config.assignPadButton(Options.PAD_L3, "a");
         check(Options.PAD_NONE.equals(config.get(Options.PAD_CROSS)) && "a".equals(config.get(Options.PAD_L3)),
             "A to L3 leaves the jump with L3's none");
-        config.applyPadLayout(Options.PAD_LIKE_FIRST_PERSON);
+        config.applyPadLayout(Options.PAD_XBOX);
         Map<String, Object> written = config.modSettings(false);
-        check("right_trigger".equals(written.get("pad_circle")) && "right_grip".equals(written.get("pad_square"))
-            && "a".equals(written.get("pad_cross")), "Like first person: the trigger fires, the grip the wrench");
+        check("b".equals(written.get("pad_circle")) && "x".equals(written.get("pad_square"))
+            && "a".equals(written.get("pad_cross")), "Xbox controller: B fires, X the wrench");
+        check(new PcConfig(paths).padLayoutIs(Options.PAD_XBOX), "the Xbox layout chosen is kept");
         config.set(Options.PAD_CIRCLE, "a");  // two on one control, as a hand-edited file could have it
         check("a".equals(config.padLayout()[0]) && Options.PAD_NONE.equals(config.padLayout()[1]),
             "two buttons on one control: the first keeps it");
-        config.applyPadLayout(Options.PAD_XBOX);
-        check(config.padLayoutIs(Options.PAD_XBOX), "back to the Xbox layout");
+        config.applyPadLayout(Options.PAD_LIKE_FIRST_PERSON);
+        check(config.padLayoutIs(Options.PAD_LIKE_FIRST_PERSON), "back to Like first person");
     }
 
     private static void writeForGame(PcPaths paths) throws IOException {

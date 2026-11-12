@@ -10,8 +10,9 @@ APK's libdifficulty.so, libitem_randomizer.so, libammo_max.so, libxbox_icons.so,
 assets/mods; the PC release's mods folder)
   OpenRAC/rac1-mods. GPL-3.0-or-later. Copyright (c) 2026 the OpenRAC contributors.
   Built unchanged except multiplayer, which this project changed in November 2026 (patches/rac1-mods
-  in this release's source): it is set to version 0.12.2, the one on OpenRAC's mod list, and a VR
-  player's head and hands are sent to the others in a party.
+  in this release's source): it is set to version 0.12.2, the one on OpenRAC's mod list, a VR
+  player's head and hands are sent to the others in a party, and each player's game draws the
+  level's own water and scenery (the water the host's switches move kept at the host's height).
 
 The bundled mod RAC-Board (the APK's librac_board.so and assets/mods/rac-board; the PC release's
 mods/rac-board), github.com/mateuszklysz/RAC-Board

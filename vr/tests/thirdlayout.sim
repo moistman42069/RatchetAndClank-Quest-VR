@@ -1,6 +1,7 @@
 # 0.1.21: third person with Gamepad and the launcher's Third person buttons on "Like first person" (a tester: with the
-# Xbox layout the wrench was X, on the left controller, though the left hand walks), set in QUEST_SETTINGS (pad_cross ...
-# pad_l3) as the launcher writes them. "[vr-pad] third person buttons (the player's own): ..." says what was read. On
+# Xbox layout the wrench was X, on the left controller, though the left hand walks). Since 0.1.24 the default (another
+# tester: "Who is going to play with a xbox gamepad in combination with a Quest 3?"), so no pad_* key is set here: the
+# mod's own defaults (openrac-mod.json). "[vr-pad] third person buttons (like first person): ..." says what was read. On
 # Novalis's start: A jumps (Cross, hero state 0x7); the right grip swings the wrench (Square, 0x13), as in first person;
 # the left trigger crouches (R1, 0x4); X opens the map (Select); in the map the Xbox layout is back, the left stick's
 # click Select closing it. No Xbox mod: the hints' icons are painted, out of the menus each the control pressing its

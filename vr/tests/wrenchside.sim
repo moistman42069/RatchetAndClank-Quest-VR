@@ -1,0 +1,26 @@
+# 0.1.24: Wrench aim help from the side (a tester on 0.1.23: "It should activate on release. It should become more aggressive
+# overall, particularly when swinging the wrench from the side or at an angle"). As wrenchhelp.sim (Novalis's first crates,
+# QUEST_SIM_NEAR=500 QUEST_SIM_NEAR_AT=6,0.5,60 QUEST_WRENCH_TRACE=1, --level 1), the head facing the crates, but the stroke
+# goes across the body, right to left (35 cm in about 70 ms, 5 cm forward): a side swing let go at its end, the throw about
+# 80 degrees left of where the head looks. With Strong help (the start) or Very strong: "[vr-wrench] thrown at N m/s where
+# the hand threw ... aim help to class N (Strong, where the head looks)", the crate looked at "broken". With Light
+# (wrench_aim_help 1, 0.1.23's) or Off (wrench_aim_help 0): no help, the throw goes left.
+600 y 1
+606 y 0
+3250 right_grip 1
+3360 rh_x -0.07
+3360 rh_z -0.01
+3361 rh_x -0.14
+3361 rh_z -0.02
+3362 rh_x -0.21
+3362 rh_z -0.03
+3363 rh_x -0.28
+3363 rh_z -0.04
+3364 rh_x -0.35
+3364 rh_z -0.05
+3364 right_grip 0
+3420 rh_x 0
+3420 rh_z 0
+3700 right_grip 1
+3800 right_grip 0
+3900 quit 0

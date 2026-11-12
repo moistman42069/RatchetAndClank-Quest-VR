@@ -1,0 +1,25 @@
+# 0.1.24: Grab crates (Grab moves, on to start; a tester: "grab boxes and other environmental objects and throw them at
+# enemies ... half the damage of a normal wrench hit"). The Swingshot in the right hand (QUEST_SIM_GIVE=12 QUEST_SIM_HOLD=12),
+# Swingshot grabs enemies on (regress.sh GRAB), Ratchet put 6 units from Novalis's nearest crate facing it, half a unit up
+# (QUEST_SIM_NEAR=500 QUEST_SIM_NEAR_AT=6,0.5,60, as wrenchhelp.sim; --level 1). The trigger pulled: "[vr-grab] the hook out
+# to slot N class 50x ... a crate, on its side toward him", then "caught a crate: yanked in"; held, it hangs before the hand
+# (shot held: the hook on its side, the chain to it). A fast stroke forward with the trigger let go at its end throws it:
+# "[vr-grab] thrown", then "the crate broke where it landed". With grab_crates 0: no hook out to a crate.
+600 y 1
+606 y 0
+3250 right_trigger 1
+3256 shot hook-out
+3300 shot caught
+3400 shot held
+# The throw: 30 cm forward in six frames, the trigger let go at its end.
+3460 rh_z -0.05
+3461 rh_z -0.10
+3462 rh_z -0.15
+3463 rh_z -0.20
+3464 rh_z -0.25
+3465 rh_z -0.30
+3465 right_trigger 0
+3475 shot thrown
+3560 shot landed
+3600 rh_z 0
+3800 quit 0

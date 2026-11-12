@@ -1401,6 +1401,8 @@ void test_pad_layout() {
               && layout[kControlLeftTrigger] == kPadR1 && layout[kControlB] == kPadR2 && layout[kControlX] == kPadSelect
               && layout[kControlLeftClick] == kPadR3,
           "Like first person's layout");
+    // 0.1.24: the default (the mod's and the launcher's settings), named in the log by kLikeFirstPersonLayout.
+    check(layout == kLikeFirstPersonLayout, "Like first person's settings make kLikeFirstPersonLayout");
 
     // The Xbox controller's defaults, as the launcher writes them, are the layout kept to 0.1.20.
     std::array<int, 11> xbox{};

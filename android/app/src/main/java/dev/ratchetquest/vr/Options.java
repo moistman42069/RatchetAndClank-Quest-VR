@@ -116,9 +116,9 @@ abstract class Options {
         new String[] {"First person", "Third person"}, new String[] {"first", "third"}, "first");
     static final Choice THIRD_PERSON_CONTROLS = new Choice("third_person_controls", "Third person controls",
         "Gamepad: in third person your controllers are a gamepad, as in Play in 2D, each button doing what Third person "
-            + "buttons (below) gives it; to start an Xbox controller's layout: A jump, B fire, X wrench, Y quick select, "
-            + "the right grip and trigger crouch, the left grip and trigger look, the left stick click the map. The menu "
-            + "button pauses. In the menus the controllers keep the Xbox layout, A or the trigger choosing. The headset's "
+            + "buttons (below) gives it; to start Like first person's layout: the right trigger fires, the right grip is "
+            + "the wrench, A jumps, the right stick click quick select, the left trigger crouches, X the map (Xbox "
+            + "controller there gives a real gamepad's layout). The menu button pauses. In the menus the controllers keep the Xbox layout, A or the trigger choosing. The headset's "
             + "own recentre (hold its Meta button) recentres. VR: third person keeps first person's VR controls. First "
             + "person always has its VR controls.",
         new String[] {"Gamepad", "VR"}, new String[] {"gamepad", "vr"}, "gamepad");
@@ -150,39 +150,47 @@ abstract class Options {
         return new Choice(key, label, "", PAD_CONTROL_NAMES, PAD_CONTROLS, fallback);
     }
 
+    // To start Like first person (0.1.24, a tester: "The Third person buttons should be set to 'like first person' by
+    // default ... Who is going to play with a xbox gamepad in combination with a Quest 3?"); 0.1.21 to 0.1.23 started as
+    // an Xbox controller. A change of one button (assignPadButton) or a layout (applyPadLayout) keeps all eleven, so a
+    // player who chose a layout keeps it, and one who never did starts Like first person.
     static final Choice PAD_CROSS = padButton("pad_cross", "Jump (Cross)", "a");
-    static final Choice PAD_CIRCLE = padButton("pad_circle", "Fire (Circle)", "b");
-    static final Choice PAD_SQUARE = padButton("pad_square", "Wrench (Square)", "x");
-    static final Choice PAD_TRIANGLE = padButton("pad_triangle", "Quick select, talk (Triangle)", "y");
-    static final Choice PAD_R1 = padButton("pad_r1", "Crouch (R1)", "right_grip");
-    static final Choice PAD_R2 = padButton("pad_r2", "Crouch, its second button (R2)", "right_trigger");
+    static final Choice PAD_CIRCLE = padButton("pad_circle", "Fire (Circle)", "right_trigger");
+    static final Choice PAD_SQUARE = padButton("pad_square", "Wrench (Square)", "right_grip");
+    static final Choice PAD_TRIANGLE = padButton("pad_triangle", "Quick select, talk (Triangle)", "right_stick");
+    static final Choice PAD_R1 = padButton("pad_r1", "Crouch (R1)", "left_trigger");
+    static final Choice PAD_R2 = padButton("pad_r2", "Crouch, its second button (R2)", "b");
     static final Choice PAD_L1 = padButton("pad_l1", "Look (L1)", "left_grip");
-    static final Choice PAD_L2 = padButton("pad_l2", "Look, its second button (L2)", "left_trigger");
-    static final Choice PAD_SELECT = padButton("pad_select", "Map (Select)", "left_stick");
-    static final Choice PAD_R3 = padButton("pad_r3", "Map, its second button (R3)", "right_stick");
+    static final Choice PAD_L2 = padButton("pad_l2", "Look, its second button (L2)", "y");
+    static final Choice PAD_SELECT = padButton("pad_select", "Map (Select)", "x");
+    static final Choice PAD_R3 = padButton("pad_r3", "Map, its second button (R3)", "left_stick");
     static final Choice PAD_L3 = padButton("pad_l3", "L3 (nothing in the game; for mods)", PAD_NONE);
     /** The game's buttons a control can be given, in the order the mod's settings and the launcher's rows take them. */
     static final Choice[] PAD_BUTTONS = {PAD_CROSS, PAD_CIRCLE, PAD_SQUARE, PAD_TRIANGLE, PAD_R1, PAD_R2, PAD_L1, PAD_L2,
         PAD_SELECT, PAD_R3, PAD_L3};
 
-    /** An Xbox controller's layout, OpenRAC's own pad defaults (0.1.19 and 0.1.20's only one): the default. */
+    /** An Xbox controller's layout, OpenRAC's own pad defaults (0.1.19 and 0.1.20's only one, the default to 0.1.23). */
     static final String[] PAD_XBOX = {"a", "b", "x", "y", "right_grip", "right_trigger", "left_grip", "left_trigger",
         "left_stick", "right_stick", PAD_NONE};
-    /** First person's VR controls as near as a gamepad has them: the right trigger fires, the right grip is the wrench. */
+    /**
+     * First person's VR controls as near as a gamepad has them: the right trigger fires, the right grip is the wrench.
+     * The default from 0.1.24 (the PAD_ buttons' fallbacks).
+     */
     static final String[] PAD_LIKE_FIRST_PERSON = {"a", "right_trigger", "right_grip", "right_stick", "left_trigger", "b",
         "left_grip", "y", "x", "left_stick", PAD_NONE};
-    static final String[] PAD_PRESET_NAMES = {"Xbox controller", "Like first person"};
-    static final String[][] PAD_PRESETS = {PAD_XBOX, PAD_LIKE_FIRST_PERSON};
+    static final String[] PAD_PRESET_NAMES = {"Like first person", "Xbox controller"};
+    static final String[][] PAD_PRESETS = {PAD_LIKE_FIRST_PERSON, PAD_XBOX};
 
     static final String PAD_TITLE = "Third person buttons";
     static final String PAD_HELP = "What each button does where your controllers are a gamepad: in third person with "
         + "Third person controls on Gamepad, and in Play in 2D. Pick an action, then the button for it. If another "
-        + "action had that button, the two swap, so no button ever does two things and nothing is lost. Xbox "
-        + "controller is the layout to start: X the wrench, Y quick select. Like first person: the right trigger fires, "
-        + "the right grip is the wrench, the right stick click quick select, the left trigger crouches, B crouches too, X "
-        + "the map. The menu button always pauses (held, it switches the view). In the menus the Xbox layout stays, A "
-        + "or the trigger choosing. The game's hints show the buttons you chose. The game gives crouch, look and the map "
-        + "two buttons each; RAC-Board's board tells them apart (to start R1 spins and flips, R2 grinds, L1 grabs).";
+        + "action had that button, the two swap, so no button ever does two things and nothing is lost. Like first "
+        + "person is the layout to start: the right trigger fires, the right grip is the wrench, the right stick click "
+        + "quick select, the left trigger crouches, B crouches too, X the map. Xbox controller: B fires, X the wrench, Y "
+        + "quick select, as on a real gamepad. The menu button always pauses (held, it switches the view). In the menus "
+        + "the Xbox layout stays, A or the trigger choosing. The game's hints show the buttons you chose. The game gives "
+        + "crouch, look and the map two buttons each; RAC-Board's board tells them apart (R1 spins and flips, R2 grinds, "
+        + "L1 grabs).";
 
     /** A control's name as the rows show it. */
     static String padControlName(String control) {

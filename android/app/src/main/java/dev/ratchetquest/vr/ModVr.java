@@ -38,7 +38,7 @@ final class ModVr {
         }
         if ("multiplayer".equals(id)) {
             return "In VR: play with flat players and VR players alike, hosting or joining (the Multiplayer item in the "
-                + "title's menu, under Load Game). Everyone on Ratchet Quest VR 0.1.19 to 0.1.23, on a Quest or on PC, "
+                + "title's menu, under Load Game). Everyone on Ratchet Quest VR 0.1.19 to 0.1.24, on a Quest or on PC, "
                 + "sees each other's games in Browse games. A game takes only players whose games match the host's: the same "
                 + "Multiplayer (0.12.2), and Difficulty, Item randomizer, Ammo at the most and RAC-Board on or off for "
                 + "everyone alike, so 0.1.18 cannot play with 0.1.19 or later. Your wrench swings, punches and aimed guns, "
@@ -49,7 +49,8 @@ final class ModVr {
                 + "catches enemies when you join too, the host's game moving them as your hand does. Players on 0.1.23 "
                 + "or later also show their fingers and their height as they move (crouching, Feet on the floor, World "
                 + "scale), and with a host on 0.1.23 or later a bolt you turn when you join turns the host's too, so "
-                + "what it opens opens for everyone. With a host on "
+                + "what it opens opens for everyone. On 0.1.24 or later your game draws its own water, seas, lava, fire "
+                + "and smoke when you join, whoever hosts (the water the host's switches move follows the host's). With a host on "
                 + "another build, no VR bodies are shown and the Swingshot does not catch enemies when you join. A cheat "
                 + "counts only if the host plays in VR with it on too. It goes online only when you choose Multiplayer "
                 + "there.";

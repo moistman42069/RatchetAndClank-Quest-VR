@@ -1,0 +1,16 @@
+# Akimbo's Visibomb (0.1.24's left-hand audit): the Blaster in the right hand, the Visibomb in the left (QUEST_SIM_LEFT=13).
+# The left trigger fires it, and it flies as the right hand's does (visibomb.sim): "[vr-missile] the picture on the
+# weapon's screen" at the launch and off after the blast; the flying shot shows the left gun with the missile's green
+# view on its screen, reading the right way round (Mirror left-hand guns on), the eyes in the level's own sky and fog
+# (before: flat cyan, no picture on the gun); the stick steers it.
+600 y 1
+606 y 0
+3000 shot aiming
+3050 left_trigger 1
+3070 left_trigger 0
+3200 shot flying
+3220 left_x 0.7
+3400 shot steering
+3420 left_x 0
+3800 shot after
+3900 quit 0

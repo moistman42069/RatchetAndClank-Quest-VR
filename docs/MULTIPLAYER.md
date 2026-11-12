@@ -14,6 +14,7 @@ from a VR host plays as a flat player's member would, and a flat game never sees
 |---|---|---|
 | `patches/rac1-mods/0001-multiplayer-0.12.2.patch` | Multiplayer's version back to 0.12.2 (manifest, HELLO, `OPENRAC_MOD_CPP`, README); keeps 0.12.3's one change, the verbose log (`mp-trace.log`) in the mod's data folder | A party needs the same Multiplayer version in every game. The pinned openrac-mods commit says 0.12.3 (unreleased); OpenRAC's mod list, which PC players get, gives 0.12.2. On a Quest the working folder is `/`, where the log could not open |
 | `patches/rac1-mods/0002-player-extra.patch` | A DATA kind for each player's word on itself, `kind::kPlayerExtra` = 84; a member sends its word with every other pose, the host puts its own and its members' after the poses in its POSES datagrams | The VR mod's word (below) reaches the other games. Kind 84 is unowned upstream, so a plain game drops it unread |
+| `patches/rac1-mods/0003-scenery-and-water.patch` (0.1.24) | `world.hpp`'s `scenery_class` (the level's water, seas, lava, fire and smoke, reflections and their effects, read class by class from rac1-decomp's updates) joins `local_class`: every game runs its own, the host sends none, a member skips a host's poses for them. `water_follow_class` (Rilgar's, Hoven's, Pokitaru's, Umbris's plates): a member runs its update and puts it at the host's height, and `Game::water_follows` (`game_adapter.cpp`'s `kWaterDiscs`, both discs) puts the level's water patches there with the level's own code. **Show copies** (`world_show.cpp`): a host on this build tells a member on this build, on the same disc, of each moby its enemies' updates make (shots, blasts, debris: the moby and its pvars), behind the entries of a WORLD that has room; the member makes its own copy, which flies and bursts there but hits nothing (the host's game hits). **Orders**: scenery a level event gives an order to (`order_class`, Hoven's reservoir) gets the host's command, so it drains or fills as the host's does. Tests in `play_world_test.cpp` | Every animated surface is drawn by a callback its owner's update registers each tick. A member drove those owners, so it saw no water, seas or lava (a tester's report on 0.1.23). Enemy shots and blasts are made by updates that run only in the host's game, so a member saw an enemy aim and then only its own health drop. The version and digest do not change; the show copies go only between two games of this build (the member says so after its HELLO's digest, where a plain host reads no further) |
 | `patches/0001-quest-vr-frame-path.patch` (the port, `third_party/OpenRAC`) | `party_role`, `moby_hit_as_game`, `player_extra_publish/read/deliver`, `on_player_extra`, `figure_arms`, `figure_hand_moby` (the "Quest fork's" entries at the end of `openrac_api`, `sdk/include/openrac/openrac_mod.h`); `on_moby_hit` taking several mods (`port/game/common/mod_play.cpp`, `tell_hit_watchers`) | The game-side half: which a game is to the party, a member's wrench and fist hits going to the host, passing words between mods, drawing a figure's VR arms and held item. Several hit watchers so RAC-Board and Multiplayer load together (each takes hits on different mobys) |
 | `vr/src/quest_vr.cpp` | The VR mod's side, below | |
 
@@ -79,18 +80,37 @@ append its block after the last one. Never change or reorder an existing block. 
 
 | Host | Member | What the member gets |
 |---|---|---|
-| Quest 0.1.23 | Quest 0.1.23 | Everything: bodies with fingers, Swingshot catches, bolt turns, the party wheel, the host's cheats |
-| Quest 0.1.23 | Quest 0.1.19 to 0.1.22 | Bodies (no fingers, its own height cap), catches, cheats. The newer host reads the older word |
-| Quest 0.1.19 to 0.1.22 | Quest 0.1.23 | Bodies, catches, cheats; a bolt turned here turns only this game's bolt (the log says so) |
+| Quest 0.1.23 or later | Quest 0.1.23 or later | Everything: bodies with fingers, Swingshot catches, bolt turns, the party wheel, the host's cheats; a member on 0.1.24 or later also draws its own water and scenery, and with the host on 0.1.24 or later too (the same disc) sees what the host's enemies shoot and blow up into, and Hoven's reservoir drains as the host's |
+| Quest 0.1.23 or later | Quest 0.1.19 to 0.1.22 | Bodies (no fingers, its own height cap), catches, cheats; no water. The newer host reads the older word |
+| Quest 0.1.19 to 0.1.22 | Quest 0.1.23 or later | Bodies, catches, cheats; a bolt turned here turns only this game's bolt (the log says so); water and scenery with the member on 0.1.24 or later |
 | Quest 0.1.18 or older | any Quest | Not checked: its Multiplayer may not even match |
-| Flat (OpenRAC on a PC, no VR mod) | Quest | Wrench, fists and guns as always; no Swingshot catches of enemies; the wheel slows only this player; no cheats. Turned off by itself: the VR mod hears no rules |
+| Flat (OpenRAC on a PC, no VR mod) | Quest | Wrench, fists and guns as always; no Swingshot catches of enemies; the wheel slows only this player; no cheats. Turned off by itself: the VR mod hears no rules. Water and scenery with the member on 0.1.24 or later |
 | Quest | Flat | The flat player plays as always and sees ordinary figures; the Quest players' words are dropped unread |
 
 Every game needs the same Multiplayer version (0.12.2 now) and the same party digest, or Multiplayer marks the party
 "(differs)" in Browse and its host's game does not take the player. The digest is the mods that change the game, by
 id and version (RAC-Board, Difficulty, Item randomizer and the like): every player turns on the same ones. The VR
 mod's manifest says `"multiplayer": "input"`, so it does not count, and VR and flat games share parties. The Quest's
-patched Multiplayer and a PC's plain one share parties too: patch 0002 changes neither the version nor the digest.
+patched Multiplayer and a PC's plain one share parties too: patches 0002 and 0003 change neither the version nor the
+digest.
+
+**Water and scenery (patch 0003, 0.1.24).** A member on 0.1.24 draws its own water, seas, lava and effects under any
+host. A member on 0.1.23 or older, or a plain PC Multiplayer, still drives them and sees none, whatever the host.
+
+**Show copies and orders (patch 0003, 0.1.24).** With the host and the member both on 0.1.24 or later, on the same disc
+(PAL with PAL, NTSC-U with NTSC-U), what the host's enemies shoot, the blasts they go up in and what flies off them
+show in the member's game as copies that fly, trail and burst there; only the host's game hits, as before. Hoven's
+reservoir (384), drained or filled by the host's switches, follows the host's: the host tells the member its command
+when it changes and every 2 seconds, and the member's own reservoir drains or fills the game's way. A member says it
+takes them after its HELLO's digest, where any other host reads no further, and only such a member's WORLD carries
+them, after what any other member reads, so nothing changes with any other game. What still shows only in the host's
+game: what an enemy, a barrier or a hazard draws itself without making a moby (its update runs only there), and a
+moby the host makes outside an enemy's update (by the host's hero or a mod). After the host's own level is made again
+(the host's death), the level's moby array or spawned pvars may lie elsewhere than in the member's game, so the host
+says `takes show copies, but of another disc or build: none` at that member's next HELLO and sends it none until the
+member enters a level again: a copy's pvars may hold raw pointers into the level's allocations, so this stays strict.
+Tried between two PC games on this PC (logs/look-0124/party.py): the blasts of Novalis's critters and a Gemlik turret's
+shots in the member's game.
 
 ## When upstream Multiplayer updates
 
@@ -105,6 +125,15 @@ patched Multiplayer and a PC's plain one share parties too: patch 0002 changes n
    hear new ones (they play as with a flat host), so say so in the release notes.
 4. **Upstream adds its own per-player channel for mods.** Drop 0002 and point `game_adapter`'s `player_extra` and
    `player_extra_deliver` at it. The VR mod does not change: it only talks to the port.
+4a. **Re-apply 0003** the same way. Its changes sit in marked `QUEST-VR` blocks: blocks and one line of `local_class`
+   in `world.hpp`, marked places in `world.cpp`, `world_gate.cpp`, `world_handle.cpp`, `world_host.cpp` and
+   `world_member.cpp`, virtuals at the end of `coop.hpp`'s `Game`, functions at the end of `game_adapter.cpp` (and the
+   show region beside `progress_disc` in `game_adapter.hpp`, kept apart from what 0002 changes), `world_show.cpp` in
+   `CMakeLists.txt`, the new `world_show.cpp`, and tests. Regenerate it against the pin with 0001 and 0002 applied (a
+   throwaway index: `read-tree HEAD`, `apply --cached` 0001 and 0002, `add -N` the new file, `git diff`), keeping the note
+   at its top, then check each patch with `git apply --reverse --check` on the working tree (what `build_quest.py`
+   checks). If upstream grows its own list of each game's scenery, keep only the classes it misses. A class to add to
+   either list, or an order class, needs only `world.hpp`; run `play_world_test` after.
 5. **Upstream changes how hits or the host's world work.** The pieces to check are `moby_hit_as_game` (a member's
    hit going to the host) and Multiplayer's `on_moby_hit` taking hits on figures and driven mobys. If upstream makes
    bolts or other interactions shared, `party_crank_host_tick` can go: delete the Crank flag's use, keep its number

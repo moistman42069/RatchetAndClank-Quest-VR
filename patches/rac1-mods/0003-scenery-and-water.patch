@@ -1,0 +1,2482 @@
+Ratchet Quest VR: SCENERY AND WATER, every player's game draws its own water, seas, lava and effects; and SHOW COPIES,
+what the host's enemies shoot and blow up into, and the orders level events give to scenery, shown in a member's game.
+
+RAC1 draws each animated surface (water, seas, lava, fire and smoke, reflections) through a callback
+its owner's update registers every tick, and the particles of a level's emitters come from theirs
+(OpenRAC's docs/engine/systems/WORLD_ANIMATION.md). Multiplayer's member drove every placed moby
+that runs an update, so those updates never ran there: a member saw no water on Novalis, no seas,
+no lava, while the host's game drew all of it. This puts those owners in local_class (world.hpp
+scenery_class, read class by class from rac1-decomp's updates): every game runs its own, a host
+with this patch sends none of them, and a member skips a host's poses for them, so a host without
+it is no different.
+
+Water whose height the level's switches and floods move (world.hpp water_follow_class: Rilgar's,
+Hoven's, Pokitaru's, Umbris's plates) is no longer driven either: a member runs its update, which
+draws it, and puts it at the host's pose as before; when that height changes, the new
+Game::water_follows calls the level's own code that puts the water patches and their collision
+at the moby's height (game_adapter.cpp kWaterDiscs, both discs).
+
+Show copies (world_show.cpp; world.hpp's "show copies" block says how): what the host's enemies
+shoot, the blasts they go up in and what flies off them are mobys their updates make, not
+creatures, so a member saw an enemy aim and then only its own health drop. A host with this patch
+tells a member with it, on the same disc, of each one (the moby and its pvars), behind the entries
+of a WORLD that has room; the member makes its own copy, which flies and bursts there while the
+host's game alone hits, as before. Orders: scenery a level event gives an order to (its command
+byte; world.hpp order_class, Hoven's reservoir) follows the host's, the member writing the order
+that brings its own there. Only between two games of this build: the member says so after its
+HELLO's digest (`'Q' 'V' version disc layout`), which a plain host does not read, and only such a
+member's WORLD carries the tail, after what decode_world reads. Multiplayer's version and party
+digest are unchanged, and nothing changes between this build and any other game.
+
+Upkeep: the patch touches world.hpp (its QUEST-VR blocks, one line of local_class and World's
+show members), world.cpp, world_gate.cpp, world_handle.cpp, world_host.cpp and world_member.cpp
+(marked places), coop.hpp (virtuals at the end of Game), game_adapter (functions at the end, and
+the show region beside progress_disc, apart from what patch 0002 changes), CMakeLists.txt
+(world_show.cpp) and the new world_show.cpp. If upstream grows its own list of each game's
+scenery, drop scenery_class and keep only what it misses; if upstream renames local_class, put
+scenery_class in its replacement. A class added to either list, or an order_class, needs only
+world.hpp. Its tests are tests/play_world_test.cpp scenery_and_water_are_each_games, the show
+copies' tests and a_members_reservoir_drains_as_the_hosts (FakeGame in tests/test_support.hpp).
+docs/MULTIPLAYER.md lists what each patch is for and what still shows only in the host's game.
+
+diff --git a/multiplayer/CMakeLists.txt b/multiplayer/CMakeLists.txt
+index 4239772..3e83fd9 100644
+--- a/multiplayer/CMakeLists.txt
++++ b/multiplayer/CMakeLists.txt
+@@ -18,7 +18,8 @@ endif()
+ set(MULTIPLAYER_COOP_SOURCES src/coop.cpp src/coop_travel.cpp src/coop_figures.cpp src/coop_shots.cpp src/nametags.cpp
+                              src/coop_join.cpp src/coop_leave.cpp src/coop_wait.cpp src/cosave.cpp)
+ set(MULTIPLAYER_WORLD_SOURCES src/world.cpp src/world_pickups.cpp src/world_host.cpp src/world_member.cpp
+-                              src/world_handle.cpp src/world_gate.cpp src/world_hold.cpp)
++                              src/world_handle.cpp src/world_gate.cpp src/world_hold.cpp
++                              src/world_show.cpp)  # QUEST-VR: show copies
+ 
+ # The play test's files: main and one file of tests per area, sharing tests/test_support.hpp.
+ set(MULTIPLAYER_PLAY_TESTS tests/play_test.cpp tests/play_poses_test.cpp tests/play_coop_test.cpp
+diff --git a/multiplayer/src/coop.hpp b/multiplayer/src/coop.hpp
+index 6922596..ddac9c6 100644
+--- a/multiplayer/src/coop.hpp
++++ b/multiplayer/src/coop.hpp
+@@ -406,6 +406,46 @@ constexpr int kCardRedirect = 2;
+ constexpr int kRunNone = -1;
+ constexpr int kRunFar = 0;
+ 
++// --- QUEST-VR: show copies ---
++/* A spawned moby as its game has it, for a copy of it in another game (world.hpp's show copies): its class and pose
++ * (place, angles, animation), the bytes of it past those that its maker's update sets (kShowSpans, one after the
++ * other, as the game's memory has them), its 0x80 bytes of pvars, and the words of those that point at a moby: a
++ * word of the pvars (kShowParent: the moby's parent, +0xB8), at the moby in `slot` there (or its pvars), `offset`
++ * into it. Only games of one build on one disc trade them, so the bytes mean the same in both. */
++constexpr std::size_t kShowVars = 0x80;
++
++struct ShowSpan {
++    std::uint8_t at;
++    std::uint8_t size;
++};
++
++/* The state byte, alpha; scale, the distances it is updated and drawn within, its drawn byte, flags, occlusion bits
++ * and colour; 8 bytes the game leaves unnamed; its animation's flags; its shadow's range, its record's colour, its
++ * height bounds and glow; the collision it has off; its parent, command and the byte after; its matrix. */
++constexpr ShowSpan kShowSpans[] = {{0x20, 1},    {0x23, 1}, {0x2C, 0x14}, {0x5C, 8},   {0x70, 1},
++                                   {0x7F, 0x11}, {0x98, 4}, {0xB8, 6},    {0xC0, 0x30}};
++constexpr std::size_t kShowBody = 106;
++constexpr std::uint8_t kShowParent = 0xFF;
++/* Game::show_make's word for a pointer at the copy itself. */
++constexpr int kShowSelf = -2;
++
++struct ShowMoby {
++    int oclass = 0;
++    Pose pose;
++    std::uint8_t body[kShowBody] = {};
++    std::uint8_t vars[kShowVars] = {};
++
++    struct Pointer {
++        std::uint8_t word = 0;
++        int slot = -1;
++        std::uint8_t offset = 0;
++        bool vars = false;
++    };
++
++    std::vector<Pointer> pointers;
++};
++// --- end QUEST-VR ---
++
+ /* What the co-op needs of the game: the SDK's play calls (multiplayer.cpp), or a test's. */
+ class Game {
+ public:
+@@ -569,6 +609,34 @@ public:
+     // --- end WP-CODES ---
+     // --- WP-MIGRATE ---
+     // --- end WP-MIGRATE ---
++    // --- QUEST-VR: water ---
++    /* Water moby `slot` (class `oclass`, world.hpp's water_follow_class) was just put at the host's height: the
++     * level's own water patches and their collision follow it, as the level's code does when its update moves it.
++     * False when this game has nothing for that class. */
++    virtual bool water_follows(int /*slot*/, int /*oclass*/) { return false; }
++    // --- end QUEST-VR ---
++    // --- QUEST-VR: show copies ---
++    /* Which disc this game plays (1 PAL, 2 NTSC; 0: no show copies here) and where its data lies (two games whose
++     * pointers mean the same give the same word). */
++    virtual int show_disc() { return 0; }
++    virtual std::uint32_t show_layout() { return 0; }
++    /* The game's tick count (world_update_time), and the first spawned slot at or after `from` that CreateMoby would
++     * take now (free, its wait over; -1 none); a spawned slot's state byte (below 0xFE a moby, 0xFF the last one
++     * free; -1: no spawned slot). */
++    virtual std::uint32_t spawn_time() { return 0; }
++    virtual int spawn_slot_free(int /*from*/) { return -1; }
++    virtual int spawn_slot_state(int /*slot*/) { return -1; }
++    /* A spawned moby as this game has it (false: none at the slot). */
++    virtual bool show_read(int /*slot*/, ShowMoby& /*out*/) { return false; }
++    /* A copy made here that runs its own update: its pointer words at this game's mobys (`to` the slot here of each,
++     * by its index in `moby.pointers`; kShowSelf the copy itself, below that none: the word is 0). Its slot, -1
++     * when none was made. */
++    virtual int show_make(const ShowMoby& /*moby*/, const std::vector<int>& /*to*/) { return -1; }
++    /* Orders (world.hpp's order_class): a moby's state and command bytes as (state << 8) | command (-1: none at the
++     * slot), and a command written into it for its own update to act on. */
++    virtual int order_read(int /*slot*/) { return -1; }
++    virtual void order_give(int /*slot*/, int /*command*/) {}
++    // --- end QUEST-VR ---
+ };
+ 
+ /* A remote player as the co-op keeps it: its poses and its figure. */
+diff --git a/multiplayer/src/game_adapter.cpp b/multiplayer/src/game_adapter.cpp
+index 213d152..5f7f5f1 100644
+--- a/multiplayer/src/game_adapter.cpp
++++ b/multiplayer/src/game_adapter.cpp
+@@ -12,6 +12,9 @@
+ #include <cstdint>
+ #include <ctime>
+ 
++#include <cstring>      // QUEST-VR: show copies (apart from the includes above, which patch 0002 changes)
++#include <string_view>  // QUEST-VR: show copies
++
+ namespace mpmod {
+ 
+ /* Where each disc keeps the progress a party shares (progress.hpp; rac1-decomp's names, the US
+@@ -761,4 +764,343 @@ void ModGame::read_bytes(const openrac::Memory& memory, openrac::gaddr at, std::
+     }
+ }
+ 
++// --- QUEST-VR: water ---
++/* Each disc's moby array (a word: the array's address, 0x100 a moby) and the level code that puts a level's water
++ * patches, and their collision, at its water moby's height, as its update does when it moves it (rac1-decomp's
++ * names, the US addresses from OpenRAC's versionmap): Rilgar's (level 5, class 831), Pokitaru's (level 11, 1158)
++ * and its copy in Hoven (level 12, 19). Each takes the water moby. */
++struct WaterDisc {
++    const char* version;
++    openrac::gaddr moby_array;
++    openrac::gaddr rilgar;
++    openrac::gaddr pokitaru;
++    openrac::gaddr hoven;
++};
++
++constexpr WaterDisc kWaterDiscs[] = {
++    {"pal", 0x00160018u, 0x0030EA88u, 0x0030FB58u, 0x002C08A0u},
++    {"ntsc", 0x0015FF18u, 0x0030D5C0u, 0x0030E690u, 0x002BF6D0u},
++};
++
++bool ModGame::water_follows(int slot, int oclass) {
++    const WaterDisc* disc = nullptr;
++
++    for (const WaterDisc& d : kWaterDiscs) {
++        if (mod_.version() == d.version) {
++            disc = &d;
++        }
++    }
++
++    const int level = mod_.play_status().level;
++    const openrac::gaddr sync = oclass == 831 && level == 5      ? (disc ? disc->rilgar : 0u)
++                                : oclass == 1158 && level == 11 ? (disc ? disc->pokitaru : 0u)
++                                : oclass == 19 && level == 12   ? (disc ? disc->hoven : 0u)
++                                                                 : 0u;
++    const auto fn = reinterpret_cast<void (*)(openrac::gaddr)>(sync != 0 ? mod_.api().function_at(sync) : nullptr);
++
++    if (fn == nullptr || slot < 0) {
++        return false;
++    }
++
++    const openrac::gaddr moby = mod_.memory().read<openrac::gaddr>(mod_.relocate(disc->moby_array))
++                                + static_cast<openrac::gaddr>(slot) * 0x100u;
++
++    // Only the moby this slot names now (a level load may have moved the array).
++    if (mod_.moby_slot_of(moby) != slot) {
++        return false;
++    }
++
++    fn(moby);
++    return true;
++}
++// --- end QUEST-VR ---
++
++// --- QUEST-VR: show copies ---
++/* Each disc's moby globals (rac1-decomp's names; the US addresses from OpenRAC's versionmap): the moby array
++ * (resident_object_pool, 0x100 a moby), the first spawned slot and the end of them (moby_instance_end,
++ * moby_instance_perm_end), the spawned slots' pvars (g_moby_vars, 0x80 each, as CreateMoby gives them) and the tick
++ * count (world_update_time, what a deleted slot waits for). */
++struct ShowDisc {
++    const char* version;
++    int disc;
++    openrac::gaddr array;
++    openrac::gaddr instance_end;
++    openrac::gaddr perm_end;
++    openrac::gaddr vars;
++    openrac::gaddr update_time;
++};
++
++constexpr ShowDisc kShowDiscs[] = {
++    {"pal", 1, 0x00160018u, 0x0016001Cu, 0x00160020u, 0x00160028u, 0x0015F6F0u},
++    {"ntsc", 2, 0x0015FF18u, 0x0015FF1Cu, 0x0015FF20u, 0x0015FF28u, 0x0015F60Cu},
++};
++
++namespace {
++
++/* The moby's fields this reads (rac1-decomp's moby.h), and the game's memory (none of it past 32 MB). */
++constexpr openrac::gaddr kMobyBytes = 0x100;
++constexpr openrac::gaddr kMobyPos = 0x10;
++constexpr openrac::gaddr kMobyState = 0x20;
++constexpr openrac::gaddr kMobyScale = 0x2C;
++constexpr openrac::gaddr kMobySpawnFrame = 0x38;
++constexpr openrac::gaddr kMobyRot = 0x40;
++constexpr openrac::gaddr kMobyFrame = 0x50;
++constexpr openrac::gaddr kMobySeq = 0x52;
++constexpr openrac::gaddr kMobyAnimTime = 0x54;
++constexpr openrac::gaddr kMobyAnimSpeed = 0x58;
++constexpr openrac::gaddr kMobyPvars = 0x78;
++constexpr openrac::gaddr kMobyClass = 0xA6;
++constexpr openrac::gaddr kMobyParent = 0xB8;
++constexpr openrac::gaddr kShowMemory = 0x02000000u;
++
++const ShowDisc* show_disc_of(std::string_view version) {
++    for (const ShowDisc& d : kShowDiscs) {
++        if (version == d.version) {
++            return &d;
++        }
++    }
++
++    return nullptr;
++}
++
++}  // namespace
++
++bool ModGame::show_region(ShowRegion& out) const {
++    const ShowDisc* d = show_disc_of(mod_.version());
++
++    if (d == nullptr || !mod_.has_world()) {
++        return false;
++    }
++
++    const openrac::Memory memory = mod_.memory();
++    const auto array = memory.read<openrac::gaddr>(mod_.relocate(d->array));
++    const auto first = memory.read<openrac::gaddr>(mod_.relocate(d->instance_end));
++    const auto end = memory.read<openrac::gaddr>(mod_.relocate(d->perm_end));
++
++    if (array == 0 || first < array || end <= first || end > kShowMemory || (first - array) % kMobyBytes != 0) {
++        return false;
++    }
++
++    out.array = array;
++    out.first = static_cast<int>((first - array) / kMobyBytes);
++    out.end = static_cast<int>((end - array + kMobyBytes - 1) / kMobyBytes);
++    out.vars = memory.read<openrac::gaddr>(mod_.relocate(d->vars));
++    return out.vars < kShowMemory;
++}
++
++int ModGame::show_disc() {
++    const ShowDisc* d = show_disc_of(mod_.version());
++    ShowRegion region;
++    return d != nullptr && show_region(region) ? d->disc : 0;
++}
++
++std::uint32_t ModGame::show_layout() {
++    const ShowDisc* d = show_disc_of(mod_.version());
++    ShowRegion region;
++
++    if (d == nullptr || !show_region(region)) {
++        return 0;
++    }
++
++    // Where this build keeps the array's word, and where the level put the array and the spawned pvars.
++    std::uint32_t layout = mod_.relocate(d->array);
++    layout = layout * 31u + region.array;
++    layout = layout * 31u + region.vars;
++    return layout != 0 ? layout : 1u;
++}
++
++std::uint32_t ModGame::spawn_time() {
++    const ShowDisc* d = show_disc_of(mod_.version());
++    return d != nullptr ? mod_.memory().read<std::uint32_t>(mod_.relocate(d->update_time)) : 0u;
++}
++
++int ModGame::spawn_slot_free(int from) {
++    ShowRegion region;
++
++    if (!show_region(region)) {
++        return -1;
++    }
++
++    const openrac::Memory memory = mod_.memory();
++    const std::uint64_t now = spawn_time();
++
++    // CreateMoby's own test: dead, and its wait over.
++    for (int slot = std::max(from, region.first); slot < region.end; ++slot) {
++        const openrac::gaddr moby = region.array + static_cast<openrac::gaddr>(slot) * kMobyBytes;
++
++        if (memory.read<std::uint8_t>(moby + kMobyState) >= 0xFE
++            && now >= memory.read<std::uint64_t>(moby + kMobySpawnFrame)) {
++            return slot;
++        }
++    }
++
++    return -1;
++}
++
++int ModGame::spawn_slot_state(int slot) {
++    ShowRegion region;
++
++    if (!show_region(region) || slot < region.first || slot >= region.end) {
++        return -1;
++    }
++
++    return mod_.memory().read<std::uint8_t>(region.array + static_cast<openrac::gaddr>(slot) * kMobyBytes + kMobyState);
++}
++
++bool ModGame::show_read(int slot, mp::ShowMoby& out) {
++    ShowRegion region;
++
++    if (!show_region(region) || slot < 0 || slot >= region.end) {
++        return false;
++    }
++
++    const openrac::Memory memory = mod_.memory();
++    const openrac::gaddr moby = region.array + static_cast<openrac::gaddr>(slot) * kMobyBytes;
++
++    if (memory.read<std::uint8_t>(moby + kMobyState) >= 0xFE) {
++        return false;
++    }
++
++    out = mp::ShowMoby{};
++    out.oclass = memory.read<std::int16_t>(moby + kMobyClass);
++
++    for (openrac::gaddr i = 0; i < 3; ++i) {
++        out.pose.position[i] = memory.read<float>(moby + kMobyPos + 4 * i);
++        out.pose.rotation[i] = memory.read<float>(moby + kMobyRot + 4 * i);
++    }
++
++    out.pose.scale = memory.read<float>(moby + kMobyScale);
++    out.pose.seq = memory.read<std::uint8_t>(moby + kMobySeq);
++    out.pose.frame = memory.read<std::uint8_t>(moby + kMobyFrame);
++    out.pose.next_frame = out.pose.frame + 1;
++    out.pose.anim_time = memory.read<float>(moby + kMobyAnimTime);
++    out.pose.anim_speed = memory.read<float>(moby + kMobyAnimSpeed);
++    std::size_t at = 0;
++
++    for (const mp::ShowSpan& span : mp::kShowSpans) {
++        read_bytes(memory, moby + span.at, out.body + at, span.size);
++        at += span.size;
++    }
++
++    const auto pvars = memory.read<openrac::gaddr>(moby + kMobyPvars);
++
++    if (pvars != 0 && pvars + mp::kShowVars <= kShowMemory) {
++        read_bytes(memory, pvars, out.vars, mp::kShowVars);
++    }
++
++    // The words at a moby (or the pvars of a spawned one): this game's slots, named in the other by the world.
++    const openrac::gaddr mobys_end = region.array + static_cast<openrac::gaddr>(region.end) * kMobyBytes;
++    const openrac::gaddr vars_end = region.vars + static_cast<openrac::gaddr>(region.end - region.first) * 0x80u;
++    const auto point = [&](std::uint32_t word, std::uint8_t where) {
++        if (word >= region.array && word < mobys_end) {
++            out.pointers.push_back({where, static_cast<int>((word - region.array) / kMobyBytes),
++                                    static_cast<std::uint8_t>((word - region.array) % kMobyBytes), false});
++        } else if (region.vars != 0 && word >= region.vars && word < vars_end) {
++            out.pointers.push_back({where, region.first + static_cast<int>((word - region.vars) / 0x80u),
++                                    static_cast<std::uint8_t>((word - region.vars) % 0x80u), true});
++        }
++    };
++
++    for (std::size_t w = 0; w < mp::kShowVars / 4; ++w) {
++        std::uint32_t word = 0;
++        std::memcpy(&word, out.vars + 4 * w, sizeof word);
++        point(word, static_cast<std::uint8_t>(w));
++    }
++
++    point(memory.read<std::uint32_t>(moby + kMobyParent), mp::kShowParent);
++    return out.oclass > 0;
++}
++
++int ModGame::show_make(const mp::ShowMoby& moby, const std::vector<int>& to) {
++    ShowRegion region;
++
++    if (!show_region(region) || to.size() != moby.pointers.size()) {
++        return -1;
++    }
++
++    // Made and posed as a driven one is, then let go: its own update runs it from here.
++    const int slot = mod_.moby_spawn(moby.oclass, moby_of(moby.pose));
++
++    if (slot < 0) {
++        return -1;
++    }
++
++    mod_.moby_drive(slot, false);
++    const openrac::Memory memory = mod_.memory();
++    const openrac::gaddr at = region.array + static_cast<openrac::gaddr>(slot) * kMobyBytes;
++
++    if (slot >= region.end || mod_.moby_slot_of(at) != slot) {
++        mod_.moby_kill(slot);
++        return -1;
++    }
++
++    std::size_t from = 0;
++
++    for (const mp::ShowSpan& span : mp::kShowSpans) {
++        for (std::size_t b = 0; b < span.size; ++b) {
++            memory.write<std::uint8_t>(at + span.at + static_cast<openrac::gaddr>(b), moby.body[from + b]);
++        }
++
++        from += span.size;
++    }
++
++    const auto pvars = memory.read<openrac::gaddr>(at + kMobyPvars);
++    const bool has_vars = pvars != 0 && pvars + mp::kShowVars <= kShowMemory;
++
++    if (has_vars) {
++        for (std::size_t b = 0; b < mp::kShowVars; ++b) {
++            memory.write<std::uint8_t>(pvars + static_cast<openrac::gaddr>(b), moby.vars[b]);
++        }
++    }
++
++    for (std::size_t i = 0; i < moby.pointers.size(); ++i) {
++        const mp::ShowMoby::Pointer& p = moby.pointers[i];
++        const int target = to[i] == mp::kShowSelf ? slot : to[i];
++        std::uint32_t word = 0;
++
++        if (target >= 0 && target < region.end) {
++            const openrac::gaddr there = region.array + static_cast<openrac::gaddr>(target) * kMobyBytes;
++            const auto there_vars = memory.read<openrac::gaddr>(there + kMobyPvars);
++            word = !p.vars ? there + p.offset : there_vars != 0 ? there_vars + p.offset : 0u;
++        }
++
++        if (p.word == mp::kShowParent) {
++            memory.write<std::uint32_t>(at + kMobyParent, word);
++        } else if (has_vars && p.word < mp::kShowVars / 4) {
++            memory.write<std::uint32_t>(pvars + 4u * p.word, word);
++        }
++    }
++
++    return slot;
++}
++
++// Orders (world.hpp's order_class): Moby.command, the byte a level event writes for the moby's own update to act on.
++constexpr openrac::gaddr kMobyCommand = 0xBC;
++
++int ModGame::order_read(int slot) {
++    ShowRegion region;
++
++    if (!show_region(region) || slot < 0 || slot >= region.end) {
++        return -1;
++    }
++
++    const openrac::Memory memory = mod_.memory();
++    const openrac::gaddr moby = region.array + static_cast<openrac::gaddr>(slot) * kMobyBytes;
++    const int state = memory.read<std::uint8_t>(moby + kMobyState);
++
++    return state >= 0x80 ? -1 : (state << 8) | memory.read<std::uint8_t>(moby + kMobyCommand);
++}
++
++void ModGame::order_give(int slot, int command) {
++    ShowRegion region;
++
++    if (!show_region(region) || slot < 0 || slot >= region.end || command < 0 || command > 0xFF) {
++        return;
++    }
++
++    const openrac::gaddr moby = region.array + static_cast<openrac::gaddr>(slot) * kMobyBytes;
++    mod_.memory().write<std::uint8_t>(moby + kMobyCommand, static_cast<std::uint8_t>(command));
++}
++// --- end QUEST-VR ---
++
+ }  // namespace mpmod
+diff --git a/multiplayer/src/game_adapter.hpp b/multiplayer/src/game_adapter.hpp
+index d1aa31e..17b1573 100644
+--- a/multiplayer/src/game_adapter.hpp
++++ b/multiplayer/src/game_adapter.hpp
+@@ -46,6 +46,18 @@ public:
+     std::string card_note(int slot) override;
+     void card_note_write(int slot, const std::string& text) override;
+     std::int64_t wall_seconds() override;
++    bool water_follows(int slot, int oclass) override;  // QUEST-VR
++    // --- QUEST-VR: show copies ---
++    int show_disc() override;
++    std::uint32_t show_layout() override;
++    std::uint32_t spawn_time() override;
++    int spawn_slot_free(int from) override;
++    int spawn_slot_state(int slot) override;
++    bool show_read(int slot, mp::ShowMoby& out) override;
++    int show_make(const mp::ShowMoby& moby, const std::vector<int>& to) override;
++    int order_read(int slot) override;
++    void order_give(int slot, int command) override;
++    // --- end QUEST-VR ---
+ #ifdef MULTIPLAYER_BOT
+     bool game_save();
+ #endif
+@@ -177,6 +189,18 @@ private:
+     /* This disc's progress places, null for a disc it does not know. */
+     const ProgressDisc* progress_disc() const;
+ 
++    // --- QUEST-VR: show copies ---
++    /* This disc's moby globals (game_adapter.cpp), null for one it does not know; the spawned slots now (the moby
++     * array, its first spawned slot and the end of them, the pvars of the first): false outside a level. */
++    struct ShowRegion {
++        openrac::gaddr array = 0;
++        int first = 0;
++        int end = 0;
++        openrac::gaddr vars = 0;
++    };
++    bool show_region(ShowRegion& out) const;
++    // --- end QUEST-VR ---
++
+     static void read_bytes(const openrac::Memory& memory, openrac::gaddr at, std::uint8_t* out, std::size_t n);
+ 
+     openrac::Mod& mod_;
+diff --git a/multiplayer/src/world.cpp b/multiplayer/src/world.cpp
+index 4a17737..814539f 100644
+--- a/multiplayer/src/world.cpp
++++ b/multiplayer/src/world.cpp
+@@ -164,6 +164,7 @@ void World::reset() {
+     traced_.received.clear();
+     hosting_ = false;
+     level_ = -1;
++    show_reset();  // QUEST-VR: show copies (world_show.cpp)
+ }
+ 
+ std::uint16_t World::id_of(int slot) const {
+@@ -459,8 +460,14 @@ void World::log_counts(std::uint64_t now) {
+                 + " driven), " + std::to_string(c.snapshots) + " snapshots, " + std::to_string(c.hits)
+                 + " hits, " + std::to_string(c.kills) + " kills, " + std::to_string(c.spawns)
+                 + " spawns, " + std::to_string(c.despawns) + " despawns, " + std::to_string(c.damage) + " damage, " + std::to_string(c.bolts)
+-                + " bolts");
++                + " bolts"
++                // QUEST-VR: show copies (world_show.cpp): queued or made, and sent
++                + (show_made_count_ + show_sent_count_ > 0 ? ", " + std::to_string(show_made_count_) + " show copies ("
++                                                                 + std::to_string(show_sent_count_) + " sent)"
++                                                           : std::string()));
+         }
++        show_made_count_ = 0;  // QUEST-VR
++        show_sent_count_ = 0;  // QUEST-VR
+         counts_ = Counts{};
+         counts_ms_ = now;
+     }
+diff --git a/multiplayer/src/world.hpp b/multiplayer/src/world.hpp
+index fa11e8a..1dc331e 100644
+--- a/multiplayer/src/world.hpp
++++ b/multiplayer/src/world.hpp
+@@ -438,6 +438,173 @@ inline bool keeps_hero_class(int oclass) {
+ }
+ // --- end WP-TETHER ---
+ 
++// --- QUEST-VR: scenery and water ---
++/* Ratchet Quest VR's (its docs/MULTIPLAYER.md, patches/rac1-mods/0003). Every animated surface of RAC1 (water, seas,
++ * lava, fire and smoke, reflections) is drawn by a callback its owner's update registers each tick (OpenRAC's
++ * docs/engine/systems/WORLD_ANIMATION.md), and the particles of a level's emitters are made by theirs. A member drove
++ * those owners, so their updates never ran there: a member saw no water on Novalis, no seas, no lava. Read from each
++ * class's update in rac1-decomp (2026-11-12).
++ *
++ * Scenery: what only draws, or works on the player of the game it runs in. Every game runs its own (local_class), and a
++ * member puts none of it where a host's WORLD says, so a host without this list is no different: the ocean of 1111
++ * follows the camera of the game it runs in.
++ *   760 fire and smoke fields, 809 their scroll (Veldin, Novalis, Oltanis); Novalis's 27 particle emitters, 678 761
++ *     1225 strip water, 751 the ripple pools and the underwater colour of the zone the camera is in, 1848 the
++ *     reflective overlay, 1546 its scenes' sparks, splashes and shot; 854 Aridia's ocean; 994 1260 Kerwan's, 317 460
++ *     Umbris's and Gaspar's, 1018 Umbris's seas and lava; 879 Rilgar's ocean; 823 the swaying lamps, 1060 the pulsing
++ *     orbs; 1062 Blarg's surfaces by camera zone; 529 Umbris's reflective ship; 327 Batalia's water and its splash
++ *     under the game's own hero, 600 671 1649 its effects; 1111 the camera's ocean (Pokitaru, Kalebo), 1903 1919
++ *     Pokitaru's; 293 1901 Hoven's effects and scrolling layers, 384 its reservoir (its level moves with the host's
++ *     switches, which a member's does not hear: the host tells it, order_class); 1263 1393 Gemlik's bobbing pools;
++ *     1418 Oltanis's effects; 1405-1409 1426 1565 1567 the ripple strips (Quartu, the fleet); 1907 1908 1910 1911 1913
++ *     1918 1952 1943 1947 1948 1953 the reflections and environment maps, 552 the ribbons (Kalebo, the fleet); 669 the
++ *     fleet's radial effects, 1772 its backdrop and the height the game's own hero falls to his death from. */
++inline bool scenery_class(int oclass) {
++    return any_of_class(oclass, {760,  809,  27,   678,  761,  1225, 751,  1848, 1546, 854,  994,  1260, 317,  460,
++                                 1018, 879,  823,  1060, 1062, 529,  327,  600,  671,  1649, 1111, 1903, 1919, 293,
++                                 1901, 384,  1263, 1393, 1418, 1405, 1406, 1407, 1408, 1409, 1426, 1565, 1567, 1907,
++                                 1908, 1910, 1911, 1913, 1918, 1952, 1943, 1947, 1948, 1953, 552,  669,  1772});
++}
++
++/* Water whose height is the host's: the level's switches and floods move it. A member runs its update (it draws the
++ * water and sets the game's own hero's surface to swim at) and puts it where the host's WORLD says; when the height
++ * changes there, Game::water_follows puts the class's water patches at it (the update does only while it moves the
++ * water itself). 831 Rilgar's water gates and flood, 19 Hoven's water, 1158 Pokitaru's, and Umbris's water plates
++ * (902 to 971), which put their patch at their height every tick. */
++inline bool water_follow_class(int oclass) {
++    return any_of_class(oclass, {831, 19,  1158, 902, 941, 943, 944, 948, 949, 950, 951,
++                                 952, 953, 954,  955, 958, 961, 962, 967, 968, 969, 970, 971});
++}
++// --- end QUEST-VR ---
++
++// --- QUEST-VR: show copies ---
++/* Ratchet Quest VR's (its docs/MULTIPLAYER.md, patches/rac1-mods/0003). What the host's enemies shoot, the blasts they
++ * go up in and what flies off them are mobys their updates make (CreateMoby), not creatures, so the host never shared
++ * them: a member saw an enemy aim, then nothing, then its own health drop. A host on this build now tells a member on
++ * this build of each one an update of a moby that member drives made (a show copy): the moby as the update left it
++ * and its 0x80 bytes of pvars, the words of those that point at a moby named by what the member knows it as. They go
++ * behind the entries of a WORLD that has room, a datagram the state's budget gave that member anyway (one with no
++ * entries goes for them alone). The member makes its own copy, which runs its own update there: it flies, trails,
++ * bursts and makes its own sparks and debris (what they make is theirs too), but what it would hit and what it would
++ * do to the hero stay off (World::hit, the hero's stand-in): the host's game alone hits, as before (DAMAGE).
++ *
++ * Only between two games of this build on one disc whose data lies alike: a member says so in its HELLO, `'Q' 'V'
++ * kShowVersion disc layout(u32)` after the digest (a plain host reads no further), and only such a member's WORLD
++ * carries them, behind its entries (decode_world reads no further either). Nothing changes for any other game.
++ *
++ * Who made a moby: CreateMoby takes the first free spawned slot whose wait is over (DeleteMoby makes a slot wait two
++ * ticks, so in one tick the free ones only go), so the gate (around every update) looks whether that slot was taken:
++ * during an update, by that update's moby; else by something else (the hero, a mod). The member finds what its copies
++ * make the same way: theirs, kept off as they are.
++ *
++ * A copy whose original has gone at the host for kShowGoneMs and that still runs here goes too (one that missed what
++ * the host's hit); none outlives kShowLifeMs.
++ *
++ * Orders: scenery runs in every game (scenery_class), but some of it takes an order a level event writes into it (its
++ * command byte), which only the host's game hears: Hoven's reservoir drains when the host's switch is hit, and a
++ * member's stayed full. The host tells such a member the command of each placed one (by its key) when it changes and
++ * every kShowOrderEveryMs, and the member writes the order that brings its own there (order_for), the game's own byte,
++ * so its own update drains or fills it as the host's did.
++ *
++ * WORLD's tail: `'Q' 'V' kShowVersion count`, each copy (encode_show), then `gone` and that many show ids, then (when
++ * there are any) `orders` and that many of a placed moby's key (u16) and the host's command (u8). */
++constexpr std::uint8_t kShowVersion = 1;
++/* The most of a WORLD the copies may take, and the most a WORLD with them may be (the server's datagram less the
++ * client's header and an epoch's three bytes); how late one may go, how long a copy lives at most, how many live at
++ * once, how far from a member the host tells of one; how long after its original went a copy goes, and in how many
++ * WORLDs that is said. */
++constexpr std::size_t kShowRoom = 480;
++constexpr std::size_t kShowDatagram = 1180;
++constexpr std::size_t kWorldHeadBytes = 13;
++constexpr std::uint64_t kShowLateMs = 400;
++constexpr std::uint64_t kShowLifeMs = 60000;
++constexpr std::size_t kShowMost = 48;
++constexpr float kShowReach = 90.0f;
++constexpr std::uint64_t kShowGoneMs = 1500;
++constexpr int kShowGoneTold = 2;
++constexpr std::size_t kShowGoneMost = 32;
++/* How many free spawned slots the gate looks ahead to (more made by one update than that go unseen). */
++constexpr std::size_t kShowFreeLook = 32;
++/* The most pointer words a copy may have (its pvars' and its parent). */
++constexpr std::size_t kShowRefsMost = kShowVars / 4 + 1;
++/* How long the member waits for a copy's moment when its maker has no poses (a placed moby that stands), and how far
++ * past it one may still be made. */
++constexpr double kShowDelayMs = 100.0;
++constexpr double kShowOverdueMs = 1000.0;
++/* Orders: told again this often, changed or not (a WORLD lost, a member just in), and the most in one tail. */
++constexpr std::uint64_t kShowOrderEveryMs = 2000;
++constexpr std::size_t kShowOrdersMost = 16;
++
++/* Scenery that takes a level event's order ("Orders" above): 384 Hoven's reservoir (rac1-decomp's water_reservoir:
++ * in its state 1, command 8 drains it, which it keeps as 1; 4 fills it, kept as 2). */
++inline bool order_class(int oclass) { return oclass == 384; }
++
++/* The command byte to write into a member's moby of class `oclass` in `state`, whose command is `here`, to bring it
++ * where the host's is (`host`, its command); -1 for none. */
++inline int order_for(int oclass, int state, int here, int host) {
++    if (oclass == 384 && state == 1) {
++        const bool host_drains = (host & (1 | 8)) != 0;
++        const bool host_fills = (host & (2 | 4)) != 0;
++        if (host_drains && (here & (1 | 8)) == 0) {
++            return 8;
++        }
++        if (host_fills && !host_drains && (here & (2 | 4)) == 0) {
++            return 4;
++        }
++    }
++    return -1;
++}
++
++/* An order on the wire: a placed moby's key and the host's command byte. */
++struct ShowOrder {
++    std::uint16_t id = 0;
++    std::uint8_t command = 0;
++};
++
++/* What a pointer word of a copy names: a player's hero (`id` the player's id: the host's own, or a figure's), a moby
++ * the world names (`id` its id on the wire: a placed one's key, kSpawnedId | a shared one's net id), another copy
++ * (its show id); `offset` into that moby, or into its pvars. */
++enum class ShowRefKind : std::uint8_t {
++    kNone = 0,
++    kPlayer = 1,
++    kWorld = 2,
++    kShow = 3
++};
++
++struct ShowRef {
++    std::uint8_t word = 0;
++    ShowRefKind kind = ShowRefKind::kNone;
++    std::int32_t id = 0;
++    std::uint8_t offset = 0;
++    bool vars = false;
++};
++
++/* One copy on the wire: the host's id for it, its maker's id on the wire (kNoId for none), how long before the WORLD
++ * it was made, the moby (its pointers not used), and what its pointer words name. */
++struct ShowRecord {
++    std::uint16_t id = 0;
++    std::uint16_t maker = kNoId;
++    std::uint16_t age_ms = 0;
++    ShowMoby moby;
++    std::vector<ShowRef> refs;
++};
++
++void encode_show(Writer& w, const ShowRecord& record);
++bool decode_show(Reader& r, ShowRecord& out);
++/* Bytes encode_show writes. */
++std::size_t show_bytes(const ShowRecord& record);
++/* A WORLD's tail: the copies, the show ids gone and the orders. Encoded: empty when there is nothing. Decoded, behind
++ * `entries` entries: false when it has none (a plain host's WORLD); a tail with no orders gives none. */
++Bytes encode_show_tail(const std::vector<ShowRecord>& records, const std::vector<std::uint16_t>& gone,
++                       const std::vector<ShowOrder>& orders = {});
++bool decode_show_tail(const Bytes& world, std::size_t entries, std::vector<ShowRecord>& records,
++                      std::vector<std::uint16_t>& gone, std::vector<ShowOrder>* orders = nullptr);
++/* The HELLO's tail of a member that takes them (`'Q' 'V' kShowVersion disc layout`), and one read: false when there
++ * is none, or it is not of this version. */
++void encode_show_hello(Writer& w, int disc, std::uint32_t layout);
++bool decode_show_hello(Reader& r, int& disc, std::uint32_t& layout);
++// --- end QUEST-VR ---
++
+ inline bool crate_class(int oclass) {
+     return any_of_class(oclass, {500, 501, 502, 505, 511}) || death_crate_class(oclass) || tether_crate_class(oclass);
+ }
+@@ -469,9 +636,9 @@ inline bool interactable_class(int oclass) {
+            || tether_interactable_class(oclass);
+ }
+ 
+-/* Every game runs its own copy: crates, pickups, interactables. */
++/* Every game runs its own copy: crates, pickups, interactables, and the level's scenery (QUEST-VR). */
+ inline bool local_class(int oclass) {
+-    return crate_class(oclass) || pickup_class(oclass) || interactable_class(oclass);
++    return crate_class(oclass) || pickup_class(oclass) || interactable_class(oclass) || scenery_class(oclass);
+ }
+ 
+ /* The bolt classes (bolts, hexnut, starnut, circlenut), spawned and shared. */
+@@ -957,6 +1124,105 @@ private:
+     /* For the whole session: counts_ starts again at each line it logs. */
+     int hits_taken_ = 0;
+     int hits_refused_ = 0;
++
++    // --- QUEST-VR: show copies (world_show.cpp) ---
++    /* Who made a spawned moby since the last tick, by its slot: the slot whose update made it (-1: none), whether
++     * that one is the host's to show the members (a moby they drive), its id on the wire then. */
++    struct ShowMade {
++        int maker = -1;
++        bool shows = false;
++        std::uint16_t maker_id = kNoId;
++    };
++
++    /* Host: one copy waiting for a member's WORLD, since when. */
++    struct ShowOut {
++        std::uint64_t ms = 0;
++        ShowRecord record;
++    };
++
++    /* Host: a member's word on show copies (its HELLO), its copies waiting, those it has that are alive here, and
++     * the ones gone here to tell it of (how many more times). */
++    struct ShowMember {
++        bool shows = false;
++        std::deque<ShowOut> out;
++        std::set<std::uint16_t> live;
++        std::map<std::uint16_t, int> gone;
++        /* Orders: the commands it was last told (by key), when all were told last, and those in the tail being sent. */
++        std::map<std::uint16_t, std::uint8_t> orders_told;
++        std::uint64_t orders_ms = 0;
++        bool orders_due = true;
++        std::vector<ShowOrder> orders_out;
++        bool orders_out_all = false;
++    };
++
++    /* Host: a moby shown, by slot: its class and show id. */
++    struct ShowId {
++        int oclass = 0;
++        std::uint16_t id = 0;
++    };
++
++    /* Member: a copy made here: its show id, class, when it was made, when the host said its original went. */
++    struct ShowCopy {
++        std::uint16_t id = 0;
++        int oclass = 0;
++        std::uint64_t made_ms = 0;
++        std::uint64_t gone_ms = 0;
++    };
++
++    /* Member: a copy to make at `due` (this game's clock). */
++    struct ShowWait {
++        double due = 0;
++        ShowRecord record;
++    };
++
++    /* The gate: the spawned slots taken since it last looked, put to `maker` (-1: no update). Whether any of it is
++     * wanted now (a member to show, copies here). */
++    void show_watch(int maker);
++    bool show_watching() const;
++    /* The gate before a copy's update (or a moby it made): this game's hero kept as he is. */
++    bool show_gate(int slot);
++    bool show_moby(int slot) const;
++    /* Host: the new mobys to show, the gone, each member's queue; the tail of `member`'s next WORLD (its bytes, the
++     * room the entries keep), and those sent. */
++    void show_tick_host(std::uint64_t now);
++    std::size_t show_room(std::int32_t member) const;
++    Bytes show_tail(std::int32_t member, std::uint64_t now, std::size_t room, std::size_t& records);
++    void show_sent(std::int32_t member, std::size_t records);
++    void show_hello(std::int32_t sender, Reader& r);
++    /* Member: its HELLO's tail; a WORLD's (its local time); the copies made, kept and gone; one adopted as a host's
++     * SPAWN (no copy any more). */
++    void show_hello_out(Writer& w);
++    void show_world_in(const Bytes& bytes, std::size_t entries, double time);
++    void show_tick_member(std::uint64_t now);
++    void show_forget(int slot);
++    void show_reset();
++
++    /* The gate's look ahead: the next spawned slots CreateMoby would take (each: whether it is the last one), as
++     * of the tick count it was taken at. */
++    void show_made(int slot, int maker);
++    void show_refill(int from);
++    bool show_name(int slot, ShowRef& out) const;
++    std::map<int, ShowMade> show_made_;
++    std::vector<std::pair<int, bool>> show_free_;
++    std::uint32_t show_time_ = 0;
++    bool show_time_known_ = false;
++    bool show_on_ = false;
++    std::map<std::int32_t, ShowMember> show_members_;
++    std::map<int, ShowId> show_ids_;
++    std::uint16_t show_next_ = 1;
++    std::map<int, ShowCopy> show_copies_;
++    std::map<std::uint16_t, int> show_slot_;
++    std::map<int, int> show_kin_;
++    std::vector<ShowWait> show_wait_;
++    float show_hero_[3] = {0, 0, 0};
++    bool show_hero_known_ = false;
++    int show_made_count_ = 0;
++    int show_sent_count_ = 0;
++    /* Orders: the host's placed order_class mobys' commands now (by key), read each tick; those due to `member`. */
++    std::map<std::uint16_t, std::uint8_t> show_orders_;
++    std::vector<ShowOrder> show_orders_due(const ShowMember& member) const;
++    int show_orders_given_ = 0;
++    // --- end QUEST-VR ---
+ };
+ 
+ /* How often the world says in the log what it did. */
+diff --git a/multiplayer/src/world_gate.cpp b/multiplayer/src/world_gate.cpp
+index 44361ce..9cc7755 100644
+--- a/multiplayer/src/world_gate.cpp
++++ b/multiplayer/src/world_gate.cpp
+@@ -23,6 +23,17 @@ bool World::gate(int slot, int phase) {
+         return false;
+     }
+ 
++    // QUEST-VR: show copies (world_show.cpp): what an update made, and a copy's update kept off this game's hero.
++    if (show_watching()) {
++        show_watch(phase == kMobyBefore ? -1 : slot);
++
++        if (phase == kMobyBefore && show_gate(slot)) {
++            return false;
++        }
++    } else {
++        show_time_known_ = false;
++    }
++
+     // A bolt another player took flies to that player (in either game).
+     if (phase == kMobyBefore && flights_.count(slot) != 0 && mobys_.count(slot) != 0) {
+         stand_flight(slot);
+@@ -206,6 +217,11 @@ bool World::hit(const Hit& h) {
+         return false;
+     }
+ 
++    // QUEST-VR: a show copy's hit, or one on it, is none here: the host's game hits (world_show.cpp).
++    if (show_moby(h.attacker) || show_moby(h.victim)) {
++        return true;
++    }
++
+     // A member: a hit on the host's world goes to the host (the host's world hits its own).
+     if (driven_.count(h.victim) == 0) {
+         return false;
+diff --git a/multiplayer/src/world_handle.cpp b/multiplayer/src/world_handle.cpp
+index cf45a78..8b6f1e0 100644
+--- a/multiplayer/src/world_handle.cpp
++++ b/multiplayer/src/world_handle.cpp
+@@ -128,6 +128,7 @@ void World::handle(std::int32_t sender, const Bytes& bytes) {
+             m.want = true;
+             m.load = load;
+             m.synced = false;
++            show_hello(sender, r);  // QUEST-VR: show copies (world_show.cpp)
+         }
+ 
+         return;
+@@ -233,6 +234,8 @@ void World::handle(std::int32_t sender, const Bytes& bytes) {
+                 host_ms_[e.id] = clock_();
+             }
+ 
++            show_world_in(bytes, entries.size(), time);  // QUEST-VR: show copies (world_show.cpp)
++
+             if (tracing()) {
+                 std::set<std::uint16_t> ids;
+                 std::string hidden;
+@@ -311,6 +314,7 @@ void World::handle(std::int32_t sender, const Bytes& bytes) {
+ 
+             if (slot >= 0) {
+                 game_.moby_drive(slot, true);
++                show_forget(slot);  // QUEST-VR: a show copy taken for it is the host's now
+             } else {
+                 slot = game_.moby_spawn(oclass, pose);
+             }
+diff --git a/multiplayer/src/world_host.cpp b/multiplayer/src/world_host.cpp
+index 6928231..c7ce2a0 100644
+--- a/multiplayer/src/world_host.cpp
++++ b/multiplayer/src/world_host.cpp
+@@ -686,9 +686,13 @@ void World::send_world(std::int32_t member, Member& m, std::uint64_t now, const
+         return a.priority != b.priority ? a.priority > b.priority : a.id < b.id;
+     });
+     std::vector<WorldEntry> entries;
++    // QUEST-VR: room behind the entries for the member's show copies (world_show.cpp).
++    const std::size_t show_keep = show_room(member);
++    const std::size_t most = show_keep == 0 ? kWorldEntries
++                                            : std::min(kWorldEntries, (kShowDatagram - kWorldHeadBytes - show_keep) / kWorldEntryBytes);
+ 
+     for (const Pick& p : picks) {
+-        if (entries.size() >= kWorldEntries) {
++        if (entries.size() >= most) {  // QUEST-VR: most (kWorldEntries without show copies)
+             break;
+         }
+ 
+@@ -700,19 +704,33 @@ void World::send_world(std::int32_t member, Member& m, std::uint64_t now, const
+ 
+     m.world_ms = now;
+ 
+-    if (entries.empty()) {
++    if (entries.empty() && show_keep == 0) {  // QUEST-VR: or show copies to send
+         return;
+     }
+ 
+     const std::int64_t stamp =
+         session_.has_clock() ? session_.server_ms() : static_cast<std::int64_t>(now);
+     const auto sequence = static_cast<std::uint16_t>(m.sequence + 1);
++    // QUEST-VR: the show copies behind the entries (world_show.cpp), for a member that takes them.
++    Bytes datagram_bytes = encode_world(level_, stamp, entries, sequence);
++    std::size_t shown = 0;
++    const Bytes show = show_keep != 0 ? show_tail(member, now, kShowDatagram - datagram_bytes.size(), shown) : Bytes{};
++
++    if (entries.empty() && show.empty()) {
++        return;
++    }
++
++    datagram_bytes.insert(datagram_bytes.end(), show.begin(), show.end());
+ 
+     // Refused by the bucket: nothing is taken as sent, and the priorities stand.
+-    if (!session_.send_state(member, encode_world(level_, stamp, entries, sequence))) {
++    if (!session_.send_state(member, datagram_bytes)) {
+         return;
+     }
+ 
++    if (!show.empty()) {
++        show_sent(member, shown);
++    }
++
+     m.sequence = sequence;
+     Datagram datagram;
+     datagram.sequence = sequence;
+@@ -822,6 +840,9 @@ void World::tick_host(std::uint64_t now, const GameStatus& status) {
+         counts_.despawns += static_cast<int>(gone.size());
+     }
+ 
++    // QUEST-VR: what the host's updates made to show the members that take show copies (world_show.cpp).
++    show_tick_host(now);
++
+     // The members: where each is, what it is told, the eyes on them.
+     std::vector<float> eyes;
+     std::string eye_players;
+diff --git a/multiplayer/src/world_member.cpp b/multiplayer/src/world_member.cpp
+index d51dab0..d881676 100644
+--- a/multiplayer/src/world_member.cpp
++++ b/multiplayer/src/world_member.cpp
+@@ -52,8 +52,9 @@ void World::tick_member(std::uint64_t now, const GameStatus& status) {
+         placed_driven_ = true;
+ 
+         for (const auto& [slot, moby] : mobys_) {
++            // QUEST-VR: water the host's height moves runs here too (world.hpp's water_follow_class).
+             if (moby.key >= 0 && (moby.flags & kMobyUpdates) != 0 && moby.oclass != 0
+-                && !local_class(moby.oclass) && game_.moby_drive(slot, true)) {
++                && !local_class(moby.oclass) && !water_follow_class(moby.oclass) && game_.moby_drive(slot, true)) {
+                 driven_.insert(slot);
+             }
+         }
+@@ -69,6 +70,7 @@ void World::tick_member(std::uint64_t now, const GameStatus& status) {
+         w.u8(static_cast<std::uint8_t>(WorldKind::kHello)).u8(static_cast<std::uint8_t>(static_cast<std::int8_t>(level_)));
+         w.i32(static_cast<std::int32_t>(loads_));
+         w.i32(static_cast<std::int32_t>(game_.sim_digest(level_)));
++        show_hello_out(w);  // QUEST-VR: show copies (world_show.cpp); a plain host reads no further
+         session_.send_data(session_.host(), w.bytes());
+         trace_line("msg", "sent HELLO level " + std::to_string(level_) + " load " + std::to_string(loads_));
+     }
+@@ -81,6 +83,14 @@ void World::tick_member(std::uint64_t now, const GameStatus& status) {
+         const int slot = slot_of(id);
+         Pose pose;
+ 
++        // QUEST-VR (world.hpp's scenery and water): scenery is this game's own, even from a host without the list.
++        const auto known = mobys_.find(slot);
++        const int oclass = known != mobys_.end() ? known->second.oclass : 0;
++
++        if (scenery_class(oclass)) {
++            continue;
++        }
++
+         if (slot >= 0 && poses.at(t, pose)) {
+             // Moved by something else since it was put there (its own update or the game's)?
+             if (trace_poses) {
+@@ -96,6 +106,12 @@ void World::tick_member(std::uint64_t now, const GameStatus& status) {
+             }
+ 
+             game_.moby_pose(slot, pose);
++
++            // QUEST-VR: the host's water at another height: its patches here go with it.
++            if (water_follow_class(oclass) && std::fabs(known->second.pose.position[2] - pose.position[2]) > 1e-3f
++                && game_.water_follows(slot, oclass)) {
++                trace_line("pose", "water " + moby_name(slot) + " to the host's height " + std::to_string(pose.position[2]));
++            }
+         }
+     }
+ 
+@@ -144,12 +160,18 @@ void World::tick_member(std::uint64_t now, const GameStatus& status) {
+             note(slot, hidden ? "hidden as the host's is" : "shown as the host's is", session_.host());
+         }
+     }
++
++    // QUEST-VR: the host's show copies made, kept and gone (world_show.cpp).
++    if (synced_) {
++        show_tick_member(now);
++    }
+ }
+ 
+ void World::drop_own_copies() {
+     for (const auto& [slot, moby] : mobys_) {
++        // QUEST-VR: not a show copy (world_show.cpp)
+         if (moby.key < 0 && spawn_classes_.count(moby.oclass) != 0 && driven_.count(slot) == 0
+-            && !local_class(moby.oclass)) {
++            && !local_class(moby.oclass) && !show_moby(slot)) {
+             kill(slot, "its own copy of what the host spawned");
+         }
+     }
+diff --git a/multiplayer/src/world_show.cpp b/multiplayer/src/world_show.cpp
+new file mode 100644
+index 0000000..087e381
+--- /dev/null
++++ b/multiplayer/src/world_show.cpp
+@@ -0,0 +1,955 @@
++/* SPDX-License-Identifier: GPL-3.0-or-later
++ * Copyright (c) 2026 the OpenRAC contributors
++ *
++ * QUEST-VR (Ratchet Quest VR's, patches/rac1-mods/0003): the show copies (world.hpp): what the host's enemies
++ * shoot, blow up into and throw off, made again in a member's game of this build, its hits and its doings to the
++ * hero kept off there.
++ */
++#include "world.hpp"
++#include "world_util.hpp"
++
++#include <algorithm>
++#include <cmath>
++#include <cstddef>
++#include <cstring>
++#include <utility>
++
++namespace mp {
++
++using namespace wire;
++
++namespace {
++
++constexpr std::uint8_t kShowQ = 'Q';
++constexpr std::uint8_t kShowV = 'V';
++/* The body and the pvars, word by word for the mask of those not zero: the body (kShowBody) rounded up to words. */
++constexpr std::size_t kShowBodyWords = (kShowBody + 3) / 4;
++constexpr std::size_t kShowWords = kShowBodyWords + kShowVars / 4;
++static_assert(kShowWords <= 64, "the mask is 64 bits");
++
++/* The image's word `i`: the body's bytes, then the pvars'. */
++void image_word(const ShowMoby& m, std::size_t i, std::uint8_t out[4]) {
++    for (std::size_t b = 0; b < 4; ++b) {
++        const std::size_t at = i * 4 + b;
++        out[b] = at < kShowBodyWords * 4 ? (at < kShowBody ? m.body[at] : 0) : m.vars[at - kShowBodyWords * 4];
++    }
++}
++
++void set_image_word(ShowMoby& m, std::size_t i, const std::uint8_t in[4]) {
++    for (std::size_t b = 0; b < 4; ++b) {
++        const std::size_t at = i * 4 + b;
++
++        if (at < kShowBody) {
++            m.body[at] = in[b];
++        } else if (at >= kShowBodyWords * 4) {
++            m.vars[at - kShowBodyWords * 4] = in[b];
++        }
++    }
++}
++
++std::uint64_t image_mask(const ShowMoby& m) {
++    std::uint64_t mask = 0;
++
++    for (std::size_t i = 0; i < kShowWords; ++i) {
++        std::uint8_t w[4];
++        image_word(m, i, w);
++
++        if ((w[0] | w[1] | w[2] | w[3]) != 0) {
++            mask |= std::uint64_t{1} << i;
++        }
++    }
++
++    return mask;
++}
++
++int bits(std::uint64_t mask) {
++    int n = 0;
++
++    for (; mask != 0; mask &= mask - 1) {
++        ++n;
++    }
++
++    return n;
++}
++
++}  // namespace
++
++void encode_show(Writer& w, const ShowRecord& record) {
++    const ShowMoby& m = record.moby;
++    u16(w, record.id);
++    u16(w, record.maker);
++    u16(w, record.age_ms);
++    u16(w, static_cast<std::uint16_t>(static_cast<std::int16_t>(m.oclass)));
++    vec(w, m.pose.position);
++    vec(w, m.pose.rotation);
++    f32(w, m.pose.scale);
++    w.u8(static_cast<std::uint8_t>(m.pose.seq)).u8(static_cast<std::uint8_t>(m.pose.frame));
++    f32(w, m.pose.anim_time);
++    f32(w, m.pose.anim_speed);
++    const std::uint64_t mask = image_mask(m);
++    w.i64(static_cast<std::int64_t>(mask));
++
++    for (std::size_t i = 0; i < kShowWords; ++i) {
++        if ((mask >> i & 1) != 0) {
++            std::uint8_t word[4];
++            image_word(m, i, word);
++            w.u8(word[0]).u8(word[1]).u8(word[2]).u8(word[3]);
++        }
++    }
++
++    const std::size_t refs = std::min(record.refs.size(), kShowRefsMost);
++    w.u8(static_cast<std::uint8_t>(refs));
++
++    for (std::size_t i = 0; i < refs; ++i) {
++        const ShowRef& ref = record.refs[i];
++        w.u8(ref.word).u8(static_cast<std::uint8_t>(ref.kind)).i32(ref.id).u8(ref.offset).u8(ref.vars ? 1 : 0);
++    }
++}
++
++std::size_t show_bytes(const ShowRecord& record) {
++    // id, maker, age, class; place, angles, scale; seq, frame, the animation's time and speed; the mask.
++    return 8 + 28 + 10 + 8 + 4 * static_cast<std::size_t>(bits(image_mask(record.moby))) + 1
++           + 8 * std::min(record.refs.size(), kShowRefsMost);
++}
++
++bool decode_show(Reader& r, ShowRecord& out) {
++    out = ShowRecord{};
++    ShowMoby& m = out.moby;
++    out.id = u16(r);
++    out.maker = u16(r);
++    out.age_ms = u16(r);
++    m.oclass = static_cast<std::int16_t>(u16(r));
++    vec(r, m.pose.position);
++    vec(r, m.pose.rotation);
++    m.pose.scale = f32(r);
++    m.pose.seq = r.u8();
++    m.pose.frame = r.u8();
++    m.pose.next_frame = m.pose.frame + 1;
++    m.pose.anim_time = f32(r);
++    m.pose.anim_speed = f32(r);
++    const auto mask = static_cast<std::uint64_t>(r.i64());
++
++    if (kShowWords < 64 && (mask >> kShowWords) != 0) {
++        return false;
++    }
++
++    for (std::size_t i = 0; i < kShowWords && r.ok(); ++i) {
++        if ((mask >> i & 1) != 0) {
++            std::uint8_t word[4];
++            word[0] = r.u8();
++            word[1] = r.u8();
++            word[2] = r.u8();
++            word[3] = r.u8();
++            set_image_word(m, i, word);
++        }
++    }
++
++    const std::uint8_t refs = r.u8();
++
++    if (refs > kShowRefsMost) {
++        return false;
++    }
++
++    for (std::uint8_t i = 0; i < refs && r.ok(); ++i) {
++        ShowRef ref;
++        ref.word = r.u8();
++        const std::uint8_t kind = r.u8();
++        ref.id = r.i32();
++        ref.offset = r.u8();
++        ref.vars = r.u8() != 0;
++
++        if ((ref.word >= kShowVars / 4 && ref.word != kShowParent) || kind == 0
++            || kind > static_cast<std::uint8_t>(ShowRefKind::kShow) || (ref.vars && ref.offset >= kShowVars)) {
++            return false;
++        }
++
++        ref.kind = static_cast<ShowRefKind>(kind);
++        out.refs.push_back(ref);
++    }
++
++    return r.ok() && m.oclass > 0;
++}
++
++Bytes encode_show_tail(const std::vector<ShowRecord>& records, const std::vector<std::uint16_t>& gone,
++                       const std::vector<ShowOrder>& orders) {
++    if (records.empty() && gone.empty() && orders.empty()) {
++        return {};
++    }
++
++    Writer w;
++    const std::size_t count = std::min<std::size_t>(records.size(), 255);
++    w.u8(kShowQ).u8(kShowV).u8(kShowVersion).u8(static_cast<std::uint8_t>(count));
++
++    for (std::size_t i = 0; i < count; ++i) {
++        encode_show(w, records[i]);
++    }
++
++    const std::size_t went = std::min<std::size_t>(gone.size(), 255);
++    w.u8(static_cast<std::uint8_t>(went));
++
++    for (std::size_t i = 0; i < went; ++i) {
++        u16(w, gone[i]);
++    }
++
++    // Orders, only when there are any: a tail without them ends at the gone ids, as before them.
++    if (!orders.empty()) {
++        const std::size_t told = std::min<std::size_t>(orders.size(), 255);
++        w.u8(static_cast<std::uint8_t>(told));
++
++        for (std::size_t i = 0; i < told; ++i) {
++            u16(w, orders[i].id);
++            w.u8(orders[i].command);
++        }
++    }
++
++    return w.bytes();
++}
++
++bool decode_show_tail(const Bytes& world, std::size_t entries, std::vector<ShowRecord>& records,
++                      std::vector<std::uint16_t>& gone, std::vector<ShowOrder>* orders) {
++    records.clear();
++    gone.clear();
++
++    if (orders != nullptr) {
++        orders->clear();
++    }
++    const std::size_t at = kWorldHeadBytes + entries * kWorldEntryBytes;
++
++    if (world.size() < at + 5) {
++        return false;
++    }
++
++    Reader r(world.data() + at, world.size() - at);
++
++    if (r.u8() != kShowQ || r.u8() != kShowV || r.u8() != kShowVersion) {
++        return false;
++    }
++
++    const std::uint8_t count = r.u8();
++
++    for (std::uint8_t i = 0; i < count && r.ok(); ++i) {
++        ShowRecord record;
++
++        if (!decode_show(r, record)) {
++            records.clear();
++            return false;
++        }
++
++        records.push_back(std::move(record));
++    }
++
++    const std::uint8_t went = r.u8();
++
++    for (std::uint8_t i = 0; i < went && r.ok(); ++i) {
++        gone.push_back(u16(r));
++    }
++
++    std::vector<ShowOrder> told;
++
++    if (r.ok() && r.left() > 0) {
++        const std::uint8_t count_told = r.u8();
++
++        for (std::uint8_t i = 0; i < count_told && r.ok(); ++i) {
++            ShowOrder order;
++            order.id = u16(r);
++            order.command = r.u8();
++            told.push_back(order);
++        }
++    }
++
++    if (!r.ok()) {
++        records.clear();
++        gone.clear();
++        return false;
++    }
++
++    if (orders != nullptr) {
++        *orders = std::move(told);
++    }
++
++    return true;
++}
++
++void encode_show_hello(Writer& w, int disc, std::uint32_t layout) {
++    w.u8(kShowQ).u8(kShowV).u8(kShowVersion).u8(static_cast<std::uint8_t>(disc));
++    w.i32(static_cast<std::int32_t>(layout));
++}
++
++bool decode_show_hello(Reader& r, int& disc, std::uint32_t& layout) {
++    if (r.left() < 8 || r.u8() != kShowQ || r.u8() != kShowV || r.u8() != kShowVersion) {
++        return false;
++    }
++
++    disc = r.u8();
++    layout = static_cast<std::uint32_t>(r.i32());
++    return r.ok() && disc != 0;
++}
++
++// --- The gate: who made what ---
++
++bool World::show_watching() const { return show_on_; }
++
++bool World::show_moby(int slot) const {
++    return slot >= 0 && (show_copies_.count(slot) != 0 || show_kin_.count(slot) != 0);
++}
++
++void World::show_refill(int from) {
++    while (show_free_.size() < kShowFreeLook) {
++        // Nothing past the last spawned slot: CreateMoby takes it, and the one after it is the last then.
++        if (!show_free_.empty() && show_free_.back().second) {
++            return;
++        }
++
++        const int slot = game_.spawn_slot_free(show_free_.empty() ? from : show_free_.back().first + 1);
++
++        if (slot < 0) {
++            return;
++        }
++
++        show_free_.emplace_back(slot, game_.spawn_slot_state(slot) == 0xFF);
++    }
++}
++
++void World::show_made(int slot, int maker) {
++    if (hosting_) {
++        ShowMade made;
++        made.maker = maker;
++
++        if (maker >= 0) {
++            const auto it = mobys_.find(maker);
++            const bool shared = shared_.count(maker) != 0 && it != mobys_.end() && !loot_class(it->second.oclass);
++            const bool placed = it != mobys_.end() && it->second.key >= 0 && (it->second.flags & kMobyUpdates) != 0
++                                && it->second.oclass != 0 && !local_class(it->second.oclass)
++                                && !water_follow_class(it->second.oclass);
++            made.shows = shared || placed;
++            made.maker_id = id_of(maker);
++        }
++
++        show_made_[slot] = made;
++    } else if (maker >= 0 && show_moby(maker)) {
++        // What a copy (or what it made) makes is the copy's too: kept off as it is.
++        show_kin_[slot] = 0;
++    }
++}
++
++void World::show_watch(int maker) {
++    const std::uint32_t time = game_.spawn_time();
++
++    // A new tick: the slots CreateMoby takes from here (one DeleteMoby freed waits two ticks, so in a tick the
++    // free ones only go).
++    if (!show_time_known_ || time != show_time_) {
++        show_time_known_ = true;
++        show_time_ = time;
++        show_free_.clear();
++        show_refill(0);
++        return;
++    }
++
++    // The first free one is the one CreateMoby takes first: free still, nothing was made.
++    if (show_free_.empty() || game_.spawn_slot_free(show_free_.front().first) == show_free_.front().first) {
++        return;
++    }
++
++    std::size_t used = 0;
++    int after = -1;
++
++    for (; used < show_free_.size(); ++used) {
++        const auto [slot, last] = show_free_[used];
++
++        if (game_.spawn_slot_free(slot) == slot) {
++            break;
++        }
++
++        const int state = game_.spawn_slot_state(slot);
++
++        // Taken (made and deleted at once: neither, gone already).
++        if (state >= 0 && state < 0xFE) {
++            show_made(slot, maker);
++        }
++
++        after = slot;
++
++        // The last one taken: CreateMoby made the next the last, and may have taken that one too, and so on.
++        if (last) {
++            for (int next = slot + 1;; ++next) {
++                const int s = game_.spawn_slot_state(next);
++
++                if (s < 0 || s >= 0xFE) {
++                    break;
++                }
++
++                show_made(next, maker);
++                after = next;
++            }
++
++            ++used;
++            break;
++        }
++    }
++
++    show_free_.erase(show_free_.begin(), show_free_.begin() + static_cast<std::ptrdiff_t>(used));
++    show_refill(after + 1);
++}
++
++bool World::show_gate(int slot) {
++    if (hosting_ || !show_moby(slot)) {
++        return false;
++    }
++
++    // The hero where he is, and as he is after: what the copy does to him the host's game does (DAMAGE).
++    if (show_hero_known_) {
++        game_.stand_in(show_hero_, -1);
++    }
++
++    return true;
++}
++
++// --- The host ---
++
++bool World::show_name(int slot, ShowRef& out) const {
++    if (slot < 0) {
++        return false;
++    }
++
++    if (slot == game_.figure_slot(-1)) {
++        out.kind = ShowRefKind::kPlayer;
++        out.id = session_.id();
++        return true;
++    }
++
++    for (const auto& [id, member] : members_) {
++        const int figure = coop_.figure_of(id);
++
++        if (figure >= 0 && game_.figure_slot(figure) == slot) {
++            out.kind = ShowRefKind::kPlayer;
++            out.id = id;
++            return true;
++        }
++    }
++
++    if (const auto shown = show_ids_.find(slot); shown != show_ids_.end()) {
++        out.kind = ShowRefKind::kShow;
++        out.id = shown->second.id;
++        return true;
++    }
++
++    const std::uint16_t id = id_of(slot);
++
++    if (id != kNoId) {
++        out.kind = ShowRefKind::kWorld;
++        out.id = id;
++        return true;
++    }
++
++    return false;
++}
++
++void World::show_hello(std::int32_t sender, Reader& r) {
++    int disc = 0;
++    std::uint32_t layout = 0;
++    ShowMember& sm = show_members_[sender];
++    const bool was = sm.shows;
++    sm = ShowMember{};
++    const bool said = decode_show_hello(r, disc, layout);
++    sm.shows = said && disc == game_.show_disc() && game_.show_disc() != 0 && layout == game_.show_layout();
++
++    if (said && !sm.shows) {
++        log("player " + std::to_string(sender) + " takes show copies, but of another disc or build: none");
++    } else if (sm.shows && !was) {
++        log("player " + std::to_string(sender) + " takes show copies");
++    }
++}
++
++void World::show_tick_host(std::uint64_t now) {
++    for (auto it = show_members_.begin(); it != show_members_.end();) {
++        it = members_.count(it->first) == 0 ? show_members_.erase(it) : std::next(it);
++    }
++
++    show_on_ = std::any_of(show_members_.begin(), show_members_.end(), [](const auto& m) { return m.second.shows; });
++
++    if (!show_on_) {
++        show_made_.clear();
++        show_ids_.clear();
++        show_orders_.clear();
++        return;
++    }
++
++    // Orders: the placed order_class mobys' commands now (Hoven's reservoir); each member that takes them is told all
++    // of them again every kShowOrderEveryMs, and any changed at once (show_orders_due).
++    show_orders_.clear();
++
++    for (const auto& [slot, m] : mobys_) {
++        if (m.key < 0 || !order_class(m.oclass) || show_orders_.size() >= kShowOrdersMost) {
++            continue;
++        }
++
++        const int read = game_.order_read(slot);
++        const std::uint16_t id = id_of(slot);
++
++        if (read >= 0 && id != kNoId) {
++            show_orders_[id] = static_cast<std::uint8_t>(read & 0xFF);
++        }
++    }
++
++    for (auto& [id, sm] : show_members_) {
++        if (sm.shows && now - sm.orders_ms >= kShowOrderEveryMs) {
++            sm.orders_due = true;
++        }
++    }
++
++    // Gone: the shown mobys no longer here (another made in the slot, or now shared), told to who has them.
++    for (auto it = show_ids_.begin(); it != show_ids_.end();) {
++        const auto moby = mobys_.find(it->first);
++
++        if (moby != mobys_.end() && moby->second.oclass == it->second.oclass && (moby->second.flags & kMobyDead) == 0
++            && show_made_.count(it->first) == 0 && shared_.count(it->first) == 0) {
++            ++it;
++            continue;
++        }
++
++        for (auto& [id, sm] : show_members_) {
++            if (sm.live.erase(it->second.id) != 0 && sm.gone.size() < kShowGoneMost) {
++                sm.gone[it->second.id] = kShowGoneTold;
++            }
++        }
++
++        it = show_ids_.erase(it);
++    }
++
++    // New: the spawned mobys an update of a moby the members drive made, past what the host shares anyway.
++    std::vector<std::pair<int, ShowMade>> fresh;
++
++    for (const auto& [slot, made] : show_made_) {
++        const auto moby = mobys_.find(slot);
++
++        if (!made.shows || moby == mobys_.end()) {
++            continue;
++        }
++
++        const MobyState& m = moby->second;
++
++        if (m.key >= 0 || m.oclass <= 0 || shared_.count(slot) != 0 || show_ids_.count(slot) != 0
++            || (m.flags & (kMobyScene | kMobyCreature | kMobyDead)) != 0 || bolt_class(m.oclass) || loot_class(m.oclass)
++            || spawned_bolt_class(m.oclass) || crate_class(m.oclass) || pickup_class(m.oclass)
++            || interactable_class(m.oclass)) {
++            continue;
++        }
++
++        fresh.emplace_back(slot, made);
++    }
++
++    show_made_.clear();
++
++    // Their ids first: one may point at another made with it.
++    for (const auto& [slot, made] : fresh) {
++        show_ids_[slot] = {mobys_[slot].oclass, show_next_};
++        show_next_ = static_cast<std::uint16_t>(show_next_ % 0x7FFF + 1);
++    }
++
++    for (const auto& [slot, made] : fresh) {
++        ShowRecord record;
++        record.id = show_ids_[slot].id;
++        record.maker = made.maker_id;
++        bool named = game_.show_read(slot, record.moby);
++
++        for (const ShowMoby::Pointer& p : record.moby.pointers) {
++            ShowRef ref;
++            ref.word = p.word;
++            ref.offset = p.offset;
++            ref.vars = p.vars;
++
++            // A word at a moby no member knows of: a copy without it might go wrong, so none.
++            if (!named || !show_name(p.slot, ref) || record.refs.size() >= kShowRefsMost) {
++                named = false;
++                break;
++            }
++
++            record.refs.push_back(ref);
++        }
++
++        record.moby.pointers.clear();
++
++        if (!named) {
++            trace_line("show", "not shown " + moby_name(slot) + ": a word at a moby the members do not know");
++            continue;
++        }
++
++        for (auto& [id, sm] : show_members_) {
++            const auto member = members_.find(id);
++            Pose at;
++
++            if (!sm.shows || member == members_.end() || !member->second.synced || !coop_.latest(id, at)
++                || at.level != level_ || distance2(at.position, record.moby.pose.position) > kShowReach * kShowReach) {
++                continue;
++            }
++
++            sm.out.push_back({now, record});
++            sm.live.insert(record.id);
++            ++show_made_count_;
++            trace_line("show", "copy " + std::to_string(record.id) + " of " + moby_name(slot) + " by "
++                                   + moby_name(made.maker) + " for " + std::to_string(id) + " words "
++                                   + std::to_string(record.refs.size()) + " bytes " + std::to_string(show_bytes(record)));
++        }
++    }
++}
++
++std::vector<ShowOrder> World::show_orders_due(const ShowMember& sm) const {
++    std::vector<ShowOrder> due;
++
++    for (const auto& [id, command] : show_orders_) {
++        const auto told = sm.orders_told.find(id);
++
++        if (sm.orders_due || told == sm.orders_told.end() || told->second != command) {
++            due.push_back({id, command});
++        }
++    }
++
++    return due;
++}
++
++std::size_t World::show_room(std::int32_t member) const {
++    const auto it = show_members_.find(member);
++
++    if (it == show_members_.end() || !it->second.shows) {
++        return 0;
++    }
++
++    const std::size_t orders = show_orders_due(it->second).size();
++
++    if (it->second.out.empty() && it->second.gone.empty() && orders == 0) {
++        return 0;
++    }
++
++    std::size_t bytes = 5 + 2 * it->second.gone.size() + (orders != 0 ? 1 + 3 * orders : 0);
++    bool any = false;
++
++    for (const ShowOut& o : it->second.out) {
++        const std::size_t n = show_bytes(o.record);
++
++        if (any && bytes + n > kShowRoom) {
++            break;
++        }
++
++        bytes += n;
++        any = true;
++    }
++
++    return std::min(bytes, kShowDatagram - kWorldHeadBytes);
++}
++
++Bytes World::show_tail(std::int32_t member, std::uint64_t now, std::size_t room, std::size_t& records) {
++    records = 0;
++    const auto it = show_members_.find(member);
++
++    if (it == show_members_.end()) {
++        return {};
++    }
++
++    ShowMember& sm = it->second;
++
++    // Too late to show: never made there, so never told gone.
++    while (!sm.out.empty() && now - sm.out.front().ms > kShowLateMs) {
++        sm.live.erase(sm.out.front().record.id);
++        sm.out.pop_front();
++    }
++
++    std::vector<std::uint16_t> gone;
++
++    for (const auto& [id, left] : sm.gone) {
++        gone.push_back(id);
++    }
++
++    sm.orders_out = show_orders_due(sm);
++    sm.orders_out_all = sm.orders_due;
++    std::size_t bytes = 5 + 2 * gone.size() + (sm.orders_out.empty() ? 0 : 1 + 3 * sm.orders_out.size());
++
++    if (bytes > room) {
++        sm.orders_out.clear();
++        return {};
++    }
++
++    std::vector<ShowRecord> chosen;
++
++    for (const ShowOut& o : sm.out) {
++        const std::size_t n = show_bytes(o.record);
++
++        if (bytes + n > room) {
++            break;
++        }
++
++        chosen.push_back(o.record);
++        chosen.back().age_ms = static_cast<std::uint16_t>(std::min<std::uint64_t>(now - o.ms, 0xFFFF));
++        bytes += n;
++    }
++
++    records = chosen.size();
++    return encode_show_tail(chosen, gone, sm.orders_out);
++}
++
++void World::show_sent(std::int32_t member, std::size_t records) {
++    const auto it = show_members_.find(member);
++
++    if (it == show_members_.end()) {
++        return;
++    }
++
++    ShowMember& sm = it->second;
++
++    for (std::size_t i = 0; i < records && !sm.out.empty(); ++i) {
++        sm.out.pop_front();
++        ++show_sent_count_;
++    }
++
++    for (auto g = sm.gone.begin(); g != sm.gone.end();) {
++        g = --g->second <= 0 ? sm.gone.erase(g) : std::next(g);
++    }
++
++    // Orders: what it was told now stands, and all of them were told when they were due.
++    for (const ShowOrder& order : sm.orders_out) {
++        sm.orders_told[order.id] = order.command;
++    }
++
++    if (sm.orders_out_all) {
++        sm.orders_due = false;
++        sm.orders_ms = clock_();
++    }
++
++    sm.orders_out.clear();
++    sm.orders_out_all = false;
++}
++
++// --- The member ---
++
++void World::show_hello_out(Writer& w) {
++    const int disc = game_.show_disc();
++
++    if (disc != 0) {
++        encode_show_hello(w, disc, game_.show_layout());
++    }
++}
++
++void World::show_world_in(const Bytes& bytes, std::size_t entries, double time) {
++    std::vector<ShowRecord> records;
++    std::vector<std::uint16_t> gone;
++    std::vector<ShowOrder> orders;
++
++    if (!decode_show_tail(bytes, entries, records, gone, &orders)) {
++        return;
++    }
++
++    const std::uint64_t now = clock_();
++
++    // Orders: this game's own placed one given the order that brings it where the host's is (its own update acts).
++    for (const ShowOrder& order : orders) {
++        const int slot = slot_of(order.id);
++        const auto moby = slot >= 0 ? mobys_.find(slot) : mobys_.end();
++
++        if (moby == mobys_.end() || !order_class(moby->second.oclass)) {
++            continue;
++        }
++
++        const int read = game_.order_read(slot);
++
++        if (read < 0) {
++            continue;
++        }
++
++        const int give = order_for(moby->second.oclass, read >> 8, read & 0xFF, order.command);
++
++        if (give >= 0) {
++            game_.order_give(slot, give);
++            ++show_orders_given_;
++            log("order: " + moby_name(slot) + " given " + std::to_string(give) + " (its command " + std::to_string(read & 0xFF)
++                + ", the host's " + std::to_string(order.command) + ")");
++        }
++    }
++
++    for (const std::uint16_t id : gone) {
++        const auto at = show_slot_.find(id);
++        const auto copy = at != show_slot_.end() ? show_copies_.find(at->second) : show_copies_.end();
++
++        if (copy != show_copies_.end() && copy->second.gone_ms == 0) {
++            copy->second.gone_ms = now;
++        }
++    }
++
++    // Each at its maker's moment here: where this game shows its maker when it made it.
++    for (ShowRecord& record : records) {
++        double delay = kShowDelayMs;
++
++        if (const auto poses = record.maker != kNoId ? poses_.find(record.maker) : poses_.end(); poses != poses_.end()) {
++            delay = poses->second.delay_ms();
++        }
++
++        show_wait_.push_back({time - static_cast<double>(record.age_ms) + delay, std::move(record)});
++    }
++
++    while (show_wait_.size() > 2 * kShowMost) {
++        show_wait_.erase(show_wait_.begin());
++    }
++}
++
++void World::show_forget(int slot) {
++    if (const auto copy = show_copies_.find(slot); copy != show_copies_.end()) {
++        show_slot_.erase(copy->second.id);
++        show_copies_.erase(copy);
++    }
++
++    show_kin_.erase(slot);
++}
++
++void World::show_tick_member(std::uint64_t now) {
++    Pose hero;
++    show_hero_known_ = game_.hero(hero);
++
++    if (show_hero_known_) {
++        std::copy(hero.position, hero.position + 3, show_hero_);
++    }
++
++    // What left: gone here by itself (another moby in its slot now), or the host's gone a while, or too old.
++    for (auto it = show_copies_.begin(); it != show_copies_.end();) {
++        const auto moby = mobys_.find(it->first);
++        const ShowCopy& copy = it->second;
++
++        if (moby == mobys_.end() || moby->second.oclass != copy.oclass || (moby->second.flags & kMobyDead) != 0
++            || driven_.count(it->first) != 0) {
++            show_slot_.erase(copy.id);
++            it = show_copies_.erase(it);
++            continue;
++        }
++
++        if (now - copy.made_ms >= kShowLifeMs || (copy.gone_ms != 0 && now - copy.gone_ms >= kShowGoneMs)) {
++            kill(it->first, copy.gone_ms != 0 ? "show copy: the host's is gone" : "show copy: too old");
++            show_slot_.erase(copy.id);
++            it = show_copies_.erase(it);
++            continue;
++        }
++
++        ++it;
++    }
++
++    for (auto it = show_kin_.begin(); it != show_kin_.end();) {
++        const auto moby = mobys_.find(it->first);
++
++        if (moby == mobys_.end() || (it->second != 0 && moby->second.oclass != it->second)
++            || (moby->second.flags & kMobyDead) != 0 || driven_.count(it->first) != 0) {
++            it = show_kin_.erase(it);
++            continue;
++        }
++
++        it->second = moby->second.oclass;
++        ++it;
++    }
++
++    // The copies due: made, each once what its words name is here.
++    const auto t = static_cast<double>(now);
++    std::stable_sort(show_wait_.begin(), show_wait_.end(),
++                     [](const ShowWait& a, const ShowWait& b) { return a.due < b.due; });
++
++    for (bool more = true; more;) {
++        more = false;
++
++        for (auto it = show_wait_.begin(); it != show_wait_.end();) {
++            const ShowRecord& record = it->record;
++
++            if (it->due > t) {
++                break;
++            }
++
++            if (t - it->due > kShowOverdueMs || show_copies_.size() >= kShowMost || show_slot_.count(record.id) != 0) {
++                it = show_wait_.erase(it);
++                continue;
++            }
++
++            ShowMoby moby = record.moby;
++            std::vector<int> to;
++            bool waits = false;
++            bool lost = false;
++
++            for (const ShowRef& ref : record.refs) {
++                int slot = -1;
++
++                switch (ref.kind) {
++                    case ShowRefKind::kPlayer: {
++                        const int figure = ref.id == session_.id() ? -1 : coop_.figure_of(ref.id);
++                        slot = ref.id == session_.id() || figure >= 0 ? game_.figure_slot(figure) : -1;
++                        break;
++                    }
++                    case ShowRefKind::kWorld:
++                        slot = slot_of(static_cast<std::uint16_t>(ref.id));
++                        break;
++                    case ShowRefKind::kShow: {
++                        const auto made = show_slot_.find(static_cast<std::uint16_t>(ref.id));
++
++                        if (ref.id == record.id) {
++                            slot = kShowSelf;
++                        } else if (made != show_slot_.end()) {
++                            slot = made->second;
++                        } else if (std::any_of(show_wait_.begin(), show_wait_.end(),
++                                               [&](const ShowWait& w) { return w.record.id == ref.id; })) {
++                            waits = true;
++                        }
++
++                        break;
++                    }
++                    default:
++                        break;
++                }
++
++                if (slot == -1 && !waits) {
++                    lost = true;
++                }
++
++                moby.pointers.push_back({ref.word, slot, ref.offset, ref.vars});
++                to.push_back(slot);
++            }
++
++            if (lost) {
++                trace_line("show", "copy " + std::to_string(record.id) + " of class " + std::to_string(moby.oclass)
++                                       + " not made: a word at a moby not here");
++                it = show_wait_.erase(it);
++                continue;
++            }
++
++            if (waits) {
++                ++it;
++                continue;
++            }
++
++            const int slot = game_.show_make(moby, to);
++
++            if (slot >= 0) {
++                show_copies_[slot] = {record.id, moby.oclass, now, 0};
++                show_slot_[record.id] = slot;
++                ++show_made_count_;
++                more = true;
++            }
++
++            trace_line("show", "copy " + std::to_string(record.id) + " of class " + std::to_string(moby.oclass)
++                                   + (slot >= 0 ? " made in slot " + std::to_string(slot) : std::string(" refused by the game"))
++                                   + " at " + xyz(moby.pose.position) + ", " + std::to_string(static_cast<int>(t - it->due))
++                                   + " ms late");
++
++            it = show_wait_.erase(it);
++        }
++    }
++
++    show_on_ = !show_copies_.empty() || !show_kin_.empty();
++}
++
++void World::show_reset() {
++    show_made_.clear();
++    show_free_.clear();
++    show_time_known_ = false;
++    show_on_ = false;
++    show_members_.clear();
++    show_ids_.clear();
++    show_copies_.clear();
++    show_slot_.clear();
++    show_kin_.clear();
++    show_wait_.clear();
++    show_hero_known_ = false;
++    show_orders_.clear();
++}
++
++}  // namespace mp
+diff --git a/multiplayer/tests/play_world_test.cpp b/multiplayer/tests/play_world_test.cpp
+index a69f265..831c971 100644
+--- a/multiplayer/tests/play_world_test.cpp
++++ b/multiplayer/tests/play_world_test.cpp
+@@ -4,6 +4,8 @@
+ // Playing together, without the game or a socket: the shared world: its bytes, the host's mobys and the despawn log.
+ #include "test_support.hpp"
+ 
++#include <cstring>  // QUEST-VR: show copies
++
+ namespace mpt {
+ namespace {
+ 
+@@ -598,7 +600,340 @@ void a_member_takes_over_its_own_copy_of_what_the_level_spawned() {
+           }) == 1);
+ }
+ 
++// QUEST-VR (world.hpp's scenery and water): the level's scenery is each game's own, which a member drives none of (its
++// update draws the water, the seas, the fire); water the host's switches move runs in the member's game too, put at the
++// host's height, the level's patches following it.
++void scenery_and_water_are_each_games() {
++    Player host(1), member(2);
++    const std::vector<mp::Member> both = {{1, "P1"}, {2, "P2"}};
++    host.session.handle(info(both));
++    member.session.handle(info(both));
++    host.coop.choose({}, "New game");
++    CHECK(start_ready(host));
++    route({&host, &member});
++    tick({&host, &member}, 16);
++
++    // An enemy (key 0), a texture scroll (809, scenery), Rilgar's water (831, the host's height).
++    const std::uint32_t runs = mp::kMobyUpdates | mp::kMobyPlaced;
++    for (Player* p : {&host, &member}) {
++        p->game.now = {mp::kPhasePlaying, 0, 2};
++        p->game.level = {moby(0, 0, 300, runs | mp::kMobyCreature, 10.0f), moby(1, 1, 809, runs, 20.0f),
++                         moby(2, 2, 831, runs, 30.0f)};
++    }
++    member.game.level[1].pose.position[0] = 25.0f;
++    for (int i = 0; i < 20; ++i) {
++        tick({&host, &member}, 50);
++    }
++    CHECK((member.game.drives == std::set<int>{0}));
++
++    // The host's water rises and its scroll moves on: the member's water follows, its patches told; its scroll stays.
++    host.game.level[2].pose.position[2] = 3.0f;
++    host.game.level[2].pose.seq = 5;
++    host.game.level[1].pose.position[0] = 99.0f;
++    host.game.level[1].pose.seq = 5;
++    for (int i = 0; i < 20; ++i) {
++        tick({&host, &member}, 50);
++    }
++    CHECK(std::fabs(member.game.level[2].pose.position[2] - 3.0f) < 0.01f);
++    CHECK(std::count(member.game.world_calls.begin(), member.game.world_calls.end(), "water 2 831") >= 1);
++    CHECK(std::fabs(member.game.level[1].pose.position[0] - 25.0f) < 0.01f);
++    CHECK(std::count(host.game.world_calls.begin(), host.game.world_calls.end(), "water 2 831") == 0);
++}
++
++// QUEST-VR (world.hpp's show copies): their bytes: a copy, a WORLD's tail behind its entries (a plain member reads the
++// entries only, and the whole fits a datagram), a HELLO's after the digest (a plain host reads no further).
++void show_copy_bytes() {
++    mp::ShowRecord r;
++    r.id = 77;
++    r.maker = 0x8005;
++    r.age_ms = 40;
++    r.moby.oclass = 1234;
++    r.moby.pose = pose_at(11.0f);
++    r.moby.pose.rotation[2] = 1.25f;
++    r.moby.pose.seq = 3;
++    r.moby.pose.frame = 9;
++    r.moby.pose.anim_time = 0.25f;
++    r.moby.body[0] = 3;
++    r.moby.body[mp::kShowBody - 1] = 0x44;
++    r.moby.vars[0] = 5;
++    r.moby.vars[mp::kShowVars - 1] = 9;
++    r.refs = {{1, mp::ShowRefKind::kWorld, 0, 0x10, false},
++              {mp::kShowParent, mp::ShowRefKind::kPlayer, 2, 0, false},
++              {4, mp::ShowRefKind::kShow, 78, 0x20, true}};
++    mp::Writer w;
++    mp::encode_show(w, r);
++    CHECK(w.bytes().size() == mp::show_bytes(r));
++    mp::Reader rd(w.bytes().data(), w.bytes().size());
++    mp::ShowRecord back;
++    CHECK(mp::decode_show(rd, back) && rd.left() == 0);
++    CHECK(back.id == 77 && back.maker == 0x8005 && back.age_ms == 40 && back.moby.oclass == 1234);
++    CHECK(back.moby.pose.position[0] == 11.0f && back.moby.pose.rotation[2] == 1.25f && back.moby.pose.seq == 3);
++    CHECK(back.moby.pose.frame == 9 && back.moby.pose.anim_time == 0.25f);
++    CHECK(std::memcmp(back.moby.body, r.moby.body, mp::kShowBody) == 0);
++    CHECK(std::memcmp(back.moby.vars, r.moby.vars, mp::kShowVars) == 0);
++    CHECK(back.refs.size() == 3 && back.refs[1].word == mp::kShowParent && back.refs[1].kind == mp::ShowRefKind::kPlayer);
++    CHECK(back.refs[1].id == 2 && back.refs[2].vars && back.refs[2].offset == 0x20 && back.refs[2].id == 78);
++    Bytes bad = w.bytes();
++    bad[bad.size() - 7] = 9;  // the last word's kind
++    mp::Reader rbad(bad.data(), bad.size());
++    CHECK(!mp::decode_show(rbad, back));
++
++    // Behind a WORLD's entries, as many entries as leave their room.
++    const std::size_t keep = 5 + 2 + 3 * mp::show_bytes(r);
++    const std::size_t most =
++        std::min(mp::kWorldEntries, (mp::kShowDatagram - mp::kWorldHeadBytes - keep) / mp::kWorldEntryBytes);
++    const std::vector<mp::WorldEntry> entries(most, mp::WorldEntry{3, pose_at(1.0f)});
++    Bytes world = mp::encode_world(4, 99, entries, 5);
++    const Bytes tail = mp::encode_show_tail({r, r, r}, {12});
++    CHECK(tail.size() == keep && mp::encode_show_tail({}, {}).empty());
++    world.insert(world.end(), tail.begin(), tail.end());
++    CHECK(world.size() <= mp::kShowDatagram && mp::kShowDatagram + 3 + mp::kClientStateHeader <= mp::kMaxDatagramBytes);
++    int level = 0;
++    std::int64_t stamp = 0;
++    std::vector<mp::WorldEntry> got;
++    CHECK(mp::decode_world(world, level, stamp, got) && got.size() == most && level == 4);
++    std::vector<mp::ShowRecord> records;
++    std::vector<std::uint16_t> gone;
++    CHECK(mp::decode_show_tail(world, got.size(), records, gone) && records.size() == 3 && records[2].id == 77);
++    CHECK(gone.size() == 1 && gone[0] == 12);
++    CHECK(!mp::decode_show_tail(Bytes(world.begin(), world.end() - 1), got.size(), records, gone));
++    CHECK(records.empty() && !mp::decode_show_tail(mp::encode_world(4, 99, entries, 5), got.size(), records, gone));
++
++    // Orders behind the gone ids (a placed moby's key and the host's command); a tail without them gives none.
++    std::vector<mp::ShowOrder> orders = {{5, 9}};
++    Bytes plain_world = mp::encode_world(4, 99, {}, 5);
++    const Bytes plain_tail = mp::encode_show_tail({}, {12});
++    plain_world.insert(plain_world.end(), plain_tail.begin(), plain_tail.end());
++    CHECK(mp::decode_show_tail(plain_world, 0, records, gone, &orders) && orders.empty() && gone.size() == 1);
++    const Bytes ordered = mp::encode_show_tail({}, {}, {{2, 1}, {0x1234, 8}});
++    CHECK(ordered.size() == 5 + 1 + 3 * 2);
++    Bytes ordered_world = mp::encode_world(4, 99, {}, 5);
++    ordered_world.insert(ordered_world.end(), ordered.begin(), ordered.end());
++    CHECK(mp::decode_show_tail(ordered_world, 0, records, gone, &orders) && records.empty() && gone.empty());
++    CHECK(orders.size() == 2 && orders[0].id == 2 && orders[0].command == 1 && orders[1].id == 0x1234 && orders[1].command == 8);
++    CHECK(mp::decode_show_tail(ordered_world, 0, records, gone));  // read without them: the copies and gone alone
++    CHECK(!mp::decode_show_tail(Bytes(ordered_world.begin(), ordered_world.end() - 1), 0, records, gone, &orders));
++
++    // A HELLO's, after the digest.
++    mp::Writer h;
++    h.u8(1).i32(2).i32(3);
++    mp::encode_show_hello(h, 1, 0xABCDEF01u);
++    mp::Reader hr(h.bytes().data(), h.bytes().size());
++    hr.u8();
++    hr.i32();
++    hr.i32();
++    int disc = 0;
++    std::uint32_t layout = 0;
++    CHECK(mp::decode_show_hello(hr, disc, layout) && disc == 1 && layout == 0xABCDEF01u);
++    mp::Reader plain(h.bytes().data(), 9);
++    plain.u8();
++    plain.i32();
++    plain.i32();
++    CHECK(!mp::decode_show_hello(plain, disc, layout));
++}
++
++// QUEST-VR (world.hpp's show copies): what the host's enemy's update makes (its rocket) is made again in a member of
++// this build, on its disc, its words at what that member knows (the enemy, its own hero); its update keeps that
++// member's hero as he is, what it makes is its too, their hits are none there, and it goes once the host's has gone a
++// while. What no member drives makes (a crate's) is not shown; a member or host without them gets none.
++void show_copies_of_what_the_hosts_enemies_make() {
++    struct Case {
++        int host_disc;
++        int member_disc;
++        bool shows;
++    };
++
++    for (const Case c : {Case{1, 1, true}, Case{1, 0, false}, Case{1, 2, false}, Case{0, 1, false}}) {
++        Player host(1), member(2);
++        const std::vector<mp::Member> both = {{1, "P1"}, {2, "P2"}};
++        host.session.handle(info(both));
++        member.session.handle(info(both));
++        host.coop.choose({}, "New game");
++        CHECK(start_ready(host));
++        route({&host, &member});
++        tick({&host, &member}, 16);
++        const std::uint32_t runs = mp::kMobyUpdates | mp::kMobyPlaced;
++
++        for (Player* p : {&host, &member}) {
++            p->game.now = {mp::kPhasePlaying, 0, 2};
++            p->game.level = {moby(0, 0, 300, runs | mp::kMobyCreature, 10.0f), moby(1, 1, 500, runs, 20.0f)};
++        }
++
++        host.game.disc = c.host_disc;
++        member.game.disc = c.member_disc;
++        host.game.spawn_states = {{800, 0xFE}, {801, 0xFF}};
++        member.game.spawn_states = {{800, 0xFF}};
++        host.game.hero_pose.position[0] = 100.0f;
++        member.game.hero_pose.position[0] = 12.0f;
++
++        for (int i = 0; i < 20; ++i) {
++            tick({&host, &member}, 50);
++        }
++
++        CHECK(member.world.synced());
++
++        // The enemy's update makes a rocket, its words at the enemy and at the member's figure there; the crate's
++        // makes a chip.
++        const int figure = 100 + host.coop.figure_of(2);
++        host.world.gate(0, mp::kMobyBefore);
++        const int rocket = host.game.create(1234, 11.0f);
++        mp::ShowMoby rm;
++        rm.oclass = 1234;
++        rm.pose = pose_at(11.0f);
++        rm.body[0] = 3;
++        rm.vars[0] = 5;
++        rm.pointers = {{1, 0, 0x10, false}, {2, figure, 0, true}};
++        host.game.show_mobys[rocket] = rm;
++        host.world.gate(0, mp::kMobyAfter);
++        host.world.gate(1, mp::kMobyBefore);
++        const int chip = host.game.create(1235, 20.0f);
++        mp::ShowMoby cm;
++        cm.oclass = 1235;
++        cm.pose = pose_at(20.0f);
++        host.game.show_mobys[chip] = cm;
++        host.world.gate(1, mp::kMobyAfter);
++        CHECK(rocket == 800 && chip == 801);
++
++        for (int i = 0; i < 10; ++i) {
++            tick({&host, &member}, 50);
++        }
++
++        CHECK(member.game.shows_made.size() == (c.shows ? 1u : 0u));
++
++        if (!c.shows) {
++            CHECK(std::count_if(member.game.level.begin(), member.game.level.end(), [](const mp::MobyState& m) {
++                      return m.oclass == 1234 || m.oclass == 1235;
++                  }) == 0);
++            continue;
++        }
++
++        const auto& [made, to] = member.game.shows_made[0];
++        CHECK(made.oclass == 1234 && made.body[0] == 3 && made.vars[0] == 5 && made.pointers.size() == 2);
++        CHECK(to.size() == 2 && to[0] == 0 && to[1] == 99 && made.pointers[1].vars && made.pointers[0].offset == 0x10);
++        CHECK(member.game.world_calls.end()
++              != std::find(member.game.world_calls.begin(), member.game.world_calls.end(), "show 1234 800"));
++
++        // Its update: the member's hero as he is; what it makes is its own; their hits are none here.
++        const int stood = member.game.stood;
++        CHECK(!member.world.gate(800, mp::kMobyBefore));
++        CHECK(member.game.stood == stood + 1 && member.game.world_calls.back() == "stand 12 -1");
++        const int spark = member.game.create(1236, 12.0f);
++        CHECK(!member.world.gate(800, mp::kMobyAfter));
++        tick({&host, &member}, 50);
++        CHECK(!member.world.gate(spark, mp::kMobyBefore) && member.game.stood == stood + 2);
++        member.world.gate(spark, mp::kMobyAfter);
++        // The enemy's own update is not this game's to run: no stand-in for it.
++        const std::size_t host_hits = host.game.hits.size();
++        mp::Hit blast;
++        blast.victim = 99;
++        blast.attacker = 800;
++        blast.damage = 3.0f;
++        CHECK(member.world.hit(blast));
++        blast.attacker = spark;
++        CHECK(member.world.hit(blast));
++        blast.victim = 0;
++        CHECK(member.world.hit(blast));
++        route({&host, &member});
++        CHECK(host.game.hits.size() == host_hits);
++
++        // The host's rocket goes: the member's, still flying, goes a while after.
++        host.game.destroy(rocket);
++        tick({&host, &member}, 50);
++        tick({&host, &member}, 50);
++        CHECK(std::find(member.game.world_calls.begin(), member.game.world_calls.end(), "kill 800")
++              == member.game.world_calls.end());
++
++        for (int i = 0; i < 40; ++i) {
++            tick({&host, &member}, 50);
++        }
++
++        CHECK(std::find(member.game.world_calls.begin(), member.game.world_calls.end(), "kill 800")
++              != member.game.world_calls.end());
++        CHECK(member.game.shows_made.size() == 1);
++    }
++}
++
++// QUEST-VR (world.hpp's show copies, "Orders"): Hoven's reservoir (384) drained by the host's switch drains in a member
++// of this build too: its own update, given command 8 when the host's says it drained (1), and 4 when it filled (2). It is
++// given each once (its own update keeps the order), not while it is in another state, and a member without show copies
++// gets none.
++void a_members_reservoir_drains_as_the_hosts() {
++    for (const bool shows : {true, false}) {
++        Player host(1), member(2);
++        const std::vector<mp::Member> both = {{1, "P1"}, {2, "P2"}};
++        host.session.handle(info(both));
++        member.session.handle(info(both));
++        host.coop.choose({}, "New game");
++        CHECK(start_ready(host));
++        route({&host, &member});
++        tick({&host, &member}, 16);
++        const std::uint32_t runs = mp::kMobyUpdates | mp::kMobyPlaced;
++
++        for (Player* p : {&host, &member}) {
++            p->game.now = {mp::kPhasePlaying, 0, 2};
++            p->game.level = {moby(0, 0, 300, runs | mp::kMobyCreature, 10.0f), moby(1, 1, 384, runs, 20.0f)};
++            p->game.orders[1] = (1 << 8) | 0;  // in its state 1, no order yet
++        }
++
++        host.game.disc = 1;
++        member.game.disc = shows ? 1 : 0;
++
++        for (int i = 0; i < 20; ++i) {
++            tick({&host, &member}, 50);
++        }
++
++        CHECK(member.world.synced());
++        const auto orders_given = [&member](const std::string& call) {
++            return std::count(member.game.world_calls.begin(), member.game.world_calls.end(), call);
++        };
++        CHECK(orders_given("order 1 8") == 0 && orders_given("order 1 4") == 0);
++
++        // The host's switch: its reservoir drains (its update keeps 1).
++        host.game.orders[1] = (1 << 8) | 1;
++
++        for (int i = 0; i < 10; ++i) {
++            tick({&host, &member}, 50);
++        }
++
++        CHECK(orders_given("order 1 8") == (shows ? 1 : 0));
++
++        if (!shows) {
++            continue;
++        }
++
++        // Its own update acts and keeps 1; told again (every kShowOrderEveryMs), it is not given it again.
++        member.game.orders[1] = (1 << 8) | 1;
++
++        for (int i = 0; i < 60; ++i) {
++            tick({&host, &member}, 50);
++        }
++
++        CHECK(orders_given("order 1 8") == 1);
++
++        // Filled again at the host, while the member's is in another state: nothing until it is back in its state 1.
++        host.game.orders[1] = (1 << 8) | 2;
++        member.game.orders[1] = (3 << 8) | 1;
++
++        for (int i = 0; i < 10; ++i) {
++            tick({&host, &member}, 50);
++        }
++
++        CHECK(orders_given("order 1 4") == 0);
++        member.game.orders[1] = (1 << 8) | 1;
++
++        for (int i = 0; i < 60; ++i) {
++            tick({&host, &member}, 50);
++        }
++
++        CHECK(orders_given("order 1 4") == 1);
++    }
++}
++
+ void run_world_tests() {
++    show_copy_bytes();
++    show_copies_of_what_the_hosts_enemies_make();
++    a_members_reservoir_drains_as_the_hosts();
++    scenery_and_water_are_each_games();
+     a_member_takes_over_its_own_copy_of_what_the_level_spawned();
+     a_placed_moby_hatched_is_shared_as_a_spawned_one();
+     a_hit_that_makes_no_sense_is_refused();
+diff --git a/multiplayer/tests/test_support.hpp b/multiplayer/tests/test_support.hpp
+index a80923c..66873dd 100644
+--- a/multiplayer/tests/test_support.hpp
++++ b/multiplayer/tests/test_support.hpp
+@@ -420,6 +420,98 @@ struct FakeGame : mp::Game {
+         return false;
+     }
+ 
++    // QUEST-VR: water put at the host's height, its patches told (world.hpp's water_follow_class).
++    bool water_follows(int slot, int oclass) override {
++        world_calls.push_back("water " + std::to_string(slot) + " " + std::to_string(oclass));
++        return true;
++    }
++
++    // QUEST-VR: show copies (world_show.cpp): this game's disc and layout (disc 0: it takes none), its tick count,
++    // its spawned slots' state bytes (CreateMoby's: below 0xFE a moby, 0xFF the last one, free), what show_read
++    // gives by slot, and the copies made with the slots of their words.
++    int disc = 0;
++    std::uint32_t layout = 7;
++    std::uint32_t tick_count = 1;
++    std::map<int, int> spawn_states;
++    std::map<int, mp::ShowMoby> show_mobys;
++    std::vector<std::pair<mp::ShowMoby, std::vector<int>>> shows_made;
++
++    int show_disc() override { return disc; }
++
++    std::uint32_t show_layout() override { return layout; }
++
++    std::uint32_t spawn_time() override { return tick_count; }
++
++    int spawn_slot_free(int from) override {
++        for (const auto& [slot, state] : spawn_states) {
++            if (slot >= from && state >= 0xFE) {
++                return slot;
++            }
++        }
++        return -1;
++    }
++
++    int spawn_slot_state(int slot) override {
++        const auto it = spawn_states.find(slot);
++        return it != spawn_states.end() ? it->second : -1;
++    }
++
++    bool show_read(int slot, mp::ShowMoby& out) override {
++        const auto it = show_mobys.find(slot);
++        if (it == show_mobys.end()) {
++            return false;
++        }
++        out = it->second;
++        return true;
++    }
++
++    int show_make(const mp::ShowMoby& m, const std::vector<int>& to) override {
++        const int slot = create(m.oclass, m.pose.position[0]);
++        shows_made.emplace_back(m, to);
++        world_calls.push_back("show " + std::to_string(m.oclass) + " " + std::to_string(slot));
++        return slot;
++    }
++
++    // QUEST-VR: orders (world.hpp's order_class): each moby's (state << 8) | command by slot, and the commands given.
++    std::map<int, int> orders;
++
++    int order_read(int slot) override {
++        const auto it = orders.find(slot);
++        return it != orders.end() ? it->second : -1;
++    }
++
++    void order_give(int slot, int command) override {
++        orders[slot] = (orders[slot] & ~0xFF) | command;
++        world_calls.push_back("order " + std::to_string(slot) + " " + std::to_string(command));
++    }
++
++    // CreateMoby: the first free spawned slot (the last one taken: the next is the last), listed unkeyed and
++    // updating at x; -1 for none. And a spawned moby deleted (its slot free at once here).
++    int create(int oclass, float x) {
++        for (auto& [slot, state] : spawn_states) {
++            if (state < 0xFE) {
++                continue;
++            }
++            if (state == 0xFF) {
++                spawn_states[slot + 1] = 0xFF;
++            }
++            state = 0;
++            mp::MobyState m;
++            m.slot = slot;
++            m.oclass = oclass;
++            m.flags = mp::kMobyUpdates;
++            m.pose.position[0] = x;
++            level.push_back(m);
++            return slot;
++        }
++        return -1;
++    }
++
++    void destroy(int slot) {
++        spawn_states[slot] = 0xFE;
++        die(slot);
++    }
++
+     // A moby killed: a placed one stays listed, dead (as the port lists it), a spawned one goes.
+     bool moby_kill(int slot) override {
+         world_calls.push_back("kill " + std::to_string(slot));

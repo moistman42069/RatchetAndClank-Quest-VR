@@ -62,6 +62,8 @@ run aim-sizes aim 1 $G=15,10 $H=15 'QUEST_VR_OPTIONS=gun_size 50;hand_size 60' K
 run akimbo-blaster akimbo 1 $G=15,16 $H=16 $L=15
 run akimbo-taunter akimbo 1 $G=15,14 $H=15 $L=14
 run akimbo-suck akimbo 1 $G=15,9 $H=15 $L=9
+# The left Tesla Claw's lightning (0.1.24): "[vr-akimbo] the left hand's draws added again before the picture".
+run akimbo-tesla akimbo 1 $G=15,19 $H=15 $L=19
 run akimbo2 akimbo2 1 $G=15,21 $H=21 $L=21
 run akimboglove akimboglove 1 $G=15,10 $H=15 $L=10
 # 0.1.13: the ammo box through the wrench and back (a tester's Pyrocitor and Bomb Glove: the left gun's box stayed).
@@ -201,6 +203,8 @@ run twohand-pyro twohand 1 $G=16 $H=16
 run supportleft supportleft 1 $G=15,16 $L=16
 run visibomb visibomb 1 $G=13 $H=13 QUEST_MISSILE_TRACE=1 KEEP=1
 run visibombgone visibombgone 1 $G=13 $H=13 KEEP=1
+# 0.1.24: the Visibomb in Akimbo's left hand flies as the right's (akimbovisibomb.sim says what to expect).
+run akimbo-visibomb akimbovisibomb 1 $G=15,13 $H=15 $L=13 KEEP=1
 # The same flame twice, its sprites turned to the eyes and left to the game's camera: compare the shots.
 run spritesface spritesface 1 $G=16 $H=16 KEEP=1
 run spritesfaceoff spritesfaceoff 1 $G=16 $H=16 QUEST_SPRITES_OFF=1 KEEP=1
@@ -325,11 +329,13 @@ run viewhold viewhold 1 KEEP=1
 # 0.1.20: the view starts as the launcher says whatever vr-options.txt keeps (a tester's every start went third person),
 # and the notices fade after a couple of seconds (viewnotice.sim says what to expect).
 run viewnotice viewnotice 1 QUEST_STATE_TRACE=1 'QUEST_VR_OPTIONS=first_person 0;launcher_first 1'
-# Third person with Gamepad, its default from 0.1.19: an Xbox controller, the D-pad by the head (RAC-Board on D-pad Up),
-# Start as the menu button is let go, the hold back to first person, the Xbox mod's icons pointed for each view.
-run thirdpad thirdpad 1 QUEST_RACBOARD=1 QUEST_JET_TRACE=1 QUEST_STATE_TRACE=1 'QUEST_SETTINGS={"view":"third"}' 'QUEST_MODS=, {"id": "xbox-icons", "enabled": true}' KEEP=1
-# 0.1.21: the launcher's Third person buttons on "Like first person": the right grip the wrench, X the map, the menus Xbox.
-run thirdlayout thirdlayout 1 QUEST_STATE_TRACE=1 'QUEST_SETTINGS={"view":"third","pad_cross":"a","pad_circle":"right_trigger","pad_square":"right_grip","pad_triangle":"right_stick","pad_r1":"left_trigger","pad_r2":"b","pad_l1":"left_grip","pad_l2":"y","pad_select":"x","pad_r3":"left_stick","pad_l3":"none"}' KEEP=1
+# Third person with Gamepad on the Xbox controller layout (its default 0.1.19 to 0.1.23, Like first person since 0.1.24, so
+# pinned here in QUEST_SETTINGS as the launcher writes it): the D-pad by the head (RAC-Board on D-pad Up), Start as the menu
+# button is let go, the hold back to first person, the Xbox mod's icons pointed for each view.
+run thirdpad thirdpad 1 QUEST_RACBOARD=1 QUEST_JET_TRACE=1 QUEST_STATE_TRACE=1 'QUEST_SETTINGS={"view":"third","pad_cross":"a","pad_circle":"b","pad_square":"x","pad_triangle":"y","pad_r1":"right_grip","pad_r2":"right_trigger","pad_l1":"left_grip","pad_l2":"left_trigger","pad_select":"left_stick","pad_r3":"right_stick","pad_l3":"none"}' 'QUEST_MODS=, {"id": "xbox-icons", "enabled": true}' KEEP=1
+# 0.1.21: the launcher's Third person buttons on "Like first person", the default since 0.1.24 (nothing set): the right grip
+# the wrench, X the map, the menus Xbox.
+run thirdlayout thirdlayout 1 QUEST_STATE_TRACE=1 'QUEST_SETTINGS={"view":"third"}' KEEP=1
 run t1 t1 1
 run t2 t2 1
 # How far the eyes see, the head turned from the game's camera: the ship must show in turned and turned2. QUEST_LOD=true,
@@ -501,6 +507,10 @@ GRAB='swing_grab 1;grab_fling 1;grab_stun 1;grab_launch 1;grab_slam 1;grab_zip 1
 # A Novalis critter caught, yanked in and thrown; and as it starts, nothing caught.
 run swinggrab swinggrab 1 $G=12 $H=12 $N=577 $A=6,0,180 "QUEST_VR_OPTIONS=$GRAB" KEEP=1
 run swinggrab-off swinggrab 1 $G=12 $H=12 $N=577 $A=6,0,180
+# 0.1.24: Grab crates (on to start): Novalis's nearest crate caught, held and thrown, and it breaks where it lands; off,
+# the Swingshot passes the crate by.
+run grabcrate grabcrate 1 $G=12 $H=12 $N=500 $A=6,0.5,60 "QUEST_VR_OPTIONS=$GRAB" QUEST_GRAB_TRACE=1 KEEP=1
+run grabcrate-off grabcrate 1 $G=12 $H=12 $N=500 $A=6,0.5,60 "QUEST_VR_OPTIONS=$GRAB;grab_crates 0"
 # 0.1.19: the same with Punch with your hands on too: the Swingshot's jab is a punch only with its hook home, so the catch,
 # the yank and the throw are the grab's, with no [vr-fist] punch while it holds the critter.
 run swinggrab-punch swinggrab 1 $G=12 $H=12 $N=577 $A=6,0,180 "QUEST_VR_OPTIONS=$GRAB;hand_punch 1"
@@ -588,7 +598,7 @@ run magnetorxon-ahead magnetorxon-ahead 10 QUEST_SIM_OWN=6 $G=28 QUEST_SIM_AT=27
 # from him, the trigger the board's spins, nothing fired).
 run racboardweapons racboardweapons 1 $G=15,12,16,10 $H=15 $N=511 QUEST_RACBOARD=1 QUEST_JET_TRACE=1 QUEST_STATE_TRACE=1 'QUEST_RACBOARD_SETTINGS={"trace": true}' KEEP=1
 run racboardweapons-off racboardweapons-off 1 $G=15,12,16,10 $H=15 $N=511 QUEST_RACBOARD=1 QUEST_JET_TRACE=1 QUEST_STATE_TRACE=1 'QUEST_RACBOARD_SETTINGS={"trace": true, "weapons": false}'
-run racboardwrench3 racboardwrench3 1 $G=15 $H=15 $N=511 QUEST_RACBOARD=1 QUEST_JET_TRACE=1 QUEST_STATE_TRACE=1 'QUEST_RACBOARD_SETTINGS={"trace": true}' 'QUEST_SETTINGS={"view":"third"}' KEEP=1
+run racboardwrench3 racboardwrench3 1 $G=15 $H=15 $N=511 QUEST_RACBOARD=1 QUEST_JET_TRACE=1 QUEST_STATE_TRACE=1 'QUEST_RACBOARD_SETTINGS={"trace": true}' 'QUEST_SETTINGS={"view":"third","pad_cross":"a","pad_circle":"b","pad_square":"x","pad_triangle":"y","pad_r1":"right_grip","pad_r2":"right_trigger","pad_l1":"left_grip","pad_l2":"left_trigger","pad_select":"left_stick","pad_r3":"right_stick","pad_l3":"none"}' KEEP=1
 run racboardswing racboardswing 3 $G=12 $H=12 $N=758 $A=10,1,180 QUEST_RACBOARD=1 QUEST_JET_TRACE=1 QUEST_STATE_TRACE=1 'QUEST_RACBOARD_SETTINGS={"trace": true}' KEEP=1
 run racboardswing2 racboardswing2 3 $G=12 $H=12 $N=803 $A=11.3,-5.6,-95 QUEST_RACBOARD=1 QUEST_JET_TRACE=1 QUEST_STATE_TRACE=1 'QUEST_RACBOARD_SETTINGS={"trace": true}' KEEP=1
 # 0.1.19: the Weapon wheel page (More controls' last row): Swap at full speed (on to start: wheelpoint's pick comes out
@@ -636,6 +646,15 @@ run wrenchflick-point wrenchflick 1 $G=15 $H=15 'QUEST_VR_OPTIONS=wrench_aim 2'
 run wrenchflick-swing wrenchflick 1 $G=15 $H=15 'QUEST_VR_OPTIONS=wrench_aim 1'
 run wrenchhelp wrenchhelp 1 $G=15 $H=15 $N=500 $A=6,0.5,60 QUEST_WRENCH_TRACE=1
 run wrenchhelp-off wrenchhelp 1 $G=15 $H=15 $N=500 $A=6,0.5,60 QUEST_WRENCH_TRACE=1 'QUEST_VR_OPTIONS=wrench_help 0'
+# 0.1.24: Wrench aim help's strengths (Wrench aim page; a tester: "more aggressive overall, particularly when swinging the
+# wrench from the side"). Light is 0.1.23's help (wrenchhelp-light: as wrenchhelp was); Strong, the start, follows its
+# target in flight ("aim help followed class N" or "let go of class N"). wrenchside.sim: a side swing, the head on the
+# crates: Strong "aim help to class N (Strong, where the head looks)", that crate broken; Light none.
+run wrenchhelp-light wrenchhelp 1 $G=15 $H=15 $N=500 $A=6,0.5,60 QUEST_WRENCH_TRACE=1 'QUEST_VR_OPTIONS=wrench_aim_help 1'
+run wrenchside wrenchside 1 $G=15 $H=15 $N=500 $A=6,0.5,60 QUEST_WRENCH_TRACE=1
+run wrenchside-light wrenchside 1 $G=15 $H=15 $N=500 $A=6,0.5,60 QUEST_WRENCH_TRACE=1 'QUEST_VR_OPTIONS=wrench_aim_help 1'
+# 0.1.24: Cheats' Set bolts to 0, with Infinite bolts on first (cheatszero.sim says what to expect).
+run cheatszero cheatszero 1 KEEP=1
 # 0.1.18: Orxon's electric barrier (a PCVR tester on the US disc: undrawn, it killed them twice), faced from 12 units:
 # its six "class 1067" rows, no "port:" line, and its strands in the "ahead" eyes.
 run orxonwall orxonwall 10 QUEST_SIM_OWN=6 QUEST_SIM_AT=224.0,289.0,35.2,-132 QUEST_ROWS_TRACE=1067 KEEP=1

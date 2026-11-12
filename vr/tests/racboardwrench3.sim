@@ -1,5 +1,5 @@
-# 0.1.19: Weapons on the board in third person with the controllers as a pad (QUEST_SETTINGS={"view":"third"}, as
-# thirdpad.sim), on Novalis by the crate class 511 with the Blaster (QUEST_SIM_GIVE=15 QUEST_SIM_HOLD=15). The left
+# 0.1.19: Weapons on the board in third person with the controllers as a pad (QUEST_SETTINGS={"view":"third"} and the
+# Xbox controller layout, as thirdpad.sim), on Novalis by the crate class 511 with the Blaster (QUEST_SIM_GIVE=15 QUEST_SIM_HOLD=15). The left
 # controller by the head, its stick up: D-pad Up, RAC-Board's "Board on and off". Riding: X is Square, the wrench swung
 # from the board (RAC-Board's trace "wrench swing on the board: N hit", the crate hit; his upper body turns), and
 # B Circle, the Blaster fired ("[sim] item 15" rounds fall). D-pad Up again: off.

@@ -103,8 +103,16 @@ struct GlCalls {
     void(__stdcall* BindTexture)(GLenum, GLuint) = nullptr;
     void(__stdcall* BindBuffer)(GLenum, GLuint) = nullptr;
     void(__stdcall* TexSubImage2D)(GLenum, GLint, GLint, GLint, GLsizei, GLsizei, GLenum, GLenum, const void*) = nullptr;
+    // For KeepGl below; without them the bindings are only looked at.
+    void(__stdcall* BindFramebuffer)(GLenum, GLuint) = nullptr;
+    void(__stdcall* ActiveTexture)(GLenum) = nullptr;
+    void(__stdcall* UseProgram)(GLuint) = nullptr;
+    void(__stdcall* BindVertexArray)(GLuint) = nullptr;
 };
 GlCalls g_gl;
+constexpr GLenum GL_DRAW_FRAMEBUFFER = 0x8CA9, GL_READ_FRAMEBUFFER = 0x8CA8, GL_DRAW_FRAMEBUFFER_BINDING = 0x8CA6;
+constexpr GLenum GL_READ_FRAMEBUFFER_BINDING = 0x8CAA, GL_ACTIVE_TEXTURE = 0x84E0, GL_CURRENT_PROGRAM = 0x8B8D;
+constexpr GLenum GL_VERTEX_ARRAY_BINDING = 0x85B5, GL_ARRAY_BUFFER = 0x8892, GL_ARRAY_BUFFER_BINDING = 0x8894;
 
 // Any function of this library: its address names the library to GetModuleHandleExW.
 void module_marker() {}
@@ -125,6 +133,10 @@ bool load_gl(std::string& why) {
         why = "the game's OpenGL lacks a call the headset needs";
         return false;
     }
+    take(g_gl.BindFramebuffer, "glBindFramebuffer");
+    take(g_gl.ActiveTexture, "glActiveTexture");
+    take(g_gl.UseProgram, "glUseProgram");
+    take(g_gl.BindVertexArray, "glBindVertexArray");
     return true;
 }
 
@@ -158,6 +170,133 @@ PFN_xrGetInstanceProcAddr xrGetInstanceProcAddr = nullptr;
 QUEST_XR_EARLY_CALLS(QUEST_XR_DECLARE)
 QUEST_XR_CALLS(QUEST_XR_DECLARE)
 #undef QUEST_XR_DECLARE
+
+// The game's GL kept through SteamVR's calls (0.1.24). SteamVR's OpenXR runtime can leave another GL context current
+// after a call that touches its images, a known bug of its OpenGL path that OpenSceneGraph's and OpenMW's VR work met
+// ("SteamVR changing GL context"; their fix: check the context around those calls and make the app's current again).
+// The PC VR testers' HUD and menus, the panel drawn last before the frame goes to the runtime, flickered for whole
+// sessions (0.1.17's on Orxon; 0.1.23's from the start, "close the game and reopen it to fix"); on the Quest, never.
+// So each OpenXR call that may touch the GL is wrapped: when it leaves another context current, the game's is made
+// current again; when it leaves other framebuffers, texture unit, texture, program, vertex array or buffer bound in the
+// game's, they are put back. Each kind is said once a call, and the count goes in the [vr-perf] line.
+void (*g_keep_log)(int, const char*) = nullptr;
+long g_gl_kept = 0;
+
+struct GlBindings {
+    GLint draw = 0, read = 0, unit = 0, texture = 0, program = 0, vertices = 0, buffer = 0;
+
+    void take() {
+        g_gl.GetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &draw);
+        g_gl.GetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &read);
+        g_gl.GetIntegerv(GL_ACTIVE_TEXTURE, &unit);
+        g_gl.GetIntegerv(GL_TEXTURE_BINDING_2D, &texture);
+        g_gl.GetIntegerv(GL_CURRENT_PROGRAM, &program);
+        g_gl.GetIntegerv(GL_VERTEX_ARRAY_BINDING, &vertices);
+        g_gl.GetIntegerv(GL_ARRAY_BUFFER_BINDING, &buffer);
+    }
+};
+
+class KeepGl {
+public:
+    explicit KeepGl(const char* call) : m_call(call), m_dc(wglGetCurrentDC()), m_rc(wglGetCurrentContext()) {
+        if (m_rc != nullptr && g_gl.GetIntegerv != nullptr) {
+            m_was.take();
+        }
+    }
+    KeepGl(const KeepGl&) = delete;
+    KeepGl& operator=(const KeepGl&) = delete;
+
+    ~KeepGl() {
+        if (m_rc == nullptr || g_gl.GetIntegerv == nullptr) {
+            return;
+        }
+        std::string what;
+        if (wglGetCurrentContext() != m_rc || wglGetCurrentDC() != m_dc) {
+            wglMakeCurrent(m_dc, m_rc);
+            what += " context";
+        }
+        GlBindings now;
+        now.take();
+        // The texture is the unit's: the game's unit first, then what is bound on it.
+        if (now.unit != m_was.unit && g_gl.ActiveTexture != nullptr) {
+            g_gl.ActiveTexture(static_cast<GLenum>(m_was.unit));
+            g_gl.GetIntegerv(GL_TEXTURE_BINDING_2D, &now.texture);
+            what += " unit";
+        }
+        const auto put = [&](GLint was, GLint is, const char* name, auto bind) {
+            if (was != is) {
+                bind(static_cast<GLuint>(was));
+                what += std::string(" ") + name;
+            }
+        };
+        if (g_gl.BindFramebuffer != nullptr) {
+            put(m_was.draw, now.draw, "draw-framebuffer", [](GLuint v) { g_gl.BindFramebuffer(GL_DRAW_FRAMEBUFFER, v); });
+            put(m_was.read, now.read, "read-framebuffer", [](GLuint v) { g_gl.BindFramebuffer(GL_READ_FRAMEBUFFER, v); });
+        }
+        put(m_was.texture, now.texture, "texture", [](GLuint v) { g_gl.BindTexture(GL_TEXTURE_2D, v); });
+        if (g_gl.UseProgram != nullptr) {
+            put(m_was.program, now.program, "program", [](GLuint v) { g_gl.UseProgram(v); });
+        }
+        if (g_gl.BindVertexArray != nullptr) {
+            put(m_was.vertices, now.vertices, "vertex-array", [](GLuint v) { g_gl.BindVertexArray(v); });
+        }
+        put(m_was.buffer, now.buffer, "array-buffer", [](GLuint v) { g_gl.BindBuffer(GL_ARRAY_BUFFER, v); });
+        if (what.empty()) {
+            return;
+        }
+        ++g_gl_kept;
+        static std::vector<std::string> said;
+        const std::string line = std::string(m_call) + ":" + what;
+        if (g_keep_log != nullptr && std::find(said.begin(), said.end(), line) == said.end() && said.size() < 64) {
+            said.push_back(line);
+            g_keep_log(kKeepWarn, ("[openxr] the runtime's " + std::string(m_call) + " changed the game's GL (" + what.substr(1)
+                                   + "): put back")
+                                      .c_str());
+        }
+    }
+
+private:
+    static constexpr int kKeepWarn = 2;
+    const char* m_call;
+    HDC m_dc;
+    HGLRC m_rc;
+    GlBindings m_was;
+};
+
+// The calls that may touch the GL (a session's, a swapchain's, a frame's), each through KeepGl once the loader's are found
+// (OpenXr::find_calls).
+#define QUEST_XR_KEPT_CALLS(X)                                                                                         \
+    X(xrCreateSession, (XrInstance a, const XrSessionCreateInfo* b, XrSession* c), (a, b, c))                          \
+    X(xrBeginSession, (XrSession a, const XrSessionBeginInfo* b), (a, b))                                               \
+    X(xrEndSession, (XrSession a), (a))                                                                                 \
+    X(xrDestroySession, (XrSession a), (a))                                                                             \
+    X(xrCreateSwapchain, (XrSession a, const XrSwapchainCreateInfo* b, XrSwapchain* c), (a, b, c))                     \
+    X(xrDestroySwapchain, (XrSwapchain a), (a))                                                                         \
+    X(xrEnumerateSwapchainImages, (XrSwapchain a, uint32_t b, uint32_t* c, XrSwapchainImageBaseHeader* d), (a, b, c, d)) \
+    X(xrAcquireSwapchainImage, (XrSwapchain a, const XrSwapchainImageAcquireInfo* b, uint32_t* c), (a, b, c))          \
+    X(xrWaitSwapchainImage, (XrSwapchain a, const XrSwapchainImageWaitInfo* b), (a, b))                                 \
+    X(xrReleaseSwapchainImage, (XrSwapchain a, const XrSwapchainImageReleaseInfo* b), (a, b))                           \
+    X(xrWaitFrame, (XrSession a, const XrFrameWaitInfo* b, XrFrameState* c), (a, b, c))                                 \
+    X(xrBeginFrame, (XrSession a, const XrFrameBeginInfo* b), (a, b))                                                   \
+    X(xrEndFrame, (XrSession a, const XrFrameEndInfo* b), (a, b))
+#define QUEST_XR_KEPT(name, params, args)                                                                              \
+    PFN_##name raw_##name = nullptr;                                                                                    \
+    XRAPI_ATTR XrResult XRAPI_CALL kept_##name params {                                                                 \
+        const KeepGl keep(#name);                                                                                       \
+        return raw_##name args;                                                                                         \
+    }
+QUEST_XR_KEPT_CALLS(QUEST_XR_KEPT)
+#undef QUEST_XR_KEPT
+
+void keep_gl_through_calls() {
+#define QUEST_XR_KEEP(name, params, args)                                                                              \
+    if (name != nullptr && name != kept_##name) {                                                                       \
+        raw_##name = name;                                                                                              \
+        name = kept_##name;                                                                                             \
+    }
+    QUEST_XR_KEPT_CALLS(QUEST_XR_KEEP)
+#undef QUEST_XR_KEEP
+}
 
 using SwapchainImage = XrSwapchainImageOpenGLKHR;
 constexpr XrStructureType kSwapchainImageType = XR_TYPE_SWAPCHAIN_IMAGE_OPENGL_KHR;
@@ -206,7 +345,11 @@ struct Swapchain {
 
 class OpenXr final : public Headset {
 public:
-    explicit OpenXr(void (*log)(int, const char*)) : m_log(log) {}
+    explicit OpenXr(void (*log)(int, const char*)) : m_log(log) {
+#if defined(_WIN32)
+        g_keep_log = log;
+#endif
+    }
 
     bool start(const XrSettings& settings, std::string& why) override {
         m_settings = settings;
@@ -775,6 +918,7 @@ private:
         if (!find_calls(why)) {
             return false;
         }
+        keep_gl_through_calls();
         find_clock();
         auto properties_fn = proc<PFN_xrGetInstanceProperties>("xrGetInstanceProperties");
         XrInstanceProperties runtime{XR_TYPE_INSTANCE_PROPERTIES};
@@ -2144,10 +2288,18 @@ private:
         // the headset's own counter (OVR Metrics) shows as a dip, the "small wobbles" a tester saw.
         // The display's own rate as the runtime gives it (0.1.20), not the one asked for.
         const float display = display_rate();
-        char line[360];
+        // The game's GL put back after the runtime's calls (KeepGl), when any was.
+        std::string kept;
+#if defined(_WIN32)
+        if (g_gl_kept > 0) {
+            kept = ", the game's GL put back " + std::to_string(g_gl_kept) + " times";
+            g_gl_kept = 0;
+        }
+#endif
+        char line[420];
         std::snprintf(line, sizeof line,
                       "[vr-perf] %.1f frames/s over %.0f s, period %.2f ms, waited %.2f ms a frame, worked %.2f ms (most "
-                      "%.2f, %ld over the period), %ld displays missed%s%s",
+                      "%.2f, %ld over the period), %ld displays missed%s%s%s",
                       rate, seconds, out.frame_seconds * 1000.0,
                       m_frames > 0 ? m_wait_seconds / m_frames * 1000.0 : 0.0,
                       m_frames > 0 ? m_work_seconds / m_frames * 1000.0 : 0.0, m_work_most * 1000.0, m_work_over,
@@ -2155,7 +2307,8 @@ private:
                       m_space_warp_ready ? (", smoother frames on " + std::to_string(static_cast<int>(warped * 100.0 + 0.5))
                                             + "% of them").c_str()
                                          : "",
-                      display > 0.0f ? (", the display at " + std::to_string(static_cast<int>(display + 0.5f)) + " Hz").c_str() : "");
+                      display > 0.0f ? (", the display at " + std::to_string(static_cast<int>(display + 0.5f)) + " Hz").c_str() : "",
+                      kept.c_str());
         info(line);
         m_work_seconds = 0;
         m_work_most = 0;

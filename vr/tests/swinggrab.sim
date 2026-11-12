@@ -1,7 +1,8 @@
 # 0.1.18: Swingshot grabs enemies (Moves, off to start; run on: regress.sh GRAB). The Swingshot in the right hand (QUEST_SIM_GIVE=12 QUEST_SIM_HOLD=12), a
 # Novalis critter 6 units ahead (QUEST_SIM_NEAR=577 QUEST_SIM_NEAR_AT=6,0,180, from its far side: from OpenRAC 91b67c67 the critters wander out of the aim from the near one; --level 1; Novalis has no Swingshot target of its
 # own). Ratchet is put there about frame 2550 and lands about 2620; the critters reach and hurt him from about 2790, so the
-# trigger is pulled at 2660: "[vr-grab] the hook out to slot N", then "caught: yanked in"; held, it hangs before the hand. A
+# trigger is pulled at 2660: "[vr-grab] the hook out to slot N", then "caught: yanked in"; held, it hangs before the hand
+# (0.1.24, shots hook-out and held: the hook out of the housing, its claws on the critter's near side along the chain). A
 # fast stroke forward with the trigger let go at its end throws it: "[vr-grab] thrown at X m/s of the hand", then "let go:
 # it met the world" and "it landed: half the wrench's blow to it". As it starts (no options), no [vr-grab] line.
 # QUEST_GRAB_TRACE=1 logs, at each fresh pull, what lets a grab start and the creatures near the aim.

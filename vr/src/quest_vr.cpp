@@ -195,9 +195,13 @@ struct VrOptions {
     // owner's 0.1.22 video, "seems to veer up or in the wrong direction").
     int wrench_aim = 0;
     int wrench_angle = 0;      // Wrench throw angle: the throw turned this many degrees up (below 0 down), -30 to 30 by 5
-    // Aim help with Where you throw (Moves, Wrench throw aim's first choice, 0.1.23; on to start, as the port's new options
-    // are): a throw within a few degrees of an enemy or a crate it can reach, with nothing in the way, goes to it.
-    bool wrench_help = true;
+    // Wrench aim help (Moves, Wrench aim; 0.1.23 as Wrench throw aim's first choice, with Where you throw only): a throw
+    // near an enemy or a crate it can reach, with nothing in the way, goes to it. 0.1.24 (a tester: "It should activate on
+    // release. It should become more aggressive overall, particularly when swinging the wrench from the side or at an
+    // angle ... A strength toggle would be great too"): any throw aim, kAimHelpOff to kAimHelpVeryStrong (kAimHelp), Light
+    // 0.1.23's; past it, what the head looks at counts as well as the throw, and the wrench follows its target as it goes.
+    // Strong to start (the port's new options are on). Saved as wrench_aim_help; wrench_help 0 (0.1.23's no help) is Off.
+    int wrench_aim_help = 3;
     // Swingshot grabs enemies and Punch with your hands (Moves, 0.1.18; testers' asks): swing_grab_tick, fist_tick. Off to
     // start, the owner's call; What's new says where they are.
     bool swing_grab = false;
@@ -217,6 +221,11 @@ struct VrOptions {
     // Throw follows your swing (Grab moves, On by default, 0.1.19): a throw's speed from its least at a flick to its top at
     // a hard swing (grab_throw_speed); Off, 0.1.18's throw, most of them at the top.
     bool grab_follow = true;
+    // Grab crates (Grab moves, On by default, 0.1.24; a tester: "It would be great if we could grab boxes and other
+    // environmental objects and throw them at enemies. I'd suggest having these deal half the damage of a normal wrench
+    // hit"): with Swingshot grabs enemies on, the Swingshot catches a crate as it does an enemy (grab_prop), alone or as
+    // the host (a member's crates are the host's); thrown, it breaks where it lands, half the wrench's blow to an enemy it meets.
+    bool grab_crates = true;
     // Turning bolts (Moves; a tester's 0.1.17: "turning the screws are so nauseating. Maybe we just turn it bit by bit or if
     // we hold trigger as well with the wrench against the screw it auto turns"): false, Trigger or hand, the wrench seated
     // turns it while the trigger is held or as the hand circles it, Ratchet standing still; true, Walk around, Rerac-vr's
@@ -1414,6 +1423,8 @@ int party_bolt_crank(gaddr bolt);
 void party_bolt_finished(gaddr bolt, int32_t was);
 bool grab_busy();
 bool grab_hook_at(gaddr item, Vec3& at);
+bool grab_hook_way(gaddr item, Vec3& way);
+bool grab_roping(gaddr item);
 void swing_far_tick();
 void wall_tick();
 int game_ticks(float n);
@@ -1583,7 +1594,9 @@ struct CheatState {
     bool contrails = false;
 };
 CheatState s_cheats;
-enum CheatGive { kGiveNone, kGiveWeapons, kGiveGadgets, kGivePlanets };
+// kBoltsToZero (0.1.24, a tester: "A toggle to go back to 0 bolts would be awesome. I put the full money option on and cant
+// reverse it"): Set bolts to 0, which turns Infinite bolts off too.
+enum CheatGive { kGiveNone, kGiveWeapons, kGiveGadgets, kGivePlanets, kBoltsToZero };
 CheatGive s_cheat_give = kGiveNone;  // a button's, done at the tick's end
 
 // ---- Multiplayer parties (OpenRAC's multiplayer mod, bundled, off until turned on) ----
@@ -1813,6 +1826,13 @@ void cheat_give() {
     using Give = void (*)(int32_t, int32_t);
     using Unlock = void (*)(int32_t);
     int given = 0;
+    if (give == kBoltsToZero) {
+        int32_t& bolts = ref<int32_t>(s_mod->relocate(s_disc->bolts));
+        const int32_t had = bolts;
+        bolts = 0;
+        log_line(1, ("[vr-cheat] bolts set to 0 (there were " + std::to_string(had) + ")").c_str());
+        return;
+    }
     if (give == kGivePlanets) {
         const auto unlock = reinterpret_cast<Unlock>(s_mod->api().function(s_disc->unlock_planet));
         for (int32_t planet = 1; unlock != nullptr && planet <= kCheatPlanets; ++planet) {
@@ -1855,8 +1875,8 @@ void cheat_tick() {
     if (party_cheat(s_cheats.ammo, kRuleAmmo)) {
         fill_ammo();
     }
-    if (s_party.role == kPartyMember && !s_party.host_vr) {
-        s_cheat_give = kGiveNone;  // a flat host's party: no gifts either
+    if (s_party.role == kPartyMember && !s_party.host_vr && s_cheat_give != kBoltsToZero) {
+        s_cheat_give = kGiveNone;  // a flat host's party: no gifts either (bolts back to 0 is none)
     }
     cheat_give();
 }
@@ -3229,9 +3249,11 @@ void place_weapon() {
     if (moby == 0) {
         return;
     }
-    // A thrown wrench (its states 10 out and 11 back) flies on its own.
+    // A thrown wrench (its states 10 out and 11 back) flies on its own. Not a Swingshot a grab holds in 10 for its chain
+    // (grab_rope_tick): it is the hand's still, and its hook is carried to the one caught (0.1.24: skipped here, the hook
+    // was never moved by a grab and stayed where the game left it, a tester's "stays at the point where it's fired").
     const uint8_t state = ref<uint8_t>(moby + kMobyState);
-    if (state == 10 || state == 11) {
+    if ((state == 10 || state == 11) && !grab_roping(moby)) {
         return;
     }
     if (moby != s_grown) {
@@ -3731,6 +3753,30 @@ void hook_home_while_kept(gaddr item, const Mount& mount) {
     }
 }
 
+// The hook's turn in its housing while home, its rows in the housing's frame (each hand's), taken at each frame it is home:
+// out on a grab it keeps that turn, swung from the housing's aim to the chain's way, so its claws point along the chain
+// into the one caught (0.1.24, the owner's video: the hook hung as it left the housing, whatever way the chain went).
+Mat3 s_hook_home_rows[2];
+bool s_hook_home_known[2] = {};
+
+// `v` turned by the least turn that takes the way `from` to the way `to` (both of length 1).
+Vec3 turned_from_to(Vec3 v, Vec3 from, Vec3 to) {
+    const float c = std::clamp(dot(from, to), -1.0f, 1.0f);
+    Vec3 axis = cross(from, to);
+    const float s = length(axis);
+    if (s < 1e-5f) {
+        if (c > 0.0f) {
+            return v;
+        }
+        // Half a turn: about any way across `from`.
+        axis = cross(from, std::fabs(from.z) < 0.9f ? Vec3{0.0f, 0.0f, 1.0f} : Vec3{1.0f, 0.0f, 0.0f});
+        axis = axis * (1.0f / length(axis));
+        return axis * (2.0f * dot(axis, v)) - v;
+    }
+    axis = axis * (1.0f / s);
+    return v * c + cross(axis, v) * s + axis * (dot(axis, v) * (1.0f - c));
+}
+
 void carry_hook(gaddr item, const Mount& mount) {
     if (ref<int16_t>(item + kMobyOclass) != kSwingshotClass) {
         return;
@@ -3739,6 +3785,7 @@ void carry_hook(gaddr item, const Mount& mount) {
     if (hook == 0) {
         return;
     }
+    const int hand = item == s_left_moby ? 1 : 0;
     // Swingshot grabs enemies: the hook out to one, on it or coming home, where the grab has it.
     Vec3 grabbed;
     if (grab_hook_at(item, grabbed)) {
@@ -3746,6 +3793,36 @@ void carry_hook(gaddr item, const Mount& mount) {
         put_float(hook + kMobyPosition + 4u, grabbed.y);
         put_float(hook + kMobyPosition + 8u, grabbed.z);
         sphere_at(hook, grabbed);
+        // Its claws along the chain, from the muzzle to it (its turn at home, swung from the aim to the chain's way).
+        Vec3 aim;
+        const Vec3 chain = grabbed - mount.muzzle;
+        const float apart = length(chain);
+        if (s_hook_home_known[hand] && apart > 0.05f && grab_hook_way(item, aim)) {
+            const Vec3 way = chain * (1.0f / apart);
+#if !defined(__ANDROID__)
+            // PC test aid (QUEST_GRAB_TRACE=1): once a grab, its turn at home against the aim (an axis near 1 or -1 is along it).
+            static const bool turn_trace = std::getenv("QUEST_GRAB_TRACE") != nullptr;
+            static bool turn_told = false;
+            if (turn_trace && !turn_told) {
+                turn_told = true;
+                char line[200];
+                std::snprintf(line, sizeof line, "[vr-grab] trace: the hook's rows at home along the aim %.2f %.2f %.2f, the chain %.2f from the aim",
+                              dot(normalized(mount.axes * s_hook_home_rows[hand].x), aim), dot(normalized(mount.axes * s_hook_home_rows[hand].y), aim),
+                              dot(normalized(mount.axes * s_hook_home_rows[hand].z), aim), dot(way, aim));
+                log_line(1, line);
+            }
+#endif
+            for (uint32_t r = 0; r < 3; ++r) {
+                const Vec3 home = mount.axes * (r == 0 ? s_hook_home_rows[hand].x : r == 1 ? s_hook_home_rows[hand].y : s_hook_home_rows[hand].z);
+                const Vec3 v = turned_from_to(home, aim, way);
+                if (std::isfinite(v.x + v.y + v.z)) {
+                    const gaddr row = hook + kMobyBasis + kMobyRowSize * r;
+                    put_float(row, v.x);
+                    put_float(row + 4u, v.y);
+                    put_float(row + 8u, v.z);
+                }
+            }
+        }
         if (mount.size != 1.0f) {
             size_for_now(hook, own_scale(hook), mount.size);
         }
@@ -3773,14 +3850,23 @@ void carry_hook(gaddr item, const Mount& mount) {
             put_float(hook + kMobyPosition + 4u, to.y);
             put_float(hook + kMobyPosition + 8u, to.z);
             sphere_at(hook, to);
+            bool known = true;
+            Vec3 home[3];
             for (uint32_t r = 0; r < 3; ++r) {
                 const gaddr row = hook + kMobyBasis + kMobyRowSize * r;
-                const Vec3 v = mount.axes * in_item(read_vec(row));
+                home[r] = in_item(read_vec(row));
+                const Vec3 v = mount.axes * home[r];
                 if (std::isfinite(v.x + v.y + v.z)) {
                     put_float(row, v.x);
                     put_float(row + 4u, v.y);
                     put_float(row + 8u, v.z);
+                } else {
+                    known = false;
                 }
+            }
+            if (known) {
+                s_hook_home_rows[hand] = Mat3{home[0], home[1], home[2]};
+                s_hook_home_known[hand] = true;
             }
         }
     }
@@ -6077,15 +6163,37 @@ bool peak_throw_velocity(double now, Vec3& out) {
     return best > 0.0f;
 }
 
-// Wrench throw aim help: the enemy or crate the throw from `from` along `dir` (world) would hit near enough, within `reach`
-// units, nothing of the level in between; the way to its middle. A few degrees of the throw, more for a big or near one.
-constexpr float kWrenchHelpCone = 0.17f;  // radians, beside the target's own size seen from the throw
-bool wrench_help_target(Vec3 from, Vec3 dir, float reach, Vec3& to_target, int& oclass) {
+// Wrench aim help (VrOptions::wrench_aim_help): the enemy or crate the throw from `from` along `dir` (world) would hit near
+// enough, within `reach` units, nothing of the level in between; the way to its middle. Within `cone` radians of the throw,
+// more for a big or near one (its size seen from the throw); past Light, also within `gaze` of where the head looks
+// (`look`) if the throw is within `off_throw` of it, so a swing from the side or across finds what the player looks at;
+// and `turn` radians a second, at most, the wrench turns for it as it flies (wrench_home), as it moves or the arc drops.
+enum AimHelp { kAimHelpOff, kAimHelpLight, kAimHelpMedium, kAimHelpStrong, kAimHelpVeryStrong, kAimHelpCount };
+struct AimHelpStrength {
+    float cone;
+    float gaze;
+    float off_throw;
+    float turn;
+};
+constexpr AimHelpStrength kAimHelp[kAimHelpCount] = {
+    {0.0f, 0.0f, 0.0f, 0.0f},       // Off
+    {0.17f, 0.0f, 0.0f, 0.0f},      // Light: 0.1.23's help, about 10 degrees of the throw
+    {0.35f, 0.2f, 1.2f, 3.0f},      // Medium: 20 degrees of the throw, 11 of the gaze, the throw within 70 of it
+    {0.55f, 0.3f, 1.75f, 6.0f},     // Strong (the start): 31, 17 and 100
+    {0.8f, 0.42f, 2.1f, 12.0f},     // Very strong: 46, 24 and 120
+};
+const char* const kAimHelpNames[kAimHelpCount] = {"Off", "Light", "Medium", "Strong", "Very strong"};
+int aim_help_level() { return std::clamp(s_vr.wrench_aim_help, 0, kAimHelpCount - 1); }
+
+bool wrench_help_target(Vec3 from, Vec3 dir, Vec3 look, const AimHelpStrength& help, float reach, Vec3& to_target, int& oclass,
+                        int& slot, bool& by_gaze) {
     struct Candidate {
         float score;
         Vec3 centre;
         float radius;
         int oclass;
+        int slot;
+        bool by_gaze;
     };
     std::vector<Candidate> found;
     const gaddr body = ref<gaddr>(s_disc->hero + kHeroBody);
@@ -6107,7 +6215,7 @@ bool wrench_help_target(Vec3 from, Vec3 dir, float reach, Vec3& to_target, int& 
             angle = distance > 0.001f ? std::acos(std::clamp(dot(to * (1.0f / distance), dir), -1.0f, 1.0f)) : 0.0f;
             radius = get_float(address + 12u) / 1024.0f;
         }
-        if (distance > reach * 1.5f || angle > 0.8f) {
+        if (distance > reach * 1.5f || angle > std::max(0.8f, help.off_throw)) {
             return;  // only those near the throw's line
         }
         char line[260];
@@ -6118,9 +6226,9 @@ bool wrench_help_target(Vec3 from, Vec3 dir, float reach, Vec3& to_target, int& 
         log_line(1, line);
     };
     if (tracing) {
-        char line[200];
-        std::snprintf(line, sizeof line, "[vr-wrench] help: from (%.2f %.2f %.2f) along (%.2f %.2f %.2f), reach %.1f", from.x,
-                      from.y, from.z, dir.x, dir.y, dir.z, reach);
+        char line[240];
+        std::snprintf(line, sizeof line, "[vr-wrench] help: from (%.2f %.2f %.2f) along (%.2f %.2f %.2f), looking (%.2f %.2f %.2f), reach %.1f",
+                      from.x, from.y, from.z, dir.x, dir.y, dir.z, look.x, look.y, look.z, reach);
         log_line(1, line);
     }
     for (const openrac_moby& m : s_mod->moby_list()) {
@@ -6143,14 +6251,26 @@ bool wrench_help_target(Vec3 from, Vec3 dir, float reach, Vec3& to_target, int& 
             continue;
         }
         const float radius = std::max(get_float(address + 12u) / 1024.0f, 0.0f);
-        const float allowed = kWrenchHelpCone + std::atan2(std::min(radius, 2.0f), distance);
-        const float angle = std::acos(std::clamp(dot(to * (1.0f / distance), dir), -1.0f, 1.0f));
-        if (angle > allowed) {
+        const float size = std::atan2(std::min(radius, 2.0f), distance);
+        const Vec3 unit = to * (1.0f / distance);
+        const float allowed = help.cone + size;
+        const float angle = std::acos(std::clamp(dot(unit, dir), -1.0f, 1.0f));
+        float score = angle <= allowed ? angle / allowed : -1.0f;
+        bool gazed = false;
+        if (help.gaze > 0.0f && angle <= help.off_throw) {
+            const float allowed_look = help.gaze + size;
+            const float looked = std::acos(std::clamp(dot(unit, look), -1.0f, 1.0f));
+            if (looked <= allowed_look && (score < 0.0f || looked / allowed_look < score)) {
+                score = looked / allowed_look;
+                gazed = true;
+            }
+        }
+        if (score < 0.0f) {
             told(m, address, "skipped (off the cone)");
             continue;
         }
-        told(m, address, "a candidate");
-        found.push_back({angle / allowed + 0.3f * distance / reach, centre, std::min(radius, 2.0f), m.oclass});
+        told(m, address, gazed ? "a candidate, where the head looks" : "a candidate");
+        found.push_back({score + 0.3f * distance / reach, centre, std::min(radius, 2.0f), m.oclass, m.slot, gazed});
     }
     std::sort(found.begin(), found.end(), [](const Candidate& a, const Candidate& b) { return a.score < b.score; });
     for (std::size_t i = 0; i < found.size() && i < 3; ++i) {
@@ -6170,11 +6290,23 @@ bool wrench_help_target(Vec3 from, Vec3 dir, float reach, Vec3& to_target, int& 
         if (!blocked) {
             to_target = normalized(found[i].centre - from);
             oclass = found[i].oclass;
+            slot = found[i].slot;
+            by_gaze = found[i].by_gaze;
             return true;
         }
     }
     return false;
 }
+
+// The target aim help chose at the throw, for the flight to follow (wrench_home): taken at the flight's first tick, and
+// only from the throw just made (`tick`), never a game's own throw later.
+struct WrenchHoming {
+    int slot = -1;
+    int oclass = -1;
+    float turn = 0.0f;  // radians a second
+    uint64_t tick = 0;
+};
+WrenchHoming s_wrench_homing_next;
 
 // The wrench in the hand thrown with the hand's tracking-space `velocity`; false if it was not ready.
 bool throw_wrench(gaddr wrench, Vec3 velocity) {
@@ -6209,13 +6341,23 @@ bool throw_wrench(gaddr wrench, Vec3 velocity) {
     }
     Vec3 dir = frame_to_world(rotate(yaw_quat(s_rig.yaw), along));
     dir = dir * (1.0f / std::max(length(dir), 0.0001f));
-    // Aim help: to the enemy or crate it would nearly hit, as far as the throw goes out (the distance option's times).
+    // Aim help: to the enemy or crate it would nearly hit, or the one looked at, as far as the throw goes out (the distance
+    // option's times); the flight follows it as it goes, past Light.
     int helped = -1;
-    if (s_vr.wrench_help && s_vr.wrench_aim == 0) {
+    bool by_gaze = false;
+    const int help_level = aim_help_level();
+    s_wrench_homing_next = WrenchHoming{};
+    if (help_level != kAimHelpOff) {
+        const AimHelpStrength& help = kAimHelp[help_level];
         Vec3 to;
+        int target_slot = -1;
         const float reach = std::min(18.0f * static_cast<float>(1 << std::clamp(s_vr.wrench_far, 0, 3)), 60.0f);
-        if (wrench_help_target(from, dir, reach, to, helped)) {
+        const Vec3 look = s_have_frame ? normalized(head_look()) : dir;
+        if (wrench_help_target(from, dir, look, help, reach, to, helped, target_slot, by_gaze)) {
             dir = to;
+            if (help.turn > 0.0f) {
+                s_wrench_homing_next = WrenchHoming{target_slot, helped, help.turn, s_tick};
+            }
         } else {
             helped = -1;
         }
@@ -6234,10 +6376,11 @@ bool throw_wrench(gaddr wrench, Vec3 velocity) {
     ref<int16_t>(vars + kWrenchWallClose) = 0;
     ref<uint8_t>(slot + kSlotThrownFlag) = 1;
     ref<uint8_t>(wrench + kMobyState) = kWrenchOut;
-    char line[260];
-    char help[48] = "";
+    char line[300];
+    char help[96] = "";
     if (helped >= 0) {
-        std::snprintf(help, sizeof help, ", aim help to class %d", helped);
+        std::snprintf(help, sizeof help, ", aim help to class %d (%s%s)", helped, kAimHelpNames[help_level],
+                      by_gaze ? ", where the head looks" : "");
     }
     std::snprintf(line, sizeof line, "[vr-wrench] thrown at %.1f m/s %s, %d degrees up%s: along (%.2f %.2f %.2f), %.3f a tick",
                   hand_speed,
@@ -6292,8 +6435,60 @@ struct WrenchFlight {
     float from = 0.0f;     // how far it was when it turned
     int ticks = 0;
     Vec3 thrown_at;
+    WrenchHoming home;     // aim help's target, followed going out (slot -1: none)
+    float home_turned = 0.0f;  // radians turned for it, for the log
 };
 WrenchFlight s_wrench_flight;
+
+// Aim help's target, followed: going out, the wrench turns for its middle, at most its `turn` a second; the arc waits while
+// it does (the turn sees to the height). It lets go, once, when the target is gone or dead, out of the hit's reach
+// (no longer hittable), or behind it (passed: missed). True while it follows.
+bool wrench_home(gaddr wrench, gaddr vars) {
+    WrenchFlight& w = s_wrench_flight;
+    if (w.home.slot < 0) {
+        return false;
+    }
+    const auto let_go = [&](const char* why) {
+        char line[160];
+        std::snprintf(line, sizeof line, "[vr-wrench] aim help let go of class %d: %s, %.0f degrees turned for it in %d ticks",
+                      w.home.oclass, why, w.home_turned * 180.0f / kPi, w.ticks);
+        log_line(1, line);
+        w.home.slot = -1;
+    };
+    const gaddr target = grab_address(w.home.slot);
+    if (target == 0 || ref<int16_t>(target + kMobyOclass) != w.home.oclass || ref<uint8_t>(target + kMobyState) >= 0x80
+        || (ref<uint16_t>(target + kMobyMode) & kMobyHittable) == 0) {
+        let_go("it is gone");
+        return false;
+    }
+    const Vec3 at = read_vec(wrench + kMobyPosition);
+    const Vec3 to = moby_centre(target) - at;
+    const float distance = length(to);
+    const Vec3 now = read_vec(vars + kWrenchDirection);
+    const float now_length = length(now);
+    if (distance < 0.05f || now_length < 1e-5f) {
+        return true;  // on it: the game's hit is this tick's or the next
+    }
+    const Vec3 heading = now * (1.0f / now_length);
+    const Vec3 want = to * (1.0f / distance);
+    const float angle = std::acos(std::clamp(dot(heading, want), -1.0f, 1.0f));
+    if (angle > 1.75f) {
+        let_go("passed it");
+        return false;
+    }
+    const float step = std::min(angle, w.home.turn * tick_seconds());
+    Vec3 dir = want;
+    if (angle > 1e-4f && step < angle) {
+        const float s = std::sin(angle);
+        dir = (heading * std::sin(angle - step) + want * std::sin(step)) * (1.0f / s);
+        dir = dir * (1.0f / std::max(length(dir), 1e-5f));
+    }
+    for (uint32_t i = 0; i < 3u; ++i) {
+        put_float(vars + kWrenchDirection + 4u * i, (&dir.x)[i]);
+    }
+    w.home_turned += step;
+    return true;
+}
 
 bool wrench_resting() { return s_wrench_flight.rest; }
 bool wrench_can_be_called() { return s_wrench_flight.rest || (s_wrench_flight.out && s_wrench_flight.stays && !s_wrench_flight.called); }
@@ -6371,6 +6566,11 @@ bool wrench_flight_before(gaddr wrench) {
         w.out = true;
         w.stays = s_vr.wrench_stay;
         w.thrown_at = read_vec(wrench + kMobyPosition);
+        // Aim help's target, from the throw just made (a game's own throw has none).
+        if (s_wrench_homing_next.slot >= 0 && s_tick - s_wrench_homing_next.tick <= 4u) {
+            w.home = s_wrench_homing_next;
+        }
+        s_wrench_homing_next = WrenchHoming{};
         // At `first` and the game's slowing it goes D = 2/3 first n, n = sqrt(2 first / a), and stops; at this speed, n1 ticks
         // bring it to times D, and the slowing that does it is a1 = 2 speed / n1 squared.
         const float a = kWrenchSlowGrowth * ts * ts * ts;
@@ -6431,7 +6631,9 @@ void wrench_flight_after(gaddr wrench, uint8_t was, float slowing_was) {
         } else {
             put_float(vars + kWrenchSlowing, slowing_was + (get_float(vars + kWrenchSlowing) - slowing_was) * w.slowing);
         }
-        if (w.arc > 0.0f) {
+        if (wrench_home(wrench, vars)) {
+            // Aim help follows its target: no arc while it does.
+        } else if (w.arc > 0.0f) {
             Vec3 v = read_vec(vars + kWrenchDirection) * get_float(vars + kWrenchSpeed);
             v.z -= w.arc * ts * ts;
             const float speed = length(v);
@@ -6447,6 +6649,13 @@ void wrench_flight_after(gaddr wrench, uint8_t was, float slowing_was) {
     if (was == kWrenchOut && state == kWrenchBack) {
         const Vec3 at = read_vec(wrench + kMobyPosition);
         w.from = length(at - read_vec(s_disc->hero + 0x80u));
+        if (w.home.slot >= 0) {
+            char line[160];
+            std::snprintf(line, sizeof line, "[vr-wrench] aim help followed class %d to the turn, %.0f degrees turned for it in %d ticks",
+                          w.home.oclass, w.home_turned * 180.0f / kPi, w.ticks);
+            log_line(1, line);
+            w.home.slot = -1;
+        }
         if (w.stays && !w.called) {
             w.rest = true;
             wrench_whirl_off();
@@ -8373,10 +8582,23 @@ void missile_diff_tick() {
 }
 #endif
 
-bool missile_flying() {
-    return s_tick <= s_missile_tick + 2 && s_steers && s_have_frame && s_frame.hand_valid[kRight]
-           && ref<int32_t>(s_disc->hero + kHeroSlot0 + kSlotItem) == kVisibombItem;
+// Whose Visibomb flies the missile: 0 none, 1 the hand's held one (the right hand's), 2 Akimbo's second gun (0.1.24's
+// left-hand audit: one fired from the left hand flew with the eyes in the missile's flat cyan fog, no picture on the
+// gun's screen, the stick not steering it as it steers the right hand's).
+int missile_gun() {
+    if (!(s_tick <= s_missile_tick + 2 && s_steers && s_have_frame)) {
+        return 0;
+    }
+    if (ref<int32_t>(s_disc->hero + kHeroSlot0 + kSlotItem) == kVisibombItem) {
+        return s_frame.hand_valid[kRight] ? 1 : 0;
+    }
+    return s_left_moby != 0 && s_off_item == kVisibombItem && s_frame.hand_valid[s_off_side] ? 2 : 0;
 }
+
+bool missile_flying() { return missile_gun() != 0; }
+
+// The hand whose gun flies the missile.
+int missile_side() { return missile_gun() == 2 ? s_off_side : kRight; }
 
 // The missile's picture on the weapon's own screen (Rerac-vr's weapon_screen.rs monitor_transform): the quad of the
 // decorative screen's four vertices, which joint 9 carries as the gun folds and fires, a little toward the eye so the
@@ -8400,13 +8622,38 @@ void place_weapon_screen() {
     WeaponScreen& screen = s_weapon_screen[side];
     screen.shown = false;
     const openrac_api& api = s_mod->api();
-    const gaddr gun = s_have_hero ? hand_moby() : 0;
-    float xyz[12];
-    if (missile_flying() && gun != 0 && ref<int16_t>(gun + kMobyOclass) == kVisibombClass
+    // The hand's held gun, or Akimbo's second gun when that one flies it (0.1.24).
+    const int whose = missile_gun();
+    gaddr gun = 0;
+    if (s_have_hero && whose == 1) {
+        gun = hand_moby();
+    } else if (s_have_hero && whose == 2 && s_mod->moby_slot_of(s_left_moby) >= 0 && ref<uint8_t>(s_left_moby + kMobyState) < 0x80) {
+        gun = s_left_moby;
+    }
+    // The four corners, and a point off the screen's face (its normal in the model from the first corner): a gun drawn
+    // mirrored (a left-handed gun in the left hand) puts that point behind the placed corners' own face.
+    float points[15];
+    std::memcpy(points, &kVisibombScreen[0][0], sizeof kVisibombScreen);
+    {
+        const Vec3 c0{points[0], points[1], points[2]}, c1{points[3], points[4], points[5]}, c2{points[6], points[7], points[8]};
+        const Vec3 face = cross(c1 - c0, c2 - c0);
+        const Vec3 off = c0 + face * (256.0f / length(face));
+        points[12] = off.x;
+        points[13] = off.y;
+        points[14] = off.z;
+    }
+    float xyz[15];
+    if (whose != 0 && gun != 0 && ref<int16_t>(gun + kMobyOclass) == kVisibombClass
         && api.size >= offsetof(openrac_api, moby_points_at) + sizeof(void*) && api.moby_points_at != nullptr
-        && api.moby_points_at(gun, kVisibombScreenJoint, &kVisibombScreen[0][0], 4, xyz) == OPENRAC_HOOK_OK) {
+        && api.moby_points_at(gun, kVisibombScreenJoint, points, 5, xyz) == OPENRAC_HOOK_OK) {
         for (int i = 0; i < 4; ++i) {
             screen.corner[i] = {xyz[3 * i], xyz[3 * i + 1], xyz[3 * i + 2]};
+        }
+        // Mirrored, the picture would read backwards: its corners swapped across, it reads as on the right hand's gun.
+        const Vec3 off{xyz[12], xyz[13], xyz[14]};
+        if (dot(cross(screen.corner[1] - screen.corner[0], screen.corner[2] - screen.corner[0]), off - screen.corner[0]) < 0.0f) {
+            std::swap(screen.corner[0], screen.corner[1]);
+            std::swap(screen.corner[2], screen.corner[3]);
         }
         Vec3 normal = cross(screen.corner[1] - screen.corner[0], screen.corner[2] - screen.corner[0]);
         const float size = length(normal);
@@ -8732,11 +8979,26 @@ void fist_tick() {
 //   lands there and is the game's.
 // A hit on it while caught, stunned or flying (a shot, the wrench, a fist; its hit record waits in it while the mod drives it,
 // +0xA4) lets it go at once, so the game's own reaction to the hit takes it.
+//
+// The hook on it (0.1.24, a tester: "the hookshot itself currently stays at the point where it's fired rather than sticking to
+// the enemy. It would be nice if the hookshot actually attached to the enemy and stayed connected as they moved, with the
+// chain following them"; the owner's two videos: the hook on the floor by a frog drawn high in the air mid-hop, and low on a
+// tall one, the chain crawling out). The hook went to the enemy's bounding sphere, which is where the game keeps it, not
+// where it is drawn: a creature's own animation carries its model away from it (a hop, a lunge, a tall neck). It goes now to
+// the joint of its drawn body (the port's pose, moby_joints) nearest the aim, and rides that joint wherever the enemy is
+// drawn, out, held, hung up high; the aim takes an enemy by its drawn body too, a little wider the further it is. It flies
+// out twice as fast as the game's hook (the owner: "not just stuck in the air and extending all slowly"), and comes home
+// faster once let go. A class with no joints the port can pose keeps its bounding sphere's middle. Either way the hook sits on
+// the body's near side, toward the housing (a joint and the middle are inside the body, where it was hidden), its claws
+// turned along the chain into it (carry_hook).
 constexpr float kGrabReach = 30.0f;          // units, the game's pull
 constexpr float kGrabNearest = 0.5f;         // units along the aim: one already at the hand is caught too (it is pushed out to the hold)
 constexpr float kGrabAimSlack = 1.0f;        // units beside the aim, on top of three quarters of its bounding radius
+constexpr float kGrabAimWiden = 0.03f;       // units more beside the aim for each unit along it (0.9 more at 30 units)
 constexpr float kGrabBiggest = 3.0f;         // units of bounding radius: bigger (a boss) is no catch
-constexpr float kGrabHookOut = 150.0f, kGrabHookBack = 80.0f;  // units a second
+constexpr float kGrabHookOut = 300.0f, kGrabHookBack = 200.0f;  // units a second (0.1.18 to 0.1.23: the game's 150, and 80)
+constexpr int kGrabJointsMost = 128;         // joints of a creature looked at for its drawn body
+constexpr float kGrabJointStray = 4.0f;      // units past its bounding radius: a joint further is not where it is drawn
 constexpr float kGrabHold = 2.2f;            // units before the hand
 constexpr float kGrabYank = 45.0f;           // units a second at the most, following the hand
 constexpr float kGrabReel = 25.0f;           // units a second, reeled in (twice after a yank back)
@@ -8797,6 +9059,10 @@ struct Grab {
     int slot = -1;
     int oclass = 0;
     int side = kRight;
+    int hook_joint = -1;     // the joint of its drawn body the hook rides (-1: its bounding sphere's middle)
+    bool prop = false;       // a crate (grab_prop), not an enemy: no stun, and it breaks where a throw lands
+    bool prop_solid = false; // its collision turned off while the mod drives it (prop_solid_was to give back)
+    int32_t prop_solid_was = 0;
     gaddr item = 0;          // the housing
     Vec3 hook;               // the hook's place
     Vec3 at;                 // the enemy's position
@@ -8825,6 +9091,24 @@ bool grab_hook_at(gaddr item, Vec3& at) {
         return false;
     }
     at = s_grab.hook;
+    return true;
+}
+
+// Housing `item` is the one a grab has the hook of away (held in state 10 for its chain: place_weapon still places it).
+bool grab_roping(gaddr item) { return s_grab.hook_out && item != 0 && item == s_grab.item; }
+
+// The way the hand holding housing `item` aims now (its Swingshot's), while a grab has the hook away: carry_hook turns the
+// hook from it to the chain's way.
+bool grab_hook_way(gaddr item, Vec3& way) {
+    if (!s_grab.hook_out || item != s_grab.item || !s_frame.hand_valid[s_grab.side]) {
+        return false;
+    }
+    way = hand_in_world(in_frame(s_rig, held_pose(s_grab.side, item, kItemSwingshot), anchor_now(1.0f))).forward;
+    const float n = length(way);
+    if (!(n > 1e-4f)) {
+        return false;
+    }
+    way = way * (1.0f / n);
     return true;
 }
 
@@ -8858,36 +9142,159 @@ bool grab_catchable(const openrac_moby& m, gaddr address) {
     return (ref<uint16_t>(address + kMobyMode) & kMobyHittable) != 0 && radius > 0.0f && radius <= kGrabBiggest;
 }
 
-// The enemy along the aim within `reach`, nearest the line and then nearest the hand, with nothing of the world between; -1 none.
-int grab_find(const HandFrame& aim, float reach) {
-    int best = -1;
-    float best_score = 1e9f;
-    for (const openrac_moby& m : s_mod->moby_list()) {
-        const gaddr address = grab_address(m.slot);
-        if (!grab_catchable(m, address)) {
+// A crate the Swingshot can catch (Grab crates, 0.1.24): whole, shown, not a scene's, its hits on, not too big, and this
+// game's own (alone or the host: a member's crates are the host's, and the multiplayer mod's to place).
+constexpr uint32_t kMobyCollisionOff = 0x98u;  // Moby.collision_disable: a bit a primitive (the Glove of Doom's carrier sets it)
+bool grab_prop(const openrac_moby& m, gaddr address) {
+    if (!s_vr.grab_crates || s_party.role == kPartyMember || address == 0 || m.oclass < 500 || m.oclass > 540 || m.state >= 0x80
+        || (m.flags & (OPENRAC_MOBY_HIDDEN | OPENRAC_MOBY_DEAD | OPENRAC_MOBY_SCENE | OPENRAC_MOBY_DRIVEN)) != 0) {
+        return false;
+    }
+    const float radius = get_float(address + 12u) / 1024.0f;
+    return (ref<uint16_t>(address + kMobyMode) & kMobyHittable) != 0 && radius > 0.0f && radius <= kGrabBiggest;
+}
+
+// The joints of moby `slot` (at `address`) where the port draws them now, its pose and its place, into `out` (kGrabJointsMost
+// at the most); a joint stray from its bounding sphere (a pose not yet made) leaves them all out. How many; 0 for none.
+int drawn_joints(int slot, gaddr address, Vec3* out) {
+    const openrac_api& api = s_mod->api();
+    if (address == 0 || api.size < offsetof(openrac_api, moby_joints) + sizeof(void*) || api.moby_joints == nullptr) {
+        return 0;
+    }
+    const gaddr cls = ref<gaddr>(address + kMobyClass);
+    if (!in_ram(cls)) {
+        return 0;
+    }
+    const int count = std::min<int>(ref<uint8_t>(cls + kClassJointCount), kGrabJointsMost);
+    if (count <= 0) {
+        return 0;
+    }
+    int joints[kGrabJointsMost];
+    float xyz[3 * kGrabJointsMost];
+    for (int i = 0; i < count; ++i) {
+        joints[i] = i;
+    }
+    if (api.moby_joints(slot, joints, count, xyz) != OPENRAC_HOOK_OK) {
+        return 0;
+    }
+    const Vec3 centre = moby_centre(address);
+    const float stray = std::max(get_float(address + 12u) / 1024.0f, 0.0f) + kGrabJointStray;
+    for (int i = 0; i < count; ++i) {
+        out[i] = Vec3{xyz[3 * i], xyz[3 * i + 1], xyz[3 * i + 2]};
+        if (!std::isfinite(out[i].x + out[i].y + out[i].z) || length(out[i] - centre) > stray) {
+            return 0;
+        }
+    }
+    return count;
+}
+
+// Where the aim meets the enemy at `address`: its drawn joint nearest the aim's line (a little further along counting a
+// little), or its bounding sphere's middle when that is nearer the line or it has no joints. `joint` is the one (-1 the
+// middle), `beside` how far it is from the line, `along` how far along it.
+Vec3 grab_aim_point(int slot, gaddr address, const HandFrame& aim, int& joint, float& beside, float& along) {
+    const Vec3 centre = moby_centre(address);
+    const float radius = get_float(address + 12u) / 1024.0f;
+    const Vec3 to_centre = centre - aim.at;
+    along = dot(to_centre, aim.forward);
+    // The middle as before: within three quarters of its radius it counts as on the line.
+    beside = std::max(0.0f, length(to_centre - aim.forward * along) - 0.75f * radius);
+    joint = -1;
+    Vec3 best = centre;
+    float best_score = beside + 0.05f * along;
+    static Vec3 joints[kGrabJointsMost];
+    const int count = drawn_joints(slot, address, joints);
+    for (int i = 0; i < count; ++i) {
+        const Vec3 to = joints[i] - aim.at;
+        const float a = dot(to, aim.forward);
+        if (a < kGrabNearest) {
             continue;
         }
-        const Vec3 centre = moby_centre(address);
+        const float b = length(to - aim.forward * a);
+        if (b + 0.05f * a < best_score) {
+            best_score = b + 0.05f * a;
+            best = joints[i];
+            joint = i;
+            beside = b;
+            along = a;
+        }
+    }
+    return best;
+}
+
+// Where the hook is on the caught one now: the joint it rides, as drawn, or its bounding sphere's middle. `live`: where the
+// game has it (the hook still on its way, the enemy its own); otherwise where the grab has put it (s_grab.at), which is
+// where it is drawn even when the multiplayer mod places the moby (a member's catch through the host: grab_member_show).
+Vec3 grab_hook_point(bool live) {
+    const gaddr address = grab_address(s_grab.slot);
+    if (address == 0) {
+        return s_grab.at + s_grab.offset;
+    }
+    const Vec3 place = read_vec(address + kMobyPosition);
+    const Vec3 base = live ? place : s_grab.at;
+    const float radius = std::max(get_float(address + 12u) / 1024.0f, 0.0f);
+    Vec3 point = live ? moby_centre(address) : s_grab.at + s_grab.offset;
+    float out = std::min(radius * 0.6f, 0.6f);  // from the middle to its side
+    if (s_grab.hook_joint >= 0 && !s_grab.prop) {
+        const openrac_api& api = s_mod->api();
+        float xyz[3];
+        const int joint = s_grab.hook_joint;
+        if (api.size >= offsetof(openrac_api, moby_joints) + sizeof(void*) && api.moby_joints != nullptr
+            && api.moby_joints(s_grab.slot, &joint, 1, xyz) == OPENRAC_HOOK_OK) {
+            const Vec3 at{xyz[0], xyz[1], xyz[2]};
+            if (std::isfinite(at.x + at.y + at.z) && length(at - moby_centre(address)) <= radius + kGrabJointStray) {
+                point = base + (at - place);
+                out = std::min(radius * 0.3f, 0.3f);  // a joint is nearer its skin
+            }
+        }
+    }
+    // On its side toward the housing the chain comes from, not inside it: the middle (a crate's too) and a joint are within
+    // the body, where the hook was hidden (the owner's 0.1.24 videos: the chain went into the enemy, no hook to be seen).
+    const Vec3 from = in_ram(s_grab.item) ? read_vec(s_grab.item + kMobyPosition) : s_hero_after + Vec3{0.0f, 0.0f, 1.0f};
+    const Vec3 toward = from - point;
+    const float apart = length(toward);
+    if (std::isfinite(apart) && apart > 1e-3f) {
+        point = point + toward * (std::min(out, apart * 0.5f) / apart);
+    }
+    return point;
+}
+
+// The enemy along the aim within `reach`, nearest the line and then nearest the hand, with nothing of the world between; -1 none.
+// Its drawn body counts (grab_aim_point), and `joint` is the joint the hook will ride. A crate (grab_prop) counts too, after an
+// enemy as near the aim: `prop` says which was found.
+constexpr float kGrabPropAfter = 3.0f;  // of grab_find's score: a crate as near the line as an enemy is passed for it
+int grab_find(const HandFrame& aim, float reach, int& joint, bool& prop) {
+    int best = -1;
+    float best_score = 1e9f;
+    joint = -1;
+    prop = false;
+    for (const openrac_moby& m : s_mod->moby_list()) {
+        const gaddr address = grab_address(m.slot);
+        const bool crate = !grab_catchable(m, address) && grab_prop(m, address);
+        if (!crate && !grab_catchable(m, address)) {
+            continue;
+        }
         const float radius = get_float(address + 12u) / 1024.0f;
-        const Vec3 to = centre - aim.at;
-        const float along = dot(to, aim.forward);
+        int on = -1;
+        float beside = 0.0f, along = 0.0f;
+        const Vec3 point_on = grab_aim_point(m.slot, address, aim, on, beside, along);
         if (along < kGrabNearest || along > reach) {
             continue;
         }
-        const float beside = length(to - aim.forward * along);
-        if (beside > kGrabAimSlack + 0.75f * radius) {
+        if (beside > kGrabAimSlack + kGrabAimWiden * along) {
             continue;
         }
-        const float score = along + beside * 4.0f;
+        const float score = along + beside * 4.0f + (crate ? kGrabPropAfter : 0.0f);
         if (score >= best_score) {
             continue;
         }
         Vec3 point, normal;
-        if (line_hit(aim.at, centre, point, normal, reach + 1.0f, reach + 3.0f) && length(point - aim.at) < along - radius) {
-            continue;  // a wall before it (its own body is met near its bounding sphere)
+        if (line_hit(aim.at, point_on, point, normal, reach + 1.0f, reach + 3.0f) && length(point - aim.at) < along - radius) {
+            continue;  // a wall before it (its own body is met near its bounding sphere; a crate's sides are its own)
         }
         best_score = score;
         best = m.slot;
+        joint = crate ? -1 : on;
+        prop = crate;
     }
     return best;
 }
@@ -8977,6 +9384,13 @@ void grab_hit(int victim, Vec3 where, Vec3 way, float damage = kGrabImpact.damag
 void grab_let_go(const char* why) {
     s_remote_grab.on = false;
     if (s_grab.slot >= 0) {
+        if (s_grab.prop_solid) {
+            const gaddr address = grab_address(s_grab.slot);
+            if (address != 0 && ref<int16_t>(address + kMobyOclass) == s_grab.oclass) {
+                ref<int32_t>(address + kMobyCollisionOff) = s_grab.prop_solid_was;  // its sides again
+            }
+            s_grab.prop_solid = false;
+        }
         if (!grab_through_host()) {
             s_mod->moby_drive(s_grab.slot, false);
         }
@@ -9107,7 +9521,28 @@ bool grab_fly(float dt, Hand hand_of) {
         return false;
     }
     const bool dropped = !s_grab.thrown && !s_grab.launched && !s_grab.slam;
-    if (dropped && met && s_vr.grab_stun) {
+    const bool prop = s_grab.prop;
+    if (prop && (!dropped || (!met && other < 0))) {
+        // A crate thrown breaks where it lands, half the wrench's blow to an enemy it meets (the tester's "half the damage
+        // of a normal wrench hit"); one whose flight ends in the air, thrown or dropped, breaks there, as nothing holds it up.
+        grab_let_go(met ? "the crate met the world" : other >= 0 ? "the crate met an enemy" : "the crate's flight ran out");
+        grab_hit(slot, where, way, kGrabWholeBlow);
+        if (other >= 0) {
+            grab_hit(other, where, way);
+        }
+        buzz(hand_of, {0.8f, 0.08f, 70.0f});
+        buzz_later(0.09f, hand_of, {0.3f, 0.03f, 135.0f});
+        openrac_moby met_moby{};
+        std::snprintf(line, sizeof line, "[vr-grab] the crate broke where it landed%s", other < 0 ? "" : ", half the wrench's blow to the one it met");
+        if (other >= 0 && grab_entry(other, met_moby)) {
+            char more[60];
+            std::snprintf(more, sizeof more, " (slot %d, class %d)", other, static_cast<int>(met_moby.oclass));
+            std::strncat(line, more, sizeof line - std::strlen(line) - 1);
+        }
+        log_line(1, line);
+        return false;
+    }
+    if (dropped && met && s_vr.grab_stun && !prop) {
         s_grab.phase = GrabPhase::Stunned;
         s_grab.seconds = 0.0f;
         s_grab.stun_at = rest;
@@ -9316,7 +9751,9 @@ void swing_grab_tick() {
         }
         const HandFrame aim = hand_in_world(in_frame(s_rig, held_pose(side, item, kItemSwingshot), anchor_now(1.0f)));
         const float reach = s_vr.swing_reach > 0 ? kGrabReach * 2.0f : kGrabReach;
-        const int slot = grab_find(aim, reach);
+        int joint = -1;
+        bool prop = false;
+        const int slot = grab_find(aim, reach, joint, prop);
         if (slot < 0) {
             return;
         }
@@ -9333,16 +9770,44 @@ void swing_grab_tick() {
         s_grab.slot = slot;
         s_grab.oclass = m.oclass;
         s_grab.side = side;
+        s_grab.hook_joint = joint;
+        s_grab.prop = prop;
+        s_grab.prop_solid = false;
         s_grab.item = item;
         s_grab.hook = mount.muzzle;
         s_grab.at = read_vec(address + kMobyPosition);
         s_grab.offset = moby_centre(address) - s_grab.at;
         s_grab.seconds = 0.0f;
         buzz(static_cast<Hand>(side), {0.25f, 0.03f, 150.0f});
-        char line[200];
-        std::snprintf(line, sizeof line, "[vr-grab] the hook out to slot %d class %d, %.1f away (the level's death height %.1f)", slot,
-                      m.oclass, length(moby_centre(address) - aim.at), level_death_height());
+        char line[240];
+        const Vec3 on = grab_hook_point(true);
+        std::snprintf(line, sizeof line, "[vr-grab] the hook out to slot %d class %d, %.1f away, %s (the level's death height %.1f)", slot,
+                      m.oclass, length(on - aim.at),
+                      prop         ? "a crate, on its side toward him"
+                      : joint >= 0 ? ("on its drawn joint " + std::to_string(joint) + ", " + std::to_string(length(on - moby_centre(address))).substr(0, 4)
+                                      + " from its middle").c_str()
+                                   : "on its middle",
+                      level_death_height());
         log_line(1, line);
+#if !defined(__ANDROID__)
+        // PC test aid (QUEST_GRAB_TRACE=1): each drawn joint of the one caught, from its middle and from the aim's line.
+        static const bool joints_trace = std::getenv("QUEST_GRAB_TRACE") != nullptr;
+        if (joints_trace) {
+            static Vec3 drawn[kGrabJointsMost];
+            const int count = drawn_joints(slot, address, drawn);
+            const Vec3 centre = moby_centre(address);
+            std::string all = "[vr-grab] trace: " + std::to_string(count) + " joints (from the middle, beside the aim):";
+            for (int i = 0; i < count; ++i) {
+                const Vec3 to = drawn[i] - aim.at;
+                const float a = dot(to, aim.forward);
+                char one[64];
+                std::snprintf(one, sizeof one, " %d %.2f %.2f%s", i, length(drawn[i] - centre), length(to - aim.forward * a),
+                              i == joint ? "*" : "");
+                all += one;
+            }
+            log_line(1, all.c_str());
+        }
+#endif
         return;
     }
 
@@ -9351,6 +9816,13 @@ void swing_grab_tick() {
     const bool alive = s_grab.slot >= 0 && grab_entry(s_grab.slot, enemy) && enemy.oclass == s_grab.oclass && enemy.state < 0x80
                        && (enemy.flags & OPENRAC_MOBY_DEAD) == 0;
     if (!alive) {
+        if (s_grab.prop_solid) {  // a crate broken in the hand: its sides as they were, whatever comes of it
+            const gaddr address = grab_address(s_grab.slot);
+            if (address != 0 && ref<int16_t>(address + kMobyOclass) == s_grab.oclass) {
+                ref<int32_t>(address + kMobyCollisionOff) = s_grab.prop_solid_was;
+            }
+            s_grab.prop_solid = false;
+        }
         s_grab.phase = GrabPhase::None;
         s_grab.slot = -1;
         log_line(1, "[vr-grab] it is gone");
@@ -9375,7 +9847,7 @@ void swing_grab_tick() {
         if (s_grab.airborne && !grab_fly(dt, hand_of)) {
             return;  // it came down before the hook reached it
         }
-        const Vec3 centre = moby_centre(grab_address(s_grab.slot));
+        const Vec3 centre = grab_hook_point(!s_grab.airborne);  // its drawn body, as it moves
         const Vec3 way = centre - s_grab.hook;
         const float left = length(way), step = kGrabHookOut * dt;
         if (!hand_on || !pressed || s_grab.seconds > kGrabOutMost) {
@@ -9416,8 +9888,16 @@ void swing_grab_tick() {
         s_grab.hit_was = grab_hit_index();
         s_grab.at = read_vec(grab_address(s_grab.slot) + kMobyPosition);
         s_grab.phase = GrabPhase::Held;
+        if (s_grab.prop) {
+            // A crate's sides are the level's to his feet and to the line tests: none while it is held and flies (as the
+            // Glove of Doom's carrier holds one), so it neither stops him nor its own flight. Given back at the let-go.
+            const gaddr address = grab_address(s_grab.slot);
+            s_grab.prop_solid_was = ref<int32_t>(address + kMobyCollisionOff);
+            ref<int32_t>(address + kMobyCollisionOff) = -1;
+            s_grab.prop_solid = true;
+        }
         buzz(hand_of, {0.75f, 0.07f, 85.0f});
-        log_line(1, "[vr-grab] caught: yanked in");
+        log_line(1, s_grab.prop ? "[vr-grab] caught a crate: yanked in" : "[vr-grab] caught: yanked in");
         return;
     }
 
@@ -9458,7 +9938,7 @@ void swing_grab_tick() {
             return;
         }
         grab_pose(s_grab.at);
-        s_grab.hook = s_grab.at + s_grab.offset;
+        s_grab.hook = grab_hook_point(false);
         s_grab.buzz_in -= dt;
         if (s_grab.buzz_in <= 0.0f) {
             s_grab.buzz_in = 0.15f;
@@ -9602,7 +10082,7 @@ void swing_grab_tick() {
             s_grab.at = next;  // a wall in the way holds it there until the hand comes round
         }
         grab_pose(s_grab.at);
-        s_grab.hook = s_grab.at + s_grab.offset;
+        s_grab.hook = grab_hook_point(false);
         s_grab.buzz_in -= dt;
         if (s_grab.buzz_in <= 0.0f) {
             s_grab.buzz_in = 0.15f;
@@ -9621,11 +10101,17 @@ void swing_grab_tick() {
         const Vec3 to = centre - aim.at;
         const float along = dot(to, aim.forward);
         const float reach = s_vr.swing_reach > 0 ? kGrabReach * 2.0f : kGrabReach;
-        if (along > kGrabNearest && along < reach && length(to - aim.forward * along) <= kGrabAirSlack + radius) {
+        int joint = -1;
+        float joint_beside = 0.0f, joint_along = 0.0f;
+        grab_aim_point(s_grab.slot, grab_address(s_grab.slot), aim, joint, joint_beside, joint_along);
+        const bool near_middle = length(to - aim.forward * along) <= kGrabAirSlack + radius;
+        const bool near_body = joint >= 0 && joint_beside <= kGrabAirSlack + kGrabAimWiden * joint_along;
+        if (along > kGrabNearest && along < reach && (near_middle || near_body)) {
             HandFrame hand;
             s_grab.phase = GrabPhase::Out;
             s_grab.airborne = true;
             s_grab.hook_out = true;
+            s_grab.hook_joint = joint;
             s_grab.hook = hand_mount(item, hand).muzzle;
             s_grab.seconds = 0.0f;
             buzz(hand_of, {0.25f, 0.03f, 150.0f});
@@ -9893,11 +10379,16 @@ void item_feel(int32_t state, int32_t state_was) {
     lock_was = lock;
 
     // The Visibomb's missile gone: its blast.
-    static bool flying_was = false;
-    const bool flying = missile_flying();
-    if (feel && flying_was && !flying && item == 13) {
-        buzz(kRight, {0.65f, 0.085f, 50.0f});
+    // In the hand that fired it: Akimbo's second gun's too (0.1.24).
+    static int flying_was = 0;
+    static int flying_side = kRight;
+    const int flying = missile_gun();
+    if (feel && flying_was != 0 && flying == 0 && (flying_was == 1 ? item == 13 : s_off_item == 13)) {
+        buzz(static_cast<Hand>(flying_side), {0.65f, 0.085f, 50.0f});
         feel_log("the Visibomb's blast");
+    }
+    if (flying != 0) {
+        flying_side = flying == 2 ? s_off_side : kRight;
     }
     flying_was = flying;
 
@@ -15513,6 +16004,73 @@ void left_ring_done() {
     log_line(1, ("[vr-akimbo] left hand: " + std::to_string(s_left_item) + " (picked " + std::to_string(s_left_pick) + ")").c_str());
 }
 
+// The left hand's draws (a tester's "left tesla claw doesn't do lightning effect", 0.1.23). An item's effects (the Tesla
+// Claw's lightning) are callbacks its update adds to the frame's draw lists (discs.h draw_counts); the game empties the
+// lists as a tick starts and draws them in the frame's capture. The hero's own item runs in the tick, before the
+// capture; the left hand's runs in the mod's frame, after it, so what it added was emptied unseen. What it adds is kept
+// here and added again just before the next capture (on_before_capture), once, unless the list has it already.
+struct LeftDraw {
+    int list;
+    gaddr fn;
+    gaddr arg;
+};
+constexpr int kDrawLists = 4;
+constexpr int kDrawListMost = 0x40;
+std::vector<LeftDraw> s_left_draws;
+int32_t s_left_draw_counts[kDrawLists] = {};
+
+gaddr draw_count_at(int list) { return s_mod->relocate(s_disc->draw_counts) + 4u * static_cast<uint32_t>(list); }
+
+gaddr draw_fn_at(int list, int i) {
+    return s_mod->relocate(s_disc->draw_pairs) + 0x200u * static_cast<uint32_t>(list) + 4u * static_cast<uint32_t>(i);
+}
+
+gaddr draw_arg_at(int list, int i) { return draw_fn_at(list, i) + 0x100u; }
+
+void left_draws_begin() {
+    for (int i = 0; i < kDrawLists; ++i) {
+        s_left_draw_counts[i] = ref<int32_t>(draw_count_at(i));
+    }
+}
+
+void left_draws_end() {
+    if (s_left_draws.size() > static_cast<size_t>(kDrawLists * kDrawListMost)) {
+        s_left_draws.clear();  // no capture took them (a port without on_before_capture)
+    }
+    for (int i = 0; i < kDrawLists; ++i) {
+        const int32_t now = std::min(ref<int32_t>(draw_count_at(i)), static_cast<int32_t>(kDrawListMost));
+        for (int32_t k = std::max(s_left_draw_counts[i], static_cast<int32_t>(0)); k < now; ++k) {
+            s_left_draws.push_back({i, ref<gaddr>(draw_fn_at(i, k)), ref<gaddr>(draw_arg_at(i, k))});
+        }
+    }
+}
+
+void left_draws_again() {
+    static size_t again_was = 0;
+    size_t again = 0;
+    for (const LeftDraw& d : s_left_draws) {
+        int32_t& count = ref<int32_t>(draw_count_at(d.list));
+        if (d.fn == 0 || count < 0 || count >= kDrawListMost) {
+            continue;
+        }
+        bool there = false;
+        for (int32_t k = 0; k < count && !there; ++k) {
+            there = ref<gaddr>(draw_fn_at(d.list, k)) == d.fn && ref<gaddr>(draw_arg_at(d.list, k)) == d.arg;
+        }
+        if (!there) {
+            ref<gaddr>(draw_fn_at(d.list, count)) = d.fn;
+            ref<gaddr>(draw_arg_at(d.list, count)) = d.arg;
+            ++count;
+            ++again;
+        }
+    }
+    s_left_draws.clear();
+    if ((again == 0) != (again_was == 0)) {
+        log_line(1, ("[vr-akimbo] the left hand's draws added again before the picture: " + std::to_string(again)).c_str());
+    }
+    again_was = again;
+}
+
 // Runs the gun's own update as the hand's, its hand's trigger its fire. The hero block is put back
 // and his body's moby after it but for the gun's own slot: what the gun asks of Ratchet (an arm layer, a
 // stance, a state) is dropped, as his animation stays the hand's (Rerac-vr's off_hand.rs). A hand on a ledge or a bolt holds
@@ -15580,7 +16138,9 @@ void run_left_gun(void (*update)(gaddr)) {
         ref<uint8_t>(s_left_moby + kMobyState) = kRynoReady;
     }
     s_left_active = true;
+    left_draws_begin();
     update(s_left_moby);
+    left_draws_end();
     s_left_active = false;
     for (int i = 0; i < 2; ++i) {
         ref<int32_t>(pad + kPadHeldBits[i]) = held[i];
@@ -15932,7 +16492,9 @@ bool lead_tick() {
         const gaddr address = ref<gaddr>(moby + kMobyUpdateFn);
         const auto update = reinterpret_cast<void (*)(gaddr)>(address != 0 ? s_mod->api().function_at(address) : nullptr);
         if (update != nullptr) {
+            left_draws_begin();
             update(moby);
+            left_draws_end();
         }
         return true;
     }
@@ -17278,14 +17840,15 @@ void views_end(void*, const openrac_view* views, int count) {
         layer.visible = layer.visible && !s_shopping;
 #endif
     } else if (s_panel_is_monitor) {
-        // Over the gun, as the gun is held.
-        const Pose grip = slot_pose(kRight);
+        // Over the gun, as the gun is held: in the hand that fired it (Akimbo's second gun's, 0.1.24).
+        const int hand = missile_side();
+        const Pose grip = slot_pose(hand);
         layer.pose.position = grip.position + rotate(grip.orientation, kMonitorAt);
         layer.pose.orientation = grip.orientation * Quat{std::sin(kMonitorTilt * 0.5f), 0, 0, std::cos(kMonitorTilt * 0.5f)};
         layer.width = kMonitorWidth;
         layer.height = kMonitorWidth * 3.0f / 4.0f;
         // It is on the weapon: no pose, no monitor; and none by the hand while the weapon's own screen shows it.
-        layer.visible = layer.visible && s_frame.hand_valid[kRight] && !weapon_screen().shown;
+        layer.visible = layer.visible && s_frame.hand_valid[hand] && !weapon_screen().shown;
     } else {
         layer.pose = s_panel_pose;
         layer.width = panel_width();
@@ -19289,6 +19852,7 @@ openrac::UiPage s_controls_page;
 openrac::UiPage s_more_controls_page;
 openrac::UiPage s_moves_page;
 openrac::UiPage s_grab_page;  // Grab moves, opened from Moves
+openrac::UiPage s_wrench_aim_page;  // Wrench aim, opened from Moves (0.1.24)
 openrac::UiPage s_wheel_page;       // Weapon wheel, opened from More controls (0.1.19)
 openrac::UiPage s_left_wheel_page;  // Left hand wheel, opened from Weapon wheel (0.1.19)
 const openrac::UiPage* s_rows_page = &s_vr_page;  // the one last shown
@@ -19301,11 +19865,15 @@ static_assert(kRowWorldScale < OPENRAC_UI_ITEMS_MAX, "VR Body runs past the port
 enum ControlsRow { kRowTurning, kRowSnapAngle, kRowSmoothSpeed, kRowPhysicalCrouch, kRowCrouchDrop, kRowFirstSwitch };
 // After the first kFirstPageSwitches of the launcher's switches: More controls (kRowMoreControls), whose page is
 // Swingshot anywhere and then the other switches.
-enum MovesRow { kRowSwingAnywhere, kRowWallMoves, kRowSwingReach, kRowSwingGrab, kRowGrabMoves, kRowWrenchFar, kRowWrenchStay, kRowWrenchAim, kRowWrenchAngle,
+// 0.1.24: Wrench throw aim and Wrench throw angle went to their own page, Wrench aim (kRowWrenchAimPage), with Wrench aim
+// help: the rows above it stay where they were.
+enum MovesRow { kRowSwingAnywhere, kRowWallMoves, kRowSwingReach, kRowSwingGrab, kRowGrabMoves, kRowWrenchFar, kRowWrenchStay, kRowWrenchAimPage,
                 kRowHandPunch, kRowBoardView, kRowBoltTurn };
+enum WrenchAimRow { kRowWrenchAim, kRowWrenchHelp, kRowWrenchAngle };
 constexpr int kWrenchAngleMost = 30, kWrenchAngleStep = 5;
 static_assert(kRowBoltTurn < OPENRAC_UI_ITEMS_MAX, "Moves runs past the port's rows");
-enum GrabRow { kRowGrabFling, kRowGrabStun, kRowGrabLaunch, kRowGrabSlam, kRowGrabZip, kRowGrabHazards, kRowGrabStrength, kRowGrabFollow };
+enum GrabRow { kRowGrabFling, kRowGrabStun, kRowGrabLaunch, kRowGrabSlam, kRowGrabZip, kRowGrabHazards, kRowGrabStrength, kRowGrabFollow,
+               kRowGrabCrates };
 enum MoreControlsRow { kRowMoves, kRowLedgeShimmy, kRowHideBars, kRowMenuHand, kRowArmMoves, kRowMoreFirstSwitch };
 enum WheelRow { kRowWheelSlow, kRowWheelSpeed, kRowWheelSwap, kRowWheelPick, kRowLeftWheel };
 // Left hand wheel: whose slots, then its own eight (kRowLeftSlot1 on).
@@ -19313,7 +19881,7 @@ enum LeftWheelRow { kRowLeftOwn, kRowLeftSlot1 };
 enum HandsRow { kRowGunAngle, kRowGunSize, kRowHandSize, kRowEmptyHandAngle, kRowFollowHands, kRowMirrorGuns, kRowLeftAmmo, kRowHudSize, kRowHudHeight,
                 kRowFingers, kRowGunHand, kRowItemAngle };
 enum CheatsRow { kRowInvincible, kRowInfiniteAmmo, kRowInfiniteBolts, kRowBigHeads, kRowContrails, kRowGiveWeapons, kRowGiveGadgets,
-                 kRowUnlockPlanets };
+                 kRowUnlockPlanets, kRowBoltsToZero };
 
 // The page last shown, by its title, for the pointer's lines.
 const char* rows_page_name() {
@@ -19324,6 +19892,7 @@ const char* rows_page_name() {
            : s_rows_page == &s_more_controls_page ? "More controls"
            : s_rows_page == &s_moves_page ? "Moves"
            : s_rows_page == &s_grab_page ? "Grab moves"
+           : s_rows_page == &s_wrench_aim_page ? "Wrench aim"
            : s_rows_page == &s_wheel_page ? "Weapon wheel"
            : s_rows_page == &s_left_wheel_page ? "Left hand wheel"
                                              : "VR Options";
@@ -19457,6 +20026,7 @@ void show_cheats_page() {
         openrac::UiItem::button("Give all weapons", give),
         openrac::UiItem::button("Give all gadgets", give),
         openrac::UiItem::button("Unlock all planets", give),
+        openrac::UiItem::button("Set bolts to 0", give),
     };
     set_rows(s_cheats_page, content);
 }
@@ -19586,14 +20156,7 @@ void show_moves_page() {
     content.items.push_back(openrac::UiItem::button("Grab moves"));
     content.items.push_back(openrac::UiItem::choice_of("Wrench throw distance", {"Normal", "Far", "Very far", "Super far"}, static_cast<std::uint32_t>(s_vr.wrench_far)));
     content.items.push_back(openrac::UiItem::choice_of("Wrench comes back", {"By itself", "When you call it"}, s_vr.wrench_stay ? 1u : 0u));
-    // Aim help rides on Where you throw (the page is at the port's 12 rows): with it, and without.
-    content.items.push_back(openrac::UiItem::choice_of("Wrench throw aim", {"Where you throw, aim help", "Where you throw", "Along your swing", "Where you point"},
-                                                       static_cast<std::uint32_t>(s_vr.wrench_aim == 0 ? (s_vr.wrench_help ? 0 : 1) : s_vr.wrench_aim + 1)));
-    std::vector<std::string> wrench_angles;
-    for (int a = -kWrenchAngleMost; a <= kWrenchAngleMost; a += kWrenchAngleStep) {
-        wrench_angles.push_back(a == 0 ? std::string("Level") : std::to_string(a < 0 ? -a : a) + (a < 0 ? " down" : " up"));
-    }
-    content.items.push_back(openrac::UiItem::choice_of("Wrench throw angle", wrench_angles, static_cast<std::uint32_t>((s_vr.wrench_angle + kWrenchAngleMost) / kWrenchAngleStep)));
+    content.items.push_back(openrac::UiItem::button("Wrench aim"));
     content.items.push_back(openrac::UiItem::choice_of("Punch with your hands", {"Off", "On"}, s_vr.hand_punch ? 1u : 0u));
     content.items.push_back(openrac::UiItem::choice_of("Hoverboard view", {"Ahead", "Side-on"}, s_vr.board_side_on ? 1u : 0u));
     content.items.push_back(openrac::UiItem::choice_of("Turning bolts", {"Trigger or hand", "Walk around"}, s_vr.bolt_walk ? 1u : 0u));
@@ -19612,7 +20175,24 @@ void show_grab_page() {
     content.items.push_back(openrac::UiItem::choice_of("Throw strength", {"Full", "Strong", "Medium", "Light"},
                                                        static_cast<std::uint32_t>(std::clamp(s_vr.grab_strength, 0, kGrabStrengthCount - 1))));
     content.items.push_back(openrac::UiItem::choice_of("Throw follows your swing", {"Off", "On"}, s_vr.grab_follow ? 1u : 0u));
+    content.items.push_back(openrac::UiItem::choice_of("Grab crates", {"Off", "On"}, s_vr.grab_crates ? 1u : 0u));
     set_rows(s_grab_page, content);
+}
+
+// Wrench aim (Moves, 0.1.24): which way a throw goes, how hard aim help pulls it to a target, and its angle up or down.
+void show_wrench_aim_page() {
+    openrac::UiContent content;
+    content.title = "Wrench aim";
+    content.items.push_back(openrac::UiItem::choice_of("Wrench throw aim", {"Where you throw", "Along your swing", "Where you point"},
+                                                       static_cast<std::uint32_t>(std::clamp(s_vr.wrench_aim, 0, 2))));
+    content.items.push_back(openrac::UiItem::choice_of("Wrench aim help", std::vector<std::string>(kAimHelpNames, kAimHelpNames + kAimHelpCount),
+                                                       static_cast<std::uint32_t>(aim_help_level())));
+    std::vector<std::string> wrench_angles;
+    for (int a = -kWrenchAngleMost; a <= kWrenchAngleMost; a += kWrenchAngleStep) {
+        wrench_angles.push_back(a == 0 ? std::string("Level") : std::to_string(a < 0 ? -a : a) + (a < 0 ? " down" : " up"));
+    }
+    content.items.push_back(openrac::UiItem::choice_of("Wrench throw angle", wrench_angles, static_cast<std::uint32_t>((s_vr.wrench_angle + kWrenchAngleMost) / kWrenchAngleStep)));
+    set_rows(s_wrench_aim_page, content);
 }
 
 void show_more_controls_page() {
@@ -19784,12 +20364,13 @@ void save_vr_options() {
          << "\ncheat_bolts " << (s_cheats.bolts ? 1 : 0) << "\ncheat_big_heads " << (s_cheats.big_heads ? 1 : 0)
          << "\ncheat_contrails " << (s_cheats.contrails ? 1 : 0) << "\nfingers_tracked " << (s_vr.fingers_tracked ? 1 : 0) << "\nfingers_world "
          << (s_vr.fingers_world ? 1 : 0) << "\nphysical_crouch " << (s_vr.physical_crouch ? 1 : 0) << "\ncrouch_drop " << s_vr.crouch_drop
-         << "\nswing_anywhere " << (s_vr.swing_anywhere ? 1 : 0) << "\nwall_moves " << (s_vr.wall_moves ? 1 : 0) << "\nswing_reach " << s_vr.swing_reach << "\nwrench_far " << s_vr.wrench_far << "\nwrench_stay " << (s_vr.wrench_stay ? 1 : 0) << "\nwrench_aim " << s_vr.wrench_aim << "\nwrench_angle " << s_vr.wrench_angle << "\nwrench_help " << (s_vr.wrench_help ? 1 : 0) << "\nswing_grab "<< (s_vr.swing_grab ? 1 : 0) << "\ngrab_fling " << (s_vr.grab_fling ? 1 : 0) << "\ngrab_stun " << (s_vr.grab_stun ? 1 : 0) << "\ngrab_launch " << (s_vr.grab_launch ? 1 : 0) << "\ngrab_slam " << (s_vr.grab_slam ? 1 : 0) << "\ngrab_zip " << (s_vr.grab_zip ? 1 : 0) << "\ngrab_hazards " << (s_vr.grab_hazards ? 1 : 0) << "\nhand_punch " << (s_vr.hand_punch ? 1 : 0) << "\nboard_side_on " << (s_vr.board_side_on ? 1 : 0) << "\nbolt_walk " << (s_vr.bolt_walk ? 1 : 0) << "\nshimmy_pull " << (s_vr.shimmy_pull ? 1 : 0) << "\nhide_bars " << (s_vr.hide_bars ? 1 : 0) << "\nmenu_hand " << s_vr.menu_hand
+         << "\nswing_anywhere " << (s_vr.swing_anywhere ? 1 : 0) << "\nwall_moves " << (s_vr.wall_moves ? 1 : 0) << "\nswing_reach " << s_vr.swing_reach << "\nwrench_far " << s_vr.wrench_far << "\nwrench_stay " << (s_vr.wrench_stay ? 1 : 0) << "\nwrench_aim " << s_vr.wrench_aim << "\nwrench_angle " << s_vr.wrench_angle << "\nwrench_help " << (aim_help_level() != kAimHelpOff ? 1 : 0) << "\nwrench_aim_help " << aim_help_level() << "\nswing_grab "<< (s_vr.swing_grab ? 1 : 0) << "\ngrab_fling " << (s_vr.grab_fling ? 1 : 0) << "\ngrab_stun " << (s_vr.grab_stun ? 1 : 0) << "\ngrab_launch " << (s_vr.grab_launch ? 1 : 0) << "\ngrab_slam " << (s_vr.grab_slam ? 1 : 0) << "\ngrab_zip " << (s_vr.grab_zip ? 1 : 0) << "\ngrab_hazards " << (s_vr.grab_hazards ? 1 : 0) << "\nhand_punch " << (s_vr.hand_punch ? 1 : 0) << "\nboard_side_on " << (s_vr.board_side_on ? 1 : 0) << "\nbolt_walk " << (s_vr.bolt_walk ? 1 : 0) << "\nshimmy_pull " << (s_vr.shimmy_pull ? 1 : 0) << "\nhide_bars " << (s_vr.hide_bars ? 1 : 0) << "\nmenu_hand " << s_vr.menu_hand
          << "\nbutton_moves " << (s_vr.button_moves ? 1 : 0) << "\nfeet_on_floor " << (s_vr.feet_on_floor ? 1 : 0) << "\nwheel_slow " << s_vr.wheel_slow << "\nwheel_reach " << (s_vr.wheel_reach ? 1 : 0)
          << "\nwheel_speed " << s_vr.wheel_speed << "\nwheel_swap_fast " << (s_vr.wheel_swap_fast ? 1 : 0) << "\nleft_own_slots " << (s_vr.left_own_slots ? 1 : 0)
          << "\nleft_slot1 " << s_vr.left_slots[0] << "\nleft_slot2 " << s_vr.left_slots[1] << "\nleft_slot3 " << s_vr.left_slots[2] << "\nleft_slot4 " << s_vr.left_slots[3]
          << "\nleft_slot5 " << s_vr.left_slots[4] << "\nleft_slot6 " << s_vr.left_slots[5] << "\nleft_slot7 " << s_vr.left_slots[6] << "\nleft_slot8 " << s_vr.left_slots[7]
          << "\ngrab_throw_strength " << s_vr.grab_strength << "\ngrab_throw_follow " << (s_vr.grab_follow ? 1 : 0)
+         << "\ngrab_crates " << (s_vr.grab_crates ? 1 : 0)
          << "\nmagnet_paths " << (s_vr.magnet_paths ? 1 : 0)
          << "\nbody_parts " << s_vr.body_parts << "\nbody_parts_chosen " << (s_vr.parts_chosen ? 1 : 0) << "\nbody_tail " << (s_vr.body_tail ? 1 : 0)
          << "\narms_bend " << (s_vr.arms_bend ? 1 : 0) << "\nlegs_bend " << (s_vr.legs_bend ? 1 : 0) << "\nbody_follows " << (s_vr.body_follows ? 1 : 0)
@@ -19830,6 +20411,7 @@ void load_vr_options() {
     std::fill(std::begin(saved_switch), std::end(saved_switch), -1);
     std::fill(std::begin(switch_was), std::end(switch_was), -1);
     int turn_smooth = -1, smooth_was = -1, turn_snap = -1, snap_was = -1, turn_rate = -1, rate_was = -1;
+    int aim_help = -1, help_was = -1;  // wrench_aim_help (0.1.24), wrench_help (0.1.23's switch)
     while (file >> key >> value) {
         for (int i = 0; i < kControlSwitchCount; ++i) {
             if (key == std::string("play_") + kControlSwitches[i].key) {
@@ -19891,7 +20473,9 @@ void load_vr_options() {
             // 0.1.18 to 0.1.22 saved 0 for where you point, the default then: 0 is now where you throw, the new default.
             s_vr.wrench_aim = value >= 0 && value <= 2 ? value : 0;
         } else if (key == "wrench_help") {
-            s_vr.wrench_help = value != 0;
+            help_was = value;
+        } else if (key == "wrench_aim_help") {
+            aim_help = value;
         } else if (key == "wrench_angle") {
             s_vr.wrench_angle = value >= -kWrenchAngleMost && value <= kWrenchAngleMost && value % kWrenchAngleStep == 0 ? value : 0;
         } else if (key == "board_side_on") {
@@ -19927,6 +20511,8 @@ void load_vr_options() {
             s_vr.grab_strength = std::clamp(value, 0, kGrabStrengthCount - 1);
         } else if (key == "grab_throw_follow") {
             s_vr.grab_follow = value != 0;
+        } else if (key == "grab_crates") {
+            s_vr.grab_crates = value != 0;
         } else if (key == "magnet_paths") {
             s_vr.magnet_paths = value != 0;
         } else if (key == "button_moves") {
@@ -20015,6 +20601,13 @@ void load_vr_options() {
         } else if (key == "launcher_scene_view") {
             scenes_was = value;
         }
+    }
+    // Wrench aim help: as saved; a file of 0.1.23's, with its switch alone, keeps no help Off and takes the new start
+    // (Strong) for the help it had.
+    if (aim_help >= 0) {
+        s_vr.wrench_aim_help = std::clamp(aim_help, 0, kAimHelpCount - 1);
+    } else if (help_was == 0) {
+        s_vr.wrench_aim_help = kAimHelpOff;
     }
     // Everything is the start from 0.1.13, for those who never set Body parts too (the owner's ask). A file from before
     // Body parts: its Player body Off was the hands alone, the start then, and is all of him now. A file of 0.1.12's or
@@ -20257,7 +20850,7 @@ void log_controls() {
     line += s_vr.wrench_stay ? ", wrench_stay on" : ", wrench_stay off";
     line += s_vr.wrench_aim == 1 ? ", wrench_aim swing" : s_vr.wrench_aim == 2 ? ", wrench_aim controller" : ", wrench_aim throw";
     line += ", wrench_angle " + std::to_string(s_vr.wrench_angle);
-    line += s_vr.wrench_help ? ", wrench_help on" : ", wrench_help off";
+    line += std::string(", wrench_aim_help ") + kAimHelpNames[aim_help_level()];
     line += s_vr.board_side_on ? ", hoverboard view side-on" : ", hoverboard view ahead";
     line += s_vr.swing_reach == 2 ? ", swing_reach no limit" : s_vr.swing_reach == 1 ? ", swing_reach longer" : ", swing_reach normal";
     line += s_vr.shimmy_pull ? ", ledge shimmy pull" : ", ledge shimmy reach";
@@ -20280,6 +20873,7 @@ void log_controls() {
     static const char* const kThrows[] = {"full", "strong", "medium", "light"};
     line += std::string(", throw strength ") + kThrows[std::clamp(s_vr.grab_strength, 0, 3)];
     line += s_vr.grab_follow ? ", throw follows your swing" : ", throw a set speed";
+    line += s_vr.grab_crates ? ", grab crates" : ", no crates";
     line += s_vr.magnet_paths ? ", stay on magnet paths" : ", magnet paths by the stick alone";
     log_line(1, line.c_str());
 }
@@ -20344,21 +20938,6 @@ void moves_page_event(const openrac::UiEvent& event) {
         } else if (event.item() == kRowWrenchStay) {
             s_vr.wrench_stay = value == 1;
             log_line(1, s_vr.wrench_stay ? "[vr-wrench] Wrench comes back: when you call it" : "[vr-wrench] Wrench comes back: by itself");
-        } else if (event.item() == kRowWrenchAim) {
-            // Where you throw with aim help, without, along your swing, where you point.
-            const int choice = value >= 0 && value <= 3 ? value : 0;
-            s_vr.wrench_aim = choice <= 1 ? 0 : choice - 1;
-            if (choice <= 1) {
-                s_vr.wrench_help = choice == 0;
-            }
-            log_line(1, s_vr.wrench_aim == 1   ? "[vr-wrench] Wrench throw aim: along your swing"
-                        : s_vr.wrench_aim == 2 ? "[vr-wrench] Wrench throw aim: where you point"
-                        : s_vr.wrench_help     ? "[vr-wrench] Wrench throw aim: where you throw, with aim help"
-                                               : "[vr-wrench] Wrench throw aim: where you throw, no aim help");
-        } else if (event.item() == kRowWrenchAngle) {
-            const int angle = value * kWrenchAngleStep - kWrenchAngleMost;
-            s_vr.wrench_angle = angle >= -kWrenchAngleMost && angle <= kWrenchAngleMost ? angle : 0;
-            log_line(1, (std::string("[vr-wrench] Wrench throw angle: ") + std::to_string(s_vr.wrench_angle) + " degrees up").c_str());
         } else if (event.item() == kRowBoardView) {
             s_vr.board_side_on = value == 1;
             log_line(1, s_vr.board_side_on ? "[vr-board] Hoverboard view: side-on, along his chest" : "[vr-board] Hoverboard view: ahead, where the board goes");
@@ -20372,6 +20951,36 @@ void moves_page_event(const openrac::UiEvent& event) {
         show_moves_page();
     } else if (event.kind() == OPENRAC_UI_CHOOSE && event.item() == kRowGrabMoves) {
         log_line(1, s_grab_page.open() ? "[vr-rig] the Grab moves page opened" : "[vr-rig] the port did not open the Grab moves page");
+    } else if (event.kind() == OPENRAC_UI_CHOOSE && event.item() == kRowWrenchAimPage) {
+        log_line(1, s_wrench_aim_page.open() ? "[vr-rig] the Wrench aim page opened" : "[vr-rig] the port did not open the Wrench aim page");
+    }
+}
+
+// Wrench aim (Moves' row under Wrench comes back, 0.1.24).
+void wrench_aim_page_event(const openrac::UiEvent& event) {
+    if (event.kind() == OPENRAC_UI_SHOW) {
+        s_rows_page = &s_wrench_aim_page;
+        show_wrench_aim_page();
+    } else if (event.kind() == OPENRAC_UI_BACK) {
+        s_moves_page.open();  // back to Moves, where it was opened
+    } else if (event.kind() == OPENRAC_UI_CHANGE) {
+        const int value = event.value();
+        if (event.item() == kRowWrenchAim) {
+            s_vr.wrench_aim = value >= 0 && value <= 2 ? value : 0;
+            log_line(1, s_vr.wrench_aim == 1   ? "[vr-wrench] Wrench throw aim: along your swing"
+                        : s_vr.wrench_aim == 2 ? "[vr-wrench] Wrench throw aim: where you point"
+                                               : "[vr-wrench] Wrench throw aim: where you throw");
+        } else if (event.item() == kRowWrenchHelp) {
+            s_vr.wrench_aim_help = std::clamp(value, 0, kAimHelpCount - 1);
+            log_line(1, (std::string("[vr-wrench] Wrench aim help: ") + kAimHelpNames[aim_help_level()]).c_str());
+        } else if (event.item() == kRowWrenchAngle) {
+            const int angle = value * kWrenchAngleStep - kWrenchAngleMost;
+            s_vr.wrench_angle = angle >= -kWrenchAngleMost && angle <= kWrenchAngleMost ? angle : 0;
+            log_line(1, (std::string("[vr-wrench] Wrench throw angle: ") + std::to_string(s_vr.wrench_angle) + " degrees up").c_str());
+        }
+        log_controls();
+        save_vr_options();
+        show_wrench_aim_page();
     }
 }
 
@@ -20398,6 +21007,9 @@ void grab_page_event(const openrac::UiEvent& event) {
         } else if (row == kRowGrabFollow) {
             s_vr.grab_follow = on;
             log_line(1, on ? "[vr-grab] Throw follows your swing: on" : "[vr-grab] Throw follows your swing: off, 0.1.18's throw");
+        } else if (row == kRowGrabCrates) {
+            s_vr.grab_crates = on;
+            log_line(1, on ? "[vr-grab] Grab crates: on" : "[vr-grab] Grab crates: off");
         }
         log_controls();
         save_vr_options();
@@ -20568,7 +21180,14 @@ void cheats_page_event(const openrac::UiEvent& event) {
         s_cheat_give = event.item() == kRowGiveWeapons   ? kGiveWeapons
                        : event.item() == kRowGiveGadgets ? kGiveGadgets
                        : event.item() == kRowUnlockPlanets ? kGivePlanets
+                       : event.item() == kRowBoltsToZero ? kBoltsToZero
                                                            : kGiveNone;
+        if (s_cheat_give == kBoltsToZero && s_cheats.bolts) {
+            s_cheats.bolts = false;  // or it would fill them again
+            log_line(1, "[vr-cheat] Cheats: infinite bolts off, for bolts back to 0");
+            save_vr_options();
+            show_cheats_page();
+        }
     } else if (event.kind() == OPENRAC_UI_FRAME) {
         // The buttons dim and light as play and the pause menu come and go.
         static bool could_give = false;
@@ -20639,7 +21258,9 @@ void load(openrac::Mod& mod) {
             "A", "B", "X", "Y", "the right trigger", "the left trigger", "the right grip", "the left grip",
             "the right stick's click", "the left stick's click"};
         std::string line = "[vr-pad] third person buttons (";
-        line += s_pad_mapper.layout == kXboxLayout ? "an Xbox controller's" : "the player's own";
+        line += s_pad_mapper.layout == kXboxLayout              ? "an Xbox controller's"
+                : s_pad_mapper.layout == kLikeFirstPersonLayout ? "like first person"
+                                                                : "the player's own";
         line += "):";
         for (int control = 0; control < kPadControls; ++control) {
             const std::uint16_t button = s_pad_mapper.layout[static_cast<std::size_t>(control)];
@@ -20726,6 +21347,8 @@ void load(openrac::Mod& mod) {
         s_controls_page = mod.ui_page([](const openrac::UiPage&, const openrac::UiEvent& event) { controls_page_event(event); }, OPENRAC_UI_OWN_BACK);
         s_moves_page = mod.ui_page([](const openrac::UiPage&, const openrac::UiEvent& event) { moves_page_event(event); }, OPENRAC_UI_OWN_BACK);
         s_grab_page = mod.ui_page([](const openrac::UiPage&, const openrac::UiEvent& event) { grab_page_event(event); }, OPENRAC_UI_OWN_BACK);
+        s_wrench_aim_page = mod.ui_page([](const openrac::UiPage&, const openrac::UiEvent& event) { wrench_aim_page_event(event); },
+                                        OPENRAC_UI_OWN_BACK);
         s_more_controls_page = mod.ui_page([](const openrac::UiPage&, const openrac::UiEvent& event) { more_controls_page_event(event); },
                                            OPENRAC_UI_OWN_BACK);
         s_wheel_page = mod.ui_page([](const openrac::UiPage&, const openrac::UiEvent& event) { wheel_page_event(event); }, OPENRAC_UI_OWN_BACK);
@@ -20805,6 +21428,7 @@ void load(openrac::Mod& mod) {
                place_weapon();
                place_weapon_screen();
                place_left_gun();
+               left_draws_again();
                place_arms();
                party_bodies(s_own_item, s_own_arms, s_arm_free, s_arm_grip, s_own_arms_valid);
                grab_member_show();
@@ -20915,4 +21539,4 @@ void load(openrac::Mod& mod) {
 
 }  // namespace
 
-OPENRAC_MOD_CPP("quest-vr", "0.1.23", load)
+OPENRAC_MOD_CPP("quest-vr", "0.1.24", load)

@@ -193,6 +193,52 @@ it worked (the log is in Download/RatchetQuestVR). PC-proven features are in STA
     `[vr-perf]` lines, and no drop to 72 unless 90 is not held either (`[openxr] 90 Hz not held: down to 72 Hz`). Say
     how smooth 90 is next to 120. **On** (the start): no such line, the rate stays.
   - **The PDA's vendor** opened from the hand three times in a row (more reports of 0.1.19's crash): no crash.
+- **Testers' notes on 0.1.23 and the owner's hook videos (0.1.24).** PC with a simulated headset, on the PAL disc.
+  - **Wrench aim help (Moves, Wrench aim):** on **Strong** (the start), throw the wrench at an enemy or crate overhand,
+    then from the side and across your body while looking at it: it goes to it and steers on to it as it flies
+    (`[vr-wrench] thrown ..., aim help to class N (Strong, where the head looks)` for a throw well off it, then `aim help
+    followed class N`). Try **Light** (0.1.23's), **Medium** and **Very strong** and say which feels right; **Off**: it
+    goes where you threw.
+  - **Throw crates (Grab moves, Grab crates):** with Swingshot grabs enemies on, fire the Swingshot at a crate: the hook
+    sits on its side, it comes to your hand, and a throw at an enemy hurts it (half a wrench blow) and breaks the crate
+    where it lands, its bolts out (`[vr-grab] caught a crate`, `the crate broke where it landed`). Grab crates off: the
+    hook passes crates by.
+  - **The hook on what it catches:** catch an enemy that hops or lunges, hold it, throw it: the hook flies out fast,
+    sits on the enemy's near side with its claws along the chain, and stays on it the whole time; no hook hanging in
+    the air where it was fired. It comes home quickly when you let go.
+  - **Set bolts to 0 (Cheats):** turn Infinite bolts on, then choose Set bolts to 0: the bolts go to 0 and Infinite
+    bolts shows Off (`[vr-cheat] bolts set to 0 (there were N)`). Pick up bolts: they count up from 0.
+  - **Third person buttons, Like first person to start:** with nothing set in the launcher before, play in third person
+    with Gamepad: the right trigger fires, the right grip swings the wrench, A jumps (`[vr-pad] third person buttons
+    (like first person)` in the log). In the launcher pick Xbox controller: B fires and X swings again, and it stays
+    that way after the launcher is closed and opened. Play in 2D the same.
+- **Water in parties, the left Tesla Claw and Visibomb, the PC VR HUD (0.1.24).** Water and the reservoir: Multiplayer's own tests
+  only; enemy shots: those and a party of two flat PC games on one PC (no VR game in it); the Tesla Claw: PC with a simulated headset; the HUD: PC VR on SteamVR's
+  null driver, where it never flickered.
+  - **Water as the player who joins** (the game that joins on 0.1.24; the host on any version): on Novalis, Rilgar,
+    Hoven and Pokitaru the water, the seas and the lava show in the joined game as in the host's, with their ripples,
+    fire and smoke. On Rilgar, Hoven or Pokitaru the host works a switch that floods or drains the water: the joined
+    game's water moves to the same height, and its edges and swimming follow it. With Multiplayer's Verbose log on, the
+    joined game's mp-trace.log says `water ... to the host's height` as it moves.
+  - **Enemy shots and Hoven's reservoir as the player who joins** (both games on 0.1.24, the same disc): near enemies
+    that shoot (Gemlik's turrets, Batalia's gunners, Rilgar's), the joined game shows their shots flying, their trails
+    and blasts, and an enemy's explosion when the host's game kills it; a shot that hits the member hurts once, not
+    twice. The host's log says `player N takes show copies`. Known: after the host dies, the shots stop showing in the
+    joined game until it goes to another level. On Hoven the host hits the reservoir's switch: the joined
+    game's reservoir drains too (mp-trace.log: `order: ... given 8`). Still only in the host's game: what an enemy or a
+    hazard draws without a moby of its own.
+  - **The left Tesla Claw (Akimbo):** the Tesla Claw in the left hand, fired at an enemy: blue lightning from the gun to
+    it, as from the right hand (`[vr-akimbo] the left hand's draws added again before the picture: 1` while it fires).
+    The right hand's Tesla Claw and the other left guns as before.
+  - **The left Visibomb (Akimbo):** the Visibomb in the left hand, the left trigger: the missile's view on the left
+    gun's own screen, text and the level reading the right way round (Mirror left-hand guns on and off), your eyes
+    still in the level, the stick steering it, the blast felt in the left hand (`[vr-missile] the picture on the
+    weapon's screen`). The right hand's Visibomb as before.
+  - **PC VR's HUD and menus** (the tester's: SteamVR, a Quest through Steam Link): start the game a few times and play;
+    the HUD and menus should never flicker. The log's `[openxr] the runtime's ... changed the game's GL (...): put back`
+    says which SteamVR call changed the drawing state and what (once each), and the `[vr-perf]` lines end `, the game's
+    GL put back N times` when any was. If it still flickers, send that log: with none of those lines, the cause is
+    elsewhere.
 - **The owner's party notes on 0.1.22 (0.1.23).** One game at a time on PC with a simulated headset; nothing between
   two games has run anywhere but a real party.
   - **The wrench throw (Moves: Wrench throw aim on Where you throw, aim help):** throw it at an enemy or a crate ahead,

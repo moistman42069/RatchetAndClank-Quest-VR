@@ -32,7 +32,8 @@ VR HANDS      Gun angle, Gun size, Hand size, Empty hand angle, Items match hand
 
 VR OPTIONS, CHEATS
               Invincible, Infinite ammo, Infinite bolts, Big heads, Trippy contrails, Give all
-              weapons, Give all gadgets, Unlock all planets
+              weapons, Give all gadgets, Unlock all planets, Set bolts to 0 (also turns Infinite
+              bolts off)
 
 VR OPTIONS, VR BODY
               Player body, Body parts, Tail, Arms bend to your hands, Legs bend, Body turns with
@@ -57,13 +58,17 @@ VR OPTIONS, VR CONTROLS, MORE CONTROLS, WEAPON WHEEL
 VR OPTIONS, VR CONTROLS, MORE CONTROLS, MOVES
               Swingshot anywhere, Wall run and jump, Swingshot reach (how far the hook goes),
               Swingshot grabs enemies, Grab moves, Wrench throw distance, Wrench comes back,
-              Wrench throw aim, Wrench throw angle, Punch with your hands, Hoverboard view (Ahead
-              or Side-on), Turning bolts (Trigger or hand, or Walk around)
+              Wrench aim, Punch with your hands, Hoverboard view (Ahead or Side-on), Turning bolts
+              (Trigger or hand, or Walk around)
 
 VR OPTIONS, VR CONTROLS, MORE CONTROLS, MOVES, GRAB MOVES
               Fling while reeling in, Stun when dropped, Throw them up high, Slam them down, Zip
               to them in the air, Pits and lava finish them, Throw strength, Throw follows your
-              swing
+              swing, Grab crates
+
+VR OPTIONS, VR CONTROLS, MORE CONTROLS, MOVES, WRENCH AIM
+              Wrench throw aim (Where you throw, Along your swing, Where you point), Wrench aim
+              help (Off, Light, Medium, Strong to start, Very strong), Wrench throw angle
 
 The game's own HelpDesk (its tips in voice and text, on for a new game), Save, Load, Sound, Video, Camera and Subtitles
 are in the Options list too.
@@ -71,8 +76,8 @@ are in the Options list too.
 IN THE LAUNCHER
 
 VR            View, Third person controls (Gamepad or VR), D-pad (Controller by your head, Left
-              thumb rest or Off), Third person buttons (each action's button; Xbox controller or Like
-              first person to start from), Cutscenes, Turning, Grab the Trespasser's rings and the rest
+              thumb rest or Off), Third person buttons (each action's button; Like first person to
+              start, or Xbox controller), Cutscenes, Turning, Grab the Trespasser's rings and the rest
 GRAPHICS      Foveated rendering (Quest), CPU and GPU boost (Quest), Smoother frames (AppSW), Keep the
               refresh rate, Max draw distance, and the rest
 GAME          Mods: each mod's switch and settings (RAC-Board and Multiplayer are built in, off to
