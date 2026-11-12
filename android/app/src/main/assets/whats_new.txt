@@ -1,109 +1,58 @@
-NEW IN 0.1.22
+NEW IN 0.1.23
 
-THE REFRESH RATE STEPS DOWN, NOT STRAIGHT TO 72
+THE WRENCH GOES WHERE YOU THROW IT
 
-    With Keep the refresh rate off (Graphics), a rate the game could not hold for twenty seconds sent the headset
-    straight back to 72 Hz. With Smoother frames on that meant 36 pictures a second for the game's 60 steps, the
-    stutter that running Smoother frames at 120 Hz was made to end. Now it steps down one rate at a time: to 90 Hz
-    (45 pictures a second with Smoother frames), and only if 90 is not held either, to 72. Keep the refresh rate on
-    (the start) is unchanged: the headset stays where you put it.
+    The owner's video: the thrown wrench veered up or the wrong way, not where the hand went. It flew where the
+    controller pointed at the moment the grip opened, and by then the wrist has cocked up in the follow-through.
+    Now it flies the way your hand went at its fastest just before you let go, as fast as you threw it, and if an
+    enemy or a crate is a few degrees off that line, with nothing in the way, it is eased onto it. Wrench throw
+    aim (Moves) has the choices: Where you throw, aim help (the new start), Where you throw (no help), Along your
+    swing, and Where you point (the old way). Wrench throw angle still turns it up or down.
 
-THE PDA, ONCE MORE
+MULTIPLAYER: YOUR FINGERS AND YOUR HEIGHT
 
-    More reports of the PDA crashing the game came in, all on 0.1.19: the same crash 0.1.21 fixed. We opened the
-    PDA's vendor from the hand three times in a row, with a walk between, and the game kept going each time.
+    Other players now see your fingers as you hold them: a point, a thumbs-up, a fist, a grip on the controller.
+    And your body follows you up and down: a player with Feet on the floor or a World scale above 100% stood at
+    the others' fixed height, and their crouch did not show. Both need the other player on 0.1.23 too.
 
-ALSO NEW: ALL OF 0.1.21, WHICH CAME OUT JUST BEFORE, IN CASE YOU MISSED IT
+MULTIPLAYER: BOLTS FOR EVERYONE
 
-THIRD PERSON BUTTONS: EACH ACTION WHERE YOU WANT IT
+    A player who joined could turn a bolt, but what it opens (doors, lifts, bridges) is the host's game's, so
+    nothing opened. Now with a host on 0.1.23 a bolt you turn turns the host's too, and what it opens opens for
+    everyone. With an older host it turns only your own, as before.
 
-    A tester on 0.1.19: in third person "the swinging with the hammer is then assigned to the X button on the left
-    controller, which makes no sense because one uses the left controller/stick for movement." Third person with
-    Gamepad, and Play in 2D, had one layout, an Xbox controller's. Now Third person buttons (VR tab, under D-pad)
-    lets you choose: tap an action (jump, fire, the wrench, quick select, crouch, look, the map), then the button
-    for it. If another action had that button the two swap, so no button ever does two things and nothing is lost.
-    Like first person puts them as in first person: the right trigger fires, the right grip swings the wrench, A
-    jumps, the right stick click is quick select, the left trigger and B crouch, the left grip and Y look, X and the
-    left stick click the map. Xbox controller (the start) is the layout from before. The menu button always pauses
-    (held, it switches the view), the menus keep the Xbox layout, and the game's hints show the buttons you chose.
-    RAC-Board's tricks, grinds and grabs follow the buttons you give R1, R2 and L1.
+MULTIPLAYER: RAC-BOARD
 
-THE TRESPASSER'S RINGS: ONE NOTCH A PUSH, OR TURN THEM BY HAND
+    RAC-Board did not load at all with Multiplayer on: the two mods asked for the same hook in the game, and only
+    one could have it. Now both do. Every player in a party needs RAC-Board on (Multiplayer checks that the
+    gameplay mods match).
 
-    A tester: "my joystick try to fight me". The sticks worked as a D-pad held down, about twelve notches a second,
-    and a push a little off straight changed the ring as well. Now each push of a stick turns the chosen ring one
-    notch (held, another after a moment), up and down choose the ring, A and B turn it a notch each way, X picks the
-    next ring and Y leaves. New, Grab the Trespasser's rings (VR tab, on to start): with your hand over a ring,
-    squeeze the grip to hold it and move your hand round the middle to turn it, a notch for each twelfth of a
-    circle. It needs The Trespasser's rings over the tool. Each notch is still the game's own turn, with its sound.
-    Play in 2D keeps the game's own controls.
+MULTIPLAYER: SMALLER THINGS
 
-A CRASH AT THE PDA'S VENDOR
+    A host's game could take itself for a member's for a moment after a pause of two seconds (a stall, or a movie
+    playing), and drop a member's Swingshot catch or bolt turn. It now waits half a second before believing it.
+    Multiplayer's Verbose log now goes to its own file, which Send your log takes on a Quest; keep it off unless we
+    ask for it, as it writes a lot.
 
-    A tester: "pocket gadgetron thing you buy from quark crashed game". With the PDA in your hand the trigger opens
-    its vendor. The game keeps that press for a few frames, and while you shop on foot Ratchet's own code runs, so
-    it opened the vendor a second time over the first; that emptied the vendor's screens and the game stopped. Now
-    the vendor that is open stays as it is. We made the crash happen on a PC as the tester had it, the PDA in the
-    right hand and a gun in the left, and now it no longer does, with the gun or without.
+    Flat players (OpenRAC on a PC, with no VR) still play with you as before: what needs
+    a VR host turns itself off, and they never see anything their game does not know.
 
-SCENES: CHECKED
+ALSO NEW: 0.1.22, A QUICK PATCH JUST BEFORE
 
-    A tester saw scenes on a screen that looked as if they could play around you. We checked them all: every scene
-    the game draws itself plays in VR (Cutscenes, VR tab). The ones on a screen are the game's movies, videos on the
-    disc with no 3D scene behind them, so they can't be shown around you. The ending's slideshow is still pictures,
-    shown flat too.
+    With Keep the refresh rate off (Graphics), a rate the game cannot hold steps down to 90 Hz before 72, not
+    straight to 72. The PDA crash reports were all on 0.1.19, fixed in 0.1.21.
 
-AND ALL OF 0.1.20, THE RELEASE BEFORE THAT
+0.1.21: THIRD PERSON BUTTONS, THE TRESPASSER'S RINGS, THE PDA'S VENDOR
 
-THE GAME STARTS IN THE VIEW THE LAUNCHER SAYS
+    Third person buttons (VR tab): each third person action on the button you choose, or Like first person. The
+    Trespasser's rings one notch a push, or turned by hand (Grab the Trespasser's rings). A crash at the PDA's
+    vendor fixed. Every scene the game draws itself checked to play in VR.
 
-    A tester's game kept starting in third person with the launcher set to first person. Holding the left menu
-    button for a second in play switches the view, and until now the game kept that switch for its next start:
-    hold it once by chance, while recentring say, and every start after that was third person, where the
-    controllers are now a gamepad. Now the game always starts in the launcher's View (VR tab). The hold still
-    switches until you close the game, and the switch now says which view you are in and how to get back, such
-    as THIRD PERSON  HOLD LEFT MENU FOR FIRST PERSON. If you like third person with the VR controls, set Third
-    person controls to VR (VR tab).
+0.1.20: THE LAUNCHER'S VIEW, SMOOTHER FRAMES AT 120 HZ, MAGNEBOOTS
 
-SMOOTHER FRAMES: THE GAME DRAWS 60 PICTURES A SECOND
-
-    A tester found the micro stutters gone with the headset at 120 Hz. With Smoother frames on (the start),
-    the game draws every other frame, so at 72 Hz, where every preset put the Refresh rate, it drew only 36
-    pictures a second for its own 60 steps a second. Now Smoother frames runs the headset at 120 Hz and the
-    game draws 60, one for each step; the Refresh rate is for Smoother frames off. If the game cannot keep up
-    (a stutter, or OVR Metrics under 60), lower Eye resolution. With Keep the refresh rate off, the menus no
-    longer drop the headset to 72 Hz as play begins.
-
-NOTICES FADE AWAY
-
-    The words shown ahead of you, such as a controller not found or the view switched, now fade away after a
-    couple of seconds instead of staying.
-
-MAGNEBOOTS IN FIRST PERSON
-
-    On a magnet wall your eyes were flat against it ("like if you was licking the magnet wall", a tester), and
-    upside down they were on the other side of the surface. Your eyes now sit at Ratchet's eye height off
-    whatever he walks on, walls and ceilings alike, as on the ground.
-
-A CRASH AFTER DROWNING, WITH SOMETHING IN THE LEFT HAND
-
-    A tester's game crashed as Ratchet drowned at Qwark's base on Umbris while the left hand held the Swingshot
-    (Akimbo). As he comes back after a death the game makes its things again, and the left hand gave the right
-    hand back an item that by then was something else, so the game read where nothing was. Now, if the game
-    remade things while the left hand held an item, the left hand lets it go and the right hand keeps what the
-    game gave it.
-
-GLOWS IN THE TAKE-OFF AND THE FLIGHT
-
-    Seen through Ratchet's eyes (Cutscenes: Through his eyes), a take-off's glows and sparks turned to face the pad
-    you left, not your eyes, and in the flight after it they turned with the ship. They now face your eyes in
-    the scene, and the game's camera in the flight, as the flight is seen from it.
-
-STILL LOOKING INTO
-
-    The cockpit window racing the ship between planets, and Blarg station's far windows acting strangely: we
-    could not make either happen here yet. If you see one, a short clip, or where you were (the planet, the
-    room, which way you faced), helps a lot.
+    The game always starts in the launcher's View. Smoother frames runs the headset at 120 Hz so the game draws 60
+    pictures a second. Notices fade away. Your eyes at Ratchet's height on the Magneboots' walls and ceilings. A
+    crash after drowning with something in the left hand fixed; glows in the take-off face your eyes.
 
 0.1.19: THIRD PERSON AS A GAMEPAD, THE SEAS, WEAPONS ON THE BOARD, MULTIPLAYER IN VR
 

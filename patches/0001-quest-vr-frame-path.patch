@@ -41,6 +41,19 @@ index b4ddbb95ea0fafa967d9d5ded01aec99523e8fff..55a34a2188e3be60cfad54be3fea9931
  - **Behaviour:** more effects alive at once than on a PS2
    (differences.json, `bigger-moby-pool`). The fix `fix_bigger_moby_pool`
    (More room for effects, on by default) switches it back: off, every level
+diff --git a/docs/port/MODS.md b/docs/port/MODS.md
+index 34e50fab33542b26c9a2683ec76fbbfe774ea0ae..9a13b0247d52daa8e0795d9352a22172d1bcbf99 100644
+--- a/docs/port/MODS.md
++++ b/docs/port/MODS.md
+@@ -591,7 +591,7 @@ OPENRAC_MOD_EXPORT void openrac_mod_unload(void);                        /* opti
+ | `moby_drive(mod, slot, on)`, `moby_pose(mod, slot, &moby)`, `moby_kill(mod, slot)`, `moby_spawn(mod, oclass, &moby)` (1.9) | drive a moby (its own update no longer runs, its animation still plays and its collision follows it) or let it go; a drive ends with its level, and another mod's is `OPENRAC_HOOK_TAKEN`; put it in a pose; delete it as the game does (a placed one stays dead until its level loads again); make one of a class the level has, driven, and get its slot. A slot with no moby answers `OPENRAC_HOOK_UNKNOWN` |
+ | `figure_slot(mod, id)` (1.9) | the slot of the mod's figure `id`, or of the hero's moby with -1; -1 for none |
+ | `on_moby_update(mod, fn, user)`, `hero_stand_in(mod, position, figure)` (1.9) | the gate: `fn(user, slot, phase)` around each update the game runs (`OPENRAC_MOBY_BEFORE`, `_AFTER`; not for a driven moby); returning 1 before skips the update. Before one, `hero_stand_in` puts the hero at `position` (his moby the mod's `figure`, -1 his own) for that update, so the enemy sees, chases and hits another player; elsewhere it answers `OPENRAC_HOOK_UNKNOWN`. One mod's, taken only during `openrac_mod_load` (`OPENRAC_HOOK_TAKEN`, `OPENRAC_HOOK_TOO_LATE`) |
+-| `on_moby_hit(mod, fn, user)`, `moby_hit(mod, &hit)` (1.9) | the hit watcher: `fn(user, &hit)` for each hit the game posts (victim and attacker slots, weapon `mask`, damage, position, velocity); returning 1 takes it back, the victim never reads it. One mod's, during load only. `moby_hit` posts a hit of the mod's own to its victim, as the game would and not told to the watcher |
++| `on_moby_hit(mod, fn, user)`, `moby_hit(mod, &hit)` (1.9) | the hit watcher: `fn(user, &hit)` for each hit the game posts (victim and attacker slots, weapon `mask`, damage, position, velocity); returning 1 takes it back, the victim never reads it. Several mods' in the Quest fork (each told in load order until one takes it back, so RAC-Board and Multiplayer both load; one a mod), during load only. `moby_hit` posts a hit of the mod's own to its victim, as the game would and not told to the watcher |
+ | `play_eyes(mod, xyz, count)`, `bolts(add)` (1.9) | up to `OPENRAC_EYES_MAX` (8) points besides the camera, which keep the mobys near them running (the world near other players), `count` 0 clears; adds to the player's bolts and returns them |
+ | `play_overlay_pause(mod, on)`, `moby_slot_of(moby)` (1.9) | while on, the level's mobys keep being updated under the game's pause menu and its freeze dialogs (the hero and the picture stay as the menu left them), so a game in a party never stops the others' world; the slot of the moby at a game address (a hook point's argument). The world calls always address the level's own mobys, also while the pause menu has its own up; `moby_list` lists a placed moby the game deleted with `OPENRAC_MOBY_DEAD`, so a death is learnt from the game, never from a moby missing |
+ | `play_skip(mod)` (1.9) | skips the scene playing (a cutscene, the ship's landing or take-off, the flight between planets) the way the game's own skip does, as Start with the port's Skip cutscenes: pressed over the next ticks until the scene is over; for a party whose scenes end together |
 diff --git a/games/rac1/ntsc-decomp-patches/0007-hud-frame-flags-signed.patch b/games/rac1/ntsc-decomp-patches/0007-hud-frame-flags-signed.patch
 new file mode 100644
 index 0000000000000000000000000000000000000000..faebb54481e58368a48a2a2bad7bb962cf7c2e1a
@@ -2468,7 +2481,7 @@ index 07e01ad38ff80061d0df4f7e0b9038855933014b..3302c88ab55c19ed196b4481a0ef5d9e
       "How far away things are still drawn. Original stops where the console did; the larger "
       "steps draw farther, and Unlimited draws everything in view. What the game hides from a "
 diff --git a/port/game/common/mod_play.cpp b/port/game/common/mod_play.cpp
-index 46e927800c89e69258f0dd05df69d18cd0a69965..56a1f436ad82a03ac80ba0344114c4e35a1f4c33 100644
+index 46e927800c89e69258f0dd05df69d18cd0a69965..ec3fc9338dca5f92bac3b1274588266b14084079 100644
 --- a/port/game/common/mod_play.cpp
 +++ b/port/game/common/mod_play.cpp
 @@ -18,12 +18,15 @@
@@ -2487,7 +2500,61 @@ index 46e927800c89e69258f0dd05df69d18cd0a69965..56a1f436ad82a03ac80ba0344114c4e3
  
  // The game's calls into the mods' world (game_host.h), set while mods are loaded.
  int (*openrac_game_moby_update)(std::int32_t slot, int phase) = nullptr;
-@@ -588,6 +591,26 @@ int api_moby_hit(openrac_mod* mod, const openrac_hit* hit) {
+@@ -111,7 +114,7 @@ std::array<Figure, OPENRAC_FIGURES_MAX> g_figures;
+ Request g_request;
+ 
+ // The world (interface 1.9): the mobys the mods drive, by slot (whose, in which level load), the
+-// gate and the hit watcher (one mod's each), and the slot whose update the gate's call before it
++// gate (one mod's) and the hit watchers (the Quest fork: several, g_hits), and the slot whose update the gate's call before it
+ // is about (-1: none, where a stand-in is refused).
+ constexpr std::size_t kSlots = 4096;
+ 
+@@ -143,9 +146,29 @@ struct MetalWatch {
+ };
+ 
+ MetalWatch g_metal;
+-HitWatch g_hits;
++// The hit watchers, in load order (the Quest fork's: one each for Multiplayer and RAC-Board, which
++// both watch hits; before, the second was refused and RAC-Board did not load beside Multiplayer).
++// A hit goes to each until one takes it back.
++std::vector<HitWatch> g_hits;
+ int g_before_slot = -1;
+ 
++// The watchers told of a hit, but the one that sent it: 1 when one took it back.
++int tell_hit_watchers(const openrac_mod* from, const openrac_hit& hit) {
++    // A copy: a watcher's call may not change the list (no load or unload in a hit), but be safe.
++    const std::vector<HitWatch> watchers = g_hits;
++    for (const HitWatch& w : watchers) {
++        if (w.fn == nullptr || w.mod == from) {
++            continue;
++        }
++        openrac_hit told = hit;
++        told.size = sizeof told;
++        if (w.fn(w.user, &told) != 0) {
++            return 1;
++        }
++    }
++    return 0;
++}
++
+ // The mod that holds the card filter, what it asked, and the card folder its writes go to.
+ const openrac_mod* g_card_mod = nullptr;
+ int g_card_mode = OPENRAC_CARD_PASS;
+@@ -570,10 +593,11 @@ int api_on_moby_hit(openrac_mod* mod, openrac_hit_fn fn, void* user) {
+     if (mod == nullptr || fn == nullptr || mod != g_loading_mod) {
+         return OPENRAC_HOOK_TOO_LATE;
+     }
+-    if (g_hits.mod != nullptr) {
++    // One watcher a mod; mods after the first join the chain.
++    if (std::any_of(g_hits.begin(), g_hits.end(), [&](const HitWatch& w) { return w.mod == mod; })) {
+         return OPENRAC_HOOK_TAKEN;
+     }
+-    g_hits = {mod, fn, user};
++    g_hits.push_back({mod, fn, user});
+     return OPENRAC_HOOK_OK;
+ }
+ 
+@@ -588,6 +612,22 @@ int api_moby_hit(openrac_mod* mod, const openrac_hit* hit) {
      return OPENRAC_HOOK_OK;
  }
  
@@ -2498,12 +2565,8 @@ index 46e927800c89e69258f0dd05df69d18cd0a69965..56a1f436ad82a03ac80ba0344114c4e3
 +    if (mod == nullptr || victim == 0 || hit->size < sizeof(openrac_hit)) {
 +        return OPENRAC_HOOK_UNKNOWN;
 +    }
-+    if (g_hits.fn != nullptr && g_hits.mod != mod) {
-+        openrac_hit told = *hit;
-+        told.size = sizeof told;
-+        if (g_hits.fn(g_hits.user, &told) != 0) {
-+            return OPENRAC_HOOK_TAKEN;
-+        }
++    if (tell_hit_watchers(mod, *hit) != 0) {
++        return OPENRAC_HOOK_TAKEN;
 +    }
 +    g_play->post_hit(
 +        victim, moby_address(hit->attacker), hit->mask, hit->damage, hit->position, hit->velocity
@@ -2514,7 +2577,7 @@ index 46e927800c89e69258f0dd05df69d18cd0a69965..56a1f436ad82a03ac80ba0344114c4e3
  int api_play_eyes(openrac_mod* mod, const float* xyz, int count) {
      if (mod == nullptr || g_play == nullptr || g_play->eyes == nullptr) {
          return OPENRAC_HOOK_UNKNOWN;
-@@ -600,7 +623,7 @@ int api_play_overlay_pause(openrac_mod* mod, int on) {
+@@ -600,7 +640,7 @@ int api_play_overlay_pause(openrac_mod* mod, int on) {
      if (mod == nullptr || g_play == nullptr || g_play->keep_running == nullptr) {
          return OPENRAC_HOOK_UNKNOWN;
      }
@@ -2523,7 +2586,7 @@ index 46e927800c89e69258f0dd05df69d18cd0a69965..56a1f436ad82a03ac80ba0344114c4e3
      return OPENRAC_HOOK_OK;
  }
  
-@@ -732,6 +755,245 @@ int api_moby_hide(openrac_mod* mod, int slot, int hidden) {
+@@ -732,6 +772,245 @@ int api_moby_hide(openrac_mod* mod, int slot, int hidden) {
      return OPENRAC_HOOK_OK;
  }
  
@@ -2769,7 +2832,25 @@ index 46e927800c89e69258f0dd05df69d18cd0a69965..56a1f436ad82a03ac80ba0344114c4e3
  int api_moby_deletion(int slot, openrac_moby_deletion* out) {
      if (out == nullptr || out->size < sizeof(openrac_moby_deletion) || g_play == nullptr
          || g_play->moby_deletion == nullptr) {
-@@ -1810,6 +2072,17 @@ void fill_play_api(
+@@ -1169,7 +1448,7 @@ int game_moby_hit(
+     const float position[3],
+     const float velocity[3]
+ ) {
+-    if (g_hits.fn == nullptr) {
++    if (g_hits.empty()) {
+         return 0;
+     }
+     openrac_hit hit{};
+@@ -1180,7 +1459,7 @@ int game_moby_hit(
+     hit.damage = damage;
+     std::copy(position, position + 3, hit.position);
+     std::copy(velocity, velocity + 3, hit.velocity);
+-    return g_hits.fn(g_hits.user, &hit) != 0 ? 1 : 0;
++    return tell_hit_watchers(nullptr, hit);
+ }
+ 
+ int api_world_family(char* out, std::uint32_t size) {
+@@ -1810,6 +2089,17 @@ void fill_play_api(
      api.scene_playing = api_scene_playing;
      api.play_scene = api_play_scene;
      api.moby_hide = api_moby_hide;
@@ -2787,7 +2868,7 @@ index 46e927800c89e69258f0dd05df69d18cd0a69965..56a1f436ad82a03ac80ba0344114c4e3
      api.moby_deletion = api_moby_deletion;
      api.camera_position = api_camera_position;
      api.moby_run = api_moby_run;
-@@ -2005,6 +2278,10 @@ bool overlay_shows_level() {
+@@ -2005,6 +2295,10 @@ bool overlay_shows_level() {
      return phase_now(&level) == OPENRAC_PLAY_PLAYING;
  }
  
@@ -2798,7 +2879,16 @@ index 46e927800c89e69258f0dd05df69d18cd0a69965..56a1f436ad82a03ac80ba0344114c4e3
  void reset_play() {
      {
          const std::lock_guard<std::mutex> lock(g_notice_lock);
-@@ -2064,6 +2341,19 @@ void reset_play() {
+@@ -2050,7 +2344,7 @@ void reset_play() {
+     g_request = Request{};
+     std::fill(g_drives.begin(), g_drives.end(), Drive{});
+     g_gate = Gate{};
+-    g_hits = HitWatch{};
++    g_hits.clear();
+     g_metal = MetalWatch{};
+     g_camera_scripts = {};
+     g_camera_shower = nullptr;
+@@ -2064,6 +2358,19 @@ void reset_play() {
      openrac_game_metal_detect = nullptr;
  }
  
@@ -2818,6 +2908,17 @@ index 46e927800c89e69258f0dd05df69d18cd0a69965..56a1f436ad82a03ac80ba0344114c4e3
  void drop_figures(const openrac_mod* mod) {
      for (Figure& f : g_figures) {
          if (f.mod == mod) {
+@@ -2123,9 +2430,7 @@ void drop_figures(const openrac_mod* mod) {
+     if (g_gate.mod == mod) {
+         g_gate = Gate{};
+     }
+-    if (g_hits.mod == mod) {
+-        g_hits = HitWatch{};
+-    }
++    std::erase_if(g_hits, [&](const HitWatch& w) { return w.mod == mod; });
+ }
+ 
+ }  // namespace openrac::mods
 diff --git a/port/game/common/mod_play.h b/port/game/common/mod_play.h
 index d615ba5670f358b4a25dab396f86f7ffdb71df6b..bbf0b51c8605e6f02153a43377d3a0d147130594 100644
 --- a/port/game/common/mod_play.h
@@ -12580,8 +12681,21 @@ index 78fb9614f54e8abad25e84cb700ffaa4f371f406..054468ac92e004d1ca6efe2a6161fb60
          using take_ammo = rac1::Weapon_TakeAmmo;
      }  // namespace weapon
  }  // namespace hooks
+diff --git a/sdk/include/openrac/mod.hpp b/sdk/include/openrac/mod.hpp
+index 70316641484741b78a535289e3bbe2e6bdb45093..359b060b9e8199911733b909e07bf2ca8519eb83 100644
+--- a/sdk/include/openrac/mod.hpp
++++ b/sdk/include/openrac/mod.hpp
+@@ -1432,7 +1432,7 @@ public:
+ 
+     void on_moby_hit(openrac_hit_fn fn, void* user = nullptr) {
+         if (m_api->api_minor < 9 || m_api->on_moby_hit(m_handle, fn, user) != OPENRAC_HOOK_OK) {
+-            throw Error("on_moby_hit: refused (only during load, one mod's, interface 1.9)");
++            throw Error("on_moby_hit: refused (only during load, once a mod, interface 1.9)");
+         }
+     }
+ 
 diff --git a/sdk/include/openrac/openrac_mod.h b/sdk/include/openrac/openrac_mod.h
-index 8b997beb8577baa2bfcf76e38a02cf1fbe45e42c..a9463e8b470d3ee22c7dbb0a6357b0d7f88be66e 100644
+index 8b997beb8577baa2bfcf76e38a02cf1fbe45e42c..37be2b972160b54c0b086c72a2f6cd0c2defbada 100644
 --- a/sdk/include/openrac/openrac_mod.h
 +++ b/sdk/include/openrac/openrac_mod.h
 @@ -322,6 +322,78 @@ typedef struct openrac_view {
@@ -12785,7 +12899,17 @@ index 8b997beb8577baa2bfcf76e38a02cf1fbe45e42c..a9463e8b470d3ee22c7dbb0a6357b0d7
  /* ---- Interface 1.14: what a shared game needs of the port ---- */
  
  /* What card_filter does with the game's writes to its memory card. Since 1.14. */
-@@ -2072,6 +2223,92 @@ typedef struct openrac_api {
+@@ -1584,7 +1735,8 @@ typedef struct openrac_api {
+      * after it. Returns OPENRAC_HOOK_OK, or OPENRAC_HOOK_UNKNOWN outside that call. Since 1.9. */
+     int (*hero_stand_in)(openrac_mod* mod, const float position[3], int figure);
+ 
+-    /* Calls `fn(user, &hit)` for each hit the game posts (openrac_hit_fn). One mod's. Returns as
++    /* Calls `fn(user, &hit)` for each hit the game posts (openrac_hit_fn). One mod's (the Quest fork:
++     * several, each told in load order until one takes it back; again from the same mod is refused). Returns as
+      * on_moby_update. Since 1.9. */
+     int (*on_moby_hit)(openrac_mod* mod, openrac_hit_fn fn, void* user);
+ 
+@@ -2072,6 +2224,92 @@ typedef struct openrac_api {
       * bytes, nonzero for each) names; mission_state_write sets them again. Returns OPENRAC_HOOK_OK,
       * or OPENRAC_HOOK_UNKNOWN outside a level or for a port without it. Since 1.14. */
      int (*mission_state_clear)(int level, const uint8_t* flags);
@@ -12848,7 +12972,7 @@ index 8b997beb8577baa2bfcf76e38a02cf1fbe45e42c..a9463e8b470d3ee22c7dbb0a6357b0d7
 +     * A member's host's rules come through on_party_rules, when the host's game has the same mod. */
 +    int (*party_role)(openrac_mod* mod);
 +
-+    /* The Quest fork's: moby_hit as the game's own hit: told first to on_moby_hit's mod (unless that is
++    /* The Quest fork's: moby_hit as the game's own hit: told first to the on_moby_hit mods (all but
 +     * `mod`), which may take it (a party's member's hit on the host's world goes to the host), then
 +     * posted if not taken. A VR player's wrench and fists, which hit what the hands reach. Returns
 +     * OPENRAC_HOOK_OK when posted, OPENRAC_HOOK_TAKEN when taken, or OPENRAC_HOOK_UNKNOWN for no

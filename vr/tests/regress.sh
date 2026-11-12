@@ -546,6 +546,9 @@ run options-mp options 1 "$MP" KEEP=1
 run cranktrigger cranktrigger 1 $N=280 $A=1.2,0
 run cranktrigger-walk cranktrigger 1 $N=280 $A=1.2,0 'QUEST_VR_OPTIONS=bolt_walk 1'
 run crankhand crankhand 1 $N=280 $A=1.2,0
+# 0.1.23: a party member's bolt turn in the host's game (membercrank.sim): this game the host, a member's word put through
+# as Multiplayer delivers it; the host's bolt turns with it and the game's own finish runs, the host's hero lent a tick.
+run membercrank membercrank 1 $N=280 $A=1.2,0 QUEST_PARTY_ROLE=1 QUEST_FAKE_MEMBER_CRANK=1
 # 0.1.18: what is worn on a hand meets the forearm: the four throwing gloves, the Walloper, the Swingshot's housing.
 run glovefit-a glovefit 1 $G=10,17 $H=10 $L=17 KEEP=1
 run glovefit-b glovefit 1 $G=20,25 $H=20 $L=25 KEEP=1
@@ -614,9 +617,25 @@ run racboardbomb racboardbomb 1 QUEST_RACBOARD=1 QUEST_JET_TRACE=1 QUEST_STATE_T
 # 0.1.19: the Swingshot's grab while riding RAC-Board (the owner: "fling people while staying on the board with the
 # swingshot"): an enemy hooked, yanked in and thrown, and the ride goes on to the left hand's reach.
 run racboardgrab racboardgrab 1 $G=12 $H=12 $N=577 $A=6,0,180 "QUEST_VR_OPTIONS=$GRAB" QUEST_RACBOARD=1 QUEST_JET_TRACE=1 QUEST_STATE_TRACE=1 'QUEST_RACBOARD_SETTINGS={"trace": true}'
-# 0.1.18: the wrench thrown where the controller pointed as the hand opened, 15 degrees up, and along the swing.
+# 0.1.23: RAC-Board loaded beside Multiplayer (the owner: "rac board doesnt seem to work in multiplayer"): until then the
+# port gave on_moby_hit to one mod, Multiplayer took it first, and RAC-Board did not load. racboard's and racboardbomb's
+# rides with Multiplayer on, as they go without it.
+run racboard-mp racboard 1 QUEST_RACBOARD=1 QUEST_JET_TRACE=1 QUEST_STATE_TRACE=1 'QUEST_RACBOARD_SETTINGS={"trace": true}' "$MP"
+run racboardbomb-mp racboardbomb 1 QUEST_RACBOARD=1 QUEST_JET_TRACE=1 QUEST_STATE_TRACE=1 'QUEST_RACBOARD_SETTINGS={"trace": true}' "$MP"
+# 0.1.18: the wrench thrown where the controller pointed as the hand opened, 15 degrees up, and along the swing. (From
+# 0.1.23 the start is where the hand threw: wrenchthrow-angle throws that way, 15 degrees up.)
 run wrenchthrow-angle wrenchthrow 1 $G=15 $H=15 'QUEST_VR_OPTIONS=wrench_angle 15'
 run wrenchthrow-swing wrenchthrow 1 $G=15 $H=15 'QUEST_VR_OPTIONS=wrench_aim 1'
+# 0.1.23: the owner's veering throw (wrenchflick.sim: the wrist cocked up 40 degrees as the grip opens): where the hand
+# threw, near level; where the controller pointed, up with the wrist (0.1.22's start); along the swing. And aim help
+# (wrenchhelp.sim: Novalis's first crates, the throw passing 0.24 rad wide of a class 501 crate 5.5 units off): "aim help
+# to class 501", "its own side" (a crate's sides stopped the line to its middle until 0.1.23's fix), that crate "broken",
+# the other three "whole"; without, no help and all four "whole".
+run wrenchflick wrenchflick 1 $G=15 $H=15
+run wrenchflick-point wrenchflick 1 $G=15 $H=15 'QUEST_VR_OPTIONS=wrench_aim 2'
+run wrenchflick-swing wrenchflick 1 $G=15 $H=15 'QUEST_VR_OPTIONS=wrench_aim 1'
+run wrenchhelp wrenchhelp 1 $G=15 $H=15 $N=500 $A=6,0.5,60 QUEST_WRENCH_TRACE=1
+run wrenchhelp-off wrenchhelp 1 $G=15 $H=15 $N=500 $A=6,0.5,60 QUEST_WRENCH_TRACE=1 'QUEST_VR_OPTIONS=wrench_help 0'
 # 0.1.18: Orxon's electric barrier (a PCVR tester on the US disc: undrawn, it killed them twice), faced from 12 units:
 # its six "class 1067" rows, no "port:" line, and its strands in the "ahead" eyes.
 run orxonwall orxonwall 10 QUEST_SIM_OWN=6 QUEST_SIM_AT=224.0,289.0,35.2,-132 QUEST_ROWS_TRACE=1067 KEEP=1

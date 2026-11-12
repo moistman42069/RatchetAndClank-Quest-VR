@@ -14,6 +14,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.io.RandomAccessFile;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.text.SimpleDateFormat;
@@ -71,6 +72,44 @@ final class RunLog {
         }
     }
 
+    /** The end of a file, at most `most` bytes of it, from a line's start. */
+    private static String tail(File file, long most) {
+        try (RandomAccessFile in = new RandomAccessFile(file, "r")) {
+            long length = in.length();
+            long from = Math.max(0, length - most);
+            byte[] bytes = new byte[(int) (length - from)];
+            in.seek(from);
+            in.readFully(bytes);
+            int start = 0;
+            if (from > 0) {
+                while (start < bytes.length && bytes[start] != '\n') {
+                    start++;
+                }
+                start = Math.min(start + 1, bytes.length);
+            }
+            String text = new String(bytes, start, bytes.length - start, StandardCharsets.UTF_8);
+            return from > 0 ? "(its first " + (from + start) + " bytes left out)\n" + text : text;
+        } catch (IOException e) {
+            return "(cannot be read: " + e.getMessage() + ")";
+        }
+    }
+
+    /**
+     * Multiplayer's verbose log (its Verbose log setting): from 0.1.23 the mod writes it to its own folder (the Files
+     * app's Mod files, multiplayer), as OpenRAC's has it, not into the game's log. The run's report takes it, so it is
+     * still sent with the log, and empties it: Multiplayer adds to it each run, and a long party writes megabytes.
+     */
+    private static void multiplayerTrace(StringBuilder out, Context context) {
+        File trace = new File(context.getFilesDir(), "share/openrac/memcard/mod-data/multiplayer/mp-trace.log");
+        if (!trace.isFile() || trace.length() == 0) {
+            return;
+        }
+        section(out, "multiplayer mp-trace.log", tail(trace, 8L << 20));
+        if (!trace.delete()) {
+            Log.w(TAG, "cannot empty " + trace);
+        }
+    }
+
     private static String logcat() {
         StringBuilder out = new StringBuilder();
         try {
@@ -124,6 +163,7 @@ final class RunLog {
                 }
             }
         }
+        multiplayerTrace(out, context);
         section(out, "logcat", logcat());
         String report = out.toString();
         write(context, "run_" + stamp() + ".txt", report);

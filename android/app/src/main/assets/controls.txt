@@ -90,8 +90,10 @@ WALLS         With Wall run and jump on (Moves, off to start; first person), in 
 WRENCH THROW  Wrench throw distance (Moves): how far it goes. Wrench comes back (Moves): When you
               call it, it stays where it lands; a fresh squeeze of the right grip or the trigger calls
               it back, and pressing for the ring or grabbing a ledge does too. Wrench throw aim
-              (Moves): Where you point, the controller as your hand opens (to start), or Along
-              your swing. Wrench throw angle (Moves): from 30 down to 30 up, Level to start
+              (Moves): Where you throw, aim help (to start): the way your hand went at its
+              fastest as you let go, eased onto an enemy or crate a few degrees off; Where you
+              throw, without the help; Along your swing; or Where you point, the controller as
+              your hand opens. Wrench throw angle (Moves): from 30 down to 30 up, Level to start
 PUNCHES       With Punch with your hands on (Moves, off to start): a quick jab out from your body with
               a free hand, or the hand holding a gun, hits what it meets for half a wrench blow.
               Open hand or fist, no button. The wrench, gloves and Walloper do their own; the

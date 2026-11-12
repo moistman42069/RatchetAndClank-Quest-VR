@@ -1,3 +1,21 @@
+Ratchet Quest VR: PLAYER_EXTRA, each player's word on itself, through the bundled Multiplayer.
+
+The VR mod says of its own player what the others draw and use (vr/src/quest_vr.cpp
+publish_own_word: the head, hands, fingers, held item, wheel, a member's Swingshot catch and bolt
+turn). The Quest fork's port passes it between mods (openrac_api player_extra_publish, read,
+deliver and on_player_extra, patches/0001-quest-vr-frame-path.patch); this gives Multiplayer a
+DATA kind for it, 84, unowned in upstream's table: a member sends its word to the host with every
+other pose, the host puts its own and the members' in the spare room of its POSES. A game without
+this patch drops kind 84 unread and takes a POSES entry of it for a pose that does not decode, so
+VR and plain Multiplayer games still share a party; the VR mod then plays as with a flat host.
+Nothing here changes Multiplayer's version or its party digest.
+
+Upkeep: the patch touches only the coop files, game_adapter and kinds.hpp. If upstream takes kind
+84 for something else, change kind::kPlayerExtra to a free number in every Quest build at once
+(older Quest builds keep 84 and would not hear the new ones). If upstream grows its own channel
+for a mod's per-player data, drop this patch and point game_adapter's player_extra and
+player_extra_deliver at it. docs/MULTIPLAYER.md lists what each patch is for.
+
 diff --git a/multiplayer/src/coop.cpp b/multiplayer/src/coop.cpp
 index f7ff81b..b6370d2 100644
 --- a/multiplayer/src/coop.cpp

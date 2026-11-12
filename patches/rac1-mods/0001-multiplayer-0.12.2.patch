@@ -1,16 +1,22 @@
+Ratchet Quest VR: the bundled Multiplayer at OpenRAC's mod list's release, 0.12.2.
+
+A party needs the same Multiplayer version in every game. The pinned openrac-mods master says
+0.12.3 (unreleased: only its verbose log's folder moved), OpenRAC's mod list gives 0.12.2, so a
+Quest game would show as "(differs)" to PC players. This puts the version back to 0.12.2 (the
+manifest, HELLO's version, OPENRAC_MOD_CPP, the README's packet table and history) and keeps
+0.12.3's one change, the verbose log in the mod's data folder: on a Quest the working directory
+is "/", where mp-trace.log does not open (0.1.19 to 0.1.22 put it there).
+
+Upkeep: when OpenRAC's mod list moves to a newer Multiplayer, move RAC1_MODS_PIN
+(tools/build_quest.py) to that release's commit and drop this patch, or remake it with the
+release's version: git -C <openrac-mods> diff HEAD -- multiplayer/README.md
+multiplayer/openrac-mod.json multiplayer/src/mod_state.hpp multiplayer/src/multiplayer.cpp
+(0002 touches none of these files). docs/MULTIPLAYER.md lists what each patch is for.
+
 diff --git a/multiplayer/README.md b/multiplayer/README.md
-index a94b184..00c3813 100644
+index a94b184..58ad7b9 100644
 --- a/multiplayer/README.md
 +++ b/multiplayer/README.md
-@@ -221,7 +221,7 @@ server's state; leaving a direct party goes back to Home, which tries the server
- |---|---|---|
- | Server | `game.openrac.dev:7770` | The OpenRAC server, as host:port (`[::1]:7770` for an IPv6 address); 7770 when no port is given |
- | Name | `${player_name}` (the launcher's Multiplayer name) | Your name in multiplayer, 3 to 16 letters, digits or underscores; empty, `${player_name}` or not valid: the launcher's Multiplayer name |
--| Verbose log | off | For reports of the party's world going wrong (mobys lost when a player pauses): an `[mp-trace]` line for each event, one a line, in `mp-trace.log` in the mod's data folder (`mod-data/multiplayer` beside the memory cards; on Android the Files app's **OpenRAC > Mod files > multiplayer**; with an OpenRAC older than 1.11 the game's working directory; the game's log says where, once), on either side; also on with `OPENRAC_MP_TRACE=1`. Each line is `[mp-trace] f=<frame> t=<ms> <host, member or solo> <what> ...`, `what` one of: `pause` (the phase and the level's game mode changing, a menu entered and left, and each tick a menu is open: the camera mods read, the camera the game's run list measured from, the level's camera the pause menu puts up and what the menu's update did with the world), `run` (a moby the run list left out by distance while a menu is open, one going in or out of range, with its distance and its update and draw distances; once a second under a menu how many ran), `vis` (a moby hidden, shown, dead, gone from the listing, or drawn or not under a menu), `net` (every 5 seconds, what went through the session so far: DATA frames and state sent, what the buckets held back, the most events queued, then per DATA kind `e` events, `s` state and `r` received as `e7=messages/bytes`), `despawn` (a moby gone or hidden: its class, key, slot, driven, shared or local, who removed it, the sync for a message and its sender, this game's own update or another moby's, a mod, or vanished with no deletion seen, its last place, its distance from the hero and the camera, its state and flags, and on a member when the host last sent it; each moby_kill of the sync's), `eyes` (the points the host's game runs the world around), `snap` (each snapshot sent or received: its count, the ids added and missing since the last), `drive` (a moby driven from the host's or let go), `msg` (KILLED, DEAD, DESPAWN, BROKE and SPAWN sent or received) and `census` (every second, the live mobys by class and the ones that came and went). At most 2,000 lines a second, the rest counted in one line. Off: none of them |
-+| Verbose log | off | For reports of the party's world going wrong (mobys lost when a player pauses): an `[mp-trace]` line for each event, one a line, in `mp-trace.log` in the game's working directory (beside its `run.log`; the game's log says where, once), on either side; also on with `OPENRAC_MP_TRACE=1`. Each line is `[mp-trace] f=<frame> t=<ms> <host, member or solo> <what> ...`, `what` one of: `pause` (the phase and the level's game mode changing, a menu entered and left, and each tick a menu is open: the camera mods read, the camera the game's run list measured from, the level's camera the pause menu puts up and what the menu's update did with the world), `run` (a moby the run list left out by distance while a menu is open, one going in or out of range, with its distance and its update and draw distances; once a second under a menu how many ran), `vis` (a moby hidden, shown, dead, gone from the listing, or drawn or not under a menu), `net` (every 5 seconds, what went through the session so far: DATA frames and state sent, what the buckets held back, the most events queued, then per DATA kind `e` events, `s` state and `r` received as `e7=messages/bytes`), `despawn` (a moby gone or hidden: its class, key, slot, driven, shared or local, who removed it, the sync for a message and its sender, this game's own update or another moby's, a mod, or vanished with no deletion seen, its last place, its distance from the hero and the camera, its state and flags, and on a member when the host last sent it; each moby_kill of the sync's), `eyes` (the points the host's game runs the world around), `snap` (each snapshot sent or received: its count, the ids added and missing since the last), `drive` (a moby driven from the host's or let go), `msg` (KILLED, DEAD, DESPAWN, BROKE and SPAWN sent or received) and `census` (every second, the live mobys by class and the ones that came and went). At most 2,000 lines a second, the rest counted in one line. Off: none of them |
- 
- ## Team tools: rescue and rally points
- 
 @@ -485,7 +485,7 @@ for an empty one). The mod speaks all of it:
  
  | Packet | The mod sends | The mod reads |
@@ -61,31 +67,19 @@ index 3616480..c888d00 100644
  
  /* The question's tag: leaving the party (or hosting it). */
 diff --git a/multiplayer/src/multiplayer.cpp b/multiplayer/src/multiplayer.cpp
-index 3fb1712..87f3db9 100644
+index 3fb1712..559cd7d 100644
 --- a/multiplayer/src/multiplayer.cpp
 +++ b/multiplayer/src/multiplayer.cpp
-@@ -621,8 +621,7 @@ void load(openrac::Mod& mod) {
-     g->comfort = std::make_unique<mp::Comfort>(std::move(comfort));
-     g->world->on_log([](const std::string& line) { g->mod->info("multiplayer: " + line); });
+@@ -623,6 +623,8 @@ void load(openrac::Mod& mod) {
      // The verbose log (trace.hpp): the `verbose_log` setting, or OPENRAC_MP_TRACE=1. Its lines go
--    // to mp-trace.log in the mod's data folder (on Android the Files app's OpenRAC > Mod files), in
--    // the game's working directory with an OpenRAC older than data_dir, else to the game's log.
-+    // to mp-trace.log in the game's working directory (beside run.log), else to the game's log.
+     // to mp-trace.log in the mod's data folder (on Android the Files app's OpenRAC > Mod files), in
+     // the game's working directory with an OpenRAC older than data_dir, else to the game's log.
++    // (Ratchet Quest VR: 0.12.3's place kept under 0.12.2's version: on a Quest the working
++    // directory is "/", where the file did not open and every line went to the game's log.)
      const char* trace_env = std::getenv("OPENRAC_MP_TRACE");
  
      g->revive = mod.setting<bool>("revive");
-@@ -631,9 +630,7 @@ void load(openrac::Mod& mod) {
- 
-     if (mod.setting<bool>("verbose_log") || (trace_env != nullptr && std::string(trace_env) == "1")) {
-         std::error_code error;
--        const std::string data = mod.data_dir();
--        std::filesystem::path path =
--            (data.empty() ? std::filesystem::current_path(error) : std::filesystem::u8path(data)) / "mp-trace.log";
-+        std::filesystem::path path = std::filesystem::current_path(error) / "mp-trace.log";
-         path = std::filesystem::absolute(path, error);
-         g->trace_file.open(path, std::ios::out | std::ios::app);
- 
-@@ -1018,7 +1015,7 @@ void load(openrac::Mod& mod) {
+@@ -1018,7 +1020,7 @@ void load(openrac::Mod& mod) {
  }  // namespace
  
  /* The id and version are the manifest's: the port checks they agree. */

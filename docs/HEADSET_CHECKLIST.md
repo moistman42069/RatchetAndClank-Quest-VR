@@ -193,6 +193,25 @@ it worked (the log is in Download/RatchetQuestVR). PC-proven features are in STA
     `[vr-perf]` lines, and no drop to 72 unless 90 is not held either (`[openxr] 90 Hz not held: down to 72 Hz`). Say
     how smooth 90 is next to 120. **On** (the start): no such line, the rate stays.
   - **The PDA's vendor** opened from the hand three times in a row (more reports of 0.1.19's crash): no crash.
+- **The owner's party notes on 0.1.22 (0.1.23).** One game at a time on PC with a simulated headset; nothing between
+  two games has run anywhere but a real party.
+  - **The wrench throw (Moves: Wrench throw aim on Where you throw, aim help):** throw it at an enemy or a crate ahead,
+    overhand and sidearm: it goes the way your hand went, not up or off to the side (`[vr-wrench] thrown at X m/s where
+    the hand threw`, with `, aim help to class N` when it was eased onto something). Throw a little wide of a crate: it
+    should still hit it. Throw at nothing: it goes where you threw. Try **Where you throw** (no help) and say which feels
+    right, and whether a hard throw flies farther and faster than a soft one.
+  - **Two players on 0.1.23, one hosting:** each looks at the other's hands while making a point, a thumbs-up and a
+    fist: the other's fingers do the same (`[vr-party] ... fingers as their game draws them` once). One player crouches
+    and stands, then turns on Feet on the floor or a World scale of 135%: the other sees their body go down and up with
+    them, not stuck at one height.
+  - **A bolt turned by the player who joined:** on Novalis or any planet with a bolt that opens a door or moves a
+    platform, the member turns it to the end: it opens in both games (`[vr-crank] a member's bolt done here` in the host's
+    log). The host should see no jump or camera move of their own. With a 0.1.19 to 0.1.22 host, only the member's bolt
+    turns (the member's log says so).
+  - **RAC-Board with Multiplayer on,** both players with RAC-Board on: it loads (no `mod rac-board not loaded` in the
+    log), each rides, and the party plays on.
+  - **A flat player** (OpenRAC on a PC) hosting and joining: the party plays; the VR player's log says `a member of a
+    flat host's` when joining, and nothing VR-only is attempted.
 - **Testers' reports on 0.1.20 (0.1.21).** PC-run with a simulated headset only, on the PAL disc.
   - **Third person buttons (the VR tab, under D-pad):** start in third person with them as they come (Xbox controller):
     the log's `[vr-pad] third person buttons (` line names each action's button, and play is as 0.1.20's. In the

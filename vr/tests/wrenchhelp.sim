@@ -1,0 +1,26 @@
+# 0.1.23: Wrench throw aim help. Ratchet put 6 units from Novalis's nearest crate, his approach turned 60 degrees, half a
+# unit up, facing it (QUEST_SIM_NEAR=500 QUEST_SIM_NEAR_AT=6,0.5,60 QUEST_WRENCH_TRACE=1, --level 1); a level stroke forward
+# 8 degrees right (35 cm in about 70 ms, 5 cm aside), the grip let go at the end: the throw passes 0.24 rad wide of the
+# class 501 crate 5.5 units off, the class 500 ones further. With the help (the start): "[vr-wrench] thrown at N m/s where
+# the hand threw, 0 degrees up, aim help to class 501" (the trace: "its own side", the line to its middle stopped by the
+# crate itself) and that crate "broken", the other three "whole" ("[vr-wrench] after the throw"). Without (wrench_help 0):
+# no help, all four "whole". (Nearer, at 4 units, the crates are too big to miss: with or without, most of them break.)
+600 y 1
+606 y 0
+3250 right_grip 1
+3360 rh_z -0.07
+3360 rh_x 0.01
+3361 rh_z -0.14
+3361 rh_x 0.02
+3362 rh_z -0.21
+3362 rh_x 0.03
+3363 rh_z -0.28
+3363 rh_x 0.04
+3364 rh_z -0.35
+3364 rh_x 0.05
+3364 right_grip 0
+3420 rh_z 0
+3420 rh_x 0
+3700 right_grip 1
+3800 right_grip 0
+3900 quit 0

@@ -1,0 +1,24 @@
+# 0.1.23: the owner's veering throw ("it doesnt really go in the direction the hand is facing, and seems to veer up"): a
+# stroke forward, 39 cm in about 70 ms, whose wrist cocks up 40 degrees and whose hand starts to rise as the grip opens,
+# as a real throw's follow-through does. Where you throw (the start) goes along the stroke, close to level; Where you
+# point (wrench_aim 2, 0.1.18 to 0.1.22's start) goes up with the wrist; Along your swing (1) along the hand as it opened.
+600 y 1
+606 y 0
+3250 right_grip 1
+3360 rh_z -0.07
+3361 rh_z -0.14
+3362 rh_z -0.21
+3363 rh_z -0.28
+3364 rh_z -0.34
+3364 rh_y 0.02
+3364 hand_pitch 20
+3365 rh_z -0.39
+3365 rh_y 0.05
+3365 hand_pitch 40
+3365 right_grip 0
+3420 rh_z 0
+3420 rh_y 0
+3420 hand_pitch 0
+3550 right_grip 1
+3650 right_grip 0
+3800 quit 0
