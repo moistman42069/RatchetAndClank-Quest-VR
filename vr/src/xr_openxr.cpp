@@ -5,7 +5,7 @@
 // Quest 3 by the Halo CE Quest VR port's host_xr.c: the loader through the Java VM and activity,
 // the session on the game's EGL context, sustained-high performance levels at session begin, an
 // sRGB swapchain written without encoding (the game's picture is gamma-encoded already), and a
-// refresh rate above 72 given up when it is not held (only with Keep the refresh rate off, from 0.1.14).
+// refresh rate above 72 stepped down when it is not held (only with Keep the refresh rate off, from 0.1.14).
 //
 // And on a Windows PC (0.1.14, the PC release): the same, on the game's desktop OpenGL context through
 // XR_KHR_opengl_enable, with the Khronos loader (openxr_loader.dll beside this library, as Rerac-vr's PC
@@ -2125,8 +2125,8 @@ private:
         }
     }
 
-    // Each ten seconds a line for the log, and a rate above 72 that is not held given up: after
-    // two windows short of 90% of it, back to 72 (Halo's rule).
+    // Each ten seconds a line for the log, and a rate above 72 that is not held stepped down: after
+    // two windows short of 90% of it, to 90 from above 90, else to 72 (Halo's rule went straight to 72).
     void statistics(const FrameInfo& out) {
         const double now = now_seconds();
         if (m_stats_start == 0.0) {
@@ -2163,7 +2163,9 @@ private:
         m_displays_missed = 0;
         register_threads();
         // Keep the refresh rate (on by default from 0.1.14, the owner's wish: smooth wherever the game keeps up) leaves
-        // the chosen rate alone; off, a rate above 72 not held for two spells in a row goes back to 72. With smoother
+        // the chosen rate alone; off, a rate above 72 not held for two spells in a row steps down: from above 90 to 90,
+        // then, not held there either, to 72 (until 0.1.21 straight to 72, where smoother frames draw only 36 pictures a
+        // second for the game's 60 steps; at 90 they draw 45). With smoother
         // frames the game is meant to draw half the rate. Judged by the display's own rate where the runtime gives it
         // (0.1.20); and with smoother frames, only over spells mostly drawn with them (in play): the menus, loads and
         // movies have none, so the game would have to draw every display there, and a tester's 0.1.19 went back to 72
@@ -2183,10 +2185,10 @@ private:
             } else if (m_refresh_misses >= 2) {
                 const float held_not = running;
                 m_refresh_misses = 0;
-                set_refresh(72.0f);
+                set_refresh(held_not > 90.5f ? 90.0f : 72.0f);
                 if (m_refresh_rate < held_not) {
-                    warn("[openxr] " + std::to_string(static_cast<int>(held_not)) + " Hz not held: back to "
-                         + std::to_string(static_cast<int>(m_refresh_rate)) + " Hz");
+                    warn("[openxr] " + std::to_string(static_cast<int>(held_not + 0.5f)) + " Hz not held: down to "
+                         + std::to_string(static_cast<int>(m_refresh_rate + 0.5f)) + " Hz");
                 } else {
                     // A headset with nothing lower: asked once, and left at it.
                     warn("[openxr] " + std::to_string(static_cast<int>(held_not))

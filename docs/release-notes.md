@@ -2,6 +2,19 @@
 
 > **This is a test build, and we need your logs.** **Expect bugs.** Every log helps, including from runs that worked: **Send your log** below says how.
 
+## New in 0.1.22
+
+A quick patch on 0.1.21, which came out just before: its notes follow.
+
+- **The refresh rate steps down, not straight to 72.** With **Keep the refresh rate** off (Graphics), a rate the game could not hold for twenty seconds sent the headset straight back to 72 Hz. With **Smoother frames** on that meant 36 pictures a second for the game's 60 steps, the stutter that running Smoother frames at 120 Hz (0.1.20) was made to end. Now it steps down one rate at a time: to 90 Hz first (45 pictures a second with Smoother frames), and only if 90 is not held either, to 72. The log says `[openxr] 120 Hz not held: down to 90 Hz`. **Keep the refresh rate** on, as it starts, is unchanged: the headset stays where you put it.
+- **The PDA, once more.** More reports of the PDA crashing the game came in, all on 0.1.19: the crash 0.1.21 fixed. If you are still on 0.1.19, update.
+- **Multiplayer:** 0.1.19 to 0.1.22 play together (the same Multiplayer and party rules); 0.1.18 still cannot join any of them.
+
+**What we tested** (on this PC, with the simulated headset, PAL disc; nothing on a Quest or a real PC headset):
+
+- **The PDA's vendor,** in a new test: opened from the hand three times in a row, with a walk between. Each time the vendor opened, the game's second opening was refused, it closed, and the game kept going.
+- **The step-down** is built but not tried: neither the PC's VR software nor the simulated headset can change the refresh rate, so it needs a Quest. Nothing else changed from 0.1.21, so nothing else was run again.
+
 ## New in 0.1.21
 
 From testers' reports and logs on 0.1.19 and 0.1.20, and the owner's asks.
@@ -341,7 +354,7 @@ Everything from 0.1.15 and 0.1.14, which came out just before this, is below, so
 
 ## Also new: all of 0.1.14, which came out just before 0.1.15, in case you missed it
 
-**Now on PC VR too.** Beside the APK, this release has `RatchetQuestVR-0.1.21-windows.zip`: the Quest version on a Windows PC, with the same launcher (`RatchetClankVR.exe`: Play, Graphics, VR, Game, Controls, Logs and Credits, the disc check and set-up, the mods, the updates), the same options and the same game. **Install on PC** below says how. Rerac-vr is the original PC VR mod, and the one this port follows; this is for players who want the Quest version's launcher, options and mods on a PC.
+**Now on PC VR too.** Beside the APK, this release has `RatchetQuestVR-0.1.22-windows.zip`: the Quest version on a Windows PC, with the same launcher (`RatchetClankVR.exe`: Play, Graphics, VR, Game, Controls, Logs and Credits, the disc check and set-up, the mods, the updates), the same options and the same game. **Install on PC** below says how. Rerac-vr is the original PC VR mod, and the one this port follows; this is for players who want the Quest version's launcher, options and mods on a PC.
 
 - **Any OpenXR PC VR software:** SteamVR, Meta Horizon Link (Link and Air Link), Virtual Desktop, Pico Connect, Windows Mixed Reality and others. If the one set as your PC's OpenXR runtime cannot draw this game (it needs OpenGL, which Windows Mixed Reality's lacks), the game uses SteamVR's instead, by itself, when SteamVR is installed; Windows' setting is not changed.
 - **Your controllers, by themselves:** the game gives its bindings for Touch (Quest, Rift S, Quest Pro, Touch Plus), Index, Vive and Vive Cosmos, Vive Focus 3, Pico 4 and Neo 3, HP Reverb G2 and Windows Mixed Reality, so each runtime puts them on your controllers. Others, such as **PlayStation VR2**, the **Steam Frame** and **DPVR** headsets, come through SteamVR, which maps them to one of those (change it in SteamVR's **Manage controller bindings** if you like). The launcher's **Controls** tab says what each button is on each, and your log names the controllers it got (`[openxr] left hand:`).
@@ -442,7 +455,7 @@ The owner's list after playing 0.1.12 on a Quest 3, a tester's notes and logs on
 
 ## 0.1.3 to 0.1.12
 
-Their notes, as each release gave them, are in [docs/release-history.md](https://github.com/moistman42069/RatchetAndClank-Quest-VR/blob/v0.1.21/docs/release-history.md) and on each release's page (GitHub limits how long a release's notes can be).
+Their notes, as each release gave them, are in [docs/release-history.md](https://github.com/moistman42069/RatchetAndClank-Quest-VR/blob/v0.1.22/docs/release-history.md) and on each release's page (GitHub limits how long a release's notes can be).
 
 ## What you need
 
@@ -460,9 +473,9 @@ Their notes, as each release gave them, are in [docs/release-history.md](https:/
 ## Install
 
 1. Put your Quest in **Developer Mode** (in the Meta Horizon app on your phone).
-2. Get `RatchetQuestVR-0.1.21.apk` onto the headset and install it. Either:
+2. Get `RatchetQuestVR-0.1.22.apk` onto the headset and install it. Either:
    - download it in the Quest's browser (or email it to yourself and download it there) and open it from the **Files** app, or
-   - sideload it with SideQuest or `adb install -r RatchetQuestVR-0.1.21.apk`.
+   - sideload it with SideQuest or `adb install -r RatchetQuestVR-0.1.22.apk`.
 3. Open **Ratchet & Clank Quest VR** from your Library's **Unknown Sources**.
 4. Copy your `.iso` to the headset's **Download** folder and choose it in the launcher. The first set-up copies the disc and prepares the levels: **up to half an hour, once. Keep the headset on charge.**
 5. Press **PLAY IN VR**. **Play in 2D** puts the game on a big flat screen, played with the Touch controllers as a PlayStation pad: if VR fails, try it and tell us, as it separates a game problem from a VR problem.
@@ -471,7 +484,7 @@ Their notes, as each release gave them, are in [docs/release-history.md](https:/
 
 ## Install on PC
 
-1. Download `RatchetQuestVR-0.1.21-windows.zip` and unzip it anywhere you can write: your Desktop, Documents or a games drive. Keep the `RatchetClankVR` folder together. Nothing is installed into Windows.
+1. Download `RatchetQuestVR-0.1.22-windows.zip` and unzip it anywhere you can write: your Desktop, Documents or a games drive. Keep the `RatchetClankVR` folder together. Nothing is installed into Windows.
 2. Start your headset's PC VR software (SteamVR, Meta Horizon Link, Virtual Desktop, Pico Connect, ...).
 3. Open `RatchetClankVR.exe`. Windows may warn about an app from the internet it does not know: **More info**, then **Run anyway**.
 4. **Choose your .iso file** and wait for the set-up, once: it checks the disc, then prepares the levels.
@@ -489,6 +502,7 @@ The log holds your headset's model and Android version, the game's own log, why 
 
 **Most useful right now:**
 
+- **0.1.22's change:** on Quest with **Keep the refresh rate** off, whether the headset steps to 90 Hz where it cannot hold 120 (the log's `[openxr] 120 Hz not held: down to 90 Hz`), and how smooth 90 is.
 - **0.1.21's changes:** **Third person buttons** (VR tab): whether every action is where you put it, and whether **Like first person** feels right in third person and in **Play in 2D**; the Trespasser's rings with the sticks, A, B and X, and turned by hand with **Grab the Trespasser's rings**; the PDA's vendor opened from your hand, with and without a gun in the left hand.
 - **0.1.20's changes:** the game starting in the launcher's **View**, the notices ahead of you fading after a couple of seconds, your view on the Magneboots' walls and ceilings in first person, on Quest **Smoother frames** at 120 Hz (whether the micro stutters are gone, and the `[vr-perf]` lines in play), a death with something in the left hand (Akimbo), and the glows in a take-off and the flight. If you see the cockpit window racing the ship between planets, or Blarg station's far windows acting strangely, a short clip or where you stood helps most.
 - **0.1.19's changes:** third person with **Gamepad** and the **D-pad** (by your head, or your left thumb on its rest: say whether your controllers sense the thumb rest); the Xbox-style buttons in the hints, and on the US disc which icons you see; Aridia's sand sea and the other seas with your head turned; the city and the plants; RAC-Board steered by your gaze, and with your weapons, the wrench and the Swingshot while you ride (swinging and pulled, and grabbing enemies, without leaving the board); getting out of the ship; **Stay on magnet paths** round the strips' bends; the **Weapon wheel** page, and letting go in its middle for an empty hand; the grab's chain and throw rows; a jab with the Swingshot in hand (Punch on); playing with PC players (Multiplayer 0.12.2) and the **Update** buttons; on Quest, **Foveated rendering** at each level and a log of the frame rate (`[vr-perf]` lines).
@@ -510,7 +524,7 @@ The log holds your headset's model and Android version, the game's own log, why 
 - If a bar in the headset says a controller is missing, tell us.
 - Anything that crashes, freezes or leaves you stuck: the log says why far more often than not.
 
-The full list of what to try is in [docs/HEADSET_CHECKLIST.md](https://github.com/moistman42069/RatchetAndClank-Quest-VR/blob/v0.1.21/docs/HEADSET_CHECKLIST.md).
+The full list of what to try is in [docs/HEADSET_CHECKLIST.md](https://github.com/moistman42069/RatchetAndClank-Quest-VR/blob/v0.1.22/docs/HEADSET_CHECKLIST.md).
 
 ## What is in it
 
@@ -582,7 +596,7 @@ In the game: pause, **Options**, **VR Options** (or **VR Options** on the title'
 
 ## Credits and licence
 
-Built on **[Rerac-vr](https://github.com/npiriou/Rerac-vr)** by npiriou, the main base of this project and its VR design (ISC), and on **[OpenRAC](https://github.com/OpenRAC/OpenRAC)** and [rac1-mods](https://github.com/OpenRAC/rac1-mods) (GPL-3.0-or-later), and [RAC-Board](https://github.com/mateuszklysz/RAC-Board) by Mateusz Kłysz (MIT). Thanks also to the [ReRAC](https://github.com/re-rac/rerac) team. Full [credits](https://github.com/moistman42069/RatchetAndClank-Quest-VR/blob/v0.1.21/CREDITS.md) and [third-party notices](https://github.com/moistman42069/RatchetAndClank-Quest-VR/blob/v0.1.21/THIRD_PARTY_NOTICES.txt).
+Built on **[Rerac-vr](https://github.com/npiriou/Rerac-vr)** by npiriou, the main base of this project and its VR design (ISC), and on **[OpenRAC](https://github.com/OpenRAC/OpenRAC)** and [rac1-mods](https://github.com/OpenRAC/rac1-mods) (GPL-3.0-or-later), and [RAC-Board](https://github.com/mateuszklysz/RAC-Board) by Mateusz Kłysz (MIT). Thanks also to the [ReRAC](https://github.com/re-rac/rerac) team. Full [credits](https://github.com/moistman42069/RatchetAndClank-Quest-VR/blob/v0.1.22/CREDITS.md) and [third-party notices](https://github.com/moistman42069/RatchetAndClank-Quest-VR/blob/v0.1.22/THIRD_PARTY_NOTICES.txt).
 
 Please **report bugs in this port here**, not to Rerac-vr, ReRAC or OpenRAC.
 
@@ -592,5 +606,5 @@ This is free software under GPL-3.0-or-later, without any warranty. The source o
 
 | File | SHA-256 |
 | --- | --- |
-| `RatchetQuestVR-0.1.21.apk` (version code 22, 58 MB) | `a73319bc8e9dac286aedf275470d17f91b914c6d1ded528ae0273e6b8a3e5fb8` |
-| `RatchetQuestVR-0.1.21-windows.zip` (71 MB) | `877ad6f557639128e30ed40170d10c180a6cba922520a48d09376442613ccb2d` |
+| `RatchetQuestVR-0.1.22.apk` (version code 23, 58 MB) | `71593207dc64e7946c2a11714ea0715eb8e0536e2a311f859922a19b5c889c4e` |
+| `RatchetQuestVR-0.1.22-windows.zip` (71 MB) | `c5882a9c2c27ae5b6e32e14dbe754297c17a5e1dfe483284fd7748169df5fc82` |

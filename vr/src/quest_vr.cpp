@@ -20199,4 +20199,4 @@ void load(openrac::Mod& mod) {
 
 }  // namespace
 
-OPENRAC_MOD_CPP("quest-vr", "0.1.21", load)
+OPENRAC_MOD_CPP("quest-vr", "0.1.22", load)

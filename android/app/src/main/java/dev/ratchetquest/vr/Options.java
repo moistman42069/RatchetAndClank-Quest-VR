@@ -43,7 +43,8 @@ abstract class Options {
         new String[] {"72 Hz", "80 Hz", "90 Hz", "120 Hz"}, new String[] {"72", "80", "90", "120"}, "72");
     static final Choice KEEP_REFRESH = new Choice("keep_refresh", "Keep the refresh rate",
         "On: the headset stays at the rate you chose, so anywhere the game can keep up it is that smooth. Off: where "
-            + "the game cannot hold a rate above 72 for twenty seconds, the headset drops back to 72 Hz by itself.",
+            + "the game cannot hold a rate above 72 for twenty seconds, the headset steps down by itself: to 90 Hz, then, "
+            + "if that is not held either, to 72 Hz.",
         ON_OFF, TRUE_FALSE, "true");
     static final Choice SPACE_WARP = new Choice("space_warp", "Smoother frames (AppSW)",
         "On: the headset runs at 120 Hz and the game draws every other frame, 60 a second, one for each of the game's own "

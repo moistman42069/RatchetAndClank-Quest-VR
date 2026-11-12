@@ -149,7 +149,7 @@ it worked (the log is in Download/RatchetQuestVR). PC-proven features are in STA
   - **Keep the refresh rate (Graphics, On):** set 120 Hz and play somewhere heavy (Kerwan's city, Rilgar): the
     headset stays at 120 (`[openxr] 120 Hz not held here: kept, as Keep the refresh rate asks` once, where 0.1.13 said
     it went back to 72). Say how smooth it is where the game keeps up and where it does not. Then **Off**: after twenty
-    seconds below the rate it goes to 72 as before. The `[vr-perf] ... frames/s` lines each ten seconds say how
+    seconds below the rate it steps down to 90 Hz (`[openxr] 120 Hz not held: down to 90 Hz`), and twenty more below 90 to 72. The `[vr-perf] ... frames/s` lines each ten seconds say how
     many the game drew.
   - **The left grip with Physical crouch off:** on foot in first person, squeeze it standing, walking and in the air:
     no crouch, no packs, the hand closes. The left trigger crouches, long-jumps and works the packs. With Akimbo's gun
@@ -187,6 +187,12 @@ it worked (the log is in Download/RatchetQuestVR). PC-proven features are in STA
   - **The start of the game:** after the intro movie the copyright lines show on the title's panel, steady as you move
     your head, with no warp. Load a save into a level that starts with a scene: no flash of the save select as it
     begins (`[vr-view] the eyes' last picture is of another place` at most once there).
+- **The refresh rate's step-down (0.1.22).** Not run anywhere: the PC has no refresh-rate extension.
+  - **Keep the refresh rate Off, Smoother frames on:** play somewhere heavy (Kerwan's city, Rilgar). Where 120 is not
+    held for twenty seconds: `[openxr] 120 Hz not held: down to 90 Hz` once, then `the display at 90` in the
+    `[vr-perf]` lines, and no drop to 72 unless 90 is not held either (`[openxr] 90 Hz not held: down to 72 Hz`). Say
+    how smooth 90 is next to 120. **On** (the start): no such line, the rate stays.
+  - **The PDA's vendor** opened from the hand three times in a row (more reports of 0.1.19's crash): no crash.
 - **Testers' reports on 0.1.20 (0.1.21).** PC-run with a simulated headset only, on the PAL disc.
   - **Third person buttons (the VR tab, under D-pad):** start in third person with them as they come (Xbox controller):
     the log's `[vr-pad] third person buttons (` line names each action's button, and play is as 0.1.20's. In the

@@ -1,4 +1,19 @@
-NEW IN 0.1.21
+NEW IN 0.1.22
+
+THE REFRESH RATE STEPS DOWN, NOT STRAIGHT TO 72
+
+    With Keep the refresh rate off (Graphics), a rate the game could not hold for twenty seconds sent the headset
+    straight back to 72 Hz. With Smoother frames on that meant 36 pictures a second for the game's 60 steps, the
+    stutter that running Smoother frames at 120 Hz was made to end. Now it steps down one rate at a time: to 90 Hz
+    (45 pictures a second with Smoother frames), and only if 90 is not held either, to 72. Keep the refresh rate on
+    (the start) is unchanged: the headset stays where you put it.
+
+THE PDA, ONCE MORE
+
+    More reports of the PDA crashing the game came in, all on 0.1.19: the same crash 0.1.21 fixed. We opened the
+    PDA's vendor from the hand three times in a row, with a walk between, and the game kept going each time.
+
+ALSO NEW: ALL OF 0.1.21, WHICH CAME OUT JUST BEFORE, IN CASE YOU MISSED IT
 
 THIRD PERSON BUTTONS: EACH ACTION WHERE YOU WANT IT
 
@@ -38,7 +53,7 @@ SCENES: CHECKED
     disc with no 3D scene behind them, so they can't be shown around you. The ending's slideshow is still pictures,
     shown flat too.
 
-ALSO NEW: ALL OF 0.1.20, WHICH CAME OUT JUST BEFORE, IN CASE YOU MISSED IT
+AND ALL OF 0.1.20, THE RELEASE BEFORE THAT
 
 THE GAME STARTS IN THE VIEW THE LAUNCHER SAYS
 

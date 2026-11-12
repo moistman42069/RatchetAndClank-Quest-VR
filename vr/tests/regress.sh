@@ -426,6 +426,8 @@ run shoppda-eudora shoppda 4 $G=16,17,18,19 QUEST_SIM_PDA=1 QUEST_SIM_BOLTS=9000
 # shop's pass, refused ("[vr-shop] the game asked the vendor open again"), no crash; with Akimbo's left gun and without.
 run pda-held pdaakimbo 1 $G=32 $H=32 QUEST_SIM_BOLTS=9000
 run pda-akimbo pdaakimbo 1 $G=15,32 $H=32 $L=15 QUEST_SIM_BOLTS=9000
+# After 0.1.21 (more PDA reports on 0.1.19): opened three times, closed each, a walk between; three refusals, no crash.
+run pdaagain pdaagain 1 $G=32 $H=32 QUEST_SIM_BOLTS=9000
 run worldmenu worldmenu 1 QUEST_POINTER_TRACE=1
 run worldmenuwall worldmenuwall 1 QUEST_PANEL_FAR=0
 run giant giant 15 QUEST_SIM_NEAR=1451 QUEST_SIM_NEAR_AT=0,0 QUEST_STATE_TRACE=1 KEEP=1
