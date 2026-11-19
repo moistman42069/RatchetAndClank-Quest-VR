@@ -71,6 +71,24 @@ void test_yaw() {
     near_(world_yaw(0.3f, yaw_quat(0.2f)), kPi / 2 + 0.5f, "rig and head add");
 }
 
+// 0.1.26: the gaze's heading held as the head looks down (rig.h's steady_tracking_yaw).
+void test_steady_yaw() {
+    const auto pitch = [](float a) { return Quat{std::sin(a * 0.5f), 0, 0, std::cos(a * 0.5f)}; };  // up positive
+    const auto tip = [](float r) { return Quat{0, 0, std::sin(r * 0.5f), std::cos(r * 0.5f)}; };    // about the forward
+    // Upright, any pitch: the face's own yaw, straight down and up too.
+    for (float yaw : {0.0f, 0.7f, -2.0f, 3.0f}) {
+        for (float a : {0.0f, -0.6f, -1.2f, -1.5f, 0.9f, -kPi / 2, kPi / 2}) {
+            angle_near(steady_tracking_yaw(yaw_quat(yaw) * pitch(a)), yaw, "upright: the face's yaw");
+        }
+        angle_near(steady_world_yaw(0.3f, yaw_quat(yaw)), world_yaw(0.3f, yaw_quat(yaw)), "level: as world_yaw");
+    }
+    // Looking down at the board and tipping the head a little to the side: the face's flat way swings past half a
+    // radian; this one stays near the tip.
+    const Quat down_tipped = tip(0.2f) * pitch(-1.45f);
+    check(std::fabs(tracking_yaw(down_tipped)) > 0.8f, "the face's yaw swings when looking down");
+    check(std::fabs(steady_tracking_yaw(down_tipped)) < 0.25f, "the steady yaw holds when looking down");
+}
+
 void test_recentre() {
     for (float facing : {0.0f, 1.0f, -2.5f, 3.0f}) {
         for (float head : {0.0f, 0.7f, -1.9f}) {
@@ -157,6 +175,46 @@ void test_report() {
     check(report[5] < 0x80, "up on the stick is a low byte");
     check(report[4] == 0x80, "x stays at rest");
     check(report[6 + 6] == 0xFF, "cross's pressure");
+}
+
+// 0.1.26: riding RAC-Board, the left stick's bytes are its own reading (x (b - 128) / 128, y (127 - b) / 128), with no
+// stretch past the game's dead zone: a hair to the side stays a hair, not 0.37 rad of turn.
+void test_board_report() {
+    std::uint8_t report[18];
+    const auto reset = [&report] {
+        for (auto& b : report) {
+            b = 0xFF;
+        }
+        report[2] = report[3] = report[4] = report[5] = 0x80;
+    };
+    VirtualPad pad;
+    pad.left_x = 0.002f;
+    pad.left_y = 1.0f;
+    reset();
+    merge_report(pad, report, 18);
+    check(report[4] >= 0x7F + 49, "on foot: a hair to the side is past the game's dead zone (stick_byte)");
+    reset();
+    merge_report(pad, report, 18, true);
+    check(report[4] == 128, "riding: a hair to the side reads as none (x 128)");
+    check(report[5] == 0, "riding: forward reads as forward ((127 - 0) / 128)");
+    pad.left_x = -0.5f;
+    pad.left_y = 0.0f;
+    reset();
+    merge_report(pad, report, 18, true);
+    near_((report[4] - 128) / 128.0f, -0.5f, "riding: half left reads as half left", 0.01f);
+    check(report[5] == 127, "riding: no forward reads as none (y 127)");
+    const float turn = 0.05f;  // the stick turned 3 degrees right of forward
+    pad.left_x = std::sin(turn);
+    pad.left_y = std::cos(turn);
+    reset();
+    merge_report(pad, report, 18, true);
+    const float x = (report[4] - 128) / 128.0f, y = (127 - report[5]) / 128.0f;
+    near_(std::atan2(x, y), turn, "riding: the stick's angle as turned, to a byte", 0.01f);
+    pad.left_x = 0.0f;
+    pad.left_y = 0.0f;
+    reset();
+    merge_report(pad, report, 18, true);
+    check(report[4] == 0x80 && report[5] == 0x80, "riding, the stick let go: a real pad's bytes are left as they are");
 }
 
 void test_short_report() {
@@ -1056,7 +1114,14 @@ void test_jet_board() {
     context.jet_grind = kPadR2;
     context.jet_grab = kPadL1;
     context.jet_yaw = kPi / 2;  // the board heads 90 degrees left of the game's camera
-    context.head_yaw = -1.0f;   // and the head looks elsewhere
+    context.jet_frame_yaw = kPi / 2;  // and the game's camera is right behind him (RAC-Board's frame along the board)
+    // The turn the steer gives (pad.h board_steer_turn, as jet_board_pad sets it), from the head's angle to his path (the
+    // camera's way to him).
+    const auto aim = [&context](float head) {
+        context.head_yaw = head;
+        context.jet_turn = board_steer_turn(head, context.jet_yaw, context.jet_frame_yaw);
+    };
+    aim(-1.0f);   // and the head looks elsewhere
     c.right_trigger = 1.0f;
     c.a = true;
     c.left_y = 1.0f;
@@ -1068,36 +1133,106 @@ void test_jet_board() {
     // at most kBoardSteerMost (0.1.19): here the head is 147 degrees right of the board, so a full carve right.
     near_(out.left_x, -std::sin(-kBoardSteerMost), "riding in first person, the head far right: forward a full carve that way (x)");
     near_(out.left_y, std::cos(-kBoardSteerMost), "riding in first person, the head far right: forward a full carve that way (y)");
-    context.head_yaw = kPi / 2 + 0.3f;  // 17 degrees left of the board: within the most, turned kBoardSteerGain times as far
+    aim(kPi / 2 + 0.3f);  // 17 degrees left of the board: within the most, part way up to kBoardSteerGain
+    check(board_steer_gain(0.3f) > 1.0f && board_steer_gain(0.3f) < kBoardSteerGain, "the board's steer gain: part way up at 17 degrees");
     PadMapper near_left;
     const VirtualPad left_of = near_left.map(c, context);
-    near_(left_of.left_x, -std::sin(kBoardSteerGain * 0.3f), "riding in first person, the head near: forward carves toward it (x)");
-    near_(left_of.left_y, std::cos(kBoardSteerGain * 0.3f), "riding in first person, the head near: forward carves toward it (y)");
-    context.head_yaw = kPi / 2 + 0.9f;  // 52 degrees left: twice that is past the most, a full carve left
+    near_(left_of.left_x, -std::sin(board_steer_gain(0.3f) * 0.3f), "riding in first person, the head near: forward carves toward it (x)");
+    near_(left_of.left_y, std::cos(board_steer_gain(0.3f) * 0.3f), "riding in first person, the head near: forward carves toward it (y)");
+    // 0.1.26: near the gaze the stick points at the gaze itself (a gain of 1), as a thumb held still in third person.
+    aim(kPi / 2 + 0.06f);
+    PadMapper nearer_left;
+    const VirtualPad nearer = nearer_left.map(c, context);
+    near_(nearer.left_x, -std::sin(0.06f), "riding, the head 3 degrees left: the stick at the gaze, no further (x)");
+    near_(nearer.left_y, std::cos(0.06f), "riding, the head 3 degrees left: the stick at the gaze, no further (y)");
+    near_(board_stick_turn(-0.08f, 0.0f), -0.08f, "the board's steer near the gaze: a gain of 1, either way");
+    near_(board_steer_gain(kBoardSteerNear), 1.0f, "the board's steer gain: 1 up to kBoardSteerNear");
+    near_(board_steer_gain(-kBoardSteerFull), kBoardSteerGain, "the board's steer gain: kBoardSteerGain from kBoardSteerFull");
+    near_(board_steer_gain(2.0f), kBoardSteerGain, "the board's steer gain: no more past kBoardSteerFull");
+    {
+        bool rising = true;
+        float last = 0.0f;
+        for (int i = 1; i <= 160; ++i) {
+            const float turn = board_stick_turn(i * 0.01f, 0.0f);
+            rising = rising && turn >= last && std::abs(board_stick_turn(-i * 0.01f, 0.0f) + turn) < 1e-6f;
+            last = turn;
+        }
+        check(rising && std::abs(last - kBoardSteerMost) < 1e-4f, "the board's steer: grows with the gaze's angle, the same either way, to the most");
+    }
+    aim(kPi / 2 + 0.9f);  // 52 degrees left: twice that is past the most, a full carve left
     PadMapper far_left;
     const VirtualPad further = far_left.map(c, context);
     near_(further.left_x, -std::sin(kBoardSteerMost), "riding in first person, the head 52 degrees left: a full carve left (x)");
-    context.head_yaw = kPi / 2 - kPi + 0.1f;  // across the turn's wrap, 170 degrees right: the short way, right
+    aim(kPi / 2 - kPi + 0.1f);  // across the turn's wrap, 170 degrees right: the short way, right
     PadMapper wrapped;
     const VirtualPad round = wrapped.map(c, context);
     near_(round.left_x, -std::sin(-kBoardSteerMost), "riding, the head behind on the right: a full carve right (x)");
-    context.head_yaw = kPi / 2;
+    aim(kPi / 2);
     PadMapper along;
     const VirtualPad ahead = along.map(c, context);
     near_(ahead.left_x, 0.0f, "the head along the board: the stick as it is");
     near_(ahead.left_y, 1.0f, "the head along the board: forward keeps its way");
+    // 0.1.26: RAC-Board reads the stick about the flat way from the game's camera to him (pad.h's board_stick_angle), and
+    // that camera trails: here 0.35 to the board's right. A turn from the board's heading (here none) is turned into that
+    // frame: forward the board's own way in the world, the stick turned 0.35 left of the camera's frame.
+    context.jet_frame_yaw = kPi / 2 - 0.35f;
+    PadMapper trailing;
+    const VirtualPad trailed = trailing.map(c, context);
+    near_(trailed.left_x, -std::sin(0.35f), "the camera trailing to the right, no turn: forward the board's way (x)");
+    near_(trailed.left_y, std::cos(0.35f), "the camera trailing to the right, no turn: forward the board's way (y)");
+    // The steer points forward from the camera's way (his path) toward the gaze, whatever the board's heading: the head 0.3
+    // left of the board is 0.65 left of the path.
+    aim(kPi / 2 + 0.3f);
+    PadMapper trailing_left;
+    const VirtualPad trailed_left = trailing_left.map(c, context);
+    near_(trailed_left.left_x, -std::sin(board_stick_turn(0.65f, 0.0f)), "the camera trailing, the head left: forward from the path toward it (x)");
+    near_(trailed_left.left_y, std::cos(board_stick_turn(0.65f, 0.0f)), "the camera trailing, the head left: forward from the path toward it (y)");
+    aim(kPi / 2 - 0.35f);
+    PadMapper on_path;
+    const VirtualPad along_path = on_path.map(c, context);
+    near_(along_path.left_x, 0.0f, "the head along the path, the board's nose off it: forward straight on (x)");
+    near_(along_path.left_y, 1.0f, "the head along the path, the board's nose off it: forward straight on (y)");
+    // Across the turn's wrap: heading just short of half a turn, the camera's way just past it.
+    context.jet_yaw = kPi - 0.05f;
+    context.jet_frame_yaw = -kPi + 0.05f;
+    aim(kPi - 0.05f);
+    PadMapper across;
+    const VirtualPad across_wrap = across.map(c, context);
+    near_(across_wrap.left_x, -std::sin(-0.1f), "the camera's way across the wrap: turned the short way (x)");
+    near_(across_wrap.left_y, std::cos(0.1f), "the camera's way across the wrap: turned the short way (y)");
+    context.jet_yaw = kPi / 2;
+    context.jet_frame_yaw = kPi / 2;
+    aim(kPi / 2);
     context.first_person = false;
-    context.head_yaw = -1.0f;
+    aim(-1.0f);
     PadMapper third;
     const VirtualPad behind = third.map(c, context);
     near_(behind.left_y, 1.0f, "third person: the stick as it is, about the board");
     context.first_person = true;
 
+    // The steer (pad.h board_steer_turn, 0.1.26): the board's heading left out. Its nose carving either side of a still
+    // path and gaze (0.4 rad, Jak's board's own) leaves where the stick points in RAC-Board's frame as it is.
+    {
+        bool steady = true;
+        for (int i = -10; i <= 10; ++i) {
+            const float heading = 1.0f + i * 0.04f;
+            const float angle = board_stick_angle(board_steer_turn(1.3f, heading, 1.1f), heading, 1.1f);
+            steady = steady && std::abs(std::sin(angle) - std::sin(board_stick_turn(1.3f, 1.1f))) < 1e-4f &&
+                     std::abs(std::cos(angle) - std::cos(board_stick_turn(1.3f, 1.1f))) < 1e-4f;
+        }
+        check(steady, "the steer: the board's nose turning under a still gaze leaves the stick where it is");
+        near_(board_stick_turn(1.15f, 1.1f), 0.05f, "the steer: the gaze near the path, the stick at the gaze", 1e-5f);
+        near_(board_stick_turn(-kPi + 0.05f, kPi - 0.05f), 0.1f, "the steer: across the turn's wrap, the short way", 1e-4f);
+        near_(board_stick_turn(1.1f + 2.5f, 1.1f), kBoardSteerMost, "the steer: the gaze behind, a full carve the short way");
+        near_(board_stick_turn(0.0f, 0.0f, 0.15f, 0.6f, 1.0f) + board_stick_turn(0.5f, 0.0f, 0.15f, 0.6f, 1.0f), 0.5f,
+              "the steer at a gain of 1: the stick at the gaze", 1e-5f);
+    }
+
     // RAC-Board's Weapons on the board (0.1.19): the right trigger fires (Circle), B is its trick and grind, the grips
     // and the left trigger its grab; the left trigger fires a left-hand gun instead; a hand's swing in first person is
     // no Square (the mod's hit, not the board's), the grip is in third person.
     context.jet_weapons = true;
-    context.head_yaw = kPi / 2;
+    aim(kPi / 2);
     PadMapper armed;
     Controls fire_c;
     fire_c.right_trigger = 1.0f;
@@ -1121,6 +1256,10 @@ void test_jet_board() {
     context.swing = true;
     check((PadMapper().map(swing_c, context).held & kPadSquare) == 0, "weapons on the board, first person: a swing is no Square");
     context.swing = false;
+    // The stick with Weapons on, the camera trailing 0.35 to the right: forward still the board's way (0.1.26).
+    context.jet_frame_yaw = kPi / 2 - 0.35f;
+    near_(PadMapper().map(c, context).left_x, -std::sin(0.35f), "weapons on the board, the camera trailing: forward still the board's way");
+    context.jet_frame_yaw = kPi / 2;
     context.first_person = false;
     Controls grip_c;
     grip_c.right_grip = 1.0f;
@@ -2022,12 +2161,14 @@ int main() {
     test_menu_widgets();
     test_spaces();
     test_yaw();
+    test_steady_yaw();
     test_recentre();
     test_walking_scales();
     test_turn_about_head();
     test_camera_relative();
     test_stick_bytes();
     test_report();
+    test_board_report();
     test_short_report();
     test_stick_turn();
     test_mapper();

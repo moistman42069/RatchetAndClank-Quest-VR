@@ -206,6 +206,27 @@ it worked (the log is in Download/RatchetQuestVR). PC-proven features are in STA
   - **The settings:** with the release notes' settings (Eye resolution 90% or 80%, Foveated rendering High, CPU and
     GPU boost On), the `[vr-perf]` lines on Novalis, Aridia and Kerwan should read nearer 60 frames a second than
     0.1.24's 36 to 45 at 100% (OVR Metrics too). Send a log of each setting you try.
+- **Two crashes, RAC-Board's ride, Jak's graphics options (0.1.26).** PC with a simulated headset, on the PAL disc.
+  - **The vendor on foot:** on Aridia (Max draw distance on, as the tester had it) and on Gaspar, walk up to the
+    vendor and open it, buy something, walk off: no crash, the log says `[vr-shop] the vendor's block at ...` and no
+    `ran ... into the vendor's block`. The PDA's vendor there too. One other planet's vendor, to be sure.
+  - **The pause's Load:** in a level, pause, Options, Load, a save on another planet: the flight plays and the planet
+    loads, no crash.
+  - **RAC-Board in first person:** ride a long stretch with the stick held ahead, looking straight on: the board runs
+    straight, with no side to side, and its hum is steady, with no beat like it is hitting the floor. Look 60 degrees
+    to one side: it comes round in about half a second (0.1.25: nearly two) and runs straight there. Look down at the
+    board: where it goes does not change. In third person with VR controllers, hold the stick ahead with your thumb a
+    little off straight: the board goes straight, no slow carve.
+  - **Dynamic resolution (on to start):** play somewhere heavy (Kerwan's city, Novalis on the board) and watch for
+    `[vr-perf] dynamic resolution: the eyes at N%`: steps down where frames come late, back up where it keeps up. If
+    the next line is `smaller eyes did not help`, the game itself was behind there: say where. Say whether the
+    smaller picture shows.
+  - **Show performance:** turn it on (Graphics): a small grey line low in your view, made again twice a second (`60/60
+    FPS` is the game keeping up with Smoother frames). Off again: it goes.
+  - **Sharpening:** Off, Normal and Strong (the log says `[openxr] sharpening: normal` or `strong`): edges crisper,
+    fine lines shimmering a little at Strong. **Foveated rendering Highest:** softer edges, more frame rate.
+  - **120 Hz to start:** a new install, or Graphics put back to Balanced: Refresh rate 120 Hz, Smoother frames on; a
+    rate you chose before is kept.
 - **Testers' notes on 0.1.23 and the owner's hook videos (0.1.24).** PC with a simulated headset, on the PAL disc.
   - **Wrench aim help (Moves, Wrench aim):** on **Strong** (the start), throw the wrench at an enemy or crate overhand,
     then from the side and across your body while looking at it: it goes to it and steers on to it as it flies

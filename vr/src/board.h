@@ -9,7 +9,8 @@
 //   weapon wheel. The mod's own button (its "Board on and off" setting) is pressed for it, a few frames.
 // - Riding: the right trigger the mod's spins and flips, the right grip its grind (A, the jump, with it onto a rail),
 //   the left trigger or grip its grab; A jumps. Each goes to the button the player chose in the mod's settings. In
-//   first person the stick is about the board's heading (pad.h's jet_yaw): forward keeps on its way, a side turns it.
+//   first person forward on the stick brings the board round to the gaze from its heading (pad.h's jet_yaw), turned
+//   from the frame RAC-Board reads the stick in (jet_frame_yaw, the flat way from the game's camera to him; 0.1.26).
 // - The view: it turns with the board's heading as he carves, and with his body through the spins and flips the mod
 //   poses him in (his pelvis's turn from how he stands on it), about his middle, back level as he lands.
 //

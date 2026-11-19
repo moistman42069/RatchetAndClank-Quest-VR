@@ -29,16 +29,27 @@ inline constexpr std::uint8_t kNoticeFont[26][5] = {
     {0x03, 0x04, 0x78, 0x04, 0x03}, {0x61, 0x59, 0x49, 0x4D, 0x43},
 };
 
-// `text` in white on a dark bar, centred; what the font lacks is a space.
-inline std::vector<std::uint8_t> render_notice(const char* text) {
+// 0.1.26 (Show performance, from Jak and Daxter Quest VR): the digits 0 to 9, then '.', '%', ':' and '/', as the
+// letters.
+inline constexpr std::uint8_t kNoticeMarks[14][5] = {
+    {0x3E, 0x51, 0x49, 0x45, 0x3E}, {0x00, 0x42, 0x7F, 0x40, 0x00}, {0x42, 0x61, 0x51, 0x49, 0x46},
+    {0x21, 0x41, 0x45, 0x4B, 0x31}, {0x18, 0x14, 0x12, 0x7F, 0x10}, {0x27, 0x45, 0x45, 0x45, 0x39},
+    {0x3C, 0x4A, 0x49, 0x49, 0x30}, {0x01, 0x71, 0x09, 0x05, 0x03}, {0x36, 0x49, 0x49, 0x49, 0x36},
+    {0x06, 0x49, 0x49, 0x29, 0x1E}, {0x00, 0x60, 0x60, 0x00, 0x00}, {0x23, 0x13, 0x08, 0x64, 0x62},
+    {0x00, 0x36, 0x36, 0x00, 0x00}, {0x20, 0x10, 0x08, 0x04, 0x02},
+};
+
+// `text` in white on a dark bar, centred; what the font lacks is a space. quiet: dark grey behind the words (the
+// performance line), not the warning's red.
+inline std::vector<std::uint8_t> render_notice(const char* text, bool quiet = false) {
     constexpr int kScale = 4;
     constexpr int kAdvance = 6 * kScale;
     std::vector<std::uint8_t> rgba(static_cast<std::size_t>(kNoticeWidth) * kNoticeHeight * 4);
     for (std::size_t i = 0; i < rgba.size(); i += 4) {
-        rgba[i] = 0x70;
-        rgba[i + 1] = 0x10;
-        rgba[i + 2] = 0x10;
-        rgba[i + 3] = 0xE0;
+        rgba[i] = quiet ? 0x18 : 0x70;
+        rgba[i + 1] = quiet ? 0x18 : 0x10;
+        rgba[i + 2] = quiet ? 0x18 : 0x10;
+        rgba[i + 3] = quiet ? 0xB0 : 0xE0;
     }
     int count = 0;
     while (text[count] != 0) {
@@ -49,12 +60,20 @@ inline std::vector<std::uint8_t> render_notice(const char* text) {
     for (int i = 0; i < count; ++i, x += kAdvance) {
         const char c = text[i];
         const int letter = c >= 'A' && c <= 'Z' ? c - 'A' : c >= 'a' && c <= 'z' ? c - 'a' : -1;
-        if (letter < 0) {
+        const char* const marks = "0123456789.%:/";
+        int mark = -1;
+        for (int m = 0; letter < 0 && marks[m] != 0; ++m) {
+            if (c == marks[m]) {
+                mark = m;
+            }
+        }
+        if (letter < 0 && mark < 0) {
             continue;
         }
+        const std::uint8_t* glyph = letter >= 0 ? kNoticeFont[letter] : kNoticeMarks[mark];
         for (int column = 0; column < 5; ++column) {
             for (int row = 0; row < 7; ++row) {
-                if ((kNoticeFont[letter][column] >> row & 1) == 0) {
+                if ((glyph[column] >> row & 1) == 0) {
                     continue;
                 }
                 for (int py = 0; py < kScale; ++py) {

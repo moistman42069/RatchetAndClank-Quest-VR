@@ -1,6 +1,128 @@
-# Ratchet & Clank Quest VR: release notes of 0.1.3 to 0.1.17
+# Ratchet & Clank Quest VR: release notes of 0.1.3 to 0.1.18
 
-As each release gave them. Since 0.1.25 the release page (`docs/release-notes.md`) carries 0.1.18 onwards (0.1.24 carried 0.1.15 onwards, 0.1.23 0.1.14 onwards, 0.1.20 to 0.1.22 0.1.13 onwards, 0.1.19's 0.1.12 onwards): GitHub limits how long a release's notes can be. 0.1.14's came out as part of 0.1.15's page, under its heading after 0.1.15's.
+As each release gave them. Since 0.1.26 the release page (`docs/release-notes.md`) carries 0.1.19 onwards (0.1.25 carried 0.1.18 onwards, 0.1.24 0.1.15 onwards, 0.1.23 0.1.14 onwards, 0.1.20 to 0.1.22 0.1.13 onwards, 0.1.19's 0.1.12 onwards): GitHub limits how long a release's notes can be. 0.1.14's came out as part of 0.1.15's page, under its heading after 0.1.15's.
+
+## New in 0.1.18
+
+From testers' reports (Quest and PC VR) and the owner's own play.
+
+> **New moves for you to turn on.** **Swingshot grabs enemies**, its **Grab moves** and **Punch with your hands** are in this release, and they start **off**, so the game plays as it did until you want them. To turn them on, in a level: press **Y**, then **Options**, **VR Options**, **VR Controls**, **More controls**, **Moves** ([how to get there](https://github.com/moistman42069/RatchetAndClank-Quest-VR/blob/v0.1.18/README.md#menus-and-where-every-option-is)). Set **Swingshot grabs enemies** and **Punch with your hands** to **On**, and pick **Grab moves** for a page with a row for each move.
+
+**Swingshot grabs enemies** (new, **off** to start; a tester: "being able to pull enemies and throw em with the hookswing would be nuts"). Aim the Swingshot at an enemy where there is no Swingshot target and pull the trigger. The hook flies out, catches it and yanks it in to hang in front of your hand, and it follows your hand as you move it.
+
+- **To throw it:** swing your hand and let go of the trigger. It flies that way, falling as it goes, and where it lands it takes half a wrench blow, and so does an enemy it hits on the way.
+- **To drop it:** let go gently. It falls where it hangs; with **Stun when dropped** on (below), it stands stunned for a moment, swaying, ready for your wrench.
+- **While you hold it** it neither walks nor fights. You can hold it up to six seconds. Big enemies can't be caught, and a Swingshot target in reach is still the game's own.
+- **To turn it on:** VR Options, VR Controls, More controls, **Moves**, **Swingshot grabs enemies**.
+
+**Grab moves** (new, each **off** to start, each its own row on **Moves**, **Grab moves**: turn on **Swingshot grabs enemies**, then the moves you want; a tester: reel them in "like Scorpion", "whip them up into the air and grapple up to take them out mid-air"; the owner: "whip them up in the air, grapple them again and slam them on the ground").
+
+- **Fling while reeling in:** a flick of your hand while it is still coming in throws it from where it is, that way. A yank back toward you brings it in twice as fast instead.
+- **Stun when dropped:** let go gently and it stands stunned for a second and a half, for the wrench.
+- **Throw them up high:** let go with your hand swinging up and it flies straight up and hangs at the top a moment. Hook it again up there and it hangs on the line.
+- **Slam them down:** let go swinging down, or yank down while it hangs on the line up there, and it is driven into the ground: a whole wrench blow to it, half to each enemy near where it lands.
+- **Zip to them in the air:** jump while one hangs on the line up there and the Swingshot pulls you to it for a whole wrench blow, then you drop off with a hop. Not on Novalis, where the game has no pull.
+- **Pits and lava finish them:** thrown, dropped or slammed into a pit, lava or deep water, or off a ledge into the void, an enemy is finished. Not yet tried in our tests: tell us if one survives a fall it should not.
+- Shoot it, wrench it or punch it while it is caught or flying and it is let go at once, for the game's own reaction to the hit.
+
+**Punch with your hands** (new, **off** to start; a tester: "Throwing and Punching ... but at like half wrench strength"). A quick jab out from your body with a free hand, or with the hand holding a gun, hits what it meets for half a wrench blow. Open hand or fist: no button to hold. The wrench still swings, and a glove, the Walloper, the Swingshot and the Hydrodisplacer or Trespasser do their own thing. To turn it on: **Moves**, **Punch with your hands**.
+
+**The wrench throw** (a tester: "its trajectory feels like its going too low like as if you let go just after you actually did"). The wrench now flies where your controller pointed as your hand began to open, not along where your swing carried on to. Two new rows in **Moves** to set it to your liking:
+
+- **Wrench throw aim:** **Where you point** (to start: where the controller points as your hand opens), or **Along your swing**, the way it was.
+- **Wrench throw angle:** from 30 down to 30 up, in steps of 5. **Level** to start.
+
+**The weapon wheel** (the same tester: "It would be perfect if the cursor couldnt go outside of the selection wheel & if the controller made a little rumble for touching/scrolling each weapon icon. Ohh & using the weapon selector cancels the hookshot").
+
+- **Opening the wheel no longer lets go of the Swingshot.** A trigger you are already holding, to hang or to be pulled in, stays the Swingshot's until you let it go. A fresh pull in the wheel still turns its page.
+- **The dot stays inside the wheel.** Point past the weapons and it waits at the wheel's edge, that way from the middle.
+- **A firmer click in the hand** for each weapon you pass.
+
+**Ratchet's hands on the guns** (the owner's pictures: "move his hand back along the grip so his palm and fingers wrap around near handle where my real hand is gripping it ... The weapon should stay exactly where it is").
+
+- **His fist sits on each gun's grip**, where your hand holds the controller. The guns have not moved. **Hand on guns** (VR Hands, new) moves his hand further back or forward along the gun, from 10 cm forward to 15 cm back, if it suits you better.
+- **The left hand's gun** (Akimbo) is held the same way, mirrored. It sat below and in front of the handle (a PC VR tester: "the left hand gun is slightly offset").
+- **A hand on a gun stays still while you walk.** The hand holding the front of the Pyrocitor slid along it as Ratchet walked.
+- **Two hands on a big gun hold steady** (the owner: "fix the wierd hand wobbbling when two gripping weapons like flamethrower"). The front hand on the Pyrocitor and the other two-handed guns kept its place but still turned with his arm's swing as he walked. It now keeps its turn on the gun too. Putting your hand to the foregrip is no longer taken for a punch.
+- **A hand no longer grows wide** (a tester: "Your hand gets like twice as wide"). A wrench on a bolt, or swung fast, is drawn longer, and his hand took that length as its width.
+- **The gloves' wrist is straight** (the owner: "the wrist is janked").
+- **VR Hands, Fingers** now has three choices: **Tracked, bend around the world** (as before), **Tracked** and **Static**. The separate **Fingers bend around the world** row is gone: it is the first choice.
+
+**Everything you hold meets the world** (the owner: "the wrench doesnt collide with the world like other guns ... i want all items to have collision without breaking anything about how they function"). With **World collision** on (More controls), the wrench's head now stops at walls and the ground, with the game's clank and sparks when you hit them hard, as only its handle did before. The Walloper stops too, and so do the Hydrodisplacer and the Trespasser, until their slot is in reach, where they go in as before. A wrench on a bolt crank turns it as before.
+
+**What he wears fits his body** (the owner: the gloves and Grindboots fitted, "and any other similar things"; a tester: "the angle on the ankle part is cursed").
+
+- **The throwing gloves, the Walloper and the Swingshot** sit on his forearm with no gap and no wrung wrist, whatever **Empty hand angle** you use.
+- **The Grindboots and Magneboots** turn about the ankle with his shin as his legs bend, so the boot's cuff stays on his leg.
+- **On a grind rail his legs bend to his feet** as they do on the ground. They stood straight, a hand's width above the boots, which is most likely the "cursed ankle".
+
+**Turning bolts** (a tester: walking round a bolt was "so nauseating"). A new row on **Moves**, **Turning bolts**:
+
+- **Trigger or hand** (to start): with the wrench on the bolt, hold the trigger and it turns by itself while you stand still, or turn it round with your hand, a bit at a time, either way. The trigger throws no wrench while it sits on a bolt.
+- **Walk around**: as before, the stick walks him round it.
+
+**The weapon wheel opens at your hand** (the owner's ask). Each hand's wheel opens where that hand is, and stays there while it is up, so with **Akimbo** the left wheel is no longer at the edge of your view. A hand you can't see opens it where it was before.
+
+**Getting in and out of the ship** (the owner: "getting in and out of ship when going to a new planet in 1st person still isnt as smooth as it could be"; at least as smooth as Rerac-vr).
+
+- **Into the ship's scenes and back out to play,** in first person, the view now glides from your head to Ratchet's eyes and back in a fraction of a second, and keeps the way you face. It used to jump, and turn you, at each end.
+- **The flight between planets is around you** (a PC VR tester: "in the ship transition cutscene ... window was in front of ship"). It was shown on a flat window. It now fills the view from the game's own camera, as Rerac-vr does. With **Cutscenes** on **On a screen** it stays on the window.
+- **A ride that hides Ratchet** (a PC VR tester on Drek's station: a small pod to a ship "puts your view at the window near where you start"): when the game hides him and shows a ride from its own camera far from him, the view now follows that camera until he is back. We could not find that pod on PC, so this is untried.
+
+**X in a cutscene** now switches only between **Through his eyes** and **In VR** around you, never to the flat screen (the owner's ask). **Cutscenes** (VR Options) still has **On a screen** if you want it.
+
+**Smoother frames (AppSW) without the stutter** (a tester: "my OVR metrics tools says that the FPS is a clean 36 FPS and the ASW framerate should be perfect 72FPS, yet there is constant stuttering"). Each picture was made for the moment the game started on it, not the moment the headset shows it, so the world moved in uneven steps, worst with AppSW at a low rate. Each picture is now made for when the headset will show it. This helps PC VR too.
+
+**CPU and GPU boost** (new, **on** to start, Quest): the launcher's **Graphics** tab. The game asks the Quest for its top speeds while you play. Quest Games Optimizer can go further than any app is allowed to.
+
+**"Hey Meta" no longer mutes the game** (a tester: "Using the "hey meta" thing mutes the game until a restart"). The game now asks the Quest for the sound as a game does, and opens its sound again when it gets the sound back. Untried on a Quest: please tell us.
+
+**Mods** (the owner: "mod support completely there", "always match openrac as much as possible").
+
+- **Browse OpenRAC's mods** (new, the launcher's **Game** tab, on Quest and PC): the mod list OpenRAC's own launcher shows, the one on [openrac.dev/mods](https://openrac.dev/mods). Pick one and it is fetched and added. The list is checked with OpenRAC's own signature before any of it is read, and each mod's file with its size and checksum. Only mods that suit this game, its mod interface and your platform are offered. The last good list is kept for when you are offline.
+- **RAC-Board** (built in, **off** to start; turn it on in the **Game** tab). Reach behind your back with either hand and click its stick to get on the board, and again to get off; the hand buzzes when it is there. The left stick steers about the board's own heading, A jumps, the right trigger does tricks (the left stick back for a flip). Your view goes with the board's flips and spins, smoothly. The launcher shows these VR controls with the mod.
+- **Multiplayer** (built in, **off** to start; the **Multiplayer** item in the title's menu once it is on). Play with flat players and VR players alike, hosting or joining. Your wrench swings, punches, throws and aimed guns, in either hand, count for everyone as a flat player's do. In a party there is no slow motion at the weapon wheel, as the others' world would not slow with yours. When you join someone's party, the Swingshot does not catch enemies (the host's game runs them), and a cheat counts only if the host plays in VR with it on too. **Multiplayer name** (in the launcher while the mod is on): 3 to 16 letters, digits or _, a random one to start, as OpenRAC's launcher has it. Others see the gun in your right hand but not the left one's (its hits still count). It goes online only when you choose Multiplayer in the game.
+- **OpenRAC updated** from 0.10.1 to its latest (`develop` at `91b67c67`, mod interface 1.14): what RAC-Board and Multiplayer need, the menus' catalogue, the sound mixer, Draw distance's Unlimited, and its fixes since. Mods built for OpenRAC load here as they are.
+- **A mod's own files** (models, pictures, sounds) are now copied whole on the Quest. They were copied as text, which spoiled them.
+- **Mod files** (new button, **Game** tab): the files mods keep for you, such as the Item randomizer's seed, in the Files app on the Quest (as OpenRAC's launcher has them) or in a folder on PC. On the Quest the game's saves, its set-up and your disc images show there too, under **Ratchet & Clank Quest VR**. Untried on a Quest's own Files app: please tell us if the button does nothing.
+
+**Fixed**
+
+- **The black flicker when menus close** (the owner): a dark frame of the game's backdrop showed as the pause menu or the map closed, and for a few frames each time a page changed. The page's parts now stay up through those frames.
+- **A crash on Gaspar with Akimbo** (a tester's log): firing the left hand's Devastator while running.
+- **A crash on Aridia with two Swingshots** (a tester's log, Quest): with one in each hand, the left leading again and again, then changing the right hand's item. The game could read one gun's moves from another's model. Such a gun is now taken away at once and made again.
+- **The Magneboots in first person** (PC VR testers: "magnet boots don't work" on Batalia's ramp, and "even getting on a magnet wall breaks 1st person walking directions"). On a magnet wall the stick now goes ahead in the wall's own plane, the way you face: face the wall and push ahead to walk straight up it, turn your head to go up and to one side, let go and he stands on it. Before, the stick's ahead could point into the wall or off its side, so he walked off a few metres up. On PC he climbed Orxon's first magnet wall this way, along it, up its end and over the top, and on Batalia's wall he stood still and went on again.
+- **Walking after the Magneboots** (a PC VR tester: "feels like magnetic surface controls break the walking directions even after you fall of the walk area"). On a magnet surface the view turns with it. Coming off, it could stay turned to one side (by 60 to 126 degrees off Batalia's wall on PC), while the stick, your throws and punches and your own steps still went by the old way, until the game was restarted. The moment you are off the surface they agree again, with no jump of the view.
+- **The left Suck Cannon** (Akimbo, a PC VR tester): it sucked an enemy in but never filled, so it could not fire. It fills and fires now.
+- **Pokitaru's sky** (a tester's video at the resort): it went flat cyan at some angles of your head.
+- **The shop** (the owner, on Kerwan): a pull of the trigger to buy brought your last gun back out, and a bomb into your hand with each pull after. At the vendor the trigger is the shop's alone now.
+- **Feet on the floor** (VR Body): Ratchet's body now rises with the view, so his arms meet your hands again.
+- **PC VR on the US disc: windows and water** (a PC VR tester: "some windows broked", and the water). The game's enhanced reflections broke in the eyes. They are off while you play in VR, so PC VR draws the water and windows as the Quest does. We only have the PAL disc, so this is untried on the US disc.
+- **Orxon's electric barriers** (a PC VR tester: "a damage wall isn't renering propperly. it killed me twice"). Two things could leave one unseen while it still hurt you. On the US disc, the game's code that draws them was missing from the port's US game, as the tester's log said each time one hurt them. The US game is now made from OpenRAC's newer US source, which has that code. And on both discs, the game draws a barrier only while its own camera can see it, and in first person that camera keeps to where Ratchet faces: with your head turned from his way, a barrier right in front of your eyes was not drawn. Now the game's check asks what your eyes see, for the barriers and for everything else it checks the same way. On PC the strands now show with the head turned 70 degrees from his way. We only have the PAL disc, so the US disc is untried.
+
+**Shortcuts on PC** (new; a PC VR tester: "I'm odd and like to put all my VR games in a Playnite Setup"). The PC launcher's Play page has a **Shortcut** card: a desktop shortcut that starts the game straight away, in VR or in 2D, with everything you chose in the launcher, or one saved anywhere you like, or **Copy the VR command** (`RatchetClankVR.exe --play`, `--play-2d` for 2D) to add it to Playnite, Steam or another library. Change a choice in the launcher and the shortcut plays with it next time.
+
+**Good to know (PC VR):** the owner's numbers: at 120 Hz with AppSW the game drew 33 to 46 pictures a second, at 90 Hz without it a steady 90. On PC your headset's own smoothing does AppSW's job, so 90 Hz is the better choice there.
+
+**Still looking:** the slab the owner saw at a vendor, the pod ride on Drek's station (above), the black box a tester saw stay in front of them after Clank's video on Veldin (0.1.15), and the HUD flickering a PC VR tester saw on Orxon (0.1.17; on PC the HUD's picture stays the same frame to frame, also on the frames between the game's own), and a mine a tester saw squashed into an oval in a boss's lava arena (on PC every mine stayed round: held, thrown by either hand, lying, hit by the wrench and with its spikes out beside an enemy, also at World scale 135 percent): we could not make any of them happen on PC. If you see one, please send your log and say where you were and what you did just before.
+
+**Magneboots, good to know:** a magnet strip is narrow, and if you walk off its side he slips off. Turn your head the way the strip goes: Batalia's leans to one side near the top of its wall, and on PC turning with it kept him on. We did not walk him over the top of Batalia's wall in a test.
+
+**Tested for 0.1.18 on PC only** (the PAL disc and a simulated headset; none of it has run on a Quest, a real PC headset or the US disc):
+- **The new moves off to start:** as the game starts, nothing was caught and nothing punched, and the game's own settings line says Swingshot grabs enemies, each Grab move and Punch with your hands are off. For the runs below they were turned on.
+- **Swingshot grabs and Grab moves:** with only **Swingshot grabs enemies** on, an enemy was caught and dropped, and a flick did nothing more. With the moves on too, on Novalis an enemy was caught five units off, yanked in and thrown; it took half a wrench blow where it landed. One was flung to the side while it still came in, one yanked back to come twice as fast, and one let go gently stood stunned and took the wrench's sweep while it did. On Eudora a Blarg trooper was thrown up high, hooked again up there and slammed down for a whole wrench blow, and another time zipped up to for a whole blow. (On Novalis, where two critters stand side by side, the one thrown up can meet the other on its way, and each then takes half a blow.) With each row off, the plain throw or drop came instead. Nothing was caught as a party member. Pits and lava finishing an enemy have not been tried.
+- **Punching:** turned on, a jab with the hand that held a gun broke an ammo crate; as it starts, off, no punch at all. The same with Multiplayer on and as a party member.
+- **The wrench throw:** thrown where the controller pointed as the hand opened, level, and 15 degrees up with the angle set to 15; thrown along the swing with that choice; the throws, calls and catches of the wrench out as before.
+- **The weapon wheel:** a trigger held for the Swingshot stayed the Swingshot's through the wheel; pointed past the icons, the dot stayed at the wheel's edge; each hand's wheel opened at that hand; pointing went round all eight icons as on 0.1.17.
+- **Hands on the guns and what he wears:** his fist went about 5 cm back onto the Blaster's grip and the two-handed guns' grips, and the other hand's place on a two-handed gun stayed put while he walked; in the shots the gloves, the Walloper and the Swingshot sit on his forearm, and the Grindboots' and Magneboots' cuffs on his shin, crouched and on a grind rail.
+- **Turning bolts:** standing by a bolt, the trigger held turned it until the game finished it, with no wrench thrown; the hand going round it turned it to the end; with Walk around chosen, the trigger left it as it was.
+- **The ship:** out of his eyes into play and back, glided with the heading kept; the flight between the planets in the eyes; a flight over Pokitaru, with and without the level's own visibility data, went through.
+- **Mods:** OpenRAC's list fetched live through the launcher's own code: its signature checked, 25 mods, 21 offered for the Quest and 24 for PC (the rest have no build for that platform). RAC-Board: on with the right hand reached behind the back, ridden with its heading held by the stick, flipped, and put away with the left hand. Multiplayer loaded beside the VR mod (it was refused before: too many pages), and a VR player's wrench, punches and guns hit as before, solo and as a member of a flat host's party. Playing online has not been tried.
+- **The Magneboots in first person:** on Orxon's first wall, the head turned as a player would, he went on at its foot, stood still on it, went round its bend, along it, up its end wall and over the top onto the ground, and never slipped off. On Batalia's wall, facing it, he went straight up, stopped and stood, and went on again. Coming off it with the view left turned 36 degrees, the stick went the way the view looked; as 0.1.17 left it, the stick went 37 degrees off. Walking him over the top of Batalia's wall was not tried.
+- **The fixes:** the menus closed and turned their pages with no dark frame between; on Gaspar, twelve left-hand Devastator shots while running, and no crash; on Aridia, two Swingshots, the left hand leading again and again and the right hand's item changed, and no crash; the left Suck Cannon took two enemies in and fired them; Pokitaru's sky stayed whole as the head turned at the resort; at the vendor the trigger only bought; with Feet on the floor his arms met the hands. Orxon's electric barriers were drawn in the eyes on the PAL disc, also with the head turned 70 degrees from his way (before the fix, only a post's glow showed there). The US disc's windows, water and barriers are untried.
+- **The mines:** thrown by either hand, held, lying, and with their spikes out beside an enemy, every one stayed round (also at World scale 135 percent). We could not make one turn into an oval (Still looking, above).
+- **The regression:** 175 of our 341 test runs were made on 0.1.18's builds: a pick of the ones its changes reach, not the whole set. All ended normally, with the mod loaded and no crash. On the build with the barriers' view check, 46 runs across the grabs, punches, Akimbo, the mines, the Swingshot, the wall moves, ledges, the Magneboots, the sky, the water, the wrench throw, aiming and Clank's video, and a start on each of the 19 levels. On the final build, with the new moves off to start, 18 runs: the grabs and punches on and off, solo, with Multiplayer and as a party member, two hands on a big gun, crouching, RAC-Board, both weapon wheels and the **Moves** page. The release's own PC build was started and loaded the mod.
+- **Not shown:** anything on a headset. How the grabs, punches and throws feel, the hands on the guns, the ship's glide, Smoother frames' timing, the boost, "Hey Meta", adding a mod from the list on a Quest, the Files app, playing online, and the US disc are for you to tell us.
 
 ## New in 0.1.17
 

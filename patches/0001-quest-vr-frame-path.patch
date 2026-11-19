@@ -54,6 +54,72 @@ index 34e50fab33542b26c9a2683ec76fbbfe774ea0ae..9a13b0247d52daa8e0795d9352a22172
  | `play_eyes(mod, xyz, count)`, `bolts(add)` (1.9) | up to `OPENRAC_EYES_MAX` (8) points besides the camera, which keep the mobys near them running (the world near other players), `count` 0 clears; adds to the player's bolts and returns them |
  | `play_overlay_pause(mod, on)`, `moby_slot_of(moby)` (1.9) | while on, the level's mobys keep being updated under the game's pause menu and its freeze dialogs (the hero and the picture stay as the menu left them), so a game in a party never stops the others' world; the slot of the moby at a game address (a hook point's argument). The world calls always address the level's own mobys, also while the pause menu has its own up; `moby_list` lists a placed moby the game deleted with `OPENRAC_MOBY_DEAD`, so a death is learnt from the game, never from a moby missing |
  | `play_skip(mod)` (1.9) | skips the scene playing (a cutscene, the ship's landing or take-off, the flight between planets) the way the game's own skip does, as Start with the port's Skip cutscenes: pressed over the next ticks until the scene is over; for a party whose scenes end together |
+diff --git a/games/rac1/decomp-patches/0001-pause-load-chain-size.patch b/games/rac1/decomp-patches/0001-pause-load-chain-size.patch
+new file mode 100644
+index 0000000000000000000000000000000000000000..61fceb8e3e9a21ac729f366234fbdeceb6d2fa2e
+--- /dev/null
++++ b/games/rac1/decomp-patches/0001-pause-load-chain-size.patch
+@@ -0,0 +1,44 @@
++From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
++From: moistman42069 <157855479+moistman42069@users.noreply.github.com>
++Date: Wed, 18 Nov 2026 12:00:00 +0000
++Subject: pause load chain size
++
++Name the chain size and the load flag by their own symbols when a level's program runs the space load.
++
++A pause-menu Load runs initialize_level_runtime in a level's program, where the
++port relocates D_00160000 and D_0015F560 to that level's copies of them: 0x100C
++and 0x19C past those copies are other globals there. The write of 0x100000 to the
++chain size went elsewhere, the chain size stayed the level's, InitMemSlots put the
++chain buffers that far apart, and each chunk of the flight was decompressed at the
++start of the first chain buffer, which the next frame's packets overwrote: the
++flight read packets as pointers (a crash on the Quest). Under hostgen the two
++words are current_vu_chain (D_0016100C) and space_load_in_progress_m
++(D_0015F6FC), as the rest of the file names them; the PS2 build is unchanged.
++---
++ src/game/system/space.c | 11 +++++++++++
++ 1 file changed, 11 insertions(+)
++
++diff --git a/src/game/system/space.c b/src/game/system/space.c
++index 42ecda7..74dc452 100644
++--- a/src/game/system/space.c
+++++ b/src/game/system/space.c
++@@ -1834,8 +1834,19 @@ extern s32 submit_audio_stream_io_request(void *buf, u32 lsn, u32 sectors);
++ extern void store_sound_bank_handle_callback();
++ #define sequence (*(f32 *)&D_0015F53C)
++ #define D_001413D0 ((s32 *)&D_001414D0)
+++#ifdef OPENRAC_HOSTGEN
+++/* A pause-menu Load runs this in a level's program, where the port relocates D_00160000 and
+++   D_0015F560 to the level's copies: 0x100C and 0x19C past those are other globals there. The
+++   chain size then stayed the level's, the flight's chunks were decompressed where each frame's
+++   VU chain is written, and the flight read packets as pointers. Each word by its own name, as the
+++   rest of this file reads them (current_vu_chain is D_0016100C, space_load_in_progress_m
+++   D_0015F6FC). */
+++#define current_vu_chain_r current_vu_chain
+++#define space_load_in_progress_r space_load_in_progress_m
+++#else
++ #define current_vu_chain_r (*(s32 *)((u8 *)&D_00160000 + 0x100C))
++ #define space_load_in_progress_r (*(s32 *)((u8 *)&D_0015F560 + 0x19C))
+++#endif
++ #define D_0015F440 D_0015F540
++ #define gs_texture_allocation_base D_0015EF8C
++ #define gs_texture_allocation_cursor D_0015EF74
+diff --git a/games/rac1/decomp-patches/README.md b/games/rac1/decomp-patches/README.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..ae70e0c6c8298ff87f690293c5b059735bb2f56c
+--- /dev/null
++++ b/games/rac1/decomp-patches/README.md
+@@ -0,0 +1,10 @@
++# OpenRAC's changes to rac1-decomp
++
++Applied to [rac1-decomp](https://github.com/OpenRAC/rac1-decomp) (`games/rac1/decomp`) by `python3 tools/sources.py apply`; how to change them: [docs/SOURCES.md](../../../docs/SOURCES.md).
++
++<!-- patches:begin -->
++<!-- Written by tools/sources.py save; do not edit. -->
++| Patch | What |
++|---|---|
++| [0001-pause-load-chain-size.patch](0001-pause-load-chain-size.patch) | Name the chain size and the load flag by their own symbols when a level's program runs the space load. |
++<!-- patches:end -->
 diff --git a/games/rac1/ntsc-decomp-patches/0007-hud-frame-flags-signed.patch b/games/rac1/ntsc-decomp-patches/0007-hud-frame-flags-signed.patch
 new file mode 100644
 index 0000000000000000000000000000000000000000..faebb54481e58368a48a2a2bad7bb962cf7c2e1a

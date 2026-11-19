@@ -352,6 +352,175 @@ bool real_ledges() { return s_options.grab_ledges && !s_vr.button_moves; }
 bool real_swim() { return s_options.swim_strokes && !s_vr.button_moves; }
 XrSettings s_xr;
 
+// Dynamic resolution (0.1.26, the launcher's Graphics row, on to start; brought across from Jak and Daxter Quest VR, the
+// owner: "see whats useful to move across from there in regards to performance options"): the eyes drawn smaller while
+// the headset shows frames late, and back up when it keeps up; the headset scales the smaller picture to the eye. The
+// headset tells no load, only that a frame came too late for its display (FrameInfo::displays_missed). A second with more
+// than a fifth of its frames late, or a quarter second of four frames or more with most of them late (a sudden heavy
+// view), takes the eyes down a step, to kEyeScaleLeast at the lowest; kEyeScaleCalm seconds with none late tries a step
+// up, and a step up that brings late frames back within 10 s is undone, the next try waiting twice as long (a minute at
+// most). A gap of more than half a second between frames (a load) counts nothing.
+// Ours, not Jak's: smaller eyes help only where drawing them is what is late. Where the game's own work is (the tester's
+// first-person RAC-Board rides on 0.1.25: about 13 ms a frame outside the drawing), every step down leaves the frames
+// as late, and Jak's rules would keep the eyes at 60% for good. So the steps down in a row (a series) are judged a
+// second after the last of them (half a second with two or more, or at 60%): neither fewer late frames (a fifth or
+// fewer of them, or 15% fewer than before the series) nor more frames a second (4% more) puts the eyes back where the
+// series began, and the next series waits kEyeScaleUseless seconds, twice as long after each (two minutes at most).
+constexpr float kEyeScaleStep = 0.1f, kEyeScaleLeast = 0.6f;
+constexpr double kEyeScaleCalm = 5.0, kEyeScaleCalmMost = 60.0, kEyeScaleQuick = 0.25, kEyeScaleGap = 0.5;
+constexpr double kEyeScaleUseless = 30.0, kEyeScaleUselessMost = 120.0;
+struct EyeScale {
+    float now = 1.0f;
+    int frames = 0, late = 0;              // this second's
+    int quick_frames = 0, quick_late = 0;  // this quarter second's
+    double window_at = 0, quick_at = 0;
+    double calm_since = 0;  // no late frame since
+    double calm_wait = kEyeScaleCalm;
+    double stepped_up_at = -1;  // the last step up, while it is on trial
+    double last_frame = 0;
+    double second_rate = 0;  // the last whole second's frames a second
+    // The series of steps down being judged: where it began, the late share and frames a second before it, the steps,
+    // and the frames since its last step.
+    bool judging = false;
+    float series_from = 1.0f;
+    double series_share = 0, series_rate = 0;
+    int series_steps = 0;
+    int judge_frames = 0, judge_late = 0;
+    double judge_from = 0;
+    double useless_until = 0, useless_wait = kEyeScaleUseless;
+};
+EyeScale s_eye_scale;
+bool s_dynamic_resolution = true;
+// Show performance (0.1.26, the launcher's Graphics row, off to start; Jak and Daxter Quest VR's): a line low in the
+// view, made again twice a second: the frames the headset was given a second against its pace, the eyes' new pictures
+// a second, each frame's work here (from the headset's go to the frame handed back: the game's draw and the mod's, in
+// ms, average / most) and the eyes' resolution (Dynamic resolution).
+struct PerfLine {
+    double from = -1;
+    int frames = 0, pictures = 0;
+    double work = 0, work_most = 0;
+    bool shown = false;
+};
+PerfLine s_perf;
+bool s_show_performance = false;
+double s_frame_began = 0;  // when this frame's begin_frame returned
+
+double now_seconds();
+void log_line(int level, const char* text);
+
+// This frame shown late or not, into the eyes' scale (views_begin, once a frame).
+void eye_scale_update(bool late) {
+    EyeScale& s = s_eye_scale;
+    if (!s_dynamic_resolution) {
+        s = EyeScale{};
+        return;
+    }
+    const double now = now_seconds();
+    if (s.window_at == 0 || now - s.last_frame > kEyeScaleGap) {
+        // the first frame, or the first after a load: new windows, nothing counted, no series judged
+        s.window_at = s.quick_at = now;
+        if (s.calm_since == 0) {
+            s.calm_since = now;
+        }
+        s.frames = s.late = s.quick_frames = s.quick_late = 0;
+        s.second_rate = 0;
+        s.judging = false;
+        s.last_frame = now;
+        return;
+    }
+    s.last_frame = now;
+    ++s.frames;
+    ++s.quick_frames;
+    if (late) {
+        ++s.late;
+        ++s.quick_late;
+        s.calm_since = now;
+    }
+    if (s.judging) {
+        ++s.judge_frames;
+        s.judge_late += late ? 1 : 0;
+    }
+    const float before = s.now;
+    const bool second_up = now - s.window_at >= 1.0;
+    const bool quarter_up = now - s.quick_at >= kEyeScaleQuick;
+    const bool heavy = quarter_up && s.quick_frames >= 4 && s.quick_late * 2 > s.quick_frames;
+    // The series judged: a second after its last step, or half a second after it once it has two steps or is at the least.
+    const char* why = nullptr;
+    const double judged_for = now - s.judge_from;
+    if (s.judging && s.judge_frames >= 8
+        && (judged_for >= 1.0 || (judged_for >= 0.5 && (s.series_steps >= 2 || s.now <= kEyeScaleLeast + 1e-3f)))) {
+        const double share = static_cast<double>(s.judge_late) / s.judge_frames;
+        const double rate = s.judge_frames / std::max(now - s.judge_from, 1e-3);
+        const bool helped = share * 5.0 <= 1.0 || share < s.series_share * 0.85 || (s.series_rate > 0 && rate > s.series_rate * 1.04);
+        s.judging = false;
+        if (helped) {
+            s.useless_wait = kEyeScaleUseless;
+        } else {
+            s.now = s.series_from;
+            s.useless_until = now + s.useless_wait;
+            s.useless_wait = std::min(s.useless_wait * 2.0, kEyeScaleUselessMost);
+            s.stepped_up_at = -1;
+            s.calm_since = now;
+            s.frames = s.late = s.quick_frames = s.quick_late = 0;
+            s.window_at = s.quick_at = now;
+            why = "smaller eyes did not help: the game's own work is what is late";
+        }
+    }
+    const bool may_step = why == nullptr && now >= s.useless_until && s.now > kEyeScaleLeast + 1e-3f;
+    if (may_step && (heavy || (second_up && s.late * 5 > s.frames))) {
+        if (s.stepped_up_at >= 0) {
+            s.calm_wait = std::min(s.calm_wait * 2.0, kEyeScaleCalmMost);  // the step up was too much
+        }
+        if (!s.judging) {
+            // a new series: what it is judged against
+            s.judging = true;
+            s.series_from = s.now;
+            s.series_steps = 0;
+            s.series_share = heavy ? static_cast<double>(s.quick_late) / s.quick_frames : static_cast<double>(s.late) / std::max(s.frames, 1);
+            s.series_rate = second_up ? s.frames / std::max(now - s.window_at, 1e-3) : s.second_rate;
+        }
+        ++s.series_steps;
+        s.judge_frames = s.judge_late = 0;
+        s.judge_from = now;
+        s.now = std::max(kEyeScaleLeast, s.now - kEyeScaleStep);
+        s.stepped_up_at = -1;
+        s.calm_since = now;
+        s.frames = s.late = 0;  // a new second at the new size
+        s.window_at = now;
+    }
+    if (second_up) {
+        if (s.frames > 0) {
+            s.second_rate = s.frames / std::max(now - s.window_at, 1e-3);
+        }
+        s.frames = s.late = 0;
+        s.window_at = now;
+    }
+    if (quarter_up) {
+        s.quick_frames = s.quick_late = 0;
+        s.quick_at = now;
+    }
+    if (s.stepped_up_at >= 0 && now - s.stepped_up_at > 10.0) {
+        s.stepped_up_at = -1;  // it held
+        s.calm_wait = kEyeScaleCalm;
+    }
+    if (s.now < 1.0f - 1e-3f && now - s.calm_since >= s.calm_wait) {
+        s.now = std::min(1.0f, s.now + kEyeScaleStep);
+        s.stepped_up_at = now;
+        s.calm_since = now;
+    }
+    if (s.now != before) {
+        char line[160];
+        std::snprintf(line, sizeof line, "[vr-perf] dynamic resolution: the eyes at %d%% (%s)", static_cast<int>(s.now * 100.0f + 0.5f),
+                      why != nullptr ? why : s.now < before ? "frames were shown late" : "the headset keeps up");
+        log_line(1, line);
+    }
+    if (why != nullptr) {
+        char line[120];
+        std::snprintf(line, sizeof line, "[vr-perf] dynamic resolution: no step down for %.0f s", s.useless_until - now);
+        log_line(1, line);
+    }
+}
+
 // How a cutscene is seen (the launcher's "cutscenes": eyes, vr, screen; VR Options' Cutscenes row; X in a scene):
 // through his eyes, in VR around you from the game's camera, or on a screen. A cutscene's own: play keeps the View row's.
 constexpr int kSceneViewEyes = 0, kSceneViewVr = 1, kSceneViewScreen = 2, kSceneViewCount = 3;
@@ -2336,7 +2505,13 @@ void on_pad(int port, std::uint8_t* report, int size) {
     }
     board_button_was = board_button;
     s_withdraw = s_withdraw || pad.withdraw;
-    merge_report(pad, report, size);
+    // Riding RAC-Board, out of the menus, in any view: the left stick as RAC-Board reads it (pad.h board_stick_byte).
+    bool riding = s_jet.loaded && s_jet.riding && !context.in_menu;
+#if !defined(__ANDROID__)
+    static const bool steer_old = std::getenv("QUEST_RACBOARD_OLD") != nullptr;  // 0.1.25's bytes too (jet_board_pad)
+    riding = riding && !steer_old;
+#endif
+    merge_report(pad, report, size, riding);
 }
 
 // ---- The walking and facing: lock-strafe's hooks, with the aim's yaw for the camera's ----
@@ -15047,6 +15222,8 @@ void jet_board_frame(int phase) {
     }
 }
 
+constexpr float kBoardPathLeast = 0.02f;  // units a tick (1.2 a second): slower, his way is the camera's
+
 void jet_board_pad(PadContext& context, const Controls&) {
     if (!s_jet.loaded) {
         return;
@@ -15059,9 +15236,81 @@ void jet_board_pad(PadContext& context, const Controls&) {
         context.jet_trick = s_jet.buttons.trick;
         context.jet_grind = s_jet.buttons.grind;
         context.jet_grab = s_jet.buttons.grab;
-        // The stick goes to RAC-Board as it is (pad.h): forward keeps the board on its way. Turned from the game's camera
-        // to the board's heading, as the game's own walking takes it, forward turned the board on and on (racboard.sim).
+        // In third person the stick goes to RAC-Board as it is (pad.h), about the game's camera, as RAC-Board reads it.
         context.jet_yaw = get_float(s_disc->hero + kHeroFacing);
+        // The frame RAC-Board reads the stick in (its ride.cpp camera_matrix, this same tick): the flat way from the game's
+        // camera to him, or his heading with the camera right over him (pad.h's board_stick_angle).
+        context.jet_frame_yaw = context.jet_yaw;
+        const Vec3 camera = read_vec(camera_block() + kCameraEye);
+        const Vec3 at = read_vec(s_disc->hero + kHeroPosition);
+        const float dx = at.x - camera.x, dy = at.y - camera.y;
+        if (std::isfinite(dx) && std::isfinite(dy) && dx * dx + dy * dy > 0.01f * 0.01f) {
+            context.jet_frame_yaw = std::atan2(dy, dx);
+        }
+        // In first person forward points from his path toward the gaze (pad.h's board_steer_turn). His path: the board's
+        // velocity, which RAC-Board puts on him each tick (the port's hero_set_pose: motion.velocity, units a tick); the
+        // camera's way trails it, by up to a radian through a turn on Novalis, and steering from that turned the board on
+        // past the gaze. All but still, the camera's way.
+        const float camera_yaw = context.jet_frame_yaw;
+        float path_yaw = camera_yaw;
+        const Vec3 velocity = read_vec(s_disc->hero + kHeroMotionVelocity);
+        if (std::isfinite(velocity.x) && std::isfinite(velocity.y) &&
+            velocity.x * velocity.x + velocity.y * velocity.y > kBoardPathLeast * kBoardPathLeast) {
+            path_yaw = std::atan2(velocity.y, velocity.x);
+        }
+        float close = kBoardSteerNear, wide = kBoardSteerFull, gain = kBoardSteerGain;
+#if !defined(__ANDROID__)
+        // PC test aids: QUEST_BOARD_TUNE="close,wide,gain" sets board_stick_turn's (close and wide in radians);
+        // QUEST_RACBOARD_OLD=1 rides as 0.1.25 did: the stick turned from his heading by twice its angle from the gaze, as if
+        // RAC-Board read it about the heading, and its bytes as the game's (quest_vr's merge_report); QUEST_JET_TICK_TRACE=1
+        // logs each tick's heading, the camera's way, the gaze, the turn and his path, in either view, for how steady the
+        // ride is (vr/tests/board_steady.py).
+        static float tuned[3] = {kBoardSteerNear, kBoardSteerFull, kBoardSteerGain};
+        static const bool tune = [] {
+            const char* text = std::getenv("QUEST_BOARD_TUNE");
+            return text != nullptr && std::sscanf(text, "%f,%f,%f", &tuned[0], &tuned[1], &tuned[2]) == 3;
+        }();
+        static const bool steer_old = std::getenv("QUEST_RACBOARD_OLD") != nullptr;
+        static const bool tick_trace = std::getenv("QUEST_JET_TICK_TRACE") != nullptr;
+        static bool told = false;
+        if ((tune || steer_old) && !told) {
+            told = true;
+            char line[160];
+            if (steer_old) {
+                std::snprintf(line, sizeof line, "[vr-jetboard] steer: 0.1.25's (twice the gaze's angle from the heading, about the heading; the game's stick bytes)");
+            } else {
+                std::snprintf(line, sizeof line, "[vr-jetboard] steer: at the gaze within %.3f of the path, rising to %.2f times at %.3f",
+                              tuned[0], tuned[2], tuned[1]);
+            }
+            log_line(1, line);
+        }
+        if (tune) {
+            close = tuned[0];
+            wide = tuned[1];
+            gain = tuned[2];
+        }
+#endif
+        context.jet_turn = context.first_person ? board_steer_turn(context.head_yaw, context.jet_yaw, path_yaw, close, wide, gain) : 0.0f;
+#if !defined(__ANDROID__)
+        if (steer_old && context.first_person) {
+            context.jet_frame_yaw = context.jet_yaw;
+            context.jet_turn = std::clamp(2.0f * wrap_angle(context.head_yaw - context.jet_yaw), -kBoardSteerMost, kBoardSteerMost);
+        }
+        static uint64_t traced_at = 0;
+        if (tick_trace && s_tick != traced_at) {
+            traced_at = s_tick;
+            char line[260];
+            std::snprintf(line, sizeof line,
+                          "[vr-jetboard] steer at tick %llu: heading %.4f, frame %.4f, head %.4f, stick turned %.4f, stick %.2f %.2f, turn %.4f, way %.4f, %s",
+                          static_cast<unsigned long long>(s_tick), context.jet_yaw, camera_yaw, context.head_yaw,
+                          context.first_person ? board_stick_angle(context.jet_turn, context.jet_yaw, context.jet_frame_yaw) : 0.0f,
+                          s_frame.controls.left_x, s_frame.controls.left_y, context.jet_turn, path_yaw,
+                          context.first_person ? "first person" : "third person (the stick as it is, about the camera)");
+            log_line(1, line);
+        }
+#endif
+    } else {
+        context.jet_turn = 0.0f;
     }
 }
 
@@ -16944,9 +17193,20 @@ void follow_rail(const Pose& head, bool steering, float seconds) {
 // its camera, which stays behind Ratchet for its own uses. In a headset they are heard from the eyes, in
 // play and through an actor's eyes in a scene: the camera's eye and rows are the head's for that step.
 
+// The place heard from goes with him each tick (0.1.26, a tester on 0.1.25 riding RAC-Board in first person: "this
+// consistent stuttering kind of sound effect"; fine in third person). The game mixes once a tick, and the head was
+// last set by a frame, as far along as that frame was between its ticks: with the game drawing 31 to 40 pictures a
+// second at 60 ticks, the place heard from stood still for a tick, then jumped two ticks' way, while the board's own
+// sound, a unit under the eyes, went on every tick; its way from the ears swung back and forth some thirty times a
+// second. Third person hears from the camera, five units back, where the same step is little. Now the head's place
+// is kept as where it was from him in that frame (`from_hero`), and each tick puts it by where he is then.
+constexpr float kHeardFromHeroMost = 4.0f;  // world units: the eyes further from him than this are not his (a scene)
+
 struct Heard {
     bool valid = false;
     HandFrame head;
+    bool follows = false;  // the head's place is by the hero's (first person, his own eyes)
+    Vec3 from_hero{};      // world: the head's place less the hero's, as the frame drew them
 };
 Heard s_heard;
 
@@ -16964,7 +17224,15 @@ int32_t sound_update(Original original) {
         put_float(at + 4u, v.y);
         put_float(at + 8u, v.z);
     };
-    put(camera + kCameraEye, s_heard.head.at);
+    Vec3 heard_at = s_heard.head.at;
+    if (s_heard.follows) {
+        openrac_pose pose{};
+        pose.size = sizeof pose;
+        if (s_mod->api().hero_pose(&pose) == OPENRAC_HOOK_OK) {
+            heard_at = Vec3{pose.position[0], pose.position[1], pose.position[2]} + s_heard.from_hero;
+        }
+    }
+    put(camera + kCameraEye, heard_at);
     put(camera + kCameraRows, s_heard.head.forward);
     put(camera + kCameraRows + 16u, s_heard.head.left);
     put(camera + kCameraRows + 32u, s_heard.head.up);
@@ -16974,10 +17242,10 @@ int32_t sound_update(Original original) {
     static uint64_t logged = 0;
     if (s_tick >= logged) {
         logged = s_tick + 600;
-        char line[160];
-        std::snprintf(line, sizeof line, "[vr-sound] heard from (%.2f %.2f %.2f) along (%.2f %.2f %.2f), the camera at (%.2f %.2f %.2f)",
-                      s_heard.head.at.x, s_heard.head.at.y, s_heard.head.at.z, s_heard.head.forward.x, s_heard.head.forward.y,
-                      s_heard.head.forward.z, eye[0], eye[1], eye[2]);
+        char line[220];
+        std::snprintf(line, sizeof line, "[vr-sound] heard from (%.2f %.2f %.2f) along (%.2f %.2f %.2f), the camera at (%.2f %.2f %.2f)%s",
+                      heard_at.x, heard_at.y, heard_at.z, s_heard.head.forward.x, s_heard.head.forward.y,
+                      s_heard.head.forward.z, eye[0], eye[1], eye[2], s_heard.follows ? ", with him each tick" : "");
         log_line(1, line);
     }
     return result;
@@ -16996,6 +17264,14 @@ Rig first_person_rig(float alpha) {
 void fill_eye(openrac_view& view, int eye, const FrameInfo& frame, bool first_person, float alpha) {
     int width = 0, height = 0;
     s_headset->target_size(static_cast<Target>(kTargetLeftEye + eye), width, height);
+    // Dynamic resolution: the eye drawn smaller, from the target's corner, and the headset told the size it shows
+    // scaled to the eye (an even size, 16 at least). The port makes its picture again at a new size; Smoother frames'
+    // motion has its own targets, at their own size, and is not changed.
+    if (s_dynamic_resolution && s_eye_scale.now < 1.0f - 1e-3f && width > 0 && height > 0) {
+        width = std::max(16, static_cast<int>(static_cast<float>(width) * s_eye_scale.now + 0.5f) & ~1);
+        height = std::max(16, static_cast<int>(static_cast<float>(height) * s_eye_scale.now + 0.5f) & ~1);
+        s_headset->eye_size(eye, width, height);
+    }
     view.kind = OPENRAC_VIEW_WORLD;
     view.width = width;
     view.height = height;
@@ -17045,6 +17321,13 @@ void fill_eye(openrac_view& view, int eye, const FrameInfo& frame, bool first_pe
         } else {
             s_heard.head.at = (s_heard.head.at + seen.at) * 0.5f;
         }
+        // His own eyes on foot or on a board (sound_update): the place by his, kept as this frame drew them both.
+        const Vec3 drawn = s_hero_before + (s_hero_after - s_hero_before) * alpha;
+        s_heard.from_hero = s_heard.head.at - drawn;
+        s_heard.follows = first_person && !actor && s_have_hero && !in_ship() && !s_eye_parked && s_manned == 0
+                          && length(s_heard.from_hero) < kHeardFromHeroMost * s_options.world_scale;
+    } else {
+        s_heard.follows = false;
     }
 #if !defined(__ANDROID__)
     // PC test aid (QUEST_JET_FRAME_TRACE=1): each frame's left eye while he rides RAC-Board, for how steady the view is
@@ -17342,7 +17625,8 @@ void steer(const FrameInfo& frame, int phase) {
         s_head_yaw = wrap_angle(s_rig.yaw + heading + kPi * 0.5f);
     } else {
         body.reset();
-        s_head_yaw = world_yaw(s_rig.yaw, head.orientation);
+        // Held as he looks down or up (rig.h's steady_world_yaw, 0.1.26): RAC-Board steers to it, and the stick walks by it.
+        s_head_yaw = steady_world_yaw(s_rig.yaw, head.orientation);
     }
     s_aim_yaw = s_head_yaw;
 
@@ -17548,6 +17832,32 @@ int views_begin(void*, openrac_view* views, int max) {
     }
     s_frame_open = true;
     s_have_frame = true;
+    s_frame_began = now_seconds();
+    {
+        bool late = s_frame.displays_missed > 0;
+#if !defined(__ANDROID__)
+        // PC test aid, QUEST_TEST_LATE=from,to (frames, as a sim script counts them): those frames counted as shown late,
+        // for a sim to show Dynamic resolution stepping down and back up (vr/tests/dynres.sim). Alone it is the game's
+        // own work being late (smaller eyes do not help: the series is undone); with QUEST_TEST_LATE_ABOVE=scale, only
+        // while the eyes are larger than that, as when drawing them is what is late.
+        static long late_from = -1, late_to = -1, frames_begun = 0;
+        static float late_above = 0.0f;
+        static bool late_read = false;
+        if (!late_read) {
+            late_read = true;
+            if (const char* text = std::getenv("QUEST_TEST_LATE")) {
+                std::sscanf(text, "%ld,%ld", &late_from, &late_to);
+            }
+            if (const char* text = std::getenv("QUEST_TEST_LATE_ABOVE")) {
+                late_above = static_cast<float>(std::atof(text));
+            }
+        }
+        ++frames_begun;
+        late = late
+               || (late_from >= 0 && frames_begun >= late_from && frames_begun < late_to && s_eye_scale.now > late_above + 1e-3f);
+#endif
+        eye_scale_update(late);
+    }
 
     const int phase = picture ? OPENRAC_PLAY_SCENE : phase_now();
 #if defined(_WIN32)
@@ -17924,6 +18234,45 @@ void views_end(void*, const openrac_view* views, int count) {
         s_headset->space_warp(warp);
     }
     s_headset->finish_frame(eyes, eyes_kept, layer);
+
+    // Show performance: the line twice a second while it is on; gone as it is turned off.
+    PerfLine& p = s_perf;
+    const double now = now_seconds();
+    if (!s_show_performance) {
+        if (p.shown) {
+            s_headset->show_performance("");
+        }
+        p = PerfLine{};
+    } else if (p.from < 0) {
+        p = PerfLine{};
+        p.from = now;
+        p.shown = true;
+    } else {
+        ++p.frames;
+        p.pictures += eyes && !eyes_kept ? 1 : 0;
+        const double work = s_frame_began > 0.0 ? now - s_frame_began : 0.0;
+        p.work += work;
+        p.work_most = std::max(p.work_most, work);
+        if (now - p.from >= 0.5) {
+            const double span = now - p.from;
+            const int pace = static_cast<int>(std::lround(1.0 / std::clamp(s_frame.frame_seconds, 1.0 / 144.0, 1.0 / 30.0)));
+            char text[96];
+            std::snprintf(text, sizeof text, "%d/%d FPS GAME %d WORK %.1f/%.0f MS EYES %d%%", static_cast<int>(std::lround(p.frames / span)),
+                          pace, static_cast<int>(std::lround(p.pictures / span)), p.frames > 0 ? p.work * 1000.0 / p.frames : 0.0,
+                          p.work_most * 1000.0, static_cast<int>((s_dynamic_resolution ? s_eye_scale.now : 1.0f) * 100.0f + 0.5f));
+            s_headset->show_performance(text);
+            static bool said = false;  // its first, in the log, for a report (and dynres.sim)
+            if (!said) {
+                said = true;
+                char line[140];
+                std::snprintf(line, sizeof line, "[vr-perf] Show performance: %s", text);
+                log_line(1, line);
+            }
+            p.from = now;
+            p.frames = p.pictures = 0;
+            p.work = p.work_most = 0;
+        }
+    }
 }
 
 // Smoother frames: where eye `index`'s motion goes this frame, or none.
@@ -19052,6 +19401,83 @@ void stand_remote_vendor() {
 // the menu's pass then read its first model through a null list and the game stopped. Asked inside the shop's own
 // pass, an open is the vendor that is open: refused, the shop left as it is (a machine's own update, run there too, is
 // the same).
+// 0.1.26, a tester's crash (0.1.25, Aridia, the Gadgetron vendor on foot, four times): the game stopped as the shop's
+// menu began. The vendor keeps its own models, their scratch and the item it streams in (0xD9000 bytes on PAL: the
+// models and scratch 0x1800, the item's 0x80000 and its 175 sectors) 0x60000 into the first of the frame's two VU chain
+// buffers, and draws its menu in what is left before them (open_vendor_menu's f14; draw_vendor_screen sets the chain's
+// size to 0x60000). On foot the level is drawn into the same frame (menu_backdrop), and a level whose frame is longer
+// than that writes over the models: Aridia's is about 0x6B000 bytes since 0.1.19 drew all three parts of its sand sea
+// under a headset (0.1.18's was 0x2D800), so its sea's vertices took the place of the models and the menu's first pass
+// read a class through them. On foot, then, the vendor's block goes to the end of that buffer instead, and the chain's
+// size is what lies before it: never less than the game's 0x60000 (a level's buffer is 0x160000 to 0x1C0000 long),
+// 0xBE000 on Aridia. The second buffer's 0x60000 on is the picture the menu would show under it, which on foot is never
+// shown. With no weapon's scene on foot (kVendorBoughtWeapon), nothing else uses that end while the shop is open. The
+// shop closed, the level's size is put back (the vendor's own close leaves its 0x60000).
+constexpr uint32_t kVendorPicture = 0x10u, kVendorKept = 0x14u;  // f10 and f14: each 0x60000 into its chain buffer
+constexpr uint32_t kVendorKeptAt = 0x60000u;
+constexpr uint32_t kVendorKeptBytes = 0xE2000u;  // 0xD9000 and room for a longer stream on another disc
+constexpr uint32_t kChainSize = 0x0Cu;  // current_vu_chain, three words past the chain's cursor (render_cursor)
+gaddr s_shop_chain = 0;
+uint32_t s_shop_chain_full = 0, s_shop_chain_room = 0;
+bool s_shop_chain_told = false;
+
+void shop_chain_room() {
+    s_shop_chain = 0;
+    s_shop_chain_full = s_shop_chain_room = 0;
+    s_shop_chain_told = false;
+    const gaddr vendor = level0(s_disc->vendor_menu);
+    const gaddr kept = ref<gaddr>(vendor + kVendorKept), picture = ref<gaddr>(vendor + kVendorPicture);
+    const uint32_t full = picture - kept;  // the second buffer follows the first, each the level's chain size
+    char line[200];
+    if (kept < kVendorKeptAt || picture <= kept || full < kVendorKeptAt + kVendorKeptBytes || full > 0x400000u) {
+        std::snprintf(line, sizeof line, "[vr-shop] the vendor's block stays where the game put it (%#x, its picture %#x)", kept, picture);
+        log_line(1, line);
+        return;
+    }
+    s_shop_chain = kept - kVendorKeptAt;
+    s_shop_chain_full = full;
+    s_shop_chain_room = (full - kVendorKeptBytes) & ~0xFFFu;
+    ref<gaddr>(vendor + kVendorKept) = s_shop_chain + s_shop_chain_room;
+    std::snprintf(line, sizeof line, "[vr-shop] the vendor's block at %#x, after %#x bytes of the level's draw (its buffer %#x long)",
+                  s_shop_chain + s_shop_chain_room, s_shop_chain_room, full);
+    log_line(1, line);
+}
+
+// The chain's size while the shop is open: what lies before the vendor's block (draw_vendor_screen's 0x60000 replaced).
+// A frame that still runs into the block is said once, with how far it went.
+void shop_chain_size(bool drawn) {
+    if (s_shop_chain_room == 0) {
+        return;
+    }
+    const gaddr cursor = s_mod->relocate(s_disc->render_cursor);
+    if (!drawn) {
+        if (ref<uint32_t>(cursor + kChainSize) == kVendorKeptAt) {
+            ref<uint32_t>(cursor + kChainSize) = s_shop_chain_room;
+        }
+        return;
+    }
+    const gaddr at = ref<gaddr>(cursor);
+    if (!s_shop_chain_told && at > s_shop_chain + s_shop_chain_room && at < s_shop_chain + s_shop_chain_full) {
+        s_shop_chain_told = true;
+        char line[200];
+        std::snprintf(line, sizeof line, "[vr-shop] the level's draw ran %#x bytes into the vendor's block", at - (s_shop_chain + s_shop_chain_room));
+        log_line(1, line);
+    }
+}
+
+void shop_chain_back() {
+    if (s_shop_chain_room == 0) {
+        return;
+    }
+    const gaddr size = s_mod->relocate(s_disc->render_cursor) + kChainSize;
+    const uint32_t now = ref<uint32_t>(size);
+    if (now == kVendorKeptAt || now == s_shop_chain_room) {
+        ref<uint32_t>(size) = s_shop_chain_full;
+    }
+    s_shop_chain = 0;
+    s_shop_chain_full = s_shop_chain_room = 0;
+}
+
 template <class Original>
 void vendor_opened(Original original, uint32_t moby) {
     if (s_shop_pass && s_shopping) {
@@ -19068,6 +19494,7 @@ void vendor_opened(Original original, uint32_t moby) {
     s_shop_start = s_options.shop_on_foot && s_options.first_person && !s_options.screen;
     if (s_shop_start) {
         s_shopping = true;  // the player is in play from this tick on
+        shop_chain_room();
         if (moby == 0) {
             stand_remote_vendor();
         }
@@ -19085,6 +19512,7 @@ void vendor_closed(Original original, int32_t after_scene) {
     uint32_t place[8];
     std::memcpy(place, s_mod->memory().pointer(hero + kHeroPosition), sizeof place);
     original(after_scene);
+    shop_chain_back();
     std::memcpy(s_mod->memory().pointer(hero + kHeroPosition), place, sizeof place);
     if (void* script_end = s_mod->api().function(s_disc->camera_script_end); s_shop_remote && script_end != nullptr) {
         reinterpret_cast<void (*)(int32_t)>(script_end)(2);
@@ -19108,9 +19536,11 @@ void menu_backdrop(Original original, int32_t source, int32_t target, int32_t by
     const gaddr mode = s_mod->relocate(s_disc->game_mode);
     const int32_t kept = ref<int32_t>(mode);
     ref<int32_t>(mode) = 0;
+    shop_chain_size(false);
     if (void* draw = s_mod->api().function(s_disc->draw_world)) {
         reinterpret_cast<Step>(draw)();
     }
+    shop_chain_size(true);
     ref<int32_t>(mode) = kept;
 }
 
@@ -21309,22 +21739,26 @@ void load(openrac::Mod& mod) {
     s_xr.space_warp = mod.setting<bool>("space_warp");
     s_xr.cpu_gpu_boost = mod.setting<bool>("cpu_gpu_boost");
     s_xr.resolution = static_cast<float>(mod.setting<double>("resolution"));
-    s_xr.foveation = static_cast<int>(std::clamp<std::int64_t>(mod.setting<std::int64_t>("foveation"), 0, 3));
+    s_xr.foveation = static_cast<int>(std::clamp<std::int64_t>(mod.setting<std::int64_t>("foveation"), 0, 4));
+    s_xr.sharpen = static_cast<int>(std::clamp<std::int64_t>(mod.setting<std::int64_t>("sharpening"), 0, 2));
+    s_dynamic_resolution = mod.setting<bool>("dynamic_resolution");
+    s_show_performance = mod.setting<bool>("show_performance");
     s_rig.scale = s_options.world_scale;
     s_launcher_hud = hud_size_of(static_cast<int>(std::lround(s_options.hud_scale * 100.0f)));
     s_vr.hud_size = s_launcher_hud;
     // The launcher's settings, once, in the log: a tester's 0.1.12 report (a switch since gone, turned off) could not be
     // read from a log without them. The choices, then each switch that is off, by the names the launcher shows.
     {
-        static const char* const kFoveation[] = {"off", "low", "medium", "high"};
+        static const char* const kFoveation[] = {"off", "low", "medium", "high", "highest"};
+        static const char* const kSharpening[] = {"off", "normal", "strong"};
         static const char* const kDpad[] = {"controller by your head", "left thumb rest", "off"};
-        char numbers[360];
+        char numbers[400];
         std::snprintf(numbers, sizeof numbers,
                       "turning %s (snap %.0f, smooth %.0f), world scale %.2f, HUD size %.2f, %.0f Hz, resolution %.2f, foveated "
-                      "rendering %s, third person controls %s, D-pad %s",
+                      "rendering %s, sharpening %s, third person controls %s, D-pad %s",
                       mod.setting<std::string>("turn").c_str(), mod.setting<double>("snap_degrees"), mod.setting<double>("smooth_degrees"),
                       s_options.world_scale, s_options.hud_scale, s_xr.refresh_hz, s_xr.resolution, kFoveation[s_xr.foveation],
-                      s_options.third_person_pad ? "gamepad" : "VR", kDpad[s_options.dpad]);
+                      kSharpening[s_xr.sharpen], s_options.third_person_pad ? "gamepad" : "VR", kDpad[s_options.dpad]);
         struct Switch {
             bool on;
             const char* name;
@@ -21341,6 +21775,7 @@ void load(openrac::Mod& mod) {
             {s_options.sparkles_in_world, "Sparkles on the bolts"}, {s_options.glyphs, "Controller buttons in hints"},
             {s_options.haptics, "Vibration"}, {s_xr.keep_refresh, "Keep the refresh rate"},
             {s_xr.space_warp, "Smoother frames (AppSW)"}, {s_xr.cpu_gpu_boost, "CPU and GPU boost"},
+            {s_dynamic_resolution, "Dynamic resolution"},
         };
         std::string off;
         for (const Switch& s : switches) {
@@ -21349,7 +21784,8 @@ void load(openrac::Mod& mod) {
             }
         }
         const std::string line = "[vr-settings] the launcher's: view " + mod.setting<std::string>("view") + ", cutscenes "
-                                 + mod.setting<std::string>("cutscenes") + ", " + numbers + "; off: " + (off.empty() ? "none" : off);
+                                 + mod.setting<std::string>("cutscenes") + ", " + numbers + "; off: " + (off.empty() ? "none" : off)
+                                 + (s_show_performance ? "; Show performance on" : "");
         log_line(1, line.c_str());
     }
 
@@ -21566,4 +22002,4 @@ void load(openrac::Mod& mod) {
 
 }  // namespace
 
-OPENRAC_MOD_CPP("quest-vr", "0.1.25", load)
+OPENRAC_MOD_CPP("quest-vr", "0.1.26", load)

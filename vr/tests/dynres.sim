@@ -1,0 +1,15 @@
+# 0.1.26: Dynamic resolution and Show performance (from Jak and Daxter Quest VR; the owner: "see whats useful to move
+# across from there in regards to performance options"), on PC with QUEST_TEST_LATE=3200,3500 (those frames counted as
+# shown late). regress.sh's dynres adds QUEST_TEST_LATE_ABOVE=0.75 (late only while the eyes are larger: drawing them is
+# what is late) and QUEST_SETTINGS {"show_performance": true}: standing on Novalis, the eyes full size at "full"; the late
+# frames take them down a step a quarter second to 70% ("[vr-perf] dynamic resolution: the eyes at 90% ... 70% (frames
+# were shown late)"), kept there (the series helped), the "small" shot's eye smaller; then, with no frame late, a step up
+# each 5 s ("... (the headset keeps up)") back to 100% by "back". "[vr-perf] Show performance: N/N FPS GAME N WORK N/N MS
+# EYES 100%" once, its first line. dynres-cpu (late at any size: the game's own work): down to 60%, then "smaller eyes did
+# not help", back to 100% and "no step down for 30 s"; "small" full size.
+600 y 1
+606 y 0
+3000 shot full
+3450 shot small
+6600 shot back
+6700 quit 0

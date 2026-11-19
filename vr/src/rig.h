@@ -107,6 +107,27 @@ inline float world_yaw(float rig_yaw, Quat q) {
     return wrap_angle(rig_yaw + tracking_yaw(q) + kPi * 0.5f);
 }
 
+// The way a head faces, held as it looks down or up (0.1.26, a tester on 0.1.25 riding RAC-Board in first person, the
+// video looking down at the board a good deal: "properly follows the head without fucking up"). tracking_yaw takes
+// where the face points, flat: looking down at the feet that is a sliver, and a nod or a tip of the head swung it
+// round, up to half a turn straight down, and the board steered after it. Here the top of the head counts as the face
+// goes down or up (looking down it points the way the face went from): the face less the top times the face's height.
+// With the head upright (no tip to a side) this is tracking_yaw's yaw at any pitch, and straight down or up as well.
+inline float steady_tracking_yaw(Quat q) {
+    const Vec3 face = rotate(q, {0, 0, -1});
+    const Vec3 top = rotate(q, {0, 1, 0});
+    const Vec3 way = face - top * face.y;
+    if (std::fabs(way.x) + std::fabs(way.z) < 1e-6f) {
+        return tracking_yaw(q);
+    }
+    return std::atan2(-way.x, -way.z);
+}
+
+// world_yaw by steady_tracking_yaw: the gaze's heading (quest_vr.cpp's s_head_yaw).
+inline float steady_world_yaw(float rig_yaw, Quat q) {
+    return wrap_angle(rig_yaw + steady_tracking_yaw(q) + kPi * 0.5f);
+}
+
 struct Rig {
     float yaw = 0;       // tracking's turn into the frame
     float scale = 1;     // game units a metre

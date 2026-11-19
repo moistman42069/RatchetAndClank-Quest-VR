@@ -378,6 +378,13 @@ public:
         XrFrameState state{XR_TYPE_FRAME_STATE};
         XrFrameWaitInfo wait{XR_TYPE_FRAME_WAIT_INFO};
         const double before = now_seconds();
+        if (m_end_at > 0.0) {
+            const double between = before - m_end_at;
+            m_between_seconds += between;
+            m_between_most = std::max(m_between_most, between);
+            ++m_between_count;
+            m_end_at = 0.0;
+        }
         if (!check(xrWaitFrame(m_session, &wait, &state), "xrWaitFrame")) {
             return false;
         }
@@ -388,13 +395,19 @@ public:
         m_frame_begun = true;
         m_frame_time = state.predictedDisplayTime;
         // Displays this frame came too late for: more than the last frame's step since its display time (one period, two
-        // with smoother frames, finish_frame's m_frame_periods).
-        const XrDuration step = state.predictedDisplayPeriod * m_frame_periods;
-        if (m_last_display != 0 && state.predictedDisplayPeriod > 0
-            && state.predictedDisplayTime - m_last_display > step + state.predictedDisplayPeriod / 2) {
-            m_displays_missed += static_cast<long>(
-                (state.predictedDisplayTime - m_last_display + state.predictedDisplayPeriod / 2) / state.predictedDisplayPeriod
-                - m_frame_periods);
+        // with smoother frames, finish_frame's m_frame_periods). A Quest with smoother frames tells the game's halved pace
+        // as its period already (16.7 ms at 120 Hz, the owner's 0.1.24 logs): that period is the step, and a display half
+        // of it; doubling it again counted a frame late only after four displays (Jak and Daxter Quest VR's 0.1.6 rule).
+        const XrDuration period = state.predictedDisplayPeriod;
+        const bool told_halved = m_refresh_rate > 0.0f && static_cast<double>(period) * 1e-9 > 1.5 / m_refresh_rate;
+        const XrDuration display = told_halved ? period / 2 : period;
+        const XrDuration step = told_halved ? period : period * m_frame_periods;
+        out.displays_missed = 0;
+        if (m_last_display != 0 && display > 0 && state.predictedDisplayTime - m_last_display > step + display / 2) {
+            const long missed = static_cast<long>((state.predictedDisplayTime - m_last_display + display / 2) / display
+                                                  - step / display);
+            m_displays_missed += missed;
+            out.displays_missed = static_cast<int>(std::max(missed, 1L));
         }
         note_display(state.predictedDisplayTime);
         const double after = now_seconds();
@@ -477,7 +490,9 @@ public:
         XrCompositionLayerQuad dot{XR_TYPE_COMPOSITION_LAYER_QUAD};
         XrCompositionLayerQuad beam2{XR_TYPE_COMPOSITION_LAYER_QUAD};
         XrCompositionLayerQuad dot2{XR_TYPE_COMPOSITION_LAYER_QUAD};
-        const XrCompositionLayerBaseHeader* layers[7];
+        XrCompositionLayerQuad perf{XR_TYPE_COMPOSITION_LAYER_QUAD};
+        XrCompositionLayerSettingsFB sharpen{XR_TYPE_COMPOSITION_LAYER_SETTINGS_FB};
+        const XrCompositionLayerBaseHeader* layers[8];
         uint32_t count = 0;
 
         const bool have_eyes = eyes && m_views_valid && m_targets[kTargetLeftEye].acquired
@@ -495,12 +510,20 @@ public:
                 if (!eyes_kept) {
                     m_drawn_pose[eye] = m_views[eye].pose;
                     m_drawn_fov[eye] = m_views[eye].fov;
+                    m_drawn_size[eye][0] = m_eye_size[eye][0];
+                    m_drawn_size[eye][1] = m_eye_size[eye][1];
                 }
                 views[eye].type = XR_TYPE_COMPOSITION_LAYER_PROJECTION_VIEW;
                 views[eye].pose = m_drawn_pose[eye];
                 views[eye].fov = m_drawn_fov[eye];
                 views[eye].subImage.swapchain = chain.handle;
                 views[eye].subImage.imageRect.extent = {chain.width, chain.height};
+                // Dynamic resolution: the part of the target the port drew into, scaled to the eye as it is shown; a
+                // picture shown again, at the size it was drawn at.
+                const int drawn_width = m_drawn_size[eye][0], drawn_height = m_drawn_size[eye][1];
+                if (drawn_width > 0 && drawn_height > 0 && drawn_width <= chain.width && drawn_height <= chain.height) {
+                    views[eye].subImage.imageRect.extent = {drawn_width, drawn_height};
+                }
                 if (warped) {
                     XrCompositionLayerSpaceWarpInfoFB& w = warp_info[eye];
                     w.type = XR_TYPE_COMPOSITION_LAYER_SPACE_WARP_INFO_FB;
@@ -524,6 +547,12 @@ public:
             projection.space = m_local;
             projection.viewCount = 2;
             projection.views = views;
+            if (m_sharpen_extension) {
+                // The headset sharpens the eyes' picture as it shows it (never its super-sampling: that costs).
+                sharpen.layerFlags = m_settings.sharpen >= 2 ? XR_COMPOSITION_LAYER_SETTINGS_QUALITY_SHARPENING_BIT_FB
+                                                             : XR_COMPOSITION_LAYER_SETTINGS_NORMAL_SHARPENING_BIT_FB;
+                projection.next = &sharpen;
+            }
             layers[count++] = reinterpret_cast<const XrCompositionLayerBaseHeader*>(&projection);
         }
 
@@ -548,6 +577,18 @@ public:
             notice.pose = xr_pose({{0, 0.28f, -1.5f}, {}});
             notice.size = {1.3f, 1.3f * static_cast<float>(kNoticeHeight) / static_cast<float>(kNoticeWidth)};
             layers[count++] = reinterpret_cast<const XrCompositionLayerBaseHeader*>(&notice);
+        }
+
+        // Show performance (0.1.26): its line low in the view, small, both eyes.
+        if (!m_perf_text.empty() && draw_perf()) {
+            perf.layerFlags = XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT;
+            perf.space = m_view;
+            perf.eyeVisibility = XR_EYE_VISIBILITY_BOTH;
+            perf.subImage.swapchain = m_perf_chain.handle;
+            perf.subImage.imageRect.extent = {m_perf_chain.width, m_perf_chain.height};
+            perf.pose = xr_pose({{0, -0.36f, -1.5f}, {}});
+            perf.size = {0.62f, 0.62f * static_cast<float>(kNoticeHeight) / static_cast<float>(kNoticeWidth)};
+            layers[count++] = reinterpret_cast<const XrCompositionLayerBaseHeader*>(&perf);
         }
 
         if ((m_pointer.beam || m_pointer.dot || m_pointer.beam2 || m_pointer.dot2) && draw_pointer()) {
@@ -597,6 +638,24 @@ public:
         end.layerCount = count;
         end.layers = count > 0 ? layers : nullptr;
         check(xrEndFrame(m_session, &end), "xrEndFrame");
+        m_end_at = now_seconds();
+        m_eye_size[0][0] = m_eye_size[0][1] = m_eye_size[1][0] = m_eye_size[1][1] = 0;
+    }
+
+    void eye_size(int eye, int width, int height) override {
+        if (eye >= 0 && eye < 2) {
+            m_eye_size[eye][0] = width;
+            m_eye_size[eye][1] = height;
+        }
+    }
+
+    void show_performance(const char* text) override {
+        const std::string next = text != nullptr ? text : "";
+        if (next != m_perf_text) {
+            m_perf_text = next;
+            m_perf_pixels.clear();
+            m_perf_ready = false;
+        }
     }
 
     void haptic(Hand hand, float strength, float seconds, float hertz) override {
@@ -652,6 +711,11 @@ public:
                 xrDestroySwapchain(m_notice_chain.handle);
                 m_notice_chain.handle = XR_NULL_HANDLE;
             }
+            if (m_perf_chain.handle != XR_NULL_HANDLE) {
+                xrDestroySwapchain(m_perf_chain.handle);
+                m_perf_chain.handle = XR_NULL_HANDLE;
+            }
+            m_perf_ready = false;
             if (m_pointer_chain.handle != XR_NULL_HANDLE) {
                 xrDestroySwapchain(m_pointer_chain.handle);
                 m_pointer_chain.handle = XR_NULL_HANDLE;
@@ -972,6 +1036,14 @@ private:
             extensions.push_back(XR_FB_SPACE_WARP_EXTENSION_NAME);
         } else if (m_settings.space_warp) {
             info("[openxr] smoother frames: the runtime has no XR_FB_space_warp");
+        }
+        // Sharpening (0.1.26), where the runtime has it and the launcher's option is on.
+        m_sharpen_extension = m_settings.sharpen > 0 && has(XR_FB_COMPOSITION_LAYER_SETTINGS_EXTENSION_NAME);
+        if (m_sharpen_extension) {
+            extensions.push_back(XR_FB_COMPOSITION_LAYER_SETTINGS_EXTENSION_NAME);
+            info(m_settings.sharpen >= 2 ? "[openxr] sharpening: strong" : "[openxr] sharpening: normal");
+        } else if (m_settings.sharpen > 0) {
+            info("[openxr] sharpening: the runtime has no XR_FB_composition_layer_settings");
         }
 
         XrInstanceCreateInfoAndroidKHR android{XR_TYPE_INSTANCE_CREATE_INFO_ANDROID_KHR};
@@ -1798,8 +1870,9 @@ private:
         static constexpr Level kLevels[] = {{0, 0, 1, "off"},
                                             {1.25f, 1.0f, 0.5f, "low"},
                                             {1.75f, 0.5f, 0.4f, "medium"},
-                                            {2.5f, 0.25f, 0.25f, "high"}};
-        const int level = std::clamp(m_settings.foveation, 0, 3);
+                                            {2.5f, 0.25f, 0.25f, "high"},
+                                            {3.25f, 0.1f, 0.2f, "highest"}};  // 0.1.26: full detail a third of the way out
+        const int level = std::clamp(m_settings.foveation, 0, 4);
         if (level == 0 || texture == 0 || eye < 0 || eye > 1) {
             return;
         }
@@ -2154,6 +2227,72 @@ private:
         return true;
     }
 
+    // Show performance (0.1.26, Jak and Daxter Quest VR's): the line's picture, made again when its words change (twice
+    // a second), into every image of its chain.
+    bool draw_perf() {
+        if (m_perf_chain.handle == XR_NULL_HANDLE) {
+            std::string why;
+            if (!create_target(m_perf_chain, kNoticeWidth, kNoticeHeight, why)) {
+                warn("[openxr] the performance line's target: " + why);
+                m_perf_text.clear();
+                return false;
+            }
+        }
+        if (!m_perf_pixels.empty() && m_perf_ready) {
+            return true;  // the chain keeps its last picture
+        }
+        m_perf_pixels = render_notice(m_perf_text.c_str(), true);
+        if (!fill_chain(m_perf_chain, kNoticeWidth, kNoticeHeight, m_perf_pixels.data(), "perf")) {
+            return false;
+        }
+        m_perf_ready = true;
+        return true;
+    }
+
+    // A still picture into every image of a quad's chain (Jak and Daxter Quest VR's): a runtime may show a quad from
+    // whichever image of its chain comes next (SteamVR does), so an image left unwritten would show whatever its memory
+    // held. The GL state it touches is put back.
+    bool fill_chain(Swapchain& chain, int width, int height, const std::uint8_t* pixels, const char* what) {
+        const std::string acquire_name = std::string("xrAcquireSwapchainImage(") + what + ")";
+        const std::string wait_name = std::string("xrWaitSwapchainImage(") + what + ")";
+        const std::string release_name = std::string("xrReleaseSwapchainImage(") + what + ")";
+        GLint texture = 0, unpack_buffer = 0, alignment = 0;
+        glGetIntegerv(GL_TEXTURE_BINDING_2D, &texture);
+        glGetIntegerv(GL_PIXEL_UNPACK_BUFFER_BINDING, &unpack_buffer);
+        glGetIntegerv(GL_UNPACK_ALIGNMENT, &alignment);
+        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+        bool ok = !chain.images.empty();
+        // Runtimes hand the images out in turn; the spec does not say so, so it goes on (twice the chain's length at
+        // most) until each has been written.
+        std::vector<bool> written(chain.images.size(), false);
+        std::size_t left = chain.images.size();
+        for (std::size_t tries = 0; ok && left > 0 && tries < 2 * chain.images.size(); ++tries) {
+            XrSwapchainImageAcquireInfo acquire{XR_TYPE_SWAPCHAIN_IMAGE_ACQUIRE_INFO};
+            if (!check(xrAcquireSwapchainImage(chain.handle, &acquire, &chain.index), acquire_name.c_str())) {
+                ok = false;
+                break;
+            }
+            XrSwapchainImageWaitInfo wait{XR_TYPE_SWAPCHAIN_IMAGE_WAIT_INFO};
+            wait.timeout = XR_INFINITE_DURATION;
+            check(xrWaitSwapchainImage(chain.handle, &wait), wait_name.c_str());
+            if (chain.index < chain.images.size()) {
+                glBindTexture(GL_TEXTURE_2D, chain.images[chain.index].image);
+                glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+                if (!written[chain.index]) {
+                    written[chain.index] = true;
+                    --left;
+                }
+            }
+            XrSwapchainImageReleaseInfo release{XR_TYPE_SWAPCHAIN_IMAGE_RELEASE_INFO};
+            check(xrReleaseSwapchainImage(chain.handle, &release), release_name.c_str());
+        }
+        glBindTexture(GL_TEXTURE_2D, static_cast<GLuint>(texture));
+        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, static_cast<GLuint>(unpack_buffer));
+        glPixelStorei(GL_UNPACK_ALIGNMENT, alignment);
+        return ok;
+    }
+
     // The warning's own small picture, made the first time one is shown: nothing of this runs in a
     // session with both controllers in hand. The GL state it touches is put back.
     bool draw_notice() {
@@ -2296,13 +2435,16 @@ private:
             g_gl_kept = 0;
         }
 #endif
-        char line[420];
+        // 0.1.26: and the time between frames, from xrEndFrame to the next xrWaitFrame: the game's tick and all else
+        // outside a frame (a tester's first-person RAC-Board: about 14 ms of frame and 13 outside it, 33-40 frames/s).
+        char line[480];
         std::snprintf(line, sizeof line,
                       "[vr-perf] %.1f frames/s over %.0f s, period %.2f ms, waited %.2f ms a frame, worked %.2f ms (most "
-                      "%.2f, %ld over the period), %ld displays missed%s%s%s",
+                      "%.2f, %ld over the period), between frames %.2f ms (most %.2f), %ld displays missed%s%s%s",
                       rate, seconds, out.frame_seconds * 1000.0,
                       m_frames > 0 ? m_wait_seconds / m_frames * 1000.0 : 0.0,
                       m_frames > 0 ? m_work_seconds / m_frames * 1000.0 : 0.0, m_work_most * 1000.0, m_work_over,
+                      m_between_count > 0 ? m_between_seconds / m_between_count * 1000.0 : 0.0, m_between_most * 1000.0,
                       m_displays_missed,
                       m_space_warp_ready ? (", smoother frames on " + std::to_string(static_cast<int>(warped * 100.0 + 0.5))
                                             + "% of them").c_str()
@@ -2313,6 +2455,9 @@ private:
         m_work_seconds = 0;
         m_work_most = 0;
         m_work_over = 0;
+        m_between_seconds = 0;
+        m_between_most = 0;
+        m_between_count = 0;
         m_displays_missed = 0;
         register_threads();
         // Keep the refresh rate (on by default from 0.1.14, the owner's wish: smooth wherever the game keeps up) leaves
@@ -2381,6 +2526,7 @@ private:
     bool m_recentred = false;
     XrPosef m_drawn_pose[2]{};  // where the eyes' pictures were taken, kept with them when they are shown again
     XrFovf m_drawn_fov[2]{};
+    int m_drawn_size[2][2]{};  // and the size they were drawn at (Dynamic resolution), 0 for the whole target
 
     int64_t m_format = 0;
     bool m_srgb_control = false;
@@ -2393,6 +2539,22 @@ private:
     std::vector<std::uint8_t> m_notice_pixels;
     std::vector<std::uint8_t> m_notice_faded;  // the pixels as the fade leaves them (notice_alpha)
     float m_notice_alpha = 1.0f;
+    // Show performance (0.1.26): its line's chain, words and picture, put into every image of the chain as the words
+    // change (fill_chain).
+    Swapchain m_perf_chain;
+    std::string m_perf_text;
+    std::vector<std::uint8_t> m_perf_pixels;
+    bool m_perf_ready = false;
+    // Dynamic resolution (0.1.26, eye_size): the size each eye was drawn at this frame; 0 the whole target.
+    int m_eye_size[2][2]{};
+    // Sharpening (0.1.26): XR_FB_composition_layer_settings, where the runtime has it and the option is on.
+    bool m_sharpen_extension = false;
+    // The time between frames (0.1.26): from xrEndFrame's return to the next xrWaitFrame, the game's own tick and what
+    // else runs outside a frame, in all and the most since the last [vr-perf] line.
+    double m_end_at = 0;
+    double m_between_seconds = 0;
+    double m_between_most = 0;
+    long m_between_count = 0;
 
     bool m_refresh_extension = false;
     bool m_performance_extension = false;

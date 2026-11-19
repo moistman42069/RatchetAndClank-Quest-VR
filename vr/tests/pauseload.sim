@@ -1,0 +1,33 @@
+# A tester's crash on 0.1.25 (their log and video): in a level, paused, Options, Load, a slot: the flight to the save's
+# planet drew 12 models (5 in every flight from the title), the game's camera came back unusable four times, and nine
+# seconds in the game read an animation frame at 0x50000010 in update_level_gameplay_frame and crashed. pointer17.sim's
+# slots on the pause's load page: a card with a save in its third slot only (a copy of pointer14's), --level 1.
+# The pause, its Options (savegun.sim's aim), the Load row under Save, the third slot, then the flight and the planet.
+600 y 1
+606 y 0
+2900 shot playing
+3000 y 1
+3006 y 0
+3120 hand_pitch -5.4
+3160 right_trigger 1
+3166 right_trigger 0
+3300 shot options
+3320 hand_pitch 18.1
+3360 right_trigger 1
+3366 right_trigger 0
+3560 shot load-page
+3580 hand_yaw 29
+3580 hand_pitch 8.6
+3640 shot slot2
+3660 right_trigger 1
+3666 right_trigger 0
+3800 shot after-pick
+3820 hand_yaw 0
+3820 hand_pitch 45
+4300 shot flight-a
+5000 shot flight-b
+5700 shot flight-c
+6400 shot flight-d
+7100 shot later
+8000 shot in-level
+8400 quit 0

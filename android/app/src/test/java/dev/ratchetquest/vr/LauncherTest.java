@@ -1050,6 +1050,64 @@ public class LauncherTest {
             assertNotEquals("hide_body", choice.key);
         }
         assertEquals("smooth", manifest.getJSONArray("settings").getJSONObject(keys.indexOf("turn")).getString("default"));
+        // 0.1.26, the owner: "keep appsw on actually by default and set hz to 120 by default". The launcher's start,
+        // its default preset and the mod's own default all agree.
+        assertEquals(120, manifest.getJSONArray("settings").getJSONObject(keys.indexOf("refresh_hz")).getInt("default"));
+        assertTrue(manifest.getJSONArray("settings").getJSONObject(keys.indexOf("space_warp")).getBoolean("default"));
         assertTrue(manifest.getJSONObject("plugin").has("android-arm64"));
+    }
+
+    @Test
+    public void smootherFramesOnAndTheHeadsetAt120HzToStart() {
+        assertEquals("120", Config.REFRESH.fallback);
+        assertEquals("true", Config.SPACE_WARP.fallback);
+        Options options = new Options() {
+            private final java.util.Map<String, String> kept = new java.util.HashMap<>();
+
+            @Override
+            String get(Choice choice) {
+                return kept.getOrDefault(choice.key, choice.fallback);
+            }
+
+            @Override
+            void set(Choice choice, String value) {
+                kept.put(choice.key, value);
+            }
+        };
+        options.applyPreset("balanced");
+        assertEquals("120", options.get(Options.REFRESH));
+        options.applyPreset("quality");
+        assertEquals("120", options.get(Options.REFRESH));
+        assertEquals(120, options.modSettings(false).get("refresh_hz"));
+        assertEquals(true, options.modSettings(false).get("space_warp"));
+    }
+
+    /**
+     * Jak and Daxter Quest VR's performance options (0.1.26, the owner: "see whats useful to move across from there in
+     * regards to performance options"): Sharpening Normal, Dynamic resolution on and Show performance off to start, on
+     * the Graphics tab, Highest offered for Foveated rendering; the Performance preset sharpens Strong; all to the mod.
+     */
+    @Test
+    public void jakPerformanceOptionsStartRightAndReachTheMod() {
+        android.content.SharedPreferences options = app.getSharedPreferences("options", Context.MODE_PRIVATE);
+        options.edit().clear().commit();
+        Config config = new Config(app);
+        assertEquals(1, config.modSettings(false).get("sharpening"));
+        assertEquals(true, config.modSettings(false).get("dynamic_resolution"));
+        assertEquals(false, config.modSettings(false).get("show_performance"));
+        for (Config.Choice choice : new Config.Choice[] {Config.SHARPENING, Config.DYNAMIC_RESOLUTION, Config.SHOW_PERFORMANCE}) {
+            assertTrue(choice.key + " on the Graphics tab", Arrays.asList(Config.GRAPHICS).contains(choice));
+        }
+        assertEquals("Highest", Config.FOVEATION.names[4]);
+        config.applyPreset("performance");
+        assertEquals(2, config.modSettings(false).get("sharpening"));
+        assertEquals(true, config.modSettings(false).get("dynamic_resolution"));
+        assertEquals(3, config.modSettings(false).get("foveation"));
+        config.applyPreset("balanced");
+        assertEquals(1, config.modSettings(false).get("sharpening"));
+        config.set(Config.FOVEATION, "4");
+        config.set(Config.SHOW_PERFORMANCE, "true");
+        assertEquals("the player's own choice stays", 4, new Config(app).modSettings(false).get("foveation"));
+        assertEquals(true, new Config(app).modSettings(false).get("show_performance"));
     }
 }

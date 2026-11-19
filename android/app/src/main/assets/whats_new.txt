@@ -1,39 +1,59 @@
-NEW IN 0.1.25
+NEW IN 0.1.26
+
+TWO CRASHES FIXED
+
+    The vendor on foot on Aridia crashed the game as its menu opened. Aridia's sand sea, drawn whole in a
+    headset since 0.1.19, ran over the models the vendor keeps for its menu; Gaspar's did the same. On foot the
+    vendor now keeps them clear of the level's drawing, on every planet.
+
+    Loading a save from the pause menu crashed as the flight to the save's planet began. Fixed.
+
+RAC-BOARD IN FIRST PERSON: STRAIGHT AND QUIET
+
+    Holding the stick, the board flicked from one side to the other dozens of times a second, and its hum
+    pulsed with each lean: the noise like it was hitting the floor. The cause was the stick itself: Ratchet on
+    foot ignores a small push, so we send every push at least a third of the way out, and the board,
+    which reads the stick as it is, took the tiniest sideways part as a hard turn. Riding, the stick now reaches
+    the board as it is, and the board steers from where it is going toward where you look: it runs straight
+    there, quiet, and comes round to your gaze two to three times faster. In third person, a thumb a hair off
+    straight no longer turns the board. Ratchet's and the world's sounds are heard from your head every frame
+    as you ride, and looking up or down no longer turns where the board goes.
+
+NEW IN GRAPHICS, FROM JAK AND DAXTER QUEST VR
+
+    - Dynamic resolution (on to start): when the headset shows frames late, the eyes are drawn a step smaller
+      (down to 60% of Eye resolution) until it keeps up, then back up a step at a time. Where smaller does not
+      help (the game itself is behind), they go back to full size.
+    - Sharpening (Quest; Off, Normal to start, Strong): the headset sharpens the picture as it shows it, most
+      useful under 100% Eye resolution.
+    - Foveated rendering: Highest, for the most frame rate (full detail only in the middle third).
+    - Show performance (off to start): a small line low in your view, twice a second: frames a second against
+      the headset's pace, the game's new pictures, each frame's work in milliseconds and the eyes' resolution.
+      For finding the settings that run smoothly on your headset.
+
+SMOOTHER FRAMES ON AND 120 HZ TO START
+
+    Smoother frames (AppSW) stays on to start, and Refresh rate now starts at 120 Hz, as the Balanced and
+    Quality presets set it (Performance keeps 72). A choice you saved is kept.
 
 FOR THE SMOOTHEST PLAY ON A QUEST: OUR SETTINGS
 
-    With Smoother frames on, the game is meant to draw 60 pictures a second. The owner's logs of 0.1.24 show it
-    drawing about 40 on Novalis and Aridia at Eye resolution 100%, and about 24 on Novalis at 130%: how big a
-    picture it draws holds it back more than anything else. A picture it cannot draw in time shows most when
-    you move fast, as on RAC-Board. So, in the launcher's Graphics tab:
+    Smoother frames On, Eye resolution 100% at most (90%, then 80%, if it still stutters), Dynamic resolution
+    On, Foveated rendering High, Sharpening Normal, CPU and GPU boost On, Keep the refresh rate On. Still under
+    60 a second in the big levels: Max draw distance Off. Show performance tells you how it is going.
 
-    - Smoother frames (AppSW): On (to start).
-    - Eye resolution: 100% at most. If it still stutters, 90%, then 80%: the biggest difference of all.
-    - Foveated rendering: High (Medium to start). The edges are a little softer, where the lenses blur anyway.
-    - CPU and GPU boost: On (to start). The headset gets warmer and uses more battery.
-    - Keep the refresh rate: On (to start).
-    - Still under 60 a second in the big levels (OVR Metrics shows it): Max draw distance Off.
+STILL LOOKING: THE HUD ON SOME PC HEADSETS
 
-    The first two are from the logs. Below 100% has not been measured on a headset yet: tell us how it goes.
+    A player on PC VR sees the bolts, health and weapon wheel icons corrupted, another a flicker. On our PC,
+    through SteamVR, they draw whole. If you see it, a screenshot or video with your log on GitHub helps.
 
-RAC-BOARD: A STEADY VIEW
+ALSO NEW: 0.1.25, THE RELEASE JUST BEFORE
 
-    Riding, the view rocked a little every frame: Ratchet's body sways about on the board, and the view turned
-    with all of it. It now turns with his spins and flips, and not with the ride's own sway. In our test ride
-    the view moves half as much as it did, and turns more than a degree in a frame a sixth as often.
+    RAC-Board's view turns with Ratchet's spins and flips, not with the ride's own sway, and the board comes
+    round to where you look in about a second and holds it. The planet's name no longer turns into a blue bar as
+    you land.
 
-RAC-BOARD: STEERS WHERE YOU LOOK, FASTER
-
-    The board came round to where you look slowly, slower still as it got near. Now a turn of 60 degrees takes
-    it about a second, and it holds your gaze once it gets there.
-
-THE PLANET'S NAME AS YOU LAND
-
-    As a flight between planets ended, the planet's name ("Planet Aridia") turned into a solid blue bar for a
-    moment: the game was drawing it with the old planet's letters, already gone. Nothing of the game's own
-    screen shows now until the new planet does.
-
-ALSO NEW: 0.1.24, THE RELEASE JUST BEFORE
+0.1.24: WRENCH AIM HELP, CRATES ON THE HOOK, MORE IN PARTIES
 
     Wrench aim help as you let go, from any angle (Wrench aim, Moves). The Swingshot catches crates to throw
     (Grab crates), and its hook bites into what it catches. Cheats: Set bolts to 0. Third person buttons start

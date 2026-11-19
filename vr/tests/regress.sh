@@ -35,9 +35,15 @@ run() { # name sim level|- [NAME=value...] [the sim's own arguments, such as --c
     echo "== $name ($sim, level $level, $*) in $((SECONDS - start)) s: $(head -1 "$OUTS/$name.run")"
     grep -a -c 'not loaded' "$log" | sed 's/^/mod not loaded lines: /'
     grep -a -i -E 'crash|exception|assert|fatal' "$log" | grep -a -v 'settings from' | head -3
+    # 0.1.26: the game's camera came back unusable (the pause's Load before its fix); said only when it happened.
+    grep -a -c 'has an unusable camera' "$log" | grep -v '^0$' | sed 's/^/unusable camera lines: /'
+    # 0.1.26: Dynamic resolution's steps and Show performance's first line (dynres.sim); said only when there are any.
+    grep -a -E '\[vr-perf\] (dynamic resolution|Show performance)' "$log" | sed 's/.*\[mod quest-vr\] //' | cut -c1-170 | head -12
+    # 0.1.26: how steady RAC-Board rides under a still gaze (racboardsteady, QUEST_JET_TICK_TRACE=1).
+    if grep -a -q 'steer at tick' "$log"; then py -I vr/tests/board_steady.py "$log" < /dev/null; fi
     # The game's code the port has no C for, called in this run: it did nothing (an Orxon barrier undrawn on 0.1.17's US disc).
     grep -a -o '[A-Za-z0-9_]* has no C in the port yet' "$log" | sort | uniq -c | sed 's/^ */port: /' | head -10
-    grep -a -E '\[(vr-[a-z]+|sim)\]' "$log" | grep -a -v -E 'vr-perf|vr-state] (tick|phase)|vr-input|vr-glyphs|vr-body] hidden|sim] hittable|vr-hand] class|vr-aim] near the head|vr-aim] class .* (also holds|aimed by)|\[sim\] (frame|shot|pointer:|smoother frames)|haptic|vr-sound|centred text|not a list' \
+    grep -a -E '\[(vr-[a-z]+|sim)\]' "$log" | grep -a -v -E 'vr-perf|vr-state] (tick|phase)|vr-input|vr-glyphs|vr-body] hidden|sim] hittable|vr-hand] class|vr-aim] near the head|vr-aim] class .* (also holds|aimed by)|\[sim\] (frame|shot|pointer:|smoother frames)|haptic|vr-sound|centred text|not a list|vr-jetboard\] steer at tick' \
       | sed -e 's/.*\[mod quest-vr\] //' -e 's/^\[sim\] stick tick [0-9]*:/[sim] stick:/' | cut -c1-170 \
       | awk '!seen[$0]++ || /^\[sim\] hero state/' | head -150
   # (The stick's trace on the boots' surface comes every 8 ticks: without its tick, the same line is kept once and the
@@ -411,6 +417,12 @@ fi
 run pointer17 pointer17 - --cards C:/RACQuest/pc/cards/regress-p17
 run pointer18 pointer18 1 $G=3 QUEST_STATE_TRACE=1
 run pointer20 pointer20 1 $G=6,28
+# 0.1.26, a tester's crash (0.1.25): from a level, pause, Options, Load, the third slot: the flight drew 12 models, the
+# game's camera came back unusable and the game crashed (the chain's size written to another global in a level's program;
+# games/rac1/decomp-patches/0001). Now the flight as from the title: no "unusable" camera, no crash. A copy of its card.
+rm -rf /c/RACQuest/pc/cards/regress-pauseload
+cp -r /c/RACQuest/pc/cards/pauseload /c/RACQuest/pc/cards/regress-pauseload
+run pauseload pauseload 1 QUEST_PANEL_FAR=1 --cards C:/RACQuest/pc/cards/regress-pauseload
 run vendor vendor 1 $N=11 QUEST_SIM_BOLTS=9000 'QUEST_SETTINGS={"shop_on_foot":false}'
 run vendor3 vendor3 1 $G=16,17,18,19 $N=11 QUEST_SIM_BOLTS=9000 QUEST_POINTER_TRACE=1 'QUEST_SETTINGS={"shop_on_foot":false}'
 run vendor4 vendor4 1 $G=10,11,12,13,14,15,16,17,18,19,20 $N=11 QUEST_SIM_BOLTS=9000 QUEST_POINTER_TRACE=1 'QUEST_SETTINGS={"shop_on_foot":false}'
@@ -428,6 +440,14 @@ run shopbuy shopbuy 1 $G=16,17,18,19 $N=11 QUEST_SIM_BOLTS=9000 QUEST_POINTER_TR
 run shopbuy-eudora shopbuy-eudora 4 $G=16,17,18,19 $N=11 $A=1.1,0,103.4 QUEST_SIM_BOLTS=9000 QUEST_POINTER_TRACE=1 QUEST_SIM_ALIGN=2620
 run shoppda shoppda 1 $G=16,17,18,19 QUEST_SIM_PDA=1 QUEST_SIM_BOLTS=9000 QUEST_POINTER_TRACE=1
 run shoppda-eudora shoppda 4 $G=16,17,18,19 QUEST_SIM_PDA=1 QUEST_SIM_BOLTS=9000 QUEST_POINTER_TRACE=1 QUEST_SIM_ALIGN=2620
+# 0.1.26, a tester's crash (0.1.25): Aridia's frame (its whole sand sea) ran over the vendor's models as the menu began.
+# On foot the vendor's block is at the end of the chain's buffer ("[vr-shop] the vendor's block at"), no crash, and no
+# "ran ... into the vendor's block"; the machine and the PDA's.
+run shop-aridia shop 2 $G=16,17,18,19 $N=11 QUEST_SIM_BOLTS=9000 QUEST_POINTER_TRACE=1
+run shoppda-aridia shoppda 2 $G=16,17,18,19 QUEST_SIM_PDA=1 QUEST_SIM_BOLTS=9000 QUEST_POINTER_TRACE=1
+# Gaspar's level draw is longer still (461,264 bytes on 0.1.25's build) and crashed the same way.
+run shop-gaspar shop 9 $G=16,17,18,19 $N=11 QUEST_SIM_BOLTS=9000 QUEST_POINTER_TRACE=1
+run shoppda-gaspar shoppda 9 $G=16,17,18,19 QUEST_SIM_PDA=1 QUEST_SIM_BOLTS=9000 QUEST_POINTER_TRACE=1
 # 0.1.21: the PDA in the hand, its vendor opened by the trigger: the press the game keeps asks it open again inside the
 # shop's pass, refused ("[vr-shop] the game asked the vendor open again"), no crash; with Akimbo's left gun and without.
 run pda-held pdaakimbo 1 $G=32 $H=32 QUEST_SIM_BOLTS=9000
@@ -455,6 +475,15 @@ run titleratchet titleratchet - --cards C:/RACQuest/pc/cards/regress-p17 KEEP=1
 # 0.1.17: Smoother frames (Application SpaceWarp, the owner's ask): the eyes' motion images ([sim] motion lines, the shots'
 # -motion.png): still nearly nothing, turning across, a walk spreading, the hand alone, a cut none, looking up down.
 run appsw appsw 1 KEEP=1
+# 0.1.26: Dynamic resolution and Show performance (from Jak and Daxter Quest VR). dynres: 300 frames counted late while
+# the eyes are over 75% (drawing them is what is late) take them down to 70%, where they are kept, then a step up each
+# 5 s back to 100%; Show performance's first line. dynres-cpu: the same frames late at any size (the game's own work):
+# down to 60%, then "smaller eyes did not help", back to 100% and no step down for 30 s.
+run dynres dynres 1 QUEST_TEST_LATE=3200,3500 QUEST_TEST_LATE_ABOVE=0.75 'QUEST_SETTINGS={"show_performance": true}' KEEP=1
+run dynres-cpu dynres 1 QUEST_TEST_LATE=3200,3500
+# 0.1.26, GitHub issue 1 (the HUD's icons on a PC headset): his health after a hit and the weapon wheel held open, the
+# HUD's panel as the simulated headset gets it, to set beside pcvr_null.ps1 -Play's (QUEST_PC_WHEEL_HOLD=1).
+run hudwheel hudwheel 3 $G=15,16,21,9,10 QUEST_SIM_HURT=300 KEEP=1
 # 0.1.17: World scale in VR Body (the owner's ask): stepped to 110 percent on the page and taken in play; from the file,
 # 120 kept while the launcher's is as it was, the launcher's own when it has changed since.
 run worldscale worldscale 1 KEEP=1
@@ -628,6 +657,17 @@ run racboard racboard 1 QUEST_RACBOARD=1 QUEST_JET_TRACE=1 QUEST_STATE_TRACE=1 '
 # turn of the head the heading meets its yaw and stays met. 0.1.25 (kBoardSteerGain, the owner's "a lot more
 # responsive"): met within about 70 ticks of the 60-degree turn and 135 of the 105-degree one (0.1.24: not met).
 run racboardhead racboardhead 1 QUEST_RACBOARD=1 QUEST_JET_TRACE=1 'QUEST_RACBOARD_SETTINGS={"trace": true}'
+# 0.1.26: the same ride traced each tick (QUEST_JET_TICK_TRACE=1), its "board steady:" lines from board_steady.py: with the
+# head still, how soon his path (the way of the board's velocity) comes to the gaze, how far it and the board's nose stray,
+# and how often the nose's turn changes way, sharply (the board's lean then jumps sides and plays "board-turn"). Forward
+# points from his path toward the gaze, the board's heading left out (pad.h's board_stick_turn), and riding, the stick's
+# bytes are as RAC-Board reads them (board_stick_byte). 0.1.25 turned it from the heading by twice the heading's angle
+# from the gaze, with the game's bytes, which make a hair of sideways stick a third of a turn: the board's nose went side to
+# side each tick (a tester on 0.1.25: "this consistent stuttering kind of sound effect"). racboardsteady-old rides as 0.1.25
+# did (QUEST_RACBOARD_OLD=1), to set beside it: 36 to 59 sharp reversals a second against none, the gaze met in 104 and 128
+# ticks against 35 and 54.
+run racboardsteady racboardhead 1 QUEST_RACBOARD=1 QUEST_JET_TICK_TRACE=1 'QUEST_RACBOARD_SETTINGS={"trace": true}'
+run racboardsteady-old racboardhead 1 QUEST_RACBOARD=1 QUEST_JET_TICK_TRACE=1 QUEST_RACBOARD_OLD=1 'QUEST_RACBOARD_SETTINGS={"trace": true}'
 # 0.1.19: racboard's ride with 0.1.18's right trigger, which with Weapons on is the Bomb Glove's: his own bomb's hit is
 # not taken on the board ("his own weapon's hit: not taken on the board", no target-board-hit).
 run racboardbomb racboardbomb 1 QUEST_RACBOARD=1 QUEST_JET_TRACE=1 QUEST_STATE_TRACE=1 'QUEST_RACBOARD_SETTINGS={"trace": true}'

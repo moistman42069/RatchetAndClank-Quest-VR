@@ -106,6 +106,11 @@ final class PcSelfTest {
         }
         check(config.gameSettings().contains("frame_rate = unlimited\n"), "the headset paces the frames");
         check(config.get(Options.KEEP_REFRESH).equals("true"), "Keep the refresh rate is on");
+        check(config.get(Options.REFRESH).equals("120"), "Refresh rate starts at 120 Hz");
+        check(config.get(Options.SPACE_WARP).equals("true"), "Smoother frames starts on");
+        check(config.get(Options.DYNAMIC_RESOLUTION).equals("true"), "Dynamic resolution starts on");
+        check(config.get(Options.SHOW_PERFORMANCE).equals("false"), "Show performance starts off");
+        check(Boolean.TRUE.equals(config.modSettings(false).get("dynamic_resolution")), "Dynamic resolution reaches the mod");
         config.set(Options.TURN, "snap");
         check(new PcConfig(paths).get(Options.TURN).equals("snap"), "a choice is kept");
         config.set(Options.TURN, "sideways");
@@ -113,6 +118,7 @@ final class PcSelfTest {
         config.applyPreset("quality");
         check(config.get(Options.RESOLUTION).equals("1.2") && config.get(Options.MSAA).equals("4"), "the Quality preset");
         config.applyPreset("balanced");
+        check(config.get(Options.REFRESH).equals("120"), "the Balanced preset keeps 120 Hz");
 
         // Every setting written for the VR mod is one its manifest declares, in its type, and the other way round.
         Map<String, Object> manifest = Json.object(PcMods.read(new File(paths.vrMod(), "openrac-mod.json")));

@@ -40,7 +40,7 @@ abstract class Options {
         "Higher is smoother and costs more. With Smoother frames on (below) the headset runs at 120 Hz whatever this "
             + "says, so this is for Smoother frames off. Keep the refresh rate (below) says what happens where a rate is "
             + "not held.",
-        new String[] {"72 Hz", "80 Hz", "90 Hz", "120 Hz"}, new String[] {"72", "80", "90", "120"}, "72");
+        new String[] {"72 Hz", "80 Hz", "90 Hz", "120 Hz"}, new String[] {"72", "80", "90", "120"}, "120");
     static final Choice KEEP_REFRESH = new Choice("keep_refresh", "Keep the refresh rate",
         "On: the headset stays at the rate you chose, so anywhere the game can keep up it is that smooth. Off: where "
             + "the game cannot hold a rate above 72 for twenty seconds, the headset steps down by itself: to 90 Hz, then, "
@@ -66,9 +66,28 @@ abstract class Options {
         new String[] {"0.7", "0.8", "0.9", "1.0", "1.1", "1.2", "1.3"}, "1.0");
     static final Choice FOVEATION = new Choice("foveation", "Foveated rendering",
         "Draws the edges of each eye's picture at a lower resolution, where the lenses blur it anyway, so the middle "
-            + "keeps its detail and the game runs faster. High saves the most, and you may see the edges are softer. "
-            + "Off: all of the picture at full resolution. On a PC it does nothing.",
-        new String[] {"Off", "Low", "Medium", "High"}, new String[] {"0", "1", "2", "3"}, "2");
+            + "keeps its detail and the game runs faster. High saves a lot, Highest the most (full detail only in the "
+            + "middle third), and you may see the edges are softer. Off: all of the picture at full resolution. On a PC "
+            + "it does nothing.",
+        new String[] {"Off", "Low", "Medium", "High", "Highest"}, new String[] {"0", "1", "2", "3", "4"}, "2");
+    // 0.1.26, from Jak and Daxter Quest VR (the owner: "see whats useful to move across from there in regards to
+    // performance options"): Sharpening, Dynamic resolution and Show performance, as that launcher has them.
+    static final Choice SHARPENING = new Choice("sharpening", "Sharpening",
+        "The headset sharpens each eye's picture as it shows it, so edges stay crisp, most of all with Eye resolution "
+            + "under 100% or Dynamic resolution stepping down. Strong sharpens more, and fine lines can shimmer a little. "
+            + "Off: the picture as the game draws it. On a PC it does nothing.",
+        new String[] {"Off", "Normal", "Strong"}, new String[] {"0", "1", "2"}, "1");
+    static final Choice DYNAMIC_RESOLUTION = new Choice("dynamic_resolution", "Dynamic resolution",
+        "On: where the headset shows frames late, the eyes are drawn a step smaller (down to 60% of Eye resolution) "
+            + "until it keeps up, then back up a step at a time, so a heavy moment does not stutter. The picture is a "
+            + "little softer while it is smaller. Where smaller does not help (the game itself is what is behind), they "
+            + "go back to full size. Off: always at Eye resolution.",
+        ON_OFF, TRUE_FALSE, "true");
+    static final Choice SHOW_PERFORMANCE = new Choice("show_performance", "Show performance",
+        "A small line low in your view, made again twice a second: the frames a second the headset gets against its "
+            + "pace (60/60 with Smoother frames is the game keeping up), the game's new pictures a second, each frame's "
+            + "work in milliseconds (average/most) and the eyes' resolution. For finding the settings that run smoothly.",
+        ON_OFF, TRUE_FALSE, "false");
     static final Choice MSAA = new Choice("msaa", "Anti-aliasing",
         "Smooths jagged edges. Cheap for the graphics chip, and well worth it in VR.",
         new String[] {"Off", "2×", "4×"}, new String[] {"1", "2", "4"}, "2");
@@ -99,8 +118,9 @@ abstract class Options {
         "Removes the thin stray lines on leaves and flowers, and the hard straight edge of the dark patch round a "
             + "tree's foot, which fades out instead. Off: those lines and that edge stay.",
         ON_OFF, TRUE_FALSE, "true");
-    static final Choice[] GRAPHICS = {PRESET, REFRESH, KEEP_REFRESH, SPACE_WARP, CPU_GPU_BOOST, RESOLUTION, FOVEATION, MSAA,
-        FILTER, ANISOTROPY, ORIGINAL_LOD, MAX_DRAW, MATCHING_SHADOW, FADES_IN_VIEW, SMOOTH_PLANT_EDGES};
+    static final Choice[] GRAPHICS = {PRESET, REFRESH, KEEP_REFRESH, SPACE_WARP, CPU_GPU_BOOST, RESOLUTION,
+        DYNAMIC_RESOLUTION, FOVEATION, SHARPENING, MSAA, FILTER, ANISOTROPY, ORIGINAL_LOD, MAX_DRAW, MATCHING_SHADOW,
+        FADES_IN_VIEW, SMOOTH_PLANT_EDGES, SHOW_PERFORMANCE};
 
     // The port's own options for play (docs/port/SETTINGS.md), beside OpenRAC's mods on the Game tab.
     static final Choice SKIP_ANY_MOVIE = new Choice("skip_any_movie", "Skip any movie",
@@ -355,26 +375,30 @@ abstract class Options {
                 set(ORIGINAL_LOD, "true");
                 set(MAX_DRAW, "false");
                 set(REFRESH, "72");
+                set(SHARPENING, "2");
+                set(DYNAMIC_RESOLUTION, "true");
                 break;
             case "quality":
                 set(RESOLUTION, "1.2");
+                set(SHARPENING, "1");
                 set(FOVEATION, "1");
                 set(MSAA, "4");
                 set(ANISOTROPY, "8");
                 set(FILTER, "edge-aware");
                 set(ORIGINAL_LOD, "false");
                 set(MAX_DRAW, "true");
-                set(REFRESH, "72");
+                set(REFRESH, "120");
                 break;
             default:
                 set(RESOLUTION, "1.0");
+                set(SHARPENING, "1");
                 set(FOVEATION, "2");
                 set(MSAA, "2");
                 set(ANISOTROPY, "4");
                 set(FILTER, "normal");
                 set(ORIGINAL_LOD, "false");
                 set(MAX_DRAW, "true");
-                set(REFRESH, "72");
+                set(REFRESH, "120");
                 break;
         }
     }
@@ -422,6 +446,9 @@ abstract class Options {
         settings.put("cpu_gpu_boost", Boolean.parseBoolean(get(CPU_GPU_BOOST)));
         settings.put("resolution", Double.parseDouble(get(RESOLUTION)));
         settings.put("foveation", Integer.parseInt(get(FOVEATION)));
+        settings.put("sharpening", Integer.parseInt(get(SHARPENING)));
+        settings.put("dynamic_resolution", Boolean.parseBoolean(get(DYNAMIC_RESOLUTION)));
+        settings.put("show_performance", Boolean.parseBoolean(get(SHOW_PERFORMANCE)));
         return settings;
     }
 

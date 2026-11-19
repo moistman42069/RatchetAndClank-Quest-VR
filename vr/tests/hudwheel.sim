@@ -1,0 +1,12 @@
+# 0.1.26, GitHub issue 1 (a Steam Frame on SteamVR, an RTX 5080: "HUD textures seem to be corrupted compared to rerac-vr,
+# especially bolts, life, and weapon wheel"): the HUD's panel as the simulated headset gets it, beside what SteamVR's null
+# driver gets in vr/tests/pcvr_null.ps1 -Play with QUEST_PC_WHEEL_HOLD=1 (the same HUD there). On Kerwan with
+# QUEST_SIM_HURT=300 QUEST_SIM_GIVE=15,16,21,9,10: his health after the hit ("health"), then the game's weapon wheel held
+# open by the right stick ("wheel").
+600 y 1
+606 y 0
+2700 shot health
+2800 right_click 1
+3000 shot wheel
+3100 right_click 0
+3300 quit 0

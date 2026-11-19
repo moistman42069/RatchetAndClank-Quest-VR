@@ -78,8 +78,9 @@ IN THE LAUNCHER
 VR            View, Third person controls (Gamepad or VR), D-pad (Controller by your head, Left
               thumb rest or Off), Third person buttons (each action's button; Like first person to
               start, or Xbox controller), Cutscenes, Turning, Grab the Trespasser's rings and the rest
-GRAPHICS      Foveated rendering (Quest), CPU and GPU boost (Quest), Smoother frames (AppSW), Keep the
-              refresh rate, Max draw distance, and the rest
+GRAPHICS      Foveated rendering (Quest), Sharpening (Quest), CPU and GPU boost (Quest), Smoother frames
+              (AppSW), Refresh rate (120 Hz to start), Keep the refresh rate, Dynamic resolution, Max
+              draw distance, Show performance, and the rest
 GAME          Mods: each mod's switch and settings (RAC-Board and Multiplayer are built in, off to
               start; Xbox button icons on to start), Browse OpenRAC's mods, Add a mod file, Mod files
 PLAY (PC)     Shortcut: a desktop shortcut to play in VR or 2D, or the command for Playnite or Steam

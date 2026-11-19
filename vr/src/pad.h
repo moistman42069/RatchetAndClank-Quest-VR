@@ -208,6 +208,8 @@ struct PadContext {
     std::uint16_t jet_trick = 0, jet_grind = 0, jet_grab = 0;
     std::uint16_t jet_toggle = 0;    // its "Board on and off", pressed now (a hand reached behind the back, its stick clicked)
     float jet_yaw = 0;               // the board's heading (his, as RAC-Board turns him)
+    float jet_frame_yaw = 0;         // the stick's forward as RAC-Board reads it: the flat way from the game's camera to him
+    float jet_turn = 0;              // in first person, the turn from the board's heading forward on the stick gives (board_steer_turn)
     bool third_person_walk = false;  // third person on foot: forward on the stick is where the head looks (rerac-vr-3p)
     float head_turn = 0;             // how far the head has turned from the game's camera's heading
     float board_yaw = 0;             // its heading
@@ -281,17 +283,52 @@ inline void turn_stick(float& x, float& y, float head_yaw, float camera_yaw) {
     y = turned_y;
 }
 
-// Riding RAC-Board in first person: how far the stick is turned, from the board's heading to the head's, at most
-// kBoardSteerMost either way (0.1.19, racboardhead.sim: with the gaze 130 degrees off the heading, forward turned that far
-// was a stick pulled back, and the board went round the long way, past behind him, until the game's own turn about took
-// it). Past that the board carves at the most the short way round to the gaze. Within it the stick is turned
-// kBoardSteerGain times as far as the head is from the board (0.1.25, the owner on 0.1.24: "it could be a lot more
-// responsive"): turned only as far, the push to the side shrank as the board came round, and the last of the way went
-// slowly (racboardhead.sim, about a third of a radian a second over the last half radian).
+// Riding RAC-Board in first person: where forward on the stick points (0.1.26), from his path (the way the board goes: its
+// velocity, jet_board_pad) toward the gaze (board_stick_turn): at the gaze itself within kBoardSteerNear of it, the stick
+// held at one way in the world as a thumb holds it in third person, whatever the path's reading; from there further round,
+// up to kBoardSteerGain times the gaze's angle from kBoardSteerFull out, for a quicker turn (0.1.25, the owner on 0.1.24: "it
+// could be a lot more responsive"); and at most kBoardSteerMost from the path either way (0.1.19, racboardhead.sim: with
+// the gaze 130 degrees off, forward turned that far was a stick pulled back, and the board went round the long way), so a
+// look far aside or behind is a full carve the short way. The board's own heading is left out of it.
+// From racboardhead.sim traced each tick (QUEST_JET_TICK_TRACE=1, vr/tests/board_steady.py), the head held still:
+//  - The tester's "this consistent stuttering kind of sound effect ... like its hitting the floor rapidly" (0.1.25, first
+//    person) was the stick's bytes (board_stick_byte): a hair to the side reached RAC-Board as 0.37 rad of turn. 0.1.19 to
+//    0.1.25 turned the stick from the board's heading by twice its angle from the gaze, a little either way each tick, so
+//    the board's way jumped 0.37 rad one side then the other every tick: its turn changing way 36 to 59 times a second,
+//    and its lean with it. Its hum's loudness and pitch follow the lean, and Jak's board plays "board-turn" each time the
+//    lean jumps to the other side (target_board_anim_trans).
+//  - With the bytes as RAC-Board reads them and this steer: the path within 0.02 rad of the gaze (root mean square) and
+//    the board's nose within 0.04, no quick reversal of its turn; a 60-degree look met in 35 ticks, a 105-degree one in 54
+//    (0.1.25: 104 and 128). The stick at the gaze alone, as steady, took 50 and 75.
+//  - The camera's way (RAC-Board's frame) trails his path by up to a radian through a turn: steering further round from
+//    it turned the board on past the gaze. Hence the velocity.
 inline constexpr float kBoardSteerMost = 1.4f;  // radians: 80 degrees
 inline constexpr float kBoardSteerGain = 2.0f;
-inline float board_stick_turn(float head_yaw, float board_yaw) {
-    return std::clamp(kBoardSteerGain * wrap_angle(head_yaw - board_yaw), -kBoardSteerMost, kBoardSteerMost);
+inline constexpr float kBoardSteerNear = 0.15f, kBoardSteerFull = 0.6f;  // radians: 9 and 34 degrees
+inline float board_steer_gain(float off, float close = kBoardSteerNear, float wide = kBoardSteerFull, float most = kBoardSteerGain) {
+    const float size = std::abs(off);
+    if (size <= close || !(wide > close)) {
+        return size <= close ? 1.0f : most;
+    }
+    return 1.0f + (most - 1.0f) * std::min(1.0f, (size - close) / (wide - close));
+}
+// Forward's angle from the path, toward the gaze.
+inline float board_stick_turn(float head_yaw, float path_yaw, float close = kBoardSteerNear, float wide = kBoardSteerFull,
+                              float gain = kBoardSteerGain) {
+    const float off = wrap_angle(head_yaw - path_yaw);
+    return std::clamp(board_steer_gain(off, close, wide, gain) * off, -kBoardSteerMost, kBoardSteerMost);
+}
+// The same as a turn from the board's heading (PadContext's jet_turn), which board_stick_angle turns back into the frame.
+inline float board_steer_turn(float head_yaw, float board_yaw, float path_yaw, float close = kBoardSteerNear,
+                              float wide = kBoardSteerFull, float gain = kBoardSteerGain) {
+    return wrap_angle(path_yaw + board_stick_turn(head_yaw, path_yaw, close, wide, gain) - board_yaw);
+}
+
+// The angle the stick is turned by, riding RAC-Board in first person: the board's heading turned by `turn`, from the
+// frame RAC-Board reads the stick in (the flat way from the game's camera to him), which trails the board (0.1.26;
+// before, the stick was turned as if about the heading).
+inline float board_stick_angle(float turn, float board_yaw, float frame_yaw) {
+    return wrap_angle(board_yaw - frame_yaw) + turn;
 }
 
 // One side of an analog control read as a button, with a gap so that it does not chatter.
@@ -452,13 +489,15 @@ public:
             set(out, c.y, kPadStart);
             set(out, c.x, kPadSelect);
             out.held = static_cast<std::uint16_t>(out.held | context.jet_toggle);
-            // Riding, RAC-Board takes the stick about the board's own heading (measured on PC: turned from the game's camera
-            // to the heading, forward turned the board round and round; as it is, forward keeps its way). In first person
-            // forward is where the player looks, as on foot (0.1.19, the owner: "make sure it follows head direction"; the
-            // stick about the board alone was hard to steer): turned from the board's heading to the head's, so forward
-            // brings the board round to the gaze and holds it there (BoardFollow no longer turns the view with a carve).
+            // Riding, RAC-Board takes the stick about the flat way from the game's camera to him, which trails the board's
+            // heading (measured on PC: turned from the game's camera's yaw to the heading, forward turned the board round
+            // and round; as it is, forward keeps its way). In first person forward is where the player looks, as on foot
+            // (0.1.19, the owner: "make sure it follows head direction"; the stick about the board alone was hard to steer):
+            // from the way the board goes toward the gaze (0.1.26, board_stick_turn), so forward brings the board round to
+            // the gaze and holds it there (BoardFollow no longer turns the view with a carve), in RAC-Board's own frame
+            // (board_stick_angle), and its bytes as RAC-Board reads them (merge_report's `riding`).
             if (context.first_person) {
-                turn_stick(left_x, left_y, board_stick_turn(context.head_yaw, context.jet_yaw), 0.0f);
+                turn_stick(left_x, left_y, board_stick_angle(context.jet_turn, context.jet_yaw, context.jet_frame_yaw), 0.0f);
             }
             out.left_x = left_x;
             out.left_y = left_y;
@@ -584,9 +623,9 @@ public:
         set(out, context.left_ring, kPadTriangle);
 
         if (context.first_person && !context.raw_stick && !context.board) {
-            // Riding RAC-Board, about the board's heading, which it takes the stick by (as in the branch above).
+            // Riding RAC-Board, from the way the board goes toward the gaze, in RAC-Board's own frame (as in the branch above).
             if (jet) {
-                turn_stick(left_x, left_y, board_stick_turn(context.head_yaw, context.jet_yaw), 0.0f);
+                turn_stick(left_x, left_y, board_stick_angle(context.jet_turn, context.jet_yaw, context.jet_frame_yaw), 0.0f);
             } else {
                 turn_stick(left_x, left_y, context.head_yaw, context.camera_yaw);
             }
@@ -738,6 +777,17 @@ inline std::uint8_t stick_byte(float v) {
     return static_cast<std::uint8_t>(std::clamp(std::round(byte), 0.0f, 255.0f));
 }
 
+// RAC-Board's stick reading (its jak cpad_set_hw, as Jak II's): an axis straight, x (byte - 128) / 128 and y
+// (127 - byte) / 128, no dead zone of the game's (0.1.26). Through stick_byte, any sideways part, however small, reached it
+// as at least 49/128: 0.37 rad of turn, to the side its sign gave. Riding with the stick a hair off straight, the board's
+// way jumped 0.37 rad each time that sign changed (racboardhead.sim traced each tick: every quick turn of the nose began
+// on the tick the stick's x in the camera's frame changed sign), and 0.1.25's first person, turning the stick by a little
+// either way each tick, jumped it every tick: the stuttering sound a tester heard. `centre` 128 for x, 127 for the report's
+// y (down positive).
+inline std::uint8_t board_stick_byte(float v, float centre) {
+    return static_cast<std::uint8_t>(std::clamp(std::round(centre + std::clamp(v, -1.0f, 1.0f) * 127.0f), 0.0f, 255.0f));
+}
+
 // The button of each pressure byte, bytes 6..17: right, left, up, down, triangle, circle, cross,
 // square, L1, R1, L2, R2 (kbm.hpp).
 inline constexpr std::array<std::uint16_t, 12> kPressureBits = {
@@ -748,7 +798,9 @@ inline constexpr std::array<std::uint16_t, 12> kPressureBits = {
 // Into the game's report (18 bytes: buttons active low, right stick, left stick, twelve
 // pressures): the controllers' buttons held as well as a real pad's; an axis of ours off centre
 // takes that axis's place. Stick bytes run down and right: up on a stick is a low byte.
-inline void merge_report(const VirtualPad& pad, std::uint8_t* report, int size) {
+// `riding`: RAC-Board's ride, out of the menus: the left stick as RAC-Board reads it (board_stick_byte), where its x and y
+// are all of what it takes.
+inline void merge_report(const VirtualPad& pad, std::uint8_t* report, int size, bool riding = false) {
     if (size < 6) {
         return;
     }
@@ -763,8 +815,13 @@ inline void merge_report(const VirtualPad& pad, std::uint8_t* report, int size) 
     };
     axis(2, pad.right_x);
     axis(3, -pad.right_y);
-    axis(4, pad.left_x);
-    axis(5, -pad.left_y);
+    if (riding && (pad.left_x != 0.0f || pad.left_y != 0.0f)) {
+        report[4] = board_stick_byte(pad.left_x, 128.0f);
+        report[5] = board_stick_byte(-pad.left_y, 127.0f);
+    } else {
+        axis(4, pad.left_x);
+        axis(5, -pad.left_y);
+    }
     for (int i = 0; i < static_cast<int>(kPressureBits.size()) && 6 + i < size; ++i) {
         if ((pad.held & kPressureBits[i]) != 0) {
             report[6 + i] = 0xFF;

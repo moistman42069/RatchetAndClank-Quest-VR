@@ -36,8 +36,12 @@ struct XrSettings {
     bool cpu_gpu_boost = true;
     // Foveated rendering (0.1.19, the owner's ask): each eye's picture drawn at a lower resolution towards its edges,
     // where the lenses blur it anyway (GL_QCOM_texture_foveated, the Quest's graphics chip). 0 off, 1 low, 2 medium,
-    // 3 high.
+    // 3 high, 4 highest (0.1.26, Jak and Daxter Quest VR's: full detail a third of the way out).
     int foveation = 2;
+    // Sharpening (0.1.26, from Jak and Daxter Quest VR): the headset sharpens the eyes' picture as it shows it
+    // (XR_FB_composition_layer_settings, the Quest's), so a lower Eye resolution keeps its edges. 0 off, 1 normal,
+    // 2 strong (its "quality" filter).
+    int sharpen = 1;
 };
 
 // Smoother frames: an eye's motion and depth images to draw this frame (GL textures of the game's context).
@@ -62,6 +66,9 @@ struct FrameInfo {
     bool views_valid = false;
     std::int64_t display_time = 0;
     double frame_seconds = 1.0 / 72.0;
+    // The displays this frame came too late for (0.1.26, Dynamic resolution's): more than the last frame's periods (two
+    // with smoother frames) and half a period since its display time. 0 where the backend cannot tell.
+    int displays_missed = 0;
     Pose eye[2];
     float fov[2][4]{};           // left, right, up, down, radians
     Pose head;
@@ -138,6 +145,19 @@ public:
         (void)eye;
         (void)texture;
     }
+
+    // Dynamic resolution (0.1.26, from Jak and Daxter Quest VR): the size the port drew eye `eye`'s picture at this
+    // frame, from the target's corner, when it is smaller than the target; the headset shows that part, scaled to the
+    // eye. 0 by 0: the whole target. Before finish_frame.
+    virtual void eye_size(int eye, int width, int height) {
+        (void)eye;
+        (void)width;
+        (void)height;
+    }
+
+    // Show performance (0.1.26, from Jak and Daxter Quest VR): a small line low in the view (notice.h's letters, digits
+    // and ". % : /") until it is cleared with null or "".
+    virtual void show_performance(const char* text) { (void)text; }
 
     virtual void haptic(Hand hand, float strength, float seconds, float hertz) = 0;
 
